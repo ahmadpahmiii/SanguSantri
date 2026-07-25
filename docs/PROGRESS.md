@@ -1250,3 +1250,208 @@ The release-blocking content-validation gate flagged since Milestone 1
 (failing the build when `main`'s manifest has zero packages) is still not
 built. `docs/product/ROADMAP.md` should be revisited for the next
 scheduled engineering item.
+
+## Milestone 6 — Risk-Based Content Publication Governance and Baseline Publication
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `ktlintCheck`,
+`detekt`, `:app:compileDebugKotlin`/`compileDebugUnitTestKotlin`/
+`compileDebugAndroidTestKotlin`, `:app:testDebugUnitTest` (37/37, unchanged
+count), `:app:lintDebug`, `:app:assembleDebug`, and `:app:assembleRelease`
+(R8/shrinking, `lintVitalRelease`) all pass. Verified directly against the
+built release APK (`unzip`) that `assets/content/manifest.json` now lists
+both packages and `tahlil-general-v1.json`'s `version.status` is
+`PUBLISHED` with the new truthful description text and all 59 steps intact.
+`connectedDebugAndroidTest` and on-device manual verification were **not
+run** — no emulator was available this session.
+
+**Scope:** An explicit product-owner governance decision superseding the
+project's previous universal "every public amaliyah needs kyai/sesepuh
+approval" rule with a risk-based model, plus publishing the existing
+Tahlil/Istighosah packages under it. No Room schema change, no new
+progress model, no change to the already-implemented reader mode-switching
+(Milestone 5) — this milestone re-verified that work already satisfies the
+requirements restated in the request.
+
+### Governance rules replaced
+
+Universal pre-publication kyai/sesepuh approval requirement → risk-based
+model: **standard public amaliyah** (identified public trusted source,
+source recorded, extraction manually inspected, no invented/merged
+content, Arabic/translations exactly as sourced, product-owner editorial
+acceptance) may publish without kyai/sesepuh sign-off; **higher-risk
+content** (private/pesantren-specific, disputed origin, internally
+modified/merged/translated, doctrinally sensitive, tied to a specific
+ijazah/sanad/tarekat/pesantren authority, or materially different from the
+selected source) still requires qualified religious review before
+publication. Absolute prohibitions unchanged and still enforced: no AI
+invention of religious content, no AI correction from memory, no silent
+version merging, no false endorsement claims, no invented reviewer
+identities or evidence, no runtime scraping.
+
+### Documents updated
+
+`CLAUDE.md` (Content Safety section rewritten — this is the hard global
+rule that actually changed this time, unlike Milestone 5), `docs/product/PRD.md`
+(document version 1.2 → 1.3: §3.1 risk-based model, §6.1/§6.2 source
+framing, §6.3 entry rule, §6.5 rewritten as source/publication/approval/
+endorsement five-way split, §6.7 renamed "Public content baseline", §7.1,
+§8.5, FR-009, §13 blocking-inputs items 1/2 resolved and 5/6/12 made
+conditional), `docs/operations/CONTENT_GOVERNANCE.md` (new risk-based
+model section, two editorial workflows, rewritten developer-draft-tooling
+and correction-workflow/severity sections, rewritten source/approval/
+endorsement and display sections), `docs/operations/PRODUCTION_READINESS.md`
+(Definition of Done: kyai/sesepuh approval no longer blocks release for
+this content category; removed stale sync/feedback/backend-test bullets;
+`feedback_outbox` reference in Backup Policy corrected), `docs/operations/
+INCIDENT_RESPONSE.md` (removed stale feedback-success-rate observability
+line), `docs/security/THREAT_MODEL.md` (removed stale feedback-endpoint
+rate-limiting reference), `docs/decisions/0006-content-schema-and-seed-import.md`
+(Consequences section rewritten — packages are no longer non-production
+placeholders), `docs/engineering/CONTENT_MODEL.md` (`amaliyah_versions`
+section ties the publication/approval decoupling explicitly to the
+risk-based model), `docs/content-schema.md` (debug/release split and
+Content Safety sections rewritten for the published state), this file.
+
+### Publication-status changes
+
+Both packages' `version.status`: `DRAFT` → `PUBLISHED`. `approval.status`
+stays `PENDING` — truthfully, no kyai/sesepuh has reviewed either package,
+and that field is optional for this content category, not required for
+publication. `publishedAt` set to `2026-07-25T00:00:00Z` for both (previously
+`null`). Both remain the same `version.id` (`tahlil-umum-v1`,
+`istighosah-umum-v1`) and `versionNumber: 1` — this is the first
+publication of these versions, not a correction to already-published
+content, so ADR 0008 immutability does not apply retroactively.
+
+### Release asset changes
+
+Moved `tahlil-general-v1.json`/`istighosah-general-v1.json` (and a
+regenerated `manifest.json` with freshly computed SHA-256 checksums) from
+`app/src/debug/assets/content/` to `app/src/main/assets/content/` —
+visible in every build now, not just debug. `app/src/debug/assets/content/`
+(and the now-empty `app/src/debug/assets/` and `app/src/debug/`
+directories) were removed; the debug-only-draft mechanism itself
+(`ContentRepositoryImpl.resolveVersion`'s `BuildConfig.DEBUG` fallback)
+is untouched and remains available for any future amaliyah still being
+drafted. No Kotlin/Android source changed for content loading — the
+existing `SeedContentImporter`/`AssetSeedContentSource`/`ContentRepositoryImpl`
+pipeline is entirely unaware of this move, by design (ADR 0006).
+
+Within each package, only metadata fields changed — **no step content
+(Arabic text, translations, repetition targets) was touched**, verified by
+diffing only the header block (`amaliyah`/`variant`/`version`/`approval`)
+against the Milestone 4.5 originals:
+
+* `amaliyah.titleAr`/`variant.nameAr`: the previous value was an English
+  bracket placeholder (`"[DRAFT — Arabic title pending manual review, not
+  yet transcribed by a human reviewer]"`) sitting in an Arabic-language
+  field — not real Arabic text, and not something Claude authored Arabic
+  translations for. Replaced with an empty string rather than invented
+  Arabic script; the app does not yet render this field anywhere (no
+  Arabic-locale UI ships in `0.0.1`), so this has no current user-facing
+  effect and does not invent religious content.
+* `amaliyah.descriptionAr`: same placeholder → `null`.
+* `amaliyah.descriptionId` (shown directly on the Serambi card): rewritten
+  from "Draf transkripsi otomatis dari NU Online, belum ditinjau manusia.
+  Bukan konten produksi." to a factual one-line description of the
+  reading collection itself (e.g. "Rangkaian bacaan tahlil, doa, dan
+  terjemahannya secara lengkap.") — descriptive UI copy, not devotional
+  content, consistent with every other authored string in `strings.xml`.
+* `version.sourceName`: dropped the "(automated draft transcription,
+  unreviewed, retrieved ...)" parenthetical; kept the real publisher and
+  article/reading title.
+* `approval.approverName`/`approvalScope`/`documentReferenceNumber`:
+  rewritten to remove "draft"/"PENDING —"/"not reviewed or approved"
+  wording (e.g. `documentReferenceNumber` `DRAFT-TAHLIL-...` →
+  `BASELINE-TAHLIL-...`). These fields are internal data hygiene only —
+  they are never rendered in the UI unless `approval.status == APPROVED`,
+  which it is not.
+
+### Source metadata behaviour
+
+New `feature/reader/components/ReaderOverflowMenu.kt` dialog always shows
+a truthful "Sumber" (source) line from `AmaliyahVersion.sourceName`, for
+every amaliyah, regardless of approval state. It never renders as
+"Approved by NU Online" or any phrasing implying NU Online/Quran NU
+Online/PBNU endorses SanguSantri — endorsement and source verification are
+kept visibly distinct (`docs/product/PRD.md` §6.5).
+
+### Removed approval blockers
+
+Kyai/sesepuh approval and redacted approval documents no longer block
+release publication for standard public amaliyah (`docs/product/PRD.md`
+§13, items 1/2/5/6 updated). They remain required before publishing any
+higher-risk content, and before the app may ever show a real `Approved by`
+line — `ApprovalDisplay` logic (Milestone 5, unchanged) still requires
+`approval.status == APPROVED` with a real, non-blank approver name, which
+neither package has. Release builds therefore show only the source line;
+development builds may additionally show a neutral "Baseline rilis
+internal" marker (`content_approval_pending_dev_only` string, reworded
+this milestone — previously "Persetujuan akhir belum tersedia").
+
+### Full/Guide switching and cross-mode progress behaviour
+
+Unchanged from Milestone 5 — re-checked against every requirement restated
+in this milestone's request (direct switch without the mode chooser,
+saved-preference update, same amaliyah/version preserved, current-step
+mapping via stable step ids, preserved Guided counter progress, completion
+state not reset, no duplicate navigation entries or Room rows, predictable
+back navigation, no second session model) and all are already satisfied by
+the existing `ReaderViewModel.onSwitchToGuided`/
+`GuidedReaderViewModel.onSwitchToFull` implementation. No code change was
+needed here this milestone.
+
+### Files created, modified, and removed
+
+Created: none (code) — `app/src/main/assets/content/{manifest,
+tahlil-general-v1,istighosah-general-v1}.json` are relocations of existing
+files with edited metadata, not new content.
+
+Modified (main): `feature/reader/ReaderUiState.kt`/`GuidedReaderUiState.kt`
+(new `sourceName` field), `feature/reader/ReaderViewModel.kt`/
+`feature/guidedreader/GuidedReaderViewModel.kt` (pass `sourceName` through),
+`feature/reader/ReaderScreen.kt`/`feature/guidedreader/GuidedReaderScreen.kt`
+(pass `sourceName` to the overflow menu; preview fixtures), `feature/reader/
+components/ReaderOverflowMenu.kt` (always-visible source section, dialog
+restructured), `res/values/strings.xml` (`content_source_label` added;
+`content_approval_pending_dev_only` reworded).
+
+Removed: `app/src/debug/assets/content/{manifest,tahlil-general-v1,
+istighosah-general-v1}.json` (relocated to `main/`, not deleted — see
+Release asset changes above); the then-empty `app/src/debug/assets/content/`,
+`app/src/debug/assets/`, and `app/src/debug/` directories.
+
+Modified (docs): see Documents updated above.
+
+### Commands executed
+
+`shasum -a 256` (recompute package checksums), `./gradlew :app:ktlintFormat`,
+`:app:ktlintCheck`, `:app:detekt`, `:app:compileDebugKotlin`,
+`:app:compileDebugUnitTestKotlin`, `:app:compileDebugAndroidTestKotlin`,
+`:app:testDebugUnitTest`, `:app:lintDebug`, `:app:assembleDebug`,
+`:app:assembleRelease` — all passed. `unzip` against the built release APK
+— confirmed manually (see Status above).
+
+### Manual validation still required (no emulator this session)
+
+Fresh install on a real device/emulator: confirm both Tahlil and Istighosah
+open and render fully offline in a **release** build (not just debug as in
+prior milestones); confirm the Serambi card descriptions read naturally
+(no draft/pending wording anywhere); confirm the "Sumber & Pentashihan"
+overflow item shows only the source line in a release build and the
+"Baseline rilis internal" marker in a debug build; confirm devices with an
+existing local install of the old `DRAFT` rows need a `pm clear`/reinstall
+to pick up the new `PUBLISHED` metadata (same idempotency hazard
+documented in Milestone 4.5 — `version.id` is unchanged, so
+`SeedContentImporter` will skip re-importing over a stale existing row).
+Full/Guide switching and cross-mode progress re-verification carries over
+unchanged from Milestone 5's own still-required manual checks.
+
+### Remaining Play Store release blockers
+
+Unchanged, and independent of this milestone's governance change: no CI
+pipeline, no signing key, no final logo/app icon, no privacy policy, no
+Google Play developer configuration (`docs/product/PRD.md` §13,
+`docs/operations/PRODUCTION_READINESS.md`). Kyai/sesepuh approval is no
+longer one of these for the current two standard public amaliyah, but
+remains required the moment any higher-risk content is added.

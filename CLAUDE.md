@@ -62,13 +62,34 @@ Claude must not:
 * Add Latin transliteration to any amaliyah content.
 * Automatically scrape and publish religious content.
 * Correct religious content based solely on AI judgement.
-* Claim that content has been approved.
-* Modify approved content in place — corrections create a new version
+* Claim that a kyai, sesepuh, or other religious authority approved content
+  when none did, or imply institutional endorsement (e.g. by NU/PBNU or a
+  source publisher) that does not exist in writing.
+* Silently merge different content versions together.
+* Modify a published version in place — corrections create a new version
   (ADR 0008).
 
-Development fixtures must be clearly labelled non-production and must never
-reach the release build. Production religious content requires an external
-kyai or sesepuh approval (`docs/operations/CONTENT_GOVERNANCE.md`).
+Development fixtures used only to prove a feature works (bracketed
+placeholder text, `[FIXTURE]`-style markers) must be clearly labelled
+non-production and must never reach the release build.
+
+**Content publication follows a risk-based model** (product-owner decision,
+superseding the previous universal-approval rule; full detail:
+`docs/operations/CONTENT_GOVERNANCE.md`, `docs/product/PRD.md` §3.1):
+standard, commonly practised public amaliyah from an identified, publicly
+accessible, trusted editorial source — with the source URL/publisher
+recorded, extraction manually inspected for structural problems, and
+Arabic text/translations kept exactly as sourced — may be published on the
+product owner's explicit editorial acceptance alone; kyai/sesepuh sign-off
+is optional for this category, not mandatory. Kyai, ustaz, sesepuh, or
+other qualified religious review remains required for higher-risk content:
+private/pesantren-specific, unclear or disputed origin, manually modified
+beyond formatting, compiled by merging versions, internally translated,
+doctrinally sensitive, or tied to a specific ijazah/sanad/tarekat/pesantren
+authority. Publication status, source verification, internal editorial
+acceptance, religious-authority approval, and institutional endorsement are
+five distinct concepts — never collapse one into another in UI text or
+documentation.
 
 ## Working method
 

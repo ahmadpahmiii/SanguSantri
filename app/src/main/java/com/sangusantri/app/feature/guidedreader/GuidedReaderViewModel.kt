@@ -359,6 +359,7 @@ constructor(
                         continueEnabled = isStepContinueEnabled(step, counts),
                         allRequiredCountersComplete = allRequiredCountersComplete(steps, counts),
                         isCompleted = completedAt != null,
+                        sourceName = detail.version.sourceName,
                         approval = detail.approval,
                     )
                 }

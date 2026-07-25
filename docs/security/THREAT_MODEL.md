@@ -39,10 +39,11 @@ with no corresponding benefit.
 
 ## Brute-force protection beyond basic API rate limiting
 
-**Deferred until `0.1.0`/`0.2.0`** (login, invitation codes). Basic rate
-limiting (already scoped for the feedback endpoint,
-`docs/engineering/ARCHITECTURE.md`) is sufficient for the current
-account-free surface.
+**Deferred until `0.1.0`/`0.2.0`** (login, invitation codes). There is no
+feedback endpoint or any other network-facing endpoint in `0.0.1`
+(`docs/product/PRD.md` FR-012) — the account-free, backend-free surface
+has no brute-force target yet. Revisit once the first real network-facing
+surface (login, invitation codes) actually exists.
 
 ## Why this document exists
 

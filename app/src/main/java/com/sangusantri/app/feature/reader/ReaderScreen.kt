@@ -116,6 +116,7 @@ fun ReaderScreen(
                         ReaderOverflowMenu(
                             switchModeLabel = stringResource(R.string.reader_switch_to_guided_action),
                             onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
+                            sourceName = uiState.sourceName,
                             approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
                         )
                     }
@@ -253,6 +254,7 @@ private fun previewContentState(settings: ReaderSettings = ReaderSettings()) =
         settings = settings,
         initialItemIndex = 0,
         initialItemOffset = 0,
+        sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
         approval = previewApproval,
     )
 

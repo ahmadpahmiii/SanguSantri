@@ -65,6 +65,7 @@
   <string name="reader_switch_to_guided_action">Beralih ke Panduan</string>
   <string name="reader_switch_to_full_action">Beralih ke Bacaan Lengkap</string>
   <string name="content_approval_menu_action">Sumber &amp; Pentashihan</string>
+  <string name="content_source_label">Sumber</string>
   <string name="content_approved_by_label">Disetujui oleh</string>
-  <string name="content_approval_pending_dev_only">Persetujuan akhir belum tersedia (build pengembangan).</string>
+  <string name="content_approval_pending_dev_only">Baseline rilis internal (build pengembangan).</string>
 </resources>

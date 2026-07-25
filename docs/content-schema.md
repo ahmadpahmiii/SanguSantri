@@ -5,32 +5,42 @@ FR-001), from one of two Android asset source sets. This is the only place
 Arabic/Indonesian amaliyah text may live — never inside Kotlin source (PRD
 12.2, CLAUDE.md).
 
-## Layout and debug/release split (Milestone 4.5)
+## Layout and debug/release split (introduced Milestone 4.5, published Milestone 6)
 
 Android merges asset source sets per build type; a file at the same relative
 path in `debug` wins over `main` for debug builds, and `main` alone is used
-for release. This project uses that to keep unapproved `DRAFT` content out
-of release builds entirely, per CLAUDE.md's debug content policy:
+for release. This project uses that to keep any *unapproved* draft content
+out of release builds while it is still being prepared, per CLAUDE.md's
+debug content policy:
 
 ```text
-app/src/main/assets/content/     # production-approved content only (currently empty:
-├── manifest.json                # packages: [] — nothing is approved yet)
-│
-app/src/debug/assets/content/    # development-only DRAFT content; debug builds only
-├── manifest.json
-├── tahlil-general-v1.json
-└── istighosah-general-v1.json
+app/src/main/assets/content/     # published content, visible in every build
+├── manifest.json                # packages: [tahlil-general-v1, istighosah-general-v1]
+├── tahlil-general-v1.json       # status: PUBLISHED (Milestone 6 baseline)
+└── istighosah-general-v1.json   # status: PUBLISHED (Milestone 6 baseline)
+
+app/src/debug/assets/content/    # currently empty — reserved for a future
+                                  # package still being drafted/reviewed,
+                                  # not yet accepted for publication
 ```
+
+Tahlil and Istighosah moved from `debug/` to `main/` in Milestone 6: both
+are now the product owner's accepted, published `0.0.1` content baseline
+(standard public amaliyah, `docs/product/PRD.md` §3.1, §6.7), so they are
+visible in release builds like any other published content — no debug-only
+override is needed for them anymore. The debug/release split mechanism
+itself remains available for a future amaliyah still being drafted and not
+yet accepted.
 
 `SeedContentImporter`/`AssetSeedContentSource` are unaware of this split —
 they just read whatever `content/manifest.json` the build merged in. There
 is no `DRAFT`-vs-`PUBLISHED` special-casing in the importer itself; the
-importer accepts `DRAFT` packages exactly like any other status, structural
-validity is all it checks. Debug-only visibility of `DRAFT` content once
-imported into Room is a repository-layer concern — see
-`ContentRepositoryImpl.resolveVersion` (`BuildConfig.DEBUG` fallback to the
-latest non-revoked version when no `PUBLISHED` version exists; release
-builds only ever resolve `PUBLISHED`).
+importer accepts a package at any `version.status` exactly the same way,
+structural validity is all it checks. Whether a `DRAFT` package (should one
+exist in the future) is visible once imported into Room is a
+repository-layer concern — see `ContentRepositoryImpl.resolveVersion`
+(`BuildConfig.DEBUG` fallback to the latest non-revoked version when no
+`PUBLISHED` version exists; release builds only ever resolve `PUBLISHED`).
 
 ## `manifest.json`
 
@@ -145,14 +155,19 @@ block or partially corrupt another (PRD 12.4).
 
 ## Content safety
 
-The packages currently bundled under `app/src/debug/assets/content/`
-(Tahlil, Istighosah) are **development, unapproved drafts** — automated
-transcriptions from `tools/content-importer/`, not manually reviewed or
-kyai/sesepuh-approved. `version.status`/`approval.status` are `DRAFT`/
-`PENDING`, never `APPROVED`, and Claude must not invent or transcribe
-religious text (CLAUDE.md, PRD 6.3, 25). Because they live only in the
-`debug` asset source set (see above), they never reach a release build.
-Production content requires kyai/sesepuh-approved packages placed under
-`app/src/main/assets/content/` by the content team; a release-blocking
-validation gate (failing the build when `main`'s manifest has zero packages)
-is not yet implemented — tracked as a follow-up, not silently skipped.
+The packages bundled under `app/src/main/assets/content/` (Tahlil,
+Istighosah) are transcriptions from `tools/content-importer/` against
+identified, publicly accessible sources (NU Online, Quran NU Online),
+manually inspected for structural problems and explicitly accepted by the
+product owner as the `0.0.1` published release baseline — standard public
+amaliyah under the risk-based publication model
+(`docs/product/PRD.md` §3.1, `docs/operations/CONTENT_GOVERNANCE.md`).
+`version.status` is `PUBLISHED`. `approval.status` (religious-authority
+approval) remains `PENDING` — optional for this content category, not
+required for publication — and the app must never present it as if a
+kyai/sesepuh had approved it. Claude must not invent or transcribe
+religious text from memory (CLAUDE.md, PRD §6.3); both packages' Arabic
+text and translations remain exactly as extracted from their source.
+Any future package still being drafted and not yet accepted for
+publication belongs under `app/src/debug/assets/content/` instead (see
+above), so it never reaches a release build before that decision is made.

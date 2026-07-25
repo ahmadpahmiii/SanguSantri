@@ -238,6 +238,7 @@ constructor(
                         settings = settings,
                         initialItemIndex = restoredPosition.itemIndex,
                         initialItemOffset = restoredPosition.itemOffset,
+                        sourceName = detail.version.sourceName,
                         approval = detail.approval,
                     )
             }

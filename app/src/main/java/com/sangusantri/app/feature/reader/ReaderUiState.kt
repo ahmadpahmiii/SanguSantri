@@ -15,6 +15,7 @@ sealed interface ReaderUiState {
         val settings: ReaderSettings,
         val initialItemIndex: Int,
         val initialItemOffset: Int,
+        val sourceName: String,
         val approval: Approval,
     ) : ReaderUiState
 

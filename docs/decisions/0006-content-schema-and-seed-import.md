@@ -49,13 +49,17 @@ every launch without duplicating or corrupting local data.
 - Adding a variant field later still requires touching three files (DTO,
   entity, domain model) even though they're structurally distinct — accepted
   as the cost of PRD 13.5's boundary-duplication rule.
-- The bundled Tahlil/Istighosah fixtures are **non-production placeholders**:
-  every Arabic/Indonesian text field is a bracketed placeholder, `version.status`
-  is `DRAFT`, and `approval.status` is `PENDING` — the app must never present
-  this as approved content. A release-blocking validation gate that fails the
-  build when only such fixtures are bundled is **not yet implemented**;
-  tracked as a follow-up, not silently skipped (PRD 6.3, 25).
-- `getLatestPublishedForVariant` only returns `PUBLISHED` versions, so the
-  current fixtures are importable and queryable but intentionally invisible
-  to any future "default active version" read — consistent with never
-  claiming unapproved content is approved.
+- **Updated, Milestone 6.** The bundled Tahlil/Istighosah packages are no
+  longer non-production placeholders: both are real, NU Online/Quran NU
+  Online-sourced content, explicitly accepted by the product owner as the
+  `0.0.1` published release baseline under the risk-based publication model
+  (`docs/product/PRD.md` §3.1, `docs/operations/CONTENT_GOVERNANCE.md`).
+  `version.status` is `PUBLISHED`. `approval.status` (religious-authority
+  approval) remains `PENDING` — optional for this standard-public-amaliyah
+  content category, mandatory only for higher-risk content — and the app
+  must never present it as if a kyai/sesepuh had signed off.
+- `getLatestPublishedForVariant` only returns `PUBLISHED` versions. This is
+  now how both bundled packages are resolved in every build (debug and
+  release) — the previous `BuildConfig.DEBUG`-only fallback
+  (`ContentRepositoryImpl.resolveVersion`) remains in place for any future
+  content still in draft, but is no longer needed for Tahlil/Istighosah.

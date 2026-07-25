@@ -31,9 +31,10 @@ propagated, not just whether the manifest says it should have.
 ## Backend observability (once backend exists)
 
 Structured logs, request IDs, API latency, error rates, content sync
-success rate, feedback submission success rate. Do not record Arabic
-reading text, counter values, or personal devotional history in logs or
-analytics (`docs/security/PRIVACY.md`).
+success rate. There is no feedback feature (`docs/product/PRD.md` FR-012)
+to track a submission success rate for. Do not record Arabic reading text,
+counter values, or personal devotional history in logs or analytics
+(`docs/security/PRIVACY.md`).
 
 ## Reliability and recovery testing
 

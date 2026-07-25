@@ -21,6 +21,7 @@ sealed interface GuidedReaderUiState {
         val continueEnabled: Boolean,
         val allRequiredCountersComplete: Boolean,
         val isCompleted: Boolean,
+        val sourceName: String,
         val approval: Approval,
     ) : GuidedReaderUiState
 

@@ -80,9 +80,16 @@ Statuses: `DRAFT`, `IN_REVIEW`, `APPROVED`, `PUBLISHED`, `REVOKED`.
 fields, not coupled into one enum: `status` controls whether the app can
 display a version at all (`ContentRepositoryImpl.resolveVersion`'s
 `PUBLISHED`-first, debug-only-fallback logic — `docs/content-schema.md`),
-while `approvals.status` controls only what the compact approval status
-shows. A version can be readable (debug fallback) before it is approved;
-the UI never conflates the two.
+while `approvals.status` controls only what the compact `Approved by`
+status shows. A version can be, and as of Milestone 6 genuinely is,
+`PUBLISHED` (readable in every build) while its `approvals.status` stays
+`PENDING` (no religious-authority sign-off) — this is the mechanism behind
+the risk-based publication model (`docs/product/PRD.md` §3.1,
+`docs/operations/CONTENT_GOVERNANCE.md`): standard public amaliyah publish
+on `status = PUBLISHED` alone, while `approvals.status = APPROVED` remains
+reserved for genuine kyai/sesepuh sign-off, mandatory only for higher-risk
+content. The UI never conflates the two, and never infers one from the
+other.
 
 ### `amaliyah_steps`
 

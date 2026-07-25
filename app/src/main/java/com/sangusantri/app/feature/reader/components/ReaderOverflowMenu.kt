@@ -25,20 +25,23 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.feature.reader.ApprovalDisplay
 
 /**
- * Shared reader top-bar overflow menu (Milestone 5, FR-016): the mode-switch action, plus a compact
- * "Sumber & Pentashihan" approval status when one is available to show (PRD 6.5). Deliberately not
- * visually dominant — an overflow action, never a bottom navigation bar or a card.
+ * Shared reader top-bar overflow menu (Milestone 5 FR-016, Milestone 6 source/approval split): the
+ * mode-switch action, plus a compact "Sumber & Pentashihan" info dialog. Source attribution is
+ * always shown, truthfully, for every amaliyah (PRD 6.5) — the compact `Approved by` line appears
+ * only when real religious-authority approval metadata exists; neither is ever fabricated.
+ * Deliberately not visually dominant — an overflow action, never a bottom navigation bar or a card.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderOverflowMenu(
     switchModeLabel: String,
     onSwitchMode: () -> Unit,
+    sourceName: String,
     approvalDisplay: ApprovalDisplay,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var showApprovalInfo by remember { mutableStateOf(false) }
+    var showSourceInfo by remember { mutableStateOf(false) }
 
     IconButton(onClick = { expanded = true }, modifier = modifier) {
         Icon(
@@ -55,24 +58,27 @@ fun ReaderOverflowMenu(
                 onSwitchMode()
             },
         )
-        if (approvalDisplay != ApprovalDisplay.Hidden) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.content_approval_menu_action)) },
-                onClick = {
-                    expanded = false
-                    showApprovalInfo = true
-                },
-            )
-        }
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.content_approval_menu_action)) },
+            onClick = {
+                expanded = false
+                showSourceInfo = true
+            },
+        )
     }
 
-    if (showApprovalInfo) {
-        ApprovalInfoDialog(approvalDisplay = approvalDisplay, onDismiss = { showApprovalInfo = false })
+    if (showSourceInfo) {
+        SourceAndApprovalInfoDialog(
+            sourceName = sourceName,
+            approvalDisplay = approvalDisplay,
+            onDismiss = { showSourceInfo = false },
+        )
     }
 }
 
 @Composable
-private fun ApprovalInfoDialog(
+private fun SourceAndApprovalInfoDialog(
+    sourceName: String,
     approvalDisplay: ApprovalDisplay,
     onDismiss: () -> Unit,
 ) {
@@ -80,12 +86,22 @@ private fun ApprovalInfoDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.content_approval_menu_action)) },
         text = {
-            when (approvalDisplay) {
-                is ApprovalDisplay.Approved ->
-                    Column {
+            Column {
+                Text(
+                    text = stringResource(R.string.content_source_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = sourceName,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
+                )
+                when (approvalDisplay) {
+                    is ApprovalDisplay.Approved -> {
                         Text(
                             text = stringResource(R.string.content_approved_by_label),
                             style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = SanguSantriSpacing.small),
                         )
                         Text(
                             text = approvalDisplay.approverLabel,
@@ -94,13 +110,15 @@ private fun ApprovalInfoDialog(
                         )
                     }
 
-                ApprovalDisplay.Pending ->
-                    Text(
-                        text = stringResource(R.string.content_approval_pending_dev_only),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    ApprovalDisplay.Pending ->
+                        Text(
+                            text = stringResource(R.string.content_approval_pending_dev_only),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = SanguSantriSpacing.small),
+                        )
 
-                ApprovalDisplay.Hidden -> Unit
+                    ApprovalDisplay.Hidden -> Unit
+                }
             }
         },
         confirmButton = {

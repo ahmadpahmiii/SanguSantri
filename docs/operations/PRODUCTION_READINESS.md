@@ -16,9 +16,13 @@ not need.
 Release `0.0.1` is complete only when:
 
 * Tahlil and Istighosah content are fully entered, both with complete
-  harakat, Indonesian translations by ayah/segment, documented sources, and
-  kyai/sesepuh approval; approval documents are available; content usage
-  rights have been reviewed; no placeholder content remains in the release.
+  harakat, Indonesian translations by ayah/segment, and documented sources;
+  content usage rights have been reviewed; no placeholder/draft-labelled
+  content remains in the release. Both are published, product-owner-accepted
+  standard public amaliyah (`docs/product/PRD.md` §3.1, §6.7) —
+  kyai/sesepuh approval and approval documents are **not** required for this
+  category and do not block release, but remain required before publishing
+  any higher-risk content.
 * Fresh offline installation works; full reader works; guided reader
   works; automatic and manual progression work.
 * Counter progress and reading position survive process death; reader
@@ -26,11 +30,10 @@ Release `0.0.1` is complete only when:
 * Indonesian localisation is complete; Arabic localisation and RTL are
   complete.
 * Portrait, landscape, and tablet layouts work.
-* Synchronisation is non-blocking; invalid downloads do not replace local
-  content; previous versions remain accessible.
-* Feedback works offline and online.
-* Android tests pass; backend tests pass; a clean checkout builds
-  successfully.
+* Previous versions remain accessible locally (FR-011). Remote content
+  synchronisation is not part of `0.0.1` (FR-010) — not a release blocker.
+* Android tests pass; a clean checkout builds successfully. No backend
+  exists in `0.0.1`, so no backend tests apply.
 * Privacy policy exists; store listing assets exist; final logo and app
   icon exist.
 * No critical or high-severity known defect remains.
@@ -67,12 +70,11 @@ Release `0.0.1` is complete only when:
 ## Backup policy
 
 Room's default Android Auto Backup is currently unscoped — `backup_rules.xml`
-and `data_extraction_rules.xml` are still the unmodified template. This is
-correctly not urgent today: the only entities that exist are content tables
-(public, non-sensitive) and `app_metadata`. **Before** `reading_sessions`,
-`step_progress`, or `feedback_outbox` ship, scope these files to exclude
-those tables from cloud backup — reading/counter progress and pending
-feedback are local-only by design (`docs/security/PRIVACY.md`) and must not
+and `data_extraction_rules.xml` are still the unmodified template.
+`reading_positions`, `guided_reading_sessions`, and `step_progress` already
+exist (Milestones 3–4); scope these files to exclude those tables from
+cloud backup — reading/counter progress is local-only by design
+(`docs/security/PRIVACY.md`) and must not
 silently leave the device via Auto Backup.
 
 ## Cost and quota alerts

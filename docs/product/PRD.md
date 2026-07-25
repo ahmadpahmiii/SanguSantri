@@ -1,9 +1,15 @@
 # SanguSantri Product Requirements Document
 
-**Document version:** 1.2 — Milestone 5 scope correction: removed public
-feedback (`Koreksi Bacaan`), remote content synchronisation, and the Go
-backend from `0.0.1`; simplified approval to a compact `Approved by` status;
-added the in-reader mode-switch requirement (FR-016).
+**Document version:** 1.3 — Milestone 6 product-owner governance decision:
+replaced the universal kyai/sesepuh-approval-before-publication rule with a
+risk-based model (§3.1); standard public amaliyah (Tahlil, Istighosah as
+currently packaged) may publish on product-owner editorial acceptance
+alone; kyai/sesepuh review remains mandatory for higher-risk content;
+publication status, source verification, editorial acceptance,
+religious-authority approval, and institutional endorsement are five
+distinct concepts (§6.5). Supersedes version 1.2's Milestone 5 scope
+correction (public feedback, remote sync, and the Go backend removed from
+`0.0.1`; in-reader mode-switch requirement, FR-016), which stays in effect.
 **Product:** SanguSantri
 **Initial release:** Android `0.0.1`
 **Package name:** `com.sangusantri.app`
@@ -113,14 +119,41 @@ Future restricted users:
 
 ## 3.1 Religious accuracy before content volume
 
-No public religious content may be published without:
+Content publication uses a risk-based model (product-owner decision,
+Milestone 6; supersedes this document's earlier universal-approval rule).
+Full editorial workflow for both categories:
+`docs/operations/CONTENT_GOVERNANCE.md`.
 
-* A documented source.
-* Manual verification.
-* Approval from an appointed kyai or sesepuh.
-* An approval record visible to users.
+**Standard public amaliyah** — commonly practised, publicly recited
+content sourced from an identified, publicly accessible, trusted editorial
+source — may be published when:
 
-Full editorial and approval workflow: `docs/operations/CONTENT_GOVERNANCE.md`.
+* It comes from an identified, publicly accessible, trusted editorial
+  source, with the source URL and publisher recorded.
+* Extraction results have been manually inspected for structural problems.
+* No content was invented by AI; no different versions were silently
+  merged.
+* Arabic text and translations remain exactly as sourced.
+* The product owner explicitly accepts the package as the release
+  baseline.
+
+For this category, kyai/sesepuh sign-off is optional, not mandatory —
+internal editorial acceptance by the product owner is sufficient for
+publication. Tahlil (Umum) and Istighosah (Umum) as currently packaged
+qualify as standard public amaliyah (§6.7).
+
+**Higher-risk content** still requires kyai, ustaz, sesepuh, or other
+qualified religious review before publication: private or
+pesantren-specific content, content from an unclear or disputed origin,
+content manually modified beyond formatting, content compiled by merging
+multiple versions, internally translated content, doctrinally sensitive
+content, or content associated with a specific ijazah, sanad, tarekat, or
+pesantren authority.
+
+Regardless of category, publication status, source verification, internal
+editorial acceptance, religious-authority approval, and institutional
+endorsement remain five distinct concepts, never collapsed into one
+another (§6.5).
 
 ## 3.2 Offline by default
 
@@ -278,10 +311,10 @@ Release `0.0.1` does not include:
   `0.0.1` ships fully local and offline-first.
 * A full pentashihan (content-approval) workflow, checksum display, raw
   approval documents, internal reviewer identity, or other detailed
-  content-governance data inside the normal app UI. Users see only a
-  compact `Approved by` status (§6.5); the underlying editorial and
-  approval workflow remains an internal, non-user-facing operation
-  (`docs/operations/CONTENT_GOVERNANCE.md`).
+  content-governance data inside the normal app UI. Users see only compact
+  source attribution and, when it exists, a compact `Approved by` status
+  (§6.5); the underlying editorial workflow remains an internal,
+  non-user-facing operation (`docs/operations/CONTENT_GOVERNANCE.md`).
 
 The data model may support future variants, but the `0.0.1` interface
 exposes only one default general variant for each amaliyah.
@@ -294,27 +327,31 @@ exposes only one default general variant for each amaliyah.
 
 Displayed title: **Tahlil**. Variant: **Umum**.
 
-Initial editorial reference: NU Online's "Bacaan Tahlil Singkat, Lengkap
-dengan Doa dan Terjemahannya." The article presents an ordered Tahlil
-sequence including Arabic readings, repetition counts, prayers, and
-Indonesian translations. It must be used as an editorial reference, not
-automatically scraped into production.
+Editorial source: NU Online's "Bacaan Tahlil Singkat, Lengkap dengan Doa
+dan Terjemahannya." The article presents an ordered Tahlil sequence
+including Arabic readings, repetition counts, prayers, and Indonesian
+translations. Automatic runtime scraping into production remains
+prohibited (§5.2) — the shipped package was produced by the developer-only
+tool below and then explicitly accepted by the product owner as the
+`0.0.1` release baseline (§3.1, §6.7), the standard-public-amaliyah path,
+not the higher-risk path.
 
 A developer-only tool (`tools/content-importer/`, see
 `docs/operations/CONTENT_GOVERNANCE.md`) converts a locally saved snapshot of
 this article into a structured JSON draft compatible with the seed content
-schema, for manual review only. The tool never publishes content
-automatically and never runs at application runtime — it produces a `DRAFT`
-that still requires manual transcription review and kyai/sesepuh approval
-before it may become production content (§6.3).
+schema. The tool never publishes content automatically and never runs at
+application runtime — it only ever produces a candidate draft; promoting
+that draft to the published release baseline is the product owner's
+editorial-acceptance decision (§6.3), not something the tool or Claude
+does unilaterally.
 
 ## 6.2 Istighosah
 
 Displayed title: **Istighosah**. Variant: **Umum**.
 
-Proposed initial editorial reference: the KH Romli Tamim Istighosah
-collection available through Quran NU Online. This source remains subject to
-selection and approval by the assigned kyai or sesepuh.
+Editorial source: the KH Romli Tamim Istighosah reading available through
+Quran NU Online (`https://quran.nu.or.id/doa/istighotsah-mujahadah`,
+reading 1 of 7). Same standard-public-amaliyah acceptance path as §6.1.
 
 ## 6.3 Content entry rule
 
@@ -327,11 +364,17 @@ Claude MUST NOT:
 * Correct religious content based solely on AI judgement.
 * Merge different versions without written instruction.
 * Add Latin transliteration.
+* Claim kyai/sesepuh approval or institutional endorsement that does not
+  exist.
 
 Content must be entered into structured content files by the product or
-content team. Development fixtures may use clearly marked sample text, but
-fixtures must never enter the release build, and the release build must fail
-validation when approved production content is missing.
+content team, and Arabic text/translations must remain exactly as sourced.
+Publication of a specific package as the release baseline is the product
+owner's explicit editorial-acceptance decision — see §3.1 for which
+category (standard vs. higher-risk) a given package falls into. Development
+fixtures used purely to exercise a feature (bracketed placeholder text,
+never a real source) must be clearly marked and must never enter the
+release build.
 
 ## 6.4 Quran content
 
@@ -348,36 +391,60 @@ Fatihah inside Tahlil); its text is entered and versioned as part of that
 amaliyah's approved content package, the same as any other step, never
 fetched from a separate Quran API or service at runtime.
 
-## 6.5 Approval (user-facing, compact)
+## 6.5 Source, publication, and approval (user-facing, compact)
 
-Content review and correction are internal SanguSantri-team operations
-(§6.7). Users do not submit corrections and do not participate in the
-approval workflow — approval is a deployment/content-operations gate, not a
-user-facing feature. The application's normal UI exposes only a compact
-public status, sourced from structured content metadata, never invented:
+Five concepts stay distinct in both the data model and the UI — never
+collapsed into one another:
+
+* **Publication status** — whether the app can display a version at all
+  (`AmaliyahVersionStatus`, `docs/engineering/CONTENT_MODEL.md`).
+* **Source verification** — the identified public source a package was
+  transcribed from (`sourceName`/`sourceReference`).
+* **Internal editorial acceptance** — the product owner's decision to
+  publish a standard public amaliyah package (§3.1).
+* **Religious-authority approval** — a kyai/sesepuh/qualified reviewer's
+  sign-off, mandatory only for higher-risk content (§3.1).
+* **Institutional endorsement** — a source publisher's (e.g. NU/PBNU)
+  endorsement of SanguSantri itself, which does not exist and must never be
+  implied.
+
+The application's normal UI always shows truthful, compact source
+attribution:
+
+```text
+Sumber
+NU Online
+```
+
+It never shows `Approved by NU Online` or any other implied institutional
+endorsement — the source publisher has not approved or endorsed
+SanguSantri. Separately, the UI shows a compact `Approved by` line only
+when real religious-authority approval metadata exists:
 
 ```text
 Approved by
-<approver name or institution>
+<real reviewer name or institution>
 ```
 
 Rules:
 
-* When a content version's approval metadata is valid (status `APPROVED`
-  with a real approver name), the app displays `Approved by` and the
-  approver/institution name.
-* While final approval metadata has not been supplied, the app displays a
-  neutral internal status such as "Persetujuan akhir belum tersedia" only in
-  development builds. Release builds never display a fake or placeholder
-  approval status.
+* Source attribution (publisher/source name) is always shown for every
+  amaliyah, sourced from structured content metadata, never invented.
+* `Approved by` is shown only when a content version's approval metadata is
+  genuinely valid (status `APPROVED` with a real approver name) — this
+  field is optional for standard public amaliyah (§3.1) and does not block
+  publication.
+* Release builds never show `DRAFT`, `PENDING`, or other internal
+  engineering status wording. Development builds may show a neutral
+  internal marker such as "Baseline rilis internal" when no
+  religious-authority approval has been recorded yet — never an alarming
+  or unprofessional string.
 * An optional future detail action may show approval evidence (e.g. a
-  signed letter or approval sheet reference). This is not required for
-  `0.0.1` and does not include document upload, PDF viewing, or a CMS.
-* Approval verifies the accuracy of the specified content version only. It
-  must not be presented as institutional endorsement of the entire
+  signed letter or approval sheet reference) once it exists. Not required
+  for `0.0.1`; does not include document upload, PDF viewing, or a CMS.
+* Approval, when present, verifies the accuracy of the specified content
+  version only — never institutional endorsement of the entire
   SanguSantri application unless such endorsement exists in writing.
-* Final public deployment requires real approver metadata and a real
-  approval-evidence reference (§13).
 
 Full internal approval record fields (approver role, institution, approval
 date, document reference number, internal reviewer name, checksum) remain
@@ -392,17 +459,21 @@ content-operations team, never bundled with the app and never displayed in
 the reader. Full editorial, approval, and revocation process:
 `docs/operations/CONTENT_GOVERNANCE.md`.
 
-## 6.7 Release-candidate content baseline
+## 6.7 Public content baseline
 
 Release `0.0.1`'s bundled Tahlil (59 ordered steps) and Istighosah (27
-ordered steps) are fixed local release-candidate packages, loaded through
-the existing canonical content model in both debug and release builds,
-fully offline. They are not reparsed or rewritten during normal Android
-builds; the developer-only `tools/content-importer/` remains available as a
+ordered steps) are the product owner's accepted, published `0.0.1` content
+baseline (§3.1, standard public amaliyah path) — loaded through the
+existing canonical content model in both debug and release builds, fully
+offline. They are not reparsed or rewritten during normal Android builds;
+the developer-only `tools/content-importer/` remains available as a
 separate tool for preparing future content updates, never invoked at
-runtime. Neither package may be presented as finally approved until real
-kyai/sesepuh approval metadata is supplied (§6.5, §13) — see
-`docs/operations/CONTENT_GOVERNANCE.md` for the internal review process.
+runtime. Neither package carries kyai/sesepuh religious-authority approval
+today (that field remains optional for this content category); neither may
+ever be presented as carrying such approval or as endorsed by NU/PBNU/Quran
+NU Online unless that genuinely exists in writing — see
+`docs/operations/CONTENT_GOVERNANCE.md` for the acceptance process actually
+followed.
 
 ---
 
@@ -412,9 +483,9 @@ kyai/sesepuh approval metadata is supplied (§6.5, §13) — see
 
 Release `0.0.1` uses the following destinations: Bootstrap, Serambi, Reader
 mode selection, Amaliyah reader (Bacaan Lengkap or Panduan, switchable
-in-place — §8.4a), Reader settings, About SanguSantri. A compact approval
-status ("Approved by") is shown from within the reader itself, not as a
-separate destination (§6.5).
+in-place — §8.4a), Reader settings, About SanguSantri. Compact source
+attribution, and a compact `Approved by` status when one exists, are shown
+from within the reader itself, not as a separate destination (§6.5).
 
 A bottom navigation bar is not required for `0.0.1`. The number of
 destinations does not justify permanent bottom navigation.
@@ -507,16 +578,19 @@ rather than transliterated Indonesian terminology.
 
 1. User opens the overflow menu inside the reader.
 2. User selects **Sumber & Pentashihan**.
-3. Application displays the compact `Approved by` status (§6.5) — approver
-   or institution name when valid approval metadata exists, or a
-   development-only pending status otherwise.
-4. An optional future detail action may show approval evidence; not built
+3. Application always displays truthful, compact source attribution
+   (publisher/source name, §6.5).
+4. Application additionally displays the compact `Approved by` status only
+   when valid religious-authority approval metadata exists; otherwise
+   nothing approval-related is shown in release builds (a neutral
+   development-only marker may appear in debug builds — §6.5).
+5. An optional future detail action may show approval evidence; not built
    in `0.0.1`.
 
 No account is required. Content correction is an internal SanguSantri-team
 operation (§6.7, `docs/operations/CONTENT_GOVERNANCE.md`) — users do not
-submit corrections or participate in the approval workflow through the
-application.
+submit corrections or participate in any religious-authority approval
+workflow through the application.
 
 ---
 
@@ -596,13 +670,18 @@ when practical.
 
 ## FR-009: Content details (compact)
 
-Every displayed amaliyah MUST expose a compact `Approved by` status (§6.5),
-sourced from the content version's structured approval metadata, never
-invented. The application MUST NOT display fake approver names, fake
-approval dates, or fabricated approval evidence. A content item's
-publication/readability status (whether the app can display it at all) and
-its approval metadata (what `Approved by` shows) are controlled
-independently — see `docs/engineering/CONTENT_MODEL.md`.
+Every displayed amaliyah MUST expose compact, truthful source attribution
+(§6.5), sourced from the content version's structured `sourceName`
+metadata, never invented. Every displayed amaliyah MAY additionally expose
+a compact `Approved by` status when — and only when — valid
+religious-authority approval metadata exists; this is optional for standard
+public amaliyah (§3.1) and MUST NOT block publication. The application MUST
+NOT display fake approver names, fake approval dates, fabricated approval
+evidence, or implied institutional endorsement that does not exist in
+writing. A content item's publication/readability status (whether the app
+can display it at all), its source metadata (what the source attribution
+shows), and its approval metadata (what `Approved by` shows, when present)
+are controlled independently — see `docs/engineering/CONTENT_MODEL.md`.
 
 Full internal approval fields (approver role, institution, approval date,
 document reference number, internal reviewer name, content checksum) remain
@@ -735,22 +814,36 @@ actually executed successfully.
 Engineering may begin immediately, but production publication is blocked
 until these assets exist:
 
-1. Final Tahlil structured content.
-2. Final Istighosah structured content.
-3. Verified Quran text source.
-4. Verified Indonesian Quran translation source.
-5. Kyai or sesepuh approval.
-6. Redacted approval documents.
+1. ~~Final Tahlil structured content.~~ **Resolved** (Milestone 6): the
+   current 59-step NU Online-sourced package is the product owner's
+   accepted standard-public-amaliyah release baseline (§3.1, §6.7).
+2. ~~Final Istighosah structured content.~~ **Resolved** (Milestone 6): the
+   current 27-step Quran NU Online-sourced package is the product owner's
+   accepted standard-public-amaliyah release baseline (§3.1, §6.7).
+3. Verified Quran text source — still required before any `QURAN_AYAH`
+   step is entered (§6.4); neither current package uses this step type.
+4. Verified Indonesian Quran translation source — same scope as (3).
+5. Kyai or sesepuh approval — no longer blocks publication of standard
+   public amaliyah (§3.1); remains required before publishing any
+   higher-risk content (private/pesantren-specific, disputed origin,
+   internally modified/merged/translated, doctrinally sensitive, or tied to
+   a specific ijazah/sanad/tarekat/pesantren authority), and before the app
+   may ever display a real `Approved by` status (§6.5).
+6. Redacted approval documents — same conditional scope as (5); not
+   required for the current standard-public-amaliyah baseline.
 7. Content reproduction permission or documented legal basis.
 8. Final logo.
 9. Final application icon.
 10. Privacy policy.
 11. Google Play developer configuration.
-12. Production backend credentials.
+12. Production backend credentials — not applicable to `0.0.1` (no
+    backend; see FR-010).
 13. Android signing key.
 
 Claude must use development-safe substitutes where possible, but must never
-disguise missing production inputs as completed work.
+disguise missing production inputs as completed work, and must never claim
+kyai/sesepuh approval or institutional endorsement that was not actually
+given.
 
 The full engineering/release-readiness checklist (CI, R8, monitoring, store
 listing, etc.) is tracked separately in

@@ -7,6 +7,8 @@ import com.sangusantri.app.domain.model.AmaliyahVersionDetail
 import com.sangusantri.app.domain.model.AmaliyahVersionStatus
 import com.sangusantri.app.domain.model.Approval
 import com.sangusantri.app.domain.model.ApprovalStatus
+import com.sangusantri.app.domain.model.GuidedProgressionMode
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.model.StepType
@@ -392,5 +394,13 @@ private class FakeReaderSettingsRepository : ReaderSettingsRepository {
 
     override suspend fun setShowTranslation(show: Boolean) {
         state.value = state.value.copy(showTranslation = show)
+    }
+
+    override suspend fun setLastReaderMode(mode: ReaderMode) {
+        state.value = state.value.copy(lastReaderMode = mode)
+    }
+
+    override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
+        state.value = state.value.copy(guidedProgressionMode = mode)
     }
 }

@@ -31,4 +31,32 @@
   <string name="reader_settings_show_translation">Tampilkan terjemahan</string>
   <string name="reader_settings_decrease_content_description">Kurangi %1$s</string>
   <string name="reader_settings_increase_content_description">Tambah %1$s</string>
+
+  <!-- Reading-mode gate (PRD 8.2, Milestone 4) -->
+  <string name="reader_mode_chooser_title">Pilih mode membaca</string>
+  <string name="reader_mode_full_title">Bacaan Lengkap</string>
+  <string name="reader_mode_full_description">Baca seluruh bacaan dalam satu halaman yang bisa digulir.</string>
+  <string name="reader_mode_guided_title">Panduan</string>
+  <string name="reader_mode_guided_description">Baca selangkah demi selangkah dengan tasbih interaktif.</string>
+
+  <!-- Guided Reader (FR-005/FR-006, Milestone 4) -->
+  <string name="guided_reader_position_label">%1$d dari %2$d</string>
+  <string name="guided_reader_previous_action">Sebelumnya</string>
+  <string name="guided_reader_continue_action">Lanjutkan</string>
+  <string name="guided_reader_finish_action">Selesaikan</string>
+  <string name="guided_counter_progress">%1$d / %2$d</string>
+  <string name="guided_counter_tap_action">Tambah hitungan tasbih</string>
+  <string name="guided_counter_completed_description">Hitungan selesai, %1$d dari %2$d</string>
+  <string name="guided_counter_reset_action">Ulangi hitungan</string>
+  <string name="guided_counter_reset_dialog_title">Ulangi hitungan?</string>
+  <string name="guided_counter_reset_dialog_message">Hitungan langkah ini akan diatur ulang ke 0.</string>
+  <string name="guided_counter_reset_confirm_action">Ulangi</string>
+  <string name="guided_counter_reset_cancel_action">Batal</string>
+  <string name="guided_completion_dialog_title">Selesaikan bacaan ini?</string>
+  <string name="guided_completion_dialog_message">Seluruh hitungan telah mencapai target. Bacaan akan ditandai selesai.</string>
+  <string name="guided_completion_confirm_action">Selesaikan</string>
+  <string name="guided_completion_cancel_action">Batal</string>
+  <string name="guided_progression_mode_label">Mode lanjutan</string>
+  <string name="guided_progression_mode_manual">Manual</string>
+  <string name="guided_progression_mode_automatic">Otomatis</string>
 </resources>

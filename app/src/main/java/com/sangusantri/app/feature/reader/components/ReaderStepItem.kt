@@ -30,23 +30,36 @@ fun ReaderStepItem(
 ) {
     when (step.stepType) {
         StepType.DIVIDER -> ReaderDividerRow(modifier)
-        StepType.CLOSING -> ReaderStepFields(step, settings, isClosing = true, modifier)
+        StepType.CLOSING ->
+            ReaderStepFields(step, settings, isClosing = true, modifier) { target ->
+                ReaderRepetitionIndicator(target)
+            }
         StepType.HEADING,
         StepType.INSTRUCTION,
         StepType.ARABIC_TEXT,
         StepType.QURAN_AYAH,
         StepType.PRAYER,
         StepType.REPEATED_READING,
-            -> ReaderStepFields(step, settings, isClosing = false, modifier)
+            ->
+            ReaderStepFields(step, settings, isClosing = false, modifier) { target ->
+                ReaderRepetitionIndicator(target)
+            }
     }
 }
 
+/**
+ * `internal` (not `private`) so the Guided Reader (Milestone 4, `feature/guidedreader`) can reuse
+ * the exact same field-presence rendering with an interactive tasbih counter swapped in for
+ * [repetitionContent] instead of the Full Reader's informational [ReaderRepetitionIndicator] — one
+ * canonical step layout, per `CODING_STANDARD.md`'s no-duplication rule.
+ */
 @Composable
-private fun ReaderStepFields(
+internal fun ReaderStepFields(
     step: AmaliyahStep,
     settings: ReaderSettings,
     isClosing: Boolean,
     modifier: Modifier = Modifier,
+    repetitionContent: @Composable (target: Int) -> Unit,
 ) {
     Column(
         modifier =
@@ -83,14 +96,15 @@ private fun ReaderStepFields(
 
             val repeatTarget = step.repeatTarget
             if (repeatTarget != null && repeatTarget > 0) {
-                ReaderRepetitionIndicator(repeatTarget)
+                repetitionContent(repeatTarget)
             }
         }
     }
 }
 
+/** `internal` — reused by the Guided Reader for its own `DIVIDER` steps. */
 @Composable
-private fun ReaderDividerRow(modifier: Modifier = Modifier) {
+internal fun ReaderDividerRow(modifier: Modifier = Modifier) {
     HorizontalDivider(
         modifier = modifier.padding(vertical = SanguSantriSpacing.default),
         color = MaterialTheme.colorScheme.outlineVariant,

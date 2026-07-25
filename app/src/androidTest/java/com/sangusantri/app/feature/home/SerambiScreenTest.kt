@@ -1,11 +1,13 @@
 package com.sangusantri.app.feature.home
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
 import com.sangusantri.app.data.local.seed.SeedContentImporter
@@ -25,6 +27,10 @@ import javax.inject.Inject
  * network involved. [HiltTestRunner][com.sangusantri.app.HiltTestRunner] swaps in
  * `HiltTestApplication`, so the real `SanguSantriApplication.onCreate()` seed-import wiring never
  * runs here — the test seeds Room itself via the same injected [SeedContentImporter] instead.
+ *
+ * Reader preferences (including the Milestone 4 remembered reading mode) live in the real, shared
+ * preferences DataStore, so `@Before` clears it — otherwise a mode remembered by a previous test
+ * method would make the mode gate skip straight past its chooser.
  */
 @HiltAndroidTest
 @RunWith(JUnit4::class)
@@ -38,10 +44,16 @@ class SerambiScreenTest {
     @Inject
     lateinit var seedContentImporter: SeedContentImporter
 
+    @Inject
+    lateinit var preferencesDataStore: DataStore<Preferences>
+
     @Before
     fun seedRoom() {
         hiltRule.inject()
-        runBlocking { seedContentImporter.importSeedContent() }
+        runBlocking {
+            preferencesDataStore.edit { it.clear() }
+            seedContentImporter.importSeedContent()
+        }
     }
 
     @Test
@@ -58,14 +70,14 @@ class SerambiScreenTest {
 
         composeRule.onNodeWithText("Tahlil").performClick()
 
-        // Milestone 3: tapping Tahlil now opens the real Full Reader. The reader settings action
-        // only exists on the reader's top bar (Serambi's own actions are Setelan/Tentang), so its
-        // presence is an unambiguous signal that navigation reached the reader destination.
-        val readerSettingsDescription =
-            composeRule.activity.getString(R.string.reader_settings_content_description)
+        // Milestone 4: tapping Tahlil now opens the reading-mode gate first. Tahlil's bundled
+        // fixture is still DRAFT (Milestone 1), so the gate's own content-availability check
+        // short-circuits straight to its content-unavailable state without ever offering Bacaan
+        // Lengkap/Panduan — still an unambiguous signal that navigation left Serambi and reached
+        // the gate destination (Serambi's own actions are Setelan/Tentang, never this message).
         composeRule.waitUntil(timeoutMillis = SEED_IMPORT_TIMEOUT_MILLIS) {
             composeRule
-                .onAllNodesWithContentDescription(readerSettingsDescription)
+                .onAllNodesWithText(composeRule.activity.getString(R.string.reader_content_unavailable))
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }

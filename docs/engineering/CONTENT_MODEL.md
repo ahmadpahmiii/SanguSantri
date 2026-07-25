@@ -113,24 +113,33 @@ reader-only state:
 One row per immutable content version — a new version (a correction) starts
 its own position rather than inheriting the previous version's. This is the
 Full Reader's minimum reading-position persistence (`ReadingPositionEntity`,
-`ReadingPositionDao`, `MIGRATION_2_3`) and deliberately does not carry the
-`reader_mode`, `advance_mode`, `current_step_id`, or `completed_at` fields
-sketched for the wider `reading_sessions` table below — those belong to
-guided mode and completion, both out of Milestone 3 scope. Extend or
-supersede this table when guided mode ships rather than overloading it.
+`ReadingPositionDao`) and is deliberately still separate from
+`guided_reading_sessions` below — Full Reader scroll position and Guided
+Reader step/completion state are different shapes of progress, kept in
+different tables rather than one overloaded table.
 
-### `reading_sessions` (guided-mode fields not yet implemented)
+### `guided_reading_sessions` (implemented, Milestone 4)
 
-`id`, `version_id`, `reader_mode`, `advance_mode`, `current_step_id`,
-`scroll_index`, `scroll_offset`, `started_at`, `last_opened_at`,
-`completed_at`. The `version_id`/`scroll_index`/`scroll_offset`/
-`last_opened_at` portion is implemented today as `reading_positions` above;
-the remaining guided-mode/completion fields are deferred to the milestone
-that implements guided mode (PRD FR-005/FR-006).
+`versionId` (primary key), `currentStepId`, `lastOpenedAtEpochMillis`,
+`completedAtEpochMillis` (nullable — set only after the user presses the
+final completion confirmation, FR-007). One row per immutable content
+version, mirroring `reading_positions`'s per-version keying
+(`GuidedReadingSessionEntity`, `GuidedReadingSessionDao`). Narrower than the
+`reading_sessions` table originally sketched here: `reader_mode` needs no
+column since the table itself is guided-only, and `advance_mode` (the
+automatic/manual progression preference) is a user preference in DataStore
+(`ReaderSettings.guidedProgressionMode`), not per-content-version Room state.
 
-### `step_progress` (not yet implemented)
+### `step_progress` (implemented, Milestone 4)
 
-`session_id`, `step_id`, `current_count`, `is_complete`, `updated_at`.
+`versionId`, `stepId` (composite primary key), `currentCount`,
+`updatedAtEpochMillis` (`StepProgressEntity`, `StepProgressDao`). Completion
+against a step's `repeatTarget` is derived at read time from content, not
+stored as a redundant `is_complete` column.
+
+Both tables are combined behind one `GuidedReadingRepository`
+(`domain/repository/GuidedReadingRepository.kt`) rather than one repository
+per table, per `CODING_STANDARD.md`'s no-duplicate-repository guidance.
 
 ### `feedback_outbox` (not yet implemented)
 
@@ -148,25 +157,42 @@ User preferences remain in DataStore, not Room.
 
 Implemented: canonical domain model, Room entities/DAOs for the content
 hierarchy, versioned JSON seed schema, checksum-verified transactional
-import (`data/local/seed/`), and `reading_positions` (Milestone 3 minimum
-reading-position persistence). Not yet implemented: the guided-mode/
-completion portion of `reading_sessions`, `step_progress`, `feedback_outbox`,
-`sync_metadata`, remote content synchronisation (FR-010), and the entire
-backend. See `docs/PROGRESS.md` for the authoritative current state.
+import (`data/local/seed/`), `reading_positions` (Full Reader
+reading-position persistence), and `guided_reading_sessions`/`step_progress`
+(Milestone 4 Guided Reader step/counter/completion persistence). Not yet
+implemented: `feedback_outbox`, `sync_metadata`, remote content
+synchronisation (FR-010), and the entire backend. See `docs/PROGRESS.md` for
+the authoritative current state.
 
 ## Schema-freeze policy (pre-public-release)
 
 The application has not been publicly released, so the current Room schema
-(`SanguSantriDatabase` version 3) is a **future production baseline
-candidate**, not yet frozen. Until the initial public schema is frozen:
+is a **future production baseline candidate**, not yet frozen. Milestone 4
+reset the schema version to **1** as a clean pre-release baseline —
+consolidating the Milestone 1-3 migration chain (previously
+`MIGRATION_1_2`/`MIGRATION_2_3`, now deleted) into one coherent set of
+tables, since the app has no public release and no production users to
+migrate. Developers with an existing local install must clear app data or
+reinstall once after pulling that change (Room cannot open an on-disk
+database at a higher version number than the app declares, and this project
+deliberately does not use `fallbackToDestructiveMigration` to paper over
+that — see below). Until the initial public schema is frozen:
 
 * Local development data may be reset by a schema change when necessary —
-  do not build a production migration chain prematurely.
+  do not build a production migration chain prematurely, and prefer another
+  clean version-1 baseline reset (as Milestone 4 did) over accumulating
+  migrations for a schema no production install has ever run.
 * Every schema change must still keep the Room schema internally coherent
   (foreign keys, indices, non-null constraints matching the domain model).
 * Destructive migration (`fallbackToDestructiveMigration`) remains
   prohibited in any build that could reach a real user (ADR
-  [0003](../decisions/0003-room-as-local-source-of-truth.md)); this
-  exception is for local development data only, not a production release,
-  and must not be extended to a production build without explicitly
-  revisiting this decision.
+  [0003](../decisions/0003-room-as-local-source-of-truth.md)) — this
+  project has never enabled it, even during this pre-release phase;
+  "local development data may be reset" above is handled by developers
+  clearing app data, not by a destructive-migration code path.
+
+**This baseline-reset policy ends the moment the initial public schema
+ships.** From that point on, every schema change MUST ship a real, tested
+Room `Migration` (as Milestone 1-3 did before this reset) — no further
+version-reset-and-clear-app-data cycles once real installs hold real user
+data.

@@ -158,9 +158,10 @@ private fun ReaderStepList(
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .widthIn(max = ReaderMaxWidth)
-                .fillMaxSize(),
+            modifier =
+                Modifier
+                    .widthIn(max = ReaderMaxWidth)
+                    .fillMaxSize(),
             contentPadding =
                 PaddingValues(
                     horizontal = SanguSantriSpacing.default,

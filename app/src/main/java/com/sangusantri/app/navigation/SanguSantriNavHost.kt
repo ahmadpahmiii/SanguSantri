@@ -23,16 +23,31 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
+import com.sangusantri.app.domain.model.ReaderMode
+import com.sangusantri.app.feature.guidedreader.GuidedReaderRoute
 import com.sangusantri.app.feature.home.SerambiRoute
+import com.sangusantri.app.feature.reader.ReaderEntryRoute
 import com.sangusantri.app.feature.reader.ReaderRoute
 import kotlinx.serialization.Serializable
 
 @Serializable
 private data object Serambi : NavKey
 
-/** Stable identifier only (the amaliyah slug), never a full content object, per FR-002/FR-003. */
+/** The reading-mode gate (PRD 8.2) — stable identifier only (the amaliyah slug), per FR-002/FR-003. */
 @Serializable
 private data class AmaliyahDetail(
+    val slug: String,
+) : NavKey
+
+/** The Milestone 3 Full Reader (Bacaan Lengkap). */
+@Serializable
+private data class FullReader(
+    val slug: String,
+) : NavKey
+
+/** The Milestone 4 Guided Reader (Panduan). */
+@Serializable
+private data class GuidedReader(
     val slug: String,
 ) : NavKey
 
@@ -43,10 +58,13 @@ private data object Setelan : NavKey
 private data object About : NavKey
 
 /**
- * Navigation 3 host. [Serambi] is the real Milestone 2 home destination; [AmaliyahDetail] is the
- * real Milestone 3 Full Reader. Reader settings are a contextual bottom sheet inside the reader
- * itself, not a destination, so [Setelan] remains a placeholder (ADR 0004 placeholder pattern) —
- * it is Serambi's own settings entry point, unrelated to a specific amaliyah being read.
+ * Navigation 3 host. [Serambi] is the Milestone 2 home destination; [AmaliyahDetail] is the
+ * Milestone 4 reading-mode gate, which resolves into either [FullReader] (Milestone 3) or
+ * [GuidedReader] (Milestone 4) — the gate entry is replaced (not pushed under) by the resolved
+ * reader, so the back button from either reader returns to Serambi, not the gate. Reader settings
+ * are a contextual bottom sheet inside each reader, not a destination, so [Setelan] remains a
+ * placeholder (ADR 0004 placeholder pattern) — it is Serambi's own settings entry point, unrelated
+ * to a specific amaliyah being read.
  */
 @Composable
 fun SanguSantriNavHost(modifier: Modifier = Modifier) {
@@ -71,7 +89,20 @@ fun SanguSantriNavHost(modifier: Modifier = Modifier) {
                     )
                 }
                 entry<AmaliyahDetail> { key ->
+                    ReaderEntryRoute(
+                        amaliyahSlug = key.slug,
+                        onBack = { backStack.removeLastOrNull() },
+                        onModeResolved = { mode -> replaceGateWithResolvedReader(backStack, key.slug, mode) },
+                    )
+                }
+                entry<FullReader> { key ->
                     ReaderRoute(
+                        amaliyahSlug = key.slug,
+                        onBack = { backStack.removeLastOrNull() },
+                    )
+                }
+                entry<GuidedReader> { key ->
+                    GuidedReaderRoute(
                         amaliyahSlug = key.slug,
                         onBack = { backStack.removeLastOrNull() },
                     )
@@ -89,6 +120,21 @@ fun SanguSantriNavHost(modifier: Modifier = Modifier) {
                     )
                 }
             },
+    )
+}
+
+/** Pops the mode gate and pushes the resolved reader in its place — see [SanguSantriNavHost] doc. */
+private fun replaceGateWithResolvedReader(
+    backStack: MutableList<NavKey>,
+    slug: String,
+    mode: ReaderMode,
+) {
+    backStack.removeLastOrNull()
+    backStack.add(
+        when (mode) {
+            ReaderMode.FULL -> FullReader(slug)
+            ReaderMode.GUIDED -> GuidedReader(slug)
+        },
     )
 }
 

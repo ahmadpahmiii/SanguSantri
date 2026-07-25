@@ -10,6 +10,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,11 +26,17 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
+import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.feature.reader.ReaderUiAction
 import java.util.Locale
 
-/** Restrained reader appearance settings (FR-008 subset) — a bottom sheet, contextual to the reader. */
+/**
+ * Restrained reader appearance settings (FR-008 subset) — a bottom sheet, contextual to the
+ * reader. Shared by the Full Reader and the Guided Reader (Milestone 4) rather than duplicated —
+ * [progressionModeControl] is non-null only when opened from the Guided Reader, which adds one
+ * extra section for the automatic/manual progression preference (FR-005).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderSettingsSheet(
@@ -35,9 +44,15 @@ fun ReaderSettingsSheet(
     onAction: (ReaderUiAction) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    progressionModeControl: ProgressionModeControl? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
-        ReaderSettingsContent(settings = settings, onAction = onAction, onClose = onDismiss)
+        ReaderSettingsContent(
+            settings = settings,
+            onAction = onAction,
+            onClose = onDismiss,
+            progressionModeControl = progressionModeControl,
+        )
     }
 }
 
@@ -47,6 +62,7 @@ private fun ReaderSettingsContent(
     onAction: (ReaderUiAction) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    progressionModeControl: ProgressionModeControl? = null,
 ) {
     Column(
         modifier =
@@ -62,6 +78,34 @@ private fun ReaderSettingsContent(
         ReaderSettingsLineSpacingControls(settings, onAction)
         HorizontalDivider()
         ReaderSettingsTranslationToggleRow(settings, onAction)
+        if (progressionModeControl != null) {
+            HorizontalDivider()
+            ReaderSettingsProgressionModeRow(progressionModeControl)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReaderSettingsProgressionModeRow(control: ProgressionModeControl) {
+    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small)) {
+        Text(text = stringResource(R.string.guided_progression_mode_label), style = MaterialTheme.typography.bodyLarge)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = control.mode == GuidedProgressionMode.MANUAL,
+                onClick = { control.onChange(GuidedProgressionMode.MANUAL) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+                Text(text = stringResource(R.string.guided_progression_mode_manual))
+            }
+            SegmentedButton(
+                selected = control.mode == GuidedProgressionMode.AUTOMATIC,
+                onClick = { control.onChange(GuidedProgressionMode.AUTOMATIC) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+                Text(text = stringResource(R.string.guided_progression_mode_automatic))
+            }
+        }
     }
 }
 

@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.sangusantri.app.domain.model.GuidedProgressionMode
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReaderSettings.Companion.coerceArabicFontSize
 import com.sangusantri.app.domain.model.ReaderSettings.Companion.coerceLineSpacing
@@ -54,6 +57,10 @@ constructor(
                                 ?: ReaderSettings.DEFAULT_TRANSLATION_LINE_SPACING,
                         ),
                     showTranslation = preferences[SHOW_TRANSLATION] ?: true,
+                    lastReaderMode = preferences[LAST_READER_MODE]?.let(::parseReaderMode),
+                    guidedProgressionMode =
+                        preferences[GUIDED_PROGRESSION_MODE]?.let(::parseProgressionMode)
+                            ?: GuidedProgressionMode.MANUAL,
                 )
             }
 
@@ -77,11 +84,29 @@ constructor(
         dataStore.edit { it[SHOW_TRANSLATION] = show }
     }
 
+    override suspend fun setLastReaderMode(mode: ReaderMode) {
+        dataStore.edit { it[LAST_READER_MODE] = mode.name }
+    }
+
+    override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
+        dataStore.edit { it[GUIDED_PROGRESSION_MODE] = mode.name }
+    }
+
+    // A future stored value outside the current enum's names (e.g. after a renamed constant) falls
+    // back to null/MANUAL instead of crashing, the same corruption-safety net as the coerce* numeric
+    // bounds above.
+    private fun parseReaderMode(value: String): ReaderMode? = runCatching { ReaderMode.valueOf(value) }.getOrNull()
+
+    private fun parseProgressionMode(value: String): GuidedProgressionMode? =
+        runCatching { GuidedProgressionMode.valueOf(value) }.getOrNull()
+
     private companion object {
         val ARABIC_FONT_SIZE_SP = intPreferencesKey("reader_arabic_font_size_sp")
         val TRANSLATION_FONT_SIZE_SP = intPreferencesKey("reader_translation_font_size_sp")
         val ARABIC_LINE_SPACING = floatPreferencesKey("reader_arabic_line_spacing")
         val TRANSLATION_LINE_SPACING = floatPreferencesKey("reader_translation_line_spacing")
         val SHOW_TRANSLATION = booleanPreferencesKey("reader_show_translation")
+        val LAST_READER_MODE = stringPreferencesKey("reader_last_mode")
+        val GUIDED_PROGRESSION_MODE = stringPreferencesKey("guided_progression_mode")
     }
 }

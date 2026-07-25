@@ -78,6 +78,7 @@ com.sangusantri.app
 ├── feature
 │   ├── home
 │   ├── reader
+│   ├── guidedreader
 │   ├── contentdetail
 │   ├── settings
 │   ├── feedback
@@ -86,8 +87,9 @@ com.sangusantri.app
 └── di
 ```
 
-`feature/` is currently empty — Serambi and the reader are not implemented
-yet (`docs/PROGRESS.md`).
+`feature/home` (Serambi), `feature/reader` (Full Reader + the reading-mode
+gate), and `feature/guidedreader` (Guided Reader) are implemented; the rest
+remain unimplemented placeholders (`docs/PROGRESS.md`).
 
 ## Layer rules
 

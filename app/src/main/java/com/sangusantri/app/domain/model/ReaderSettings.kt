@@ -1,9 +1,11 @@
 package com.sangusantri.app.domain.model
 
 /**
- * Full Reader appearance preferences (FR-008, minus theme/background/guided-progression/language —
- * those are either not yet supported anywhere in the app or explicitly out of Milestone 3 scope).
- * Persisted in DataStore, never Room (PRD 11.2).
+ * Reader preferences (FR-008 appearance, minus theme/background/language — either not yet
+ * supported anywhere in the app or out of scope). Extended in Milestone 4 with the last-selected
+ * reader mode (PRD 8.2: "the chosen mode may be saved as the default later") and the Guided Reader
+ * progression preference (FR-005) — both preferences, so both belong in the same DataStore-backed
+ * model rather than a second store. Persisted in DataStore, never Room (PRD 11.2).
  */
 data class ReaderSettings(
     val arabicFontSizeSp: Int = DEFAULT_ARABIC_FONT_SIZE_SP,
@@ -11,6 +13,8 @@ data class ReaderSettings(
     val arabicLineSpacingMultiplier: Float = DEFAULT_ARABIC_LINE_SPACING,
     val translationLineSpacingMultiplier: Float = DEFAULT_TRANSLATION_LINE_SPACING,
     val showTranslation: Boolean = true,
+    val lastReaderMode: ReaderMode? = null,
+    val guidedProgressionMode: GuidedProgressionMode = GuidedProgressionMode.MANUAL,
 ) {
     companion object {
         const val MIN_ARABIC_FONT_SIZE_SP = 20

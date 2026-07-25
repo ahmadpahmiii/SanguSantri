@@ -6,6 +6,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
 import com.sangusantri.app.data.local.dao.AmaliyahDao
@@ -24,11 +27,9 @@ import com.sangusantri.app.domain.model.ApprovalStatus
 import com.sangusantri.app.domain.model.OwnerType
 import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.domain.model.Visibility
-import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -38,15 +39,17 @@ import javax.inject.Inject
 
 /**
  * Exercises the Full Reader against the real Hilt graph, reached the same way a user does: tap an
- * amaliyah card on Serambi. The app's bundled seed content stays DRAFT/PENDING (Milestone 1
- * scope) and is never returned by `ContentRepository.getDefaultVersionDetail`, so a dedicated,
- * clearly-fixture-labelled PUBLISHED test amaliyah is inserted directly via the injected DAOs —
- * guarded by `existsById` so reruns on the same emulator stay idempotent, mirroring
+ * amaliyah card on Serambi, then choose **Bacaan Lengkap** from the Milestone 4 reading-mode gate.
+ * The app's bundled seed content stays DRAFT/PENDING (Milestone 1 scope) and is never returned by
+ * `ContentRepository.getDefaultVersionDetail`, so a dedicated, clearly-fixture-labelled PUBLISHED
+ * test amaliyah is inserted directly via the injected DAOs — guarded by `existsById` so reruns on
+ * the same emulator stay idempotent, mirroring
  * [com.sangusantri.app.data.local.seed.SeedContentImporter]'s own idempotency pattern.
  *
- * Reader settings live in the real, shared preferences DataStore — not a fake — so any test that
- * mutates them must restore the default afterwards; otherwise the next test method (order is not
- * guaranteed) would silently inherit the previous method's setting.
+ * Reader preferences live in the real, shared preferences DataStore — not a fake — so every test
+ * clears it in `@Before` (not just resets the one field it touches) to guarantee the mode gate
+ * always shows the chooser instead of skipping to a mode remembered by a previous test method
+ * (method order is not guaranteed).
  */
 @HiltAndroidTest
 @RunWith(JUnit4::class)
@@ -76,20 +79,16 @@ class ReaderScreenTest {
     lateinit var seedContentImporter: SeedContentImporter
 
     @Inject
-    lateinit var readerSettingsRepository: ReaderSettingsRepository
+    lateinit var preferencesDataStore: DataStore<Preferences>
 
     @Before
     fun seedPublishedTestFixture() {
         hiltRule.inject()
         runBlocking {
+            preferencesDataStore.edit { it.clear() }
             seedContentImporter.importSeedContent()
             seedFixtureIfMissing()
         }
-    }
-
-    @After
-    fun resetReaderSettings() {
-        runBlocking { readerSettingsRepository.setShowTranslation(true) }
     }
 
     @Test
@@ -97,6 +96,7 @@ class ReaderScreenTest {
         waitForFixtureCard()
 
         composeRule.onNodeWithText(FIXTURE_TITLE).performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.reader_mode_full_title)).performClick()
 
         composeRule.onNodeWithText(FIXTURE_HEADING_TITLE).assertExists()
         composeRule.onNodeWithText(FIXTURE_ARABIC_TEXT).assertExists()
@@ -107,6 +107,7 @@ class ReaderScreenTest {
     fun hidingTranslationFromSettingsRemovesItFromTheReader() {
         waitForFixtureCard()
         composeRule.onNodeWithText(FIXTURE_TITLE).performClick()
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.reader_mode_full_title)).performClick()
         composeRule.onNodeWithText(FIXTURE_TRANSLATION_TEXT).assertExists()
 
         composeRule

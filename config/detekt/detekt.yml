@@ -1,0 +1,14 @@
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    active: false
+
+comments:
+  active: false
+
+naming:
+  FunctionNaming:
+    # Jetpack Compose factory functions use PascalCase by convention.
+    ignoreAnnotated: [Composable]

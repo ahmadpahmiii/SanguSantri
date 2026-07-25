@@ -14,7 +14,7 @@ pesantren access (`0.2.0`+) is the first such feature on the roadmap.
 
 ## Decision
 
-Release `0.0.1` (and `0.0.2`–`0.0.5` per the current roadmap) ships with no
+Release `0.0.1` (and `0.0.2`–`0.0.4` per the current roadmap) ships with no
 authentication of any kind. No account model, no login screen, no token
 storage, no server-side session concept exists in this phase. The
 `verified-email`/Credential Manager skill and any auth-related dependency

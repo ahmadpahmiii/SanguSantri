@@ -66,7 +66,11 @@ must add, in `core/designsystem/theme`:
 * A type scale that gives Arabic text and Indonesian translation text
   distinct, deliberately different styles (see Arabic typography below) —
   typography is the primary hierarchy tool per the visual direction above,
-  so this cannot be deferred past the first reader screen.
+  so this cannot be deferred past the first reader screen. **Implemented
+  Milestone 3**: `core/designsystem/theme/ReaderTypography.kt`
+  (`arabicTextStyle`/`translationTextStyle`) — functions rather than fixed
+  `Typography` entries, since Arabic/translation font size and line spacing
+  are user-configurable (FR-008).
 * Icon sizes, if icons beyond default Material icon sizing are needed.
 
 Do not build these speculatively now — this is Milestone 3 (Serambi) setup

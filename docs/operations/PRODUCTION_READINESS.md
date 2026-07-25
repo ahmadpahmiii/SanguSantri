@@ -78,9 +78,9 @@ silently leave the device via Auto Backup.
 ## Cost and quota alerts
 
 Not yet applicable — no metered infrastructure exists (no backend, no audio
-storage/CDN). Required before `0.0.5` (downloadable Quran audio) ships:
-storage and egress budget alerts for whatever object storage serves audio
-packages.
+storage/CDN), and no downloadable-audio roadmap item currently exists (see
+`docs/product/ROADMAP.md`). Revisit this section only if a future, explicit
+product decision reintroduces downloadable audio.
 
 ## Production credential ownership
 

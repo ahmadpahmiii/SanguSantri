@@ -1,6 +1,7 @@
 package com.sangusantri.app.feature.home
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -57,9 +58,17 @@ class SerambiScreenTest {
 
         composeRule.onNodeWithText("Tahlil").performClick()
 
-        val expectedMessage =
-            composeRule.activity.getString(R.string.amaliyah_detail_placeholder_message, "tahlil")
-        composeRule.onNodeWithText(expectedMessage).assertExists()
+        // Milestone 3: tapping Tahlil now opens the real Full Reader. The reader settings action
+        // only exists on the reader's top bar (Serambi's own actions are Setelan/Tentang), so its
+        // presence is an unambiguous signal that navigation reached the reader destination.
+        val readerSettingsDescription =
+            composeRule.activity.getString(R.string.reader_settings_content_description)
+        composeRule.waitUntil(timeoutMillis = SEED_IMPORT_TIMEOUT_MILLIS) {
+            composeRule
+                .onAllNodesWithContentDescription(readerSettingsDescription)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
     }
 
     @Test

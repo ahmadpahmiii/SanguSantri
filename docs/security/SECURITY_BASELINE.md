@@ -79,14 +79,17 @@ is a real cost, not free caution.
 * Private cache deletion or access protection.
 * Account and data deletion.
 
-## Required before quizzes, rankings, advertisements, or subscriptions (`0.4.0`–`0.5.0`)
+## Required before quizzes or rankings (`0.4.0`)
 
 * Abuse prevention and anti-cheating controls for the Nahwu quiz.
-* Play Integrity API — only once there is something worth defrauding
-  (quiz rankings, payments); see THREAT_MODEL.md.
-* Purchase verification and fraud monitoring for subscriptions.
+* Play Integrity API — only once there is something worth defrauding (quiz
+  rankings); see THREAT_MODEL.md.
 * Moderation procedures for quiz content and any user-submitted content.
-* Advertising and analytics privacy review before any ad SDK is added.
+
+SanguSantri is currently a non-commercial application — advertising,
+subscriptions, and purchase verification are not on the roadmap
+(`docs/product/ROADMAP.md`) and have no controls tracked here. Add a phase
+here only if a future, explicit product decision reintroduces monetisation.
 
 ## Optional / deferred hardening
 

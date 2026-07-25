@@ -5,11 +5,13 @@ import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVersionEntity
 import com.sangusantri.app.data.local.entity.ApprovalEntity
+import com.sangusantri.app.data.local.entity.ReadingPositionEntity
 import com.sangusantri.app.domain.model.Amaliyah
 import com.sangusantri.app.domain.model.AmaliyahStep
 import com.sangusantri.app.domain.model.AmaliyahVariant
 import com.sangusantri.app.domain.model.AmaliyahVersion
 import com.sangusantri.app.domain.model.Approval
+import com.sangusantri.app.domain.model.ReadingPosition
 
 /** Maps Room entities (data boundary) to plain domain models — the UI must never see entities directly. */
 
@@ -83,4 +85,20 @@ fun AmaliyahStepEntity.toDomain(): AmaliyahStep =
         quranAyahStart = quranAyahStart,
         quranAyahEnd = quranAyahEnd,
         audioGroupId = audioGroupId,
+    )
+
+fun ReadingPositionEntity.toDomain(): ReadingPosition =
+    ReadingPosition(
+        versionId = versionId,
+        itemIndex = itemIndex,
+        itemOffset = itemOffset,
+        lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
+    )
+
+fun ReadingPosition.toEntity(): ReadingPositionEntity =
+    ReadingPositionEntity(
+        versionId = versionId,
+        itemIndex = itemIndex,
+        itemOffset = itemOffset,
+        lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
     )

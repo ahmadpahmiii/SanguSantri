@@ -35,6 +35,13 @@ A step may contain: Indonesian title, Arabic title, Arabic body, Indonesian
 translation, Quran reference, repetition target, reader instruction, future
 audio reference.
 
+`QURAN_AYAH` represents a verse that is already part of an amaliyah's own
+reading text (for example, Al-Fatihah inside Tahlil). There is no standalone
+Quran feature and no Quran API (Kemenag, Quran Foundation, or otherwise) —
+`QURAN_AYAH` text is entered and versioned as part of that amaliyah's own
+content package, the same as any other step, and is never fetched separately
+at runtime. See `docs/product/ROADMAP.md` and `docs/product/PRD.md` §6.4.
+
 ## Translation segmentation
 
 For Quran content, translation maps to its corresponding ayah. For
@@ -100,11 +107,26 @@ Android mirrors the content hierarchy above (implemented:
 `AmaliyahStepEntity`, `ApprovalEntity` — see `data/local/entity/`) and adds
 reader-only state:
 
-### `reading_sessions` (not yet implemented)
+### `reading_positions` (implemented, Milestone 3)
+
+`versionId` (primary key), `itemIndex`, `itemOffset`, `lastOpenedAtEpochMillis`.
+One row per immutable content version — a new version (a correction) starts
+its own position rather than inheriting the previous version's. This is the
+Full Reader's minimum reading-position persistence (`ReadingPositionEntity`,
+`ReadingPositionDao`, `MIGRATION_2_3`) and deliberately does not carry the
+`reader_mode`, `advance_mode`, `current_step_id`, or `completed_at` fields
+sketched for the wider `reading_sessions` table below — those belong to
+guided mode and completion, both out of Milestone 3 scope. Extend or
+supersede this table when guided mode ships rather than overloading it.
+
+### `reading_sessions` (guided-mode fields not yet implemented)
 
 `id`, `version_id`, `reader_mode`, `advance_mode`, `current_step_id`,
 `scroll_index`, `scroll_offset`, `started_at`, `last_opened_at`,
-`completed_at`.
+`completed_at`. The `version_id`/`scroll_index`/`scroll_offset`/
+`last_opened_at` portion is implemented today as `reading_positions` above;
+the remaining guided-mode/completion fields are deferred to the milestone
+that implements guided mode (PRD FR-005/FR-006).
 
 ### `step_progress` (not yet implemented)
 
@@ -126,6 +148,25 @@ User preferences remain in DataStore, not Room.
 
 Implemented: canonical domain model, Room entities/DAOs for the content
 hierarchy, versioned JSON seed schema, checksum-verified transactional
-import (`data/local/seed/`). Not yet implemented: `reading_sessions`,
-`step_progress`, `feedback_outbox`, `sync_metadata`, and the entire backend.
-See `docs/PROGRESS.md` for the authoritative current state.
+import (`data/local/seed/`), and `reading_positions` (Milestone 3 minimum
+reading-position persistence). Not yet implemented: the guided-mode/
+completion portion of `reading_sessions`, `step_progress`, `feedback_outbox`,
+`sync_metadata`, remote content synchronisation (FR-010), and the entire
+backend. See `docs/PROGRESS.md` for the authoritative current state.
+
+## Schema-freeze policy (pre-public-release)
+
+The application has not been publicly released, so the current Room schema
+(`SanguSantriDatabase` version 3) is a **future production baseline
+candidate**, not yet frozen. Until the initial public schema is frozen:
+
+* Local development data may be reset by a schema change when necessary —
+  do not build a production migration chain prematurely.
+* Every schema change must still keep the Room schema internally coherent
+  (foreign keys, indices, non-null constraints matching the domain model).
+* Destructive migration (`fallbackToDestructiveMigration`) remains
+  prohibited in any build that could reach a real user (ADR
+  [0003](../decisions/0003-room-as-local-source-of-truth.md)); this
+  exception is for local development data only, not a production release,
+  and must not be extended to a production build without explicitly
+  revisiting this decision.

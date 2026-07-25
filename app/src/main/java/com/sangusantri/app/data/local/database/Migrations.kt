@@ -99,3 +99,20 @@ val MIGRATION_1_2 =
             )
         }
     }
+
+/**
+ * Adds `reading_positions` (Milestone 3 minimum reading-position persistence scope — see
+ * [com.sangusantri.app.domain.model.ReadingPosition]). Statement copied verbatim from the
+ * Room-exported schema (`app/schemas/.../3.json`) so the resulting on-disk schema matches what
+ * Room expects on next open (ADR 0003: no destructive migration).
+ */
+val MIGRATION_2_3 =
+    object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `reading_positions` (`versionId` TEXT NOT NULL, " +
+                        "`itemIndex` INTEGER NOT NULL, `itemOffset` INTEGER NOT NULL, " +
+                        "`lastOpenedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`versionId`))",
+            )
+        }
+    }

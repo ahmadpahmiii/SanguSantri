@@ -11,5 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface ContentRepository {
     fun observeAmaliyah(): Flow<List<Amaliyah>>
 
+    suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah?
+
     suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail?
 }

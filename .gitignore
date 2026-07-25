@@ -71,3 +71,11 @@ site
 
 #TFLite
 *.tflite
+
+# content-importer (tools/content-importer) — developer-only draft pipeline.
+# Raw HTML snapshots and generated drafts are never committed: snapshots may
+# be copyrighted source material, and drafts are unreviewed/unapproved
+# content (docs/operations/CONTENT_GOVERNANCE.md).
+tools/content-importer/snapshots/
+tools/content-importer/output/
+tools/content-importer/**/__pycache__/

@@ -61,7 +61,11 @@ SanguSantri will become a **pesantren super-app** containing:
 * Gamification.
 * Inter-pesantren rankings.
 * Community features.
-* Optional subscriptions and advertising.
+
+SanguSantri is currently a **non-commercial application**. Advertising and
+subscriptions are not part of any current or planned roadmap item (see
+`docs/product/ROADMAP.md`); reintroducing them would require a new, explicit
+product decision.
 
 The product will be strongly aligned with Nahdlatul Ulama traditions while
 remaining open to pesantren with other traditions.
@@ -248,6 +252,13 @@ Release `0.0.1` does not include:
 * A custom web CMS.
 * Multiple pesantren variants, multiple active public variants, a comparison
   of differences between variants.
+* Any web scraping performed by the Android application at runtime. Content
+  scraping, when used at all, is a developer-side, offline tool that produces
+  a local draft for manual review (§6.1) — never something the shipped app
+  does itself.
+* A PDF reader, or PDF parsing/extraction, inside the Android application.
+  Reader content is always Unicode text sourced from the canonical content
+  model, never a rendered or extracted PDF page or image of Arabic text.
 
 The data model may support future variants, but the `0.0.1` interface
 exposes only one default general variant for each amaliyah.
@@ -265,6 +276,14 @@ dengan Doa dan Terjemahannya." The article presents an ordered Tahlil
 sequence including Arabic readings, repetition counts, prayers, and
 Indonesian translations. It must be used as an editorial reference, not
 automatically scraped into production.
+
+A developer-only tool (`tools/content-importer/`, see
+`docs/operations/CONTENT_GOVERNANCE.md`) converts a locally saved snapshot of
+this article into a structured JSON draft compatible with the seed content
+schema, for manual review only. The tool never publishes content
+automatically and never runs at application runtime — it produces a `DRAFT`
+that still requires manual transcription review and kyai/sesepuh approval
+before it may become production content (§6.3).
 
 ## 6.2 Istighosah
 
@@ -297,6 +316,14 @@ Any Quran ayah appearing inside an amaliyah must contain surah number, ayah
 number or range, approved Arabic text, approved Indonesian translation,
 source identifier, and an optional future audio identifier. Quran text,
 translation, and audio licensing must be verified separately.
+
+There is no standalone Quran feature, no Quran Kemenag API integration, no
+Quran Foundation API integration, and no Quran audio in the current or
+planned roadmap. A `QURAN_AYAH` step (§10) exists only to represent a verse
+that is already part of an amaliyah's own reading text (for example, Al-
+Fatihah inside Tahlil); its text is entered and versioned as part of that
+amaliyah's approved content package, the same as any other step, never
+fetched from a separate Quran API or service at runtime.
 
 ## 6.5 Approval
 

@@ -28,6 +28,9 @@ class ContentRepositoryImpl
                 list.map { it.toDomain() }
             }
 
+    override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? =
+        amaliyahDao.getBySlug(amaliyahSlug)?.toDomain()
+
         // Four sequential, independent lookups that each short-circuit to "not found" — flat
         // guard clauses read more clearly here than the nested `?.let` chain the alternative forces.
         @Suppress("ReturnCount")

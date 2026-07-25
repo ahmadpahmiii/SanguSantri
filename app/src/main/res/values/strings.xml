@@ -7,8 +7,28 @@
   <string name="serambi_empty_state">Konten sedang disiapkan.</string>
 
   <!-- Placeholder destinations replaced screen-by-screen as their milestones land (ADR 0004) -->
-  <string name="amaliyah_detail_placeholder_message">Bacaan Lengkap belum tersedia untuk %1$s — Milestone 3.</string>
   <string name="setelan_placeholder_message">Setelan belum tersedia.</string>
   <string name="about_placeholder_message">Tentang SanguSantri belum tersedia.</string>
   <string name="navigate_back_content_description">Kembali</string>
+
+  <!-- Full Reader (FR-004, Milestone 3) -->
+  <string name="reader_loading_content_description">Memuat bacaan</string>
+  <string name="reader_content_unavailable">Bacaan ini belum tersedia.</string>
+  <string name="reader_error_message">Bacaan tidak dapat dimuat.</string>
+  <string name="reader_retry_action">Coba lagi</string>
+  <string name="reader_settings_content_description">Pengaturan tampilan bacaan</string>
+  <string name="reader_quran_reference_range">QS. %1$d: %2$d–%3$d</string>
+  <string name="reader_quran_reference_single">QS. %1$d: %2$d</string>
+  <string name="reader_repetition_target">Dibaca %1$d kali</string>
+
+  <!-- Reader settings sheet -->
+  <string name="reader_settings_title">Tampilan Bacaan</string>
+  <string name="reader_settings_close_action">Tutup</string>
+  <string name="reader_settings_arabic_font_size">Ukuran teks Arab</string>
+  <string name="reader_settings_translation_font_size">Ukuran teks terjemahan</string>
+  <string name="reader_settings_arabic_line_spacing">Jarak baris teks Arab</string>
+  <string name="reader_settings_translation_line_spacing">Jarak baris terjemahan</string>
+  <string name="reader_settings_show_translation">Tampilkan terjemahan</string>
+  <string name="reader_settings_decrease_content_description">Kurangi %1$s</string>
+  <string name="reader_settings_increase_content_description">Tambah %1$s</string>
 </resources>

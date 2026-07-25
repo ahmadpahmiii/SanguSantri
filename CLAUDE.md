@@ -7,11 +7,15 @@ pesantren-specific amaliyah.
 * Minimum SDK: 26.
 * Current release: `0.0.1`. Current content: Tahlil and Istighosah.
 * Architecture: offline-first Clean Architecture, one Gradle module.
-* Current state: Milestones 0 (foundation) and 1 (content model + seed
-  import) are complete. Serambi and all reader UI are **not implemented
-  yet** — verify this against `docs/PROGRESS.md` before assuming otherwise;
-  commit titles in `git log` are not a reliable milestone indicator (see
+* Current state: Milestones 0–3 (foundation, content model + seed import,
+  Serambi, Full Amaliyah Reader) are complete — verify this against
+  `docs/PROGRESS.md` before assuming otherwise; commit titles in `git log`
+  are not a reliable milestone indicator (see
   `docs/reviews/audit-resolution.md`).
+* SanguSantri is currently a **non-commercial application**: no advertising,
+  subscriptions, standalone Quran feature, Quran API integration (Kemenag or
+  Quran Foundation), or Quran audio is on the roadmap
+  (`docs/product/ROADMAP.md`).
 
 Do not implement the entire PRD unless explicitly requested. Implement only
 the milestone actually asked for.

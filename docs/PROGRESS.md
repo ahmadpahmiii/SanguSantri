@@ -283,3 +283,262 @@ Milestone 3 — Full Amaliyah Reader (PRD FR-004): render
 `AmaliyahVersionDetail.steps` from `ContentRepository.getDefaultVersionDetail`
 in place of the `AmaliyahDetail` placeholder, plus reader settings (DataStore,
 replacing the `Setelan` placeholder) and reading-position persistence.
+
+## Milestone 3 — Full Amaliyah Reader
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `detekt`,
+`lint`, `assembleDebug`, `assembleRelease` (R8/shrinking, `lintVitalRelease`),
+`testDebugUnitTest` (37/37), and `connectedDebugAndroidTest` (Pixel_9
+emulator, Android 15/API 35, 23/23) all pass. Manually verified on the same
+emulator: opening Tahlil from Serambi renders the reader's content-unavailable
+state offline (expected — the bundled fixtures are still `DRAFT`, see Known
+limitations), the settings sheet opens, a stepper change (Arabic font size
+28sp → 30sp) applies to the sheet immediately, the value survives a full
+`am force-stop` + relaunch (DataStore persistence), and both dark theme and
+landscape render without clipping.
+
+**Scope:** Full reading mode (FR-004) for the default published version of an
+amaliyah: ordered step rendering from Room, reader appearance settings
+(DataStore), and reading-position persistence — deliberately narrower than
+the PRD's full FR-004/FR-005/FR-006 reader (no guided mode, no interactive
+counters, no completion; see `CLAUDE.md` and the milestone brief's own §17).
+
+**Blocker check before starting:** none. `git status` was clean at
+`9f733a8` ("milestone 2"); Milestone 2's `SerambiScreen`, navigation, and
+design tokens existed and matched `docs/PROGRESS.md`'s own record, so this
+milestone proceeded without the Milestone 2 situation repeating.
+
+### What shipped
+
+- **Domain/data**: `ReaderSettings` (font sizes, line spacing, translation
+  visibility — with `coerce*` bounds functions) and `ReadingPosition`
+  (`versionId`, `itemIndex`, `itemOffset`, `lastOpenedAtEpochMillis`) domain
+  models; `ReaderSettingsRepository` (DataStore-backed, coerces on every
+  read so an out-of-range or corrupted stored value always falls back safely)
+  and `ReadingPositionRepository` (Room-backed). `ContentRepository` gained
+  `getAmaliyahBySlug` (the reader's top bar needs the amaliyah title, not
+  just its steps). New `reading_positions` Room table (`ReadingPositionEntity`
+    + `ReadingPositionDao`, `MIGRATION_2_3`, database version 3) — deliberately
+      narrower than `docs/engineering/CONTENT_MODEL.md`'s previously-sketched
+      `reading_sessions` table, which carries guided-mode/completion fields out
+      of this milestone's scope; see that document's update for the reasoning.
+      New `di/ReaderModule.kt` binds both new repositories.
+- **Reader** (`feature/reader/`): `ReaderViewModel` (`@HiltViewModel` with
+  assisted injection for the amaliyah slug) owns a `ReaderUiState`
+  (`Loading` / `ContentAvailable` / `ContentUnavailable` / `RecoverableError`)
+  combined from content load state and live `ReaderSettings`, and a
+  `ReaderUiAction` sealed interface for unidirectional actions (scroll
+  position changes, settings changes, retry). Reading position is debounced
+  (600ms) inside the ViewModel via a `MutableSharedFlow` + `debounce`, and
+  flushed immediately on `Lifecycle.Event.ON_STOP` via a dedicated
+  `PersistPositionNow` action — never written on every scroll pixel. Restored
+  positions are validated against the current step count and fall back to
+  `(0, 0)` when out of range (e.g. a shorter corrected version).
+- **Reader UI**: `ReaderScreen.kt` (`ReaderRoute` + `ReaderScreen`, a
+  `LazyColumn` constrained to a max reading width and centred on larger
+  screens per `DESIGN_SYSTEM.md`), `components/ReaderStepItem.kt` +
+  `ReaderHeadingAndInstructionBlocks.kt` + `ReaderArabicContentBlocks.kt`
+  (field-presence-driven rendering shared by every `StepType` — no
+  Tahlil/Istighosah-specific layout branching; `StepType` is a closed enum
+  handled exhaustively, so an unhandled case is a compile error, not a
+  runtime fallback), `components/ReaderStatusStates.kt` (loading/unavailable/
+  recoverable-error states with a retry action), `settings/ReaderSettingsSheet.kt`
+    + `ReaderSettingStepper.kt` (a restrained bottom sheet — grouped
+      label/value/stepper rows, a translation switch, no slider, no card wall).
+      Arabic text uses `core/designsystem/theme/ReaderTypography.kt` (new Arabic
+      and translation type-scale functions, parameterised by settings since font
+      size is user-configurable) with `FontFamily.Default` — no approved Arabic
+      typeface exists yet (PRD 13.9/25.8 blocking input), and Android's own
+      per-script font fallback already renders Arabic + harakat correctly under a
+      Latin primary family, so this is a documented interim choice, not a
+      download. Arabic blocks force RTL layout direction regardless of app
+      locale and are individually `SelectionContainer`-wrapped.
+- **Navigation**: `SanguSantriNavHost`'s `AmaliyahDetail` entry now renders
+  `ReaderRoute` instead of the Milestone 2 placeholder; only the slug crosses
+  the navigation boundary (FR-002/FR-003), consistent with Milestone 2.
+  Reader settings are a contextual bottom sheet inside the reader itself, not
+  a nav destination — `Setelan` (Serambi's own settings entry point, unrelated
+  to a specific amaliyah) is untouched.
+- **Strings**: `amaliyah_detail_placeholder_message` removed (destination no
+  longer a placeholder); reader/reader-settings strings added, all Indonesian
+  user-facing text per `CODING_STANDARD.md`.
+
+### Content safety
+
+No Arabic/Indonesian religious text was invented, corrected, or hardcoded.
+Every Arabic string introduced in Kotlin source (`@Preview` fixtures in
+`ReaderScreen.kt` / `ReaderStepItem.kt`, and the `androidTest` fixture in
+`ReaderScreenTest.kt`) carries the existing `[FIXTURE-AR]` non-production
+marker, mirroring `AmaliyahCard.kt`'s established convention — verified with
+`grep -rlP '[\x{0600}-\x{06FF}]'` across `main`/`test`/`androidTest`.
+
+### Known limitations
+
+- **The real app cannot show reader content yet.** The bundled seed fixtures
+  are still `status: DRAFT` (Milestone 1's own known limitation — the
+  release-blocking content-validation gate is still not built). Opening
+  Tahlil or Istighosah from Serambi therefore correctly renders the reader's
+  `ContentUnavailable` state, not step content — verified manually on-device.
+  `ReaderScreenTest` exercises actual step rendering against a dedicated,
+  `[FIXTURE]`/`[TEST]`-labelled `PUBLISHED` test amaliyah inserted directly
+  via Room DAOs for that reason, not through the shipped asset pipeline.
+- No theme override (light/dark/system) or reader background/surface style —
+  neither is implemented anywhere in the app yet (`SanguSantriTheme` only
+  follows `isSystemInDarkTheme()`) and no design-system token for a reader
+  surface style exists, so per the milestone brief's own qualifiers
+  ("where already supported" / "only if it exists in the approved design
+  documentation") neither was added.
+- Guided mode, interactive repetition counters, completion, and reading
+  history remain out of scope, per `CLAUDE.md` and this milestone's own
+  explicit exclusion list.
+- No Roborazzi screenshot tests — `DESIGN_SYSTEM.md`/`TESTING.md` introduce
+  these once reader screens exist, but the milestone brief explicitly says
+  not to add a heavy screenshot framework solely for this milestone; Compose
+  Previews cover the same visual states instead (normal, long Arabic content,
+  translation hidden, large Arabic font, dark surface, repetition indicator,
+  compact/expanded width, content-unavailable).
+- Compose UI tests cover the flows the current test infrastructure supports
+  (open reader from Serambi, ordered step rendering, translation hide/show,
+  settings sheet, content-unavailable) but not RTL-locale, font-scale-1.5, or
+  restored-position-after-process-death instrumented variants — no
+  `DeviceConfigurationOverride`/process-death test harness exists yet in this
+  project; manual verification substituted where noted above.
+
+### Next recommended milestone
+
+Milestone 4 — Guided Reader (PRD FR-005/FR-006): one-step-at-a-time
+navigation, automatic/manual advancement, and the interactive repetition
+counter this milestone deliberately left informational-only.
+
+## Milestone 3.5 — Local Production Content Bootstrap
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `detekt`,
+`lint`, `assembleDebug`, and `testDebugUnitTest` (37/37) all pass. Zero
+Kotlin/Android source changed this milestone, so these were regression
+checks, not new coverage. `connectedDebugAndroidTest` was not run — no
+emulator/device was available in this session
+(`adb devices` returned empty); no Android code changed, so nothing new
+needed it.
+
+**Scope:** Documentation scope correction (non-commercial status; no
+standalone Quran feature/Kemenag API/Quran Foundation API/Quran audio; no
+PDF reader; no runtime web scraping) plus a developer-only Python tool
+(`tools/content-importer/`) that converts a locally saved snapshot of the
+NU Online Tahlil article into a structured `DRAFT` JSON package compatible
+with the existing seed content schema. No Android/Kotlin source changed.
+
+### What shipped
+
+- **Scope-correction documentation**: `docs/product/PRD.md` (non-commercial
+  statement; §6.1 references the new dev tool; §6.4 clarifies `QURAN_AYAH`
+  is embedded amaliyah content, never a separate Quran API; §5.2 excludes
+  runtime web scraping and PDF reading/extraction from the app itself),
+  `docs/product/ROADMAP.md` (removed `0.0.5` Downloadable Quran Audio and
+  `0.5.0` Monetisation; added a non-commercial/no-Quran-feature statement),
+  `docs/engineering/CONTENT_MODEL.md` (`QURAN_AYAH` clarification; new
+  schema-freeze policy section — the app is pre-public-release, so the
+  current Room schema, version 3, is a future production baseline
+  candidate, not yet frozen; local dev data may be reset by a schema change,
+  but destructive migration remains prohibited for any build that could
+  reach a real user), `docs/operations/CONTENT_GOVERNANCE.md` (new
+  "Developer draft tooling" section documenting the fetch → snapshot →
+  parse → draft JSON → manual review → approved JSON → Android assets flow;
+  Istighosah production-source-pending note), `docs/security/
+  SECURITY_BASELINE.md` and `docs/security/THREAT_MODEL.md` (dropped
+  advertising/subscription-gated controls tied to the removed `0.5.0`),
+  `docs/operations/PRODUCTION_READINESS.md` and `docs/decisions/
+  0009-no-authentication-in-public-mvp.md` (removed dangling references to
+  the deleted roadmap items), `CLAUDE.md` (corrected the stale "Serambi and
+  reader UI not implemented yet" line — Milestones 0–3 are complete — and
+  added the non-commercial/no-Quran-API statement as a hard project-wide
+  rule).
+- **`tools/content-importer/`** (Python 3.9+, standard library only — no
+  external dependencies): `python -m content_importer {fetch,parse,validate}`.
+  `fetch` downloads only the one allowlisted NU Online Tahlil URL
+  (`content_importer/config.py`), with a 15s timeout and a 5 MiB response
+  cap, and writes a local HTML snapshot plus a metadata sidecar (retrieval
+  timestamp, HTTP status, byte length, SHA-256). `parse`
+  (`content_importer/parser_nu_tahlil.py`, `html_blocks.py`) is a
+  source-specific parser (not a generic scraper) built against the page's
+  actual `#detail-content` structure: it extracts numbered headings, Arabic
+  text (harakat preserved verbatim — no normalisation touches non-whitespace
+  characters), and the paired Indonesian translation, in document order,
+  skipping known non-editorial subtrees (inline ads, "Baca Juga"
+  recommendation boxes). It extracts a repetition count only when the count
+  is written directly in a heading (e.g. `"(3 kali)"`, `"100 kali"`,
+  `"2x"`); it never assigns `QURAN_AYAH` (would require inventing a
+  surah/ayah number the page doesn't state structurally) and instead lists
+  heading text that looks Quran-related under `possibleQuranAyahCandidates`
+  in the generated report, for manual classification. Anything it cannot
+  classify with confidence — an empty Arabic paragraph, an Arabic block with
+  no following translation, a repetition marker embedded inside Arabic text
+  rather than in the heading — is reported, never guessed or invented.
+  `validate` (`content_importer/validate.py`) mirrors
+  `SeedContentValidator.kt`'s structural rules in Python so a draft can be
+  checked without touching Gradle. `builder.py` always marks output
+  `version.status: DRAFT` / `approval.status: PENDING`, with
+  `approverName: "PENDING — draft awaiting kyai/sesepuh review"` and a
+  `sourceReference` pointing at the real URL — the tool has no code path
+  that can mark content approved.
+
+### Content flow verification (real run against the live source)
+
+`fetch` → `parse` → `validate` was run end-to-end against the actual NU
+Online article (`docs/product/PRD.md` §6.1's editorial reference). Result:
+**59 steps extracted**, 3 editorial preamble paragraphs correctly excluded
+(news-article framing, not reading content), 3 sections flagged ambiguous
+(one empty Arabic paragraph — a source formatting artifact, correctly
+skipped rather than guessed; two Arabic blocks with an embedded Latin-script
+repetition marker, e.g. `"3x ..."`, extracted verbatim and flagged rather
+than silently stripped), 9 headings flagged as possible `QURAN_AYAH`
+candidates for manual review. `validate` reports the generated package
+structurally **VALID** against `docs/content-schema.md`'s rules. The raw
+snapshot and generated draft are gitignored and were not committed — see
+`.gitignore` and `tools/content-importer/README.md`.
+
+### Android integration
+
+**None** — deliberately. The generated draft stays local under
+`tools/content-importer/output/` (gitignored), not
+`app/src/main/assets/content/`: the content flow places "manual content
+review" and kyai/sesepuh approval *before* "Android assets" in the pipeline
+(`docs/operations/CONTENT_GOVERNANCE.md`), and neither has happened for this
+draft. The bundled `app/src/main/assets/content/tahlil-general-v1.json`
+fixture is untouched, still the Milestone 1 `DRAFT`/`[FIXTURE-AR]`
+placeholder. Serambi and the Full Reader are therefore unchanged and
+continue to behave exactly as documented in Milestone 3's Known
+limitations (Tahlil/Istighosah still render the reader's
+`ContentUnavailable` state, since no version in Room is `PUBLISHED`) — this
+was not re-verified manually on-device this milestone (no emulator
+available), but no code path that affects it changed.
+
+### Istighosah
+
+Not scraped. PRD §6.2 only lists a *proposed*, not-yet-approved reference
+(the KH Romli Tamim collection via Quran NU Online) with no specific URL —
+per this milestone's brief and `docs/operations/CONTENT_GOVERNANCE.md`'s new
+note, its production source remains pending a kyai/sesepuh decision. The
+existing Istighosah development fixture is unchanged.
+
+### Known limitations
+
+- The generated Tahlil draft has not been manually reviewed against the
+  source, has no kyai/sesepuh approval, and must not be treated as
+  production-ready — it is explicitly `DRAFT`/`PENDING` and gitignored.
+- 9 headings need manual `QURAN_AYAH` classification (surah/ayah numbers)
+  before the draft could ever be promoted; 2 Arabic blocks carry an
+  unresolved embedded repetition marker; 1 empty-Arabic-paragraph anomaly
+  needs a manual re-check against the source.
+- `connectedDebugAndroidTest` was not run this session (no emulator
+  available) — acceptable here since no Android/Kotlin source changed, but
+  it must run again before any milestone that does change Android code.
+- The release-blocking content-validation gate flagged since Milestone 1
+  (failing the build when only non-production fixtures are bundled) is
+  still not built.
+
+### Next recommended milestone
+
+Milestone 4 — Guided Reader (PRD FR-005/FR-006), unchanged from the
+recommendation above. Promoting the Tahlil draft generated this milestone
+into production content is a content-governance task (manual review + kyai/
+sesepuh approval), not an engineering milestone.

@@ -9,16 +9,17 @@ import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
 import com.sangusantri.app.data.local.dao.AmaliyahVersionDao
 import com.sangusantri.app.data.local.dao.AppMetadataDao
 import com.sangusantri.app.data.local.dao.ApprovalDao
+import com.sangusantri.app.data.local.dao.ReadingPositionDao
 import com.sangusantri.app.data.local.entity.AmaliyahEntity
 import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVersionEntity
 import com.sangusantri.app.data.local.entity.AppMetadataEntity
 import com.sangusantri.app.data.local.entity.ApprovalEntity
+import com.sangusantri.app.data.local.entity.ReadingPositionEntity
 
 /**
- * Canonical local source of truth (PRD 12.1). Progress entities
- * (reading_sessions, step_progress) are added when the reader is implemented;
+ * Canonical local source of truth (PRD 12.1). `step_progress` is added when guided mode ships;
  * destructive migrations are prohibited once this ships (PRD 16.1, ADR 0003).
  */
 @Database(
@@ -29,8 +30,9 @@ import com.sangusantri.app.data.local.entity.ApprovalEntity
         ApprovalEntity::class,
         AmaliyahVersionEntity::class,
         AmaliyahStepEntity::class,
+        ReadingPositionEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -46,6 +48,8 @@ abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun amaliyahVersionDao(): AmaliyahVersionDao
 
     abstract fun amaliyahStepDao(): AmaliyahStepDao
+
+    abstract fun readingPositionDao(): ReadingPositionDao
 
     companion object {
         const val DATABASE_NAME = "sangusantri.db"

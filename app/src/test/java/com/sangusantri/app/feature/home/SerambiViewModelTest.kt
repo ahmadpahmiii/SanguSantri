@@ -73,5 +73,7 @@ private class FakeContentRepository(
 ) : ContentRepository {
     override fun observeAmaliyah(): Flow<List<Amaliyah>> = amaliyah
 
+    override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? = null
+
     override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? = null
 }

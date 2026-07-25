@@ -24,6 +24,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
 import com.sangusantri.app.feature.home.SerambiRoute
+import com.sangusantri.app.feature.reader.ReaderRoute
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -42,9 +43,10 @@ private data object Setelan : NavKey
 private data object About : NavKey
 
 /**
- * Navigation 3 host. [Serambi] is the real Milestone 2 home destination; [AmaliyahDetail] and
- * [Setelan] replace [AmaliyahDetailPlaceholderScreen] / [SetelanPlaceholderScreen] with the real
- * Full Reader and Reader Settings screens when Milestone 3 lands (ADR 0004 placeholder pattern).
+ * Navigation 3 host. [Serambi] is the real Milestone 2 home destination; [AmaliyahDetail] is the
+ * real Milestone 3 Full Reader. Reader settings are a contextual bottom sheet inside the reader
+ * itself, not a destination, so [Setelan] remains a placeholder (ADR 0004 placeholder pattern) —
+ * it is Serambi's own settings entry point, unrelated to a specific amaliyah being read.
  */
 @Composable
 fun SanguSantriNavHost(modifier: Modifier = Modifier) {
@@ -69,8 +71,8 @@ fun SanguSantriNavHost(modifier: Modifier = Modifier) {
                     )
                 }
                 entry<AmaliyahDetail> { key ->
-                    AmaliyahDetailPlaceholderScreen(
-                        slug = key.slug,
+                    ReaderRoute(
+                        amaliyahSlug = key.slug,
                         onBack = { backStack.removeLastOrNull() },
                     )
                 }
@@ -87,18 +89,6 @@ fun SanguSantriNavHost(modifier: Modifier = Modifier) {
                     )
                 }
             },
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AmaliyahDetailPlaceholderScreen(
-    slug: String,
-    onBack: () -> Unit,
-) {
-    PlaceholderScreen(
-        message = stringResource(R.string.amaliyah_detail_placeholder_message, slug),
-        onBack = onBack,
     )
 }
 
@@ -124,9 +114,10 @@ private fun PlaceholderScreen(
         },
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
             contentAlignment = Alignment.Center,
         ) {
             Text(text = message, style = MaterialTheme.typography.bodyMedium)

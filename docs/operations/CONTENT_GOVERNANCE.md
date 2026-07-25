@@ -29,6 +29,44 @@ Source selected
 → Bundled or synchronised
 ```
 
+## Developer draft tooling
+
+`tools/content-importer/` (see its own `README.md`) is a small,
+developer-only Python tool that turns one allowlisted, publicly available
+source page into a local structured JSON draft, without becoming a step in
+the editorial workflow above:
+
+```text
+NU Online page
+→ local HTML snapshot (gitignored, never committed)
+→ source-specific parser (one source, not a generic scraper)
+→ structured draft JSON (schemaVersion 1, status DRAFT, gitignored)
+→ manual content review  ← editorial workflow above starts here
+→ approved local JSON later
+→ Android assets (app/src/main/assets/content/)
+→ existing seed importer
+→ Room
+→ Full Reader
+```
+
+The tool never runs at application runtime, never runs automatically, and
+never writes into `app/src/main/assets/content/` itself — a human moves a
+draft into the bundled assets only after it has been manually reviewed,
+approved, and the resulting package's `version.status`/`approval.status`
+genuinely reflect that approval. The tool must not invent missing Arabic
+text or translation; when a page section cannot be parsed deterministically,
+it must be reported as ambiguous rather than guessed. It fetches only the
+one allowlisted URL it was built for, never a Kemenag or Quran Foundation
+API, and never a PDF — PDF may only be kept manually as a private visual
+reference (never parsed, never bundled, never displayed in the reader; see
+`docs/product/PRD.md` §5.2).
+
+**Istighosah production source is still pending.** PRD §6.2 only lists a
+*proposed* reference (the KH Romli Tamim collection via Quran NU Online),
+subject to selection and approval by the assigned kyai or sesepuh — not a
+confirmed source with a specific URL. Do not build an Istighosah scraper
+until a specific, approved source exists in project documentation.
+
 ## Correction workflow
 
 ```text

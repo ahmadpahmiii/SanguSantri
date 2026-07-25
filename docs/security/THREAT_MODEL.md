@@ -17,10 +17,11 @@ emerges — not preemptively once networking code exists.
 
 ## Root/tamper detection, Play Integrity API enforcement
 
-**Deferred.** Reconsider only once payments (`0.5.0`) or pesantren
-membership codes (`0.2.0`) exist, where fraud has real cost. Adding this
+**Deferred.** Reconsider only once pesantren membership codes (`0.2.0`) or
+Nahwu quiz rankings (`0.4.0`) exist, where fraud has real cost. Adding this
 now defends nothing — there is no reader-content threat that root detection
-mitigates.
+mitigates. SanguSantri is currently non-commercial, so there is no payments
+milestone to trigger this either.
 
 ## Enterprise secret management (Vault/HSM-backed KMS)
 

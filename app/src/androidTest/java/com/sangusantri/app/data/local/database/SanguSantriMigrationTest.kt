@@ -48,6 +48,28 @@ class SanguSantriMigrationTest {
         }
     }
 
+    @Test
+    fun migrate2To3CreatesReadingPositionsTableWithoutDataLoss() {
+        helper.createDatabase(TEST_DB, 2).apply {
+            execSQL(
+                "INSERT INTO amaliyah (`id`,`slug`,`titleId`,`titleAr`,`descriptionId`,`descriptionAr`,`category`) " +
+                    "VALUES ('a1','slug1','Judul','[FIXTURE-AR]',NULL,NULL,'AMALIYAH')",
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 3, true, MIGRATION_2_3)
+
+        migrated.query("SELECT `id` FROM amaliyah").use {
+            assertTrue(it.moveToFirst())
+            assertEquals("a1", it.getString(0))
+        }
+        migrated.query("SELECT COUNT(*) FROM reading_positions").use {
+            assertTrue(it.moveToFirst())
+            assertEquals(0, it.getInt(0))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

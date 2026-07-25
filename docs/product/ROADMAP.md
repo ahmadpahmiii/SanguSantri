@@ -6,6 +6,16 @@ implement an item on this roadmap until it is explicitly requested — PRD §1
 already states future roadmap items must influence extensibility without
 being built prematurely.
 
+SanguSantri is currently a **non-commercial application**. There is no
+advertising, subscription, or monetisation roadmap item, and none should be
+added without an explicit product decision. There is no standalone Quran
+feature, Quran Kemenag API integration, Quran Foundation API integration, or
+Quran audio planned. Tahlil and Istighosah may still contain Quran verses as
+part of their original reading text (`QURAN_AYAH` step type); those verses
+are entered as part of the approved amaliyah content itself, never fetched
+from a separate Quran API or service — see
+`docs/engineering/CONTENT_MODEL.md`.
+
 ## `0.0.1` — Core Amaliyah Reader (current)
 
 * Tahlil, Istighosah.
@@ -34,12 +44,6 @@ See `docs/product/PRD.md` for full scope and acceptance criteria.
 * Gregorian and Hijri date, notification permission flow.
 * Rescheduling after reboot. No "remind me later" requirement.
 
-## `0.0.5` — Downloadable Quran Audio
-
-* Downloadable complete audio packages, multiple reciters in the data model.
-* Download progress, checksum verification, package removal, offline playback.
-* Media3. No non-Quran prayer audio yet.
-
 ## `0.1.0` — Accounts
 
 * Google login, phone-number login, minimal profile.
@@ -60,14 +64,6 @@ See `docs/product/PRD.md` for full scope and acceptance criteria.
 
 * Question bank, individual score, pesantren representation.
 * Anti-cheating controls, seasonal leaderboard, moderated content.
-
-## `0.5.0` — Monetisation
-
-* Advertising on non-reader surfaces only — never between prayers or over
-  Arabic text.
-* Optional subscription, ad-free experience.
-* Public essential amaliyah stays accessible without payment; pesantren
-  private spaces stay free unless strategy explicitly changes.
 
 ---
 

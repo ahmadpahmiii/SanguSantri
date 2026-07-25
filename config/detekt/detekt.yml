@@ -4,6 +4,9 @@ build:
 style:
   MagicNumber:
     active: false
+  UnusedPrivateMember:
+    # @Preview composables are only invoked by Compose tooling, never from app code.
+    ignoreAnnotated: [ Preview, PreviewLightDark ]
 
 comments:
   active: false

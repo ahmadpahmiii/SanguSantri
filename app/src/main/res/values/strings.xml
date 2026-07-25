@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">SanguSantri</string>
-    <string name="foundation_placeholder_message">Engineering foundation build — Serambi is not implemented yet.</string>
+
+  <!-- Serambi (FR-002) -->
+  <string name="serambi_setelan_content_description">Buka Setelan</string>
+  <string name="serambi_about_content_description">Tentang SanguSantri</string>
+  <string name="serambi_empty_state">Konten sedang disiapkan.</string>
+
+  <!-- Placeholder destinations replaced screen-by-screen as their milestones land (ADR 0004) -->
+  <string name="amaliyah_detail_placeholder_message">Bacaan Lengkap belum tersedia untuk %1$s — Milestone 3.</string>
+  <string name="setelan_placeholder_message">Setelan belum tersedia.</string>
+  <string name="about_placeholder_message">Tentang SanguSantri belum tersedia.</string>
+  <string name="navigate_back_content_description">Kembali</string>
 </resources>

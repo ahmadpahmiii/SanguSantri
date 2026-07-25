@@ -56,6 +56,7 @@ fun SanguSantriTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = SanguSantriTypography,
+        shapes = SanguSantriShapes,
         content = content,
     )
 }

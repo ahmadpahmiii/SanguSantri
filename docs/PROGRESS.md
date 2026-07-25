@@ -1,6 +1,6 @@
 # SanguSantri Engineering Progress
 
-## Documentation, security, and production-readiness pass (pre-Milestone 3)
+## Documentation, security, and production-readiness pass (pre-Milestone 2)
 
 **Status:** Complete. Not a numbered milestone — no feature code shipped.
 Full detail: `docs/reviews/audit-resolution.md`.
@@ -12,9 +12,14 @@ operations,decisions,reviews}` tree, trimmed `CLAUDE.md` and
 re-enabled release R8/shrinking (`app/build.gradle.kts`,
 `gradle.properties`; verified with `./gradlew assembleRelease`,
 `detekt`, `ktlintCheck`, `testDebugUnitTest`, `lint`). Milestone 2
-(Serambi) has not started — see Milestone 1 below for the actual current
-implementation state; the `HEAD` commit is titled "milestone 2" but its
-content matches Milestone 1.
+(Serambi) had not started at the time of this pass — the `HEAD` commit at
+the time was titled "milestone 2" but its content matched Milestone 1.
+**Numbering note:** this pass's own heading and `docs/reviews/audit-resolution.md`
+both drifted and referred to Serambi as "Milestone 3" — corrected here.
+Serambi is Milestone 2 (this doc's own Milestone 0/1 sequence and
+`CLAUDE.md`'s milestone list agree); the Full Amaliyah Reader is Milestone 3
+and remains not started. See the Milestone 2 section below for what
+actually shipped.
 
 ## Milestone 0 — Android project foundation
 
@@ -168,6 +173,113 @@ network sync, backend, or auth — deliberately deferred to later milestones.
 
 ### Next recommended milestone
 
-Serambi (PRD FR-002, §7–8.1): wire `SeedContentImporter` into app startup,
-render the Tahlil/Istighosah catalogue from `ContentRepository.observeAmaliyah()`,
-and add the offline-first Compose UI test (open Serambi in airplane mode).
+Serambi (PRD FR-002, §7–8.1) — see below; implemented next.
+
+## Milestone 2 — Serambi
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `detekt`,
+`lint`, `assembleDebug`, `assembleRelease` (R8/shrinking, `lintVitalRelease`),
+`testDebugUnitTest`, and `connectedDebugAndroidTest` (Pixel_9 emulator, API
+15/36) all pass. Manually verified on the same emulator: fresh install
+seeds Room and renders both cards, tapping a card navigates with the correct
+slug, back navigation returns to Serambi, Setelan/About icons open their
+placeholders.
+
+**Scope:** Serambi home screen (FR-002) rendering the Tahlil/Istighosah
+catalogue from Room, plus the minimum navigation/DI/design-token
+groundwork this required. No Full Reader, no reader settings, no
+continue-reading section, no content-sync status — deliberately deferred
+(see Known limitations).
+
+**Blocker resolved before starting:** this milestone was originally
+requested as "Milestone 3: Full Amaliyah Reader," which assumed Serambi
+already existed. It didn't — `docs/PROGRESS.md` already recorded this, but
+the `HEAD` commit's misleading "milestone 2" title and
+`docs/reviews/audit-resolution.md`'s "Milestone 3 (Serambi)" heading both
+suggested otherwise. Verified directly against the source tree (no
+`feature/`, no `SerambiScreen`, no reader code existed at all) before
+starting. The user chose to pause the Full Reader request and build Serambi
+first; this section is that work. The Full Reader remains Milestone 3,
+next.
+
+### What shipped
+
+- **Seed import now runs at app startup**: `SanguSantriApplication` injects
+  `SeedContentImporter` and runs it on an application-scoped `IO` coroutine
+  in `onCreate()` — non-blocking (Serambi renders from Room reactively
+  regardless of import timing) and safe to run on every launch (already
+  idempotent per Milestone 1). Instrumented tests run under
+  `HiltTestApplication` (`HiltTestRunner`), which never calls
+  `SanguSantriApplication.onCreate()`, so `SerambiScreenTest` seeds Room
+  itself via the same injected `SeedContentImporter` in `@Before`.
+- **Serambi screen** (`feature/home/`): `SerambiViewModel`
+  (`@HiltViewModel`, exposes `StateFlow<SerambiUiState>` via
+  `ContentRepository.observeAmaliyah()`, no DAO access), `SerambiUiState`
+  (`Loading` / `Content`, empty list is a valid `Content` state — no fake
+  loading spinner once Room has answered), `SerambiRoute` +
+  stateless `SerambiScreen` (Compose UI layer rule from
+  `ARCHITECTURE.md`), and `AmaliyahCard` (reusable, flat `OutlinedCard`
+  with a hairline border instead of Material's default shadow elevation,
+  per the design system's elevation policy). Cards render from
+  `ContentRepository.observeAmaliyah()`, never a hardcoded screen list
+  (FR-002). Previews cover content, empty catalogue, loading, and
+  no-description states.
+- **Design tokens** added before this first real screen, per
+  `docs/design/DESIGN_SYSTEM.md`: `SanguSantriSpacing` (4–32dp scale),
+  `SanguSantriShapes` (3 corner radii, wired into `SanguSantriTheme`),
+  `SanguSantriElevation` (flat + hairline-border policy). `Type.kt`
+  extended with a small general scale (`headlineSmall`, `titleLarge`,
+  `titleMedium`, `bodyMedium`, `labelLarge`) — the Arabic-specific type
+  scale stays deferred to the reader milestone as the doc specifies.
+- **Navigation**: `SanguSantriNavHost` replaces the Milestone 0
+  `Home`/`FoundationPlaceholderScreen` placeholder with the real `Serambi`
+  destination (ADR 0004's "placeholder replaced screen-by-screen" pattern).
+  Three new destinations exist only as placeholders, each carrying a
+  stable identifier where relevant, ready to be replaced by their own
+  milestones: `AmaliyahDetail(slug: String)` → Milestone 3 Full Reader,
+  `Setelan` → Milestone 3 reader settings, `About` → unscheduled. Added
+  `rememberViewModelStoreNavEntryDecorator` (Serambi is the first
+  destination needing a scoped ViewModel — ADR 0004 anticipated this).
+- **New dependencies** (all latest stable, verified resolvable):
+  `androidx.hilt:hilt-navigation-compose:1.4.0`,
+  `androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0`,
+  `androidx.lifecycle:lifecycle-{viewmodel,runtime}-compose:2.11.0`,
+  `androidx.compose.material:material-icons-core`.
+- `config/detekt/detekt.yml`: added `UnusedPrivateMember` exemption for
+  `@Preview`/`@PreviewLightDark` composables (first use of Compose previews
+  in this project; detekt doesn't know the Compose tooling convention).
+
+### Known limitations
+
+- **FR-002 partially implemented.** "Continue-reading section when
+  progress exists" needs `reading_sessions` (Milestone 3 scope, PRD's own
+  reading-position persistence); "subtle content update status" needs
+  sync/manifest metadata (no sync milestone scheduled yet). Neither is
+  faked — building either now would mean inventing a signal with no real
+  backing data, which the project's own design-token guidance explicitly
+  warns against. Both are honestly absent rather than stubbed.
+- Setelan and About are navigation placeholders only (a message screen
+  with a back button), not real screens.
+- No screenshot tests (Roborazzi) — `DESIGN_SYSTEM.md` introduces these
+  "once reader screens exist"; Serambi is the home screen, not a reader
+  screen, so this is the reader milestone's task, not this one.
+- No RTL/landscape/tablet-width/font-scale-1.5 Compose UI test variants for
+  Serambi specifically — `TESTING.md` lists these as baseline scenarios "as
+  reader UI lands"; Serambi is a simple list screen, not the reader, and
+  adding all four render-variant tests for a screen this size would be
+  disproportionate to the milestone. Compose's window-size-class handling
+  is otherwise unaffected (single-column `LazyColumn`, no custom breakpoint
+  logic), so no code path is untested in principle — the render-variant
+  test matrix itself is deferred to the reader milestone.
+- Bundled fixture content ships in the release APK unchanged from
+  Milestone 1 (`assets/content/`) — expected: fixtures are offline seed
+  data by design (FR-001), stay `DRAFT`/`PENDING`, and never render as
+  approved content. The release-blocking content validation gate flagged
+  in Milestone 1 is still not built.
+
+### Next recommended milestone
+
+Milestone 3 — Full Amaliyah Reader (PRD FR-004): render
+`AmaliyahVersionDetail.steps` from `ContentRepository.getDefaultVersionDetail`
+in place of the `AmaliyahDetail` placeholder, plus reader settings (DataStore,
+replacing the `Setelan` placeholder) and reading-position persistence.

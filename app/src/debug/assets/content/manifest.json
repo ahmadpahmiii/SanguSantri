@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-25T00:00:00Z",
+  "packages": [
+    {
+      "versionId": "tahlil-umum-v1",
+      "file": "tahlil-general-v1.json",
+      "checksumSha256": "a59ae9dcbcf59b0b95499a79e1898e41d113bad837b1a33883a9c54a41ac6503"
+    },
+    {
+      "versionId": "istighosah-umum-v1",
+      "file": "istighosah-general-v1.json",
+      "checksumSha256": "d452417e7833cbee0a68354d4f1e2bff9820c40daaed4038adf592b0a2639e25"
+    }
+  ]
+}

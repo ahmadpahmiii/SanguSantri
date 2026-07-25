@@ -6,15 +6,25 @@ import argparse
 import hashlib
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from . import fetch as fetch_module
 from .builder import build_draft_package, build_provenance, report_to_dict
 from .config import DEFAULT_SOURCE_ID, OUTPUT_DIR_NAME, SNAPSHOT_DIR_NAME, SOURCES
+from .draft_model import ParseResult
+from .parser_istighosah_nu import parse_istighosah_html
 from .parser_nu_tahlil import parse_tahlil_html
 from .validate import validate_package
 
 TOOL_ROOT = Path(__file__).resolve().parent.parent
+
+# One parser per allowlisted source (config.SOURCES) — never a generic
+# dispatcher that could be pointed at an arbitrary source_id/URL pair.
+PARSERS: dict[str, Callable[[str], ParseResult]] = {
+    "tahlil-nu-online": parse_tahlil_html,
+    "istighosah-nu-online": parse_istighosah_html,
+}
 
 
 def _snapshot_dir() -> Path:
@@ -58,9 +68,10 @@ def _cmd_parse(args: argparse.Namespace) -> int:
     snapshot = fetch_module.SnapshotMetadata(**snapshot_meta_dict)
 
     html = snapshot_path.read_text(encoding="utf-8")
-    result = parse_tahlil_html(html)
+    source_spec = SOURCES[args.source]
+    result = PARSERS[args.source](html)
 
-    package = build_draft_package(result, snapshot)
+    package = build_draft_package(result, snapshot, source_spec)
     package_json = json.dumps(package, indent=2, ensure_ascii=False) + "\n"
     package_checksum = hashlib.sha256(package_json.encode("utf-8")).hexdigest()
     provenance = build_provenance(snapshot, package_checksum)
@@ -68,8 +79,7 @@ def _cmd_parse(args: argparse.Namespace) -> int:
 
     out_dir = _output_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
-    source_spec = SOURCES[args.source]
-    base_name = f"{source_spec.snapshot_prefix.replace('-nu-online', '-general-v1')}"
+    base_name = source_spec.content_slug
 
     package_path = out_dir / f"{base_name}.draft.json"
     provenance_path = out_dir / f"{base_name}.provenance.json"
@@ -102,8 +112,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         package_path = Path(args.package)
     else:
         source_spec = SOURCES[args.source]
-        base_name = f"{source_spec.snapshot_prefix.replace('-nu-online', '-general-v1')}"
-        package_path = _output_dir() / f"{base_name}.draft.json"
+        package_path = _output_dir() / f"{source_spec.content_slug}.draft.json"
 
     if not package_path.exists():
         print(f"validate failed: {package_path} does not exist — run `parse` first", file=sys.stderr)

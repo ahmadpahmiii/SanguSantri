@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.guidedreader
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.AmaliyahStep
@@ -145,6 +146,12 @@ constructor(
                     val amaliyah = contentRepository.getAmaliyahBySlug(amaliyahSlug)
                     val detail = contentRepository.getDefaultVersionDetail(amaliyahSlug)
                     if (amaliyah == null || detail == null || detail.steps.isEmpty()) {
+                        Log.w(
+                            TAG,
+                            "Content unavailable for slug=$amaliyahSlug: " +
+                                "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
+                                "stepCount=${detail?.steps?.size ?: 0}",
+                        )
                         ContentState.Unavailable
                     } else {
                         restoreProgress(detail)
@@ -153,6 +160,7 @@ constructor(
                 } catch (cancellation: CancellationException) {
                     throw cancellation
                 } catch (unexpected: Exception) {
+                    Log.e(TAG, "Guided content load failed for slug=$amaliyahSlug", unexpected)
                     ContentState.Error
                 }
         }
@@ -325,6 +333,7 @@ constructor(
     }
 
     private companion object {
+        const val TAG = "GuidedReaderViewModel"
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val AUTO_ADVANCE_DELAY_MILLIS = 500L
     }

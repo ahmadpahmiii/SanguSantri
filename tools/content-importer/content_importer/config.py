@@ -16,11 +16,26 @@ class SourceSpec:
     url: str
     display_name: str
     snapshot_prefix: str
+    # Canonical package identity (docs/content-schema.md) — declared here,
+    # not derived from filenames/URLs, so adding a source is one reviewed
+    # dict entry rather than a string-munging hack elsewhere in the tool.
+    content_slug: str
+    amaliyah_id: str
+    amaliyah_slug: str
+    amaliyah_title_id: str
+    variant_id: str
+    variant_slug: str
+    variant_name_id: str
+    version_id: str
+    approval_id: str
+    document_reference_prefix: str
+    description_id: str
 
 
-# One entry per approved editorial reference (PRD 6.1). Istighosah is
-# deliberately absent: PRD 6.2 only lists a *proposed*, not-yet-approved
-# reference with no specific URL — see docs/operations/CONTENT_GOVERNANCE.md.
+# One entry per approved editorial reference (PRD 6.1). Every generated
+# package is always DRAFT/PENDING (builder.py) regardless of what is listed
+# here — an entry only means "this tool may fetch and parse this URL", never
+# "this content is approved" (docs/operations/CONTENT_GOVERNANCE.md).
 SOURCES: dict[str, SourceSpec] = {
     "tahlil-nu-online": SourceSpec(
         source_id="tahlil-nu-online",
@@ -32,6 +47,43 @@ SOURCES: dict[str, SourceSpec] = {
             "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya"
         ),
         snapshot_prefix="tahlil-nu-online",
+        content_slug="tahlil-general-v1",
+        amaliyah_id="tahlil",
+        amaliyah_slug="tahlil",
+        amaliyah_title_id="Tahlil",
+        variant_id="tahlil-umum",
+        variant_slug="umum",
+        variant_name_id="Umum",
+        version_id="tahlil-umum-v1",
+        approval_id="tahlil-umum-v1-approval",
+        document_reference_prefix="DRAFT-TAHLIL-NU-ONLINE",
+        description_id=(
+            "Draf transkripsi otomatis dari NU Online, belum ditinjau manusia. "
+            "Bukan konten produksi."
+        ),
+    ),
+    "istighosah-nu-online": SourceSpec(
+        source_id="istighosah-nu-online",
+        url="https://quran.nu.or.id/doa/istighotsah-mujahadah",
+        display_name=(
+            "Quran NU Online — Kumpulan Istighotsah & Mujahadah: "
+            "Istighotsah (KH Romli Tamim)"
+        ),
+        snapshot_prefix="istighosah-nu-online",
+        content_slug="istighosah-general-v1",
+        amaliyah_id="istighosah",
+        amaliyah_slug="istighosah",
+        amaliyah_title_id="Istighosah",
+        variant_id="istighosah-umum",
+        variant_slug="umum",
+        variant_name_id="Umum",
+        version_id="istighosah-umum-v1",
+        approval_id="istighosah-umum-v1-approval",
+        document_reference_prefix="DRAFT-ISTIGHOSAH-NU-ONLINE",
+        description_id=(
+            "Draf transkripsi otomatis dari Quran NU Online (Istighotsah KH Romli Tamim), "
+            "belum ditinjau manusia. Bukan konten produksi."
+        ),
     ),
 }
 

@@ -5,28 +5,23 @@ content approved, by design."""
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import date
 
+from .config import SourceSpec
+from .draft_model import DraftStep, ParseResult
 from .fetch import SnapshotMetadata
-from .parser_nu_tahlil import DraftStep, ParseResult
 
 DRAFT_MARKER_AR = "[DRAFT — Arabic title pending manual review, not yet transcribed by a human reviewer]"
 
-AMALIYAH_ID = "tahlil"
-VARIANT_ID = "tahlil-umum"
-VERSION_ID = "tahlil-umum-v1"
-APPROVAL_ID = "tahlil-umum-v1-approval"
 
-
-def _step_id(index: int, total: int) -> str:
+def _step_id(version_id: str, index: int, total: int) -> str:
     width = max(2, len(str(total)))
-    return f"{VERSION_ID}-step-{index:0{width}d}"
+    return f"{version_id}-step-{index:0{width}d}"
 
 
-def _step_to_dict(step: DraftStep, position: int, total: int) -> dict:
+def _step_to_dict(step: DraftStep, version_id: str, position: int, total: int) -> dict:
     return {
-        "id": _step_id(position, total),
+        "id": _step_id(version_id, position, total),
         "position": position,
         "stepType": step.step_type,
         "titleId": step.title_id,
@@ -43,7 +38,7 @@ def _step_to_dict(step: DraftStep, position: int, total: int) -> dict:
     }
 
 
-def build_draft_package(parse_result: ParseResult, snapshot: SnapshotMetadata) -> dict:
+def build_draft_package(parse_result: ParseResult, snapshot: SnapshotMetadata, source: SourceSpec) -> dict:
     steps = parse_result.steps
     total = len(steps)
     today = date.today().isoformat()
@@ -51,21 +46,18 @@ def build_draft_package(parse_result: ParseResult, snapshot: SnapshotMetadata) -
     return {
         "schemaVersion": 1,
         "amaliyah": {
-            "id": AMALIYAH_ID,
-            "slug": "tahlil",
-            "titleId": "Tahlil",
+            "id": source.amaliyah_id,
+            "slug": source.amaliyah_slug,
+            "titleId": source.amaliyah_title_id,
             "titleAr": DRAFT_MARKER_AR,
-            "descriptionId": (
-                "Draf transkripsi otomatis dari NU Online, belum ditinjau manusia. "
-                "Bukan konten produksi."
-            ),
+            "descriptionId": source.description_id,
             "descriptionAr": DRAFT_MARKER_AR,
             "category": "AMALIYAH",
         },
         "variant": {
-            "id": VARIANT_ID,
-            "slug": "umum",
-            "nameId": "Umum",
+            "id": source.variant_id,
+            "slug": source.variant_slug,
+            "nameId": source.variant_name_id,
             "nameAr": DRAFT_MARKER_AR,
             "ownerType": "PUBLIC",
             "pondokId": None,
@@ -73,11 +65,11 @@ def build_draft_package(parse_result: ParseResult, snapshot: SnapshotMetadata) -
             "isDefault": True,
         },
         "version": {
-            "id": VERSION_ID,
+            "id": source.version_id,
             "versionNumber": 1,
             "status": "DRAFT",
             "sourceName": (
-                "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya "
+                f"{source.display_name} "
                 f"(automated draft transcription, unreviewed, retrieved {snapshot.retrievedAtUtc})"
             ),
             "sourceReference": snapshot.sourceUrl,
@@ -86,17 +78,17 @@ def build_draft_package(parse_result: ParseResult, snapshot: SnapshotMetadata) -
             "revokedAt": None,
         },
         "approval": {
-            "id": APPROVAL_ID,
+            "id": source.approval_id,
             "approverName": "PENDING — draft awaiting kyai/sesepuh review",
             "approverRole": "N/A",
             "institutionName": None,
             "approvalDate": today,
             "approvalScope": "N/A — automated draft transcription, not reviewed or approved",
             "publicDocumentStorageKey": None,
-            "documentReferenceNumber": f"DRAFT-TAHLIL-NU-ONLINE-{today}",
+            "documentReferenceNumber": f"{source.document_reference_prefix}-{today}",
             "status": "PENDING",
         },
-        "steps": [_step_to_dict(step, i + 1, total) for i, step in enumerate(steps)],
+        "steps": [_step_to_dict(step, source.version_id, i + 1, total) for i, step in enumerate(steps)],
     }
 
 

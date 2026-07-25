@@ -108,9 +108,10 @@ private fun ReaderModeChooser(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(SanguSantriSpacing.default),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(SanguSantriSpacing.default),
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
     ) {
         Text(

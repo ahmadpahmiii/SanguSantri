@@ -22,4 +22,12 @@ interface AmaliyahVersionDao {
             "AND status = 'PUBLISHED' ORDER BY versionNumber DESC LIMIT 1",
     )
     suspend fun getLatestPublishedForVariant(variantId: String): AmaliyahVersionEntity?
+
+    // Debug-build-only fallback (ContentRepositoryImpl) so local DRAFT content is visible during
+    // development without ever letting a release build treat DRAFT as approved (CLAUDE.md).
+    @Query(
+        "SELECT * FROM amaliyah_versions WHERE variantId = :variantId " +
+                "AND status != 'REVOKED' ORDER BY versionNumber DESC LIMIT 1",
+    )
+    suspend fun getLatestNonRevokedForVariant(variantId: String): AmaliyahVersionEntity?
 }

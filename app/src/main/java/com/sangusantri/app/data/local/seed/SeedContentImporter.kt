@@ -67,7 +67,10 @@ class SeedContentImporter
 
             return result.fold(
                 onSuccess = { SeedImportOutcome.Imported(entry.versionId) },
-                onFailure = { SeedImportOutcome.Failed(entry.versionId, it.message ?: "unknown import error") },
+                onFailure = {
+                    val reason = it.message ?: "unknown import error"
+                    SeedImportOutcome.Failed(entry.versionId, "${entry.file}: $reason")
+                },
             )
         }
 

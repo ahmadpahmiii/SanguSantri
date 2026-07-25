@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.repository
 
+import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.data.local.dao.AmaliyahDao
 import com.sangusantri.app.data.local.dao.AmaliyahStepDao
 import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
@@ -37,7 +38,7 @@ class ContentRepositoryImpl
         override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? {
             val amaliyah = amaliyahDao.getBySlug(amaliyahSlug) ?: return null
             val variant = amaliyahVariantDao.getDefaultForAmaliyah(amaliyah.id) ?: return null
-            val version = amaliyahVersionDao.getLatestPublishedForVariant(variant.id) ?: return null
+            val version = resolveVersion(variant.id) ?: return null
             val approval = approvalDao.getById(version.approvalId) ?: return null
 
             return AmaliyahVersionDetail(
@@ -46,4 +47,10 @@ class ContentRepositoryImpl
                 steps = amaliyahStepDao.getByVersionId(version.id).map { it.toDomain() },
             )
         }
+
+    // Debug builds may surface local DRAFT content (no public release yet); release builds
+    // must never silently treat DRAFT as approved, so this fallback only exists in debug.
+    private suspend fun resolveVersion(variantId: String) =
+        amaliyahVersionDao.getLatestPublishedForVariant(variantId)
+            ?: if (BuildConfig.DEBUG) amaliyahVersionDao.getLatestNonRevokedForVariant(variantId) else null
     }

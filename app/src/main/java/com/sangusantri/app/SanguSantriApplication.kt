@@ -24,8 +24,19 @@ class SanguSantriApplication : Application() {
         // renders as soon as rows exist, so this must not gate the first frame.
         applicationScope.launch {
             seedContentImporter.importSeedContent().forEach { outcome ->
-                if (outcome is SeedImportOutcome.Failed) {
-                    Log.w(TAG, "Seed import failed for ${outcome.versionId}: ${outcome.reason}")
+                when (outcome) {
+                    is SeedImportOutcome.Failed ->
+                        Log.w(
+                            TAG,
+                            "Seed import failed for ${outcome.versionId}: ${outcome.reason}",
+                        )
+
+                    is SeedImportOutcome.Imported -> Log.d(TAG, "Seed import: imported ${outcome.versionId}")
+                    is SeedImportOutcome.AlreadyImported ->
+                        Log.d(
+                            TAG,
+                            "Seed import: already imported ${outcome.versionId}",
+                        )
                 }
             }
         }

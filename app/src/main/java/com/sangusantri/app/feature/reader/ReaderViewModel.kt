@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.reader
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.AmaliyahVersionDetail
@@ -127,6 +128,12 @@ constructor(
                         val amaliyah = contentRepository.getAmaliyahBySlug(amaliyahSlug)
                         val detail = contentRepository.getDefaultVersionDetail(amaliyahSlug)
                         if (amaliyah == null || detail == null || detail.steps.isEmpty()) {
+                            Log.w(
+                                TAG,
+                                "Content unavailable for slug=$amaliyahSlug: " +
+                                    "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
+                                    "stepCount=${detail?.steps?.size ?: 0}",
+                            )
                             ContentState.Unavailable
                         } else {
                             val restored = readingPositionRepository.getPosition(detail.version.id)
@@ -139,6 +146,7 @@ constructor(
                     } catch (cancellation: CancellationException) {
                         throw cancellation
                     } catch (unexpected: Exception) {
+                        Log.e(TAG, "Reader content load failed for slug=$amaliyahSlug", unexpected)
                         ContentState.Error
                     }
             }
@@ -202,6 +210,7 @@ constructor(
     )
 
     private companion object {
+        const val TAG = "ReaderViewModel"
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val POSITION_SAVE_DEBOUNCE_MILLIS = 600L
     }

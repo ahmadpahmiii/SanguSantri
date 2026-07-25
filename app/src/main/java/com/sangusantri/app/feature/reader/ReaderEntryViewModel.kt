@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.reader
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.ReaderMode
@@ -52,10 +53,20 @@ constructor(
                 try {
                     val amaliyah = contentRepository.getAmaliyahBySlug(amaliyahSlug)
                     val detail = contentRepository.getDefaultVersionDetail(amaliyahSlug)
-                    amaliyah != null && detail != null && detail.steps.isNotEmpty()
+                    val isAvailable = amaliyah != null && detail != null && detail.steps.isNotEmpty()
+                    if (!isAvailable) {
+                        Log.w(
+                            TAG,
+                            "Content unavailable for slug=$amaliyahSlug: " +
+                                "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
+                                "stepCount=${detail?.steps?.size ?: 0}",
+                        )
+                    }
+                    isAvailable
                 } catch (cancellation: CancellationException) {
                     throw cancellation
                 } catch (unexpected: Exception) {
+                    Log.e(TAG, "Reader entry availability check failed for slug=$amaliyahSlug", unexpected)
                     false
                 }
 
@@ -73,5 +84,9 @@ constructor(
                     ReaderEntryUiState.ModeChooser(amaliyahTitleId)
                 }
         }
+    }
+
+    private companion object {
+        const val TAG = "ReaderEntryViewModel"
     }
 }

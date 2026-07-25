@@ -11,9 +11,9 @@ confidence. See docs/operations/CONTENT_GOVERNANCE.md.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
 
-from .html_blocks import TextBlock, extract_paragraph_blocks
+from .draft_model import DraftStep, ParseReport, ParseResult
+from .html_blocks import extract_paragraph_blocks
 
 CONTAINER_ID = "detail-content"
 
@@ -48,31 +48,6 @@ def _strip_artinya_wrapper(text: str) -> str:
     if stripped and stripped[-1] in _QUOTE_CHARS:
         stripped = stripped[:-1].rstrip()
     return stripped
-
-
-@dataclass
-class DraftStep:
-    step_type: str
-    title_id: str | None = None
-    arabic_text: str | None = None
-    translation_id: str | None = None
-    repeat_target: int | None = None
-
-
-@dataclass
-class ParseReport:
-    preamble_paragraphs_skipped: list[str] = field(default_factory=list)
-    ambiguous_sections: list[dict] = field(default_factory=list)
-    possible_quran_ayah_candidates: list[str] = field(default_factory=list)
-
-    def add_ambiguous(self, reason: str, context: str) -> None:
-        self.ambiguous_sections.append({"reason": reason, "context": context})
-
-
-@dataclass
-class ParseResult:
-    steps: list[DraftStep]
-    report: ParseReport
 
 
 def parse_tahlil_html(html: str) -> ParseResult:

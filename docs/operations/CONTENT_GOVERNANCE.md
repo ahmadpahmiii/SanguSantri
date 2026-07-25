@@ -37,35 +37,43 @@ source page into a local structured JSON draft, without becoming a step in
 the editorial workflow above:
 
 ```text
-NU Online page
+Source page (allowlisted, one per source in content_importer/config.py)
 → local HTML snapshot (gitignored, never committed)
-→ source-specific parser (one source, not a generic scraper)
+→ source-specific parser (one module per source, not a generic scraper)
 → structured draft JSON (schemaVersion 1, status DRAFT, gitignored)
 → manual content review  ← editorial workflow above starts here
 → approved local JSON later
-→ Android assets (app/src/main/assets/content/)
+→ Android debug assets (app/src/debug/assets/content/ — never main/, see
+  docs/content-schema.md's debug/release split)
 → existing seed importer
 → Room
-→ Full Reader
+→ Full Reader / Guided Reader
 ```
 
 The tool never runs at application runtime, never runs automatically, and
-never writes into `app/src/main/assets/content/` itself — a human moves a
-draft into the bundled assets only after it has been manually reviewed,
-approved, and the resulting package's `version.status`/`approval.status`
-genuinely reflect that approval. The tool must not invent missing Arabic
-text or translation; when a page section cannot be parsed deterministically,
-it must be reported as ambiguous rather than guessed. It fetches only the
-one allowlisted URL it was built for, never a Kemenag or Quran Foundation
-API, and never a PDF — PDF may only be kept manually as a private visual
-reference (never parsed, never bundled, never displayed in the reader; see
-`docs/product/PRD.md` §5.2).
+never writes into `app/src/main/assets/content/` (production-approved
+content) or even `app/src/debug/assets/content/` itself — a human copies a
+draft into Android assets, and a package only belongs under `main/` once it
+has been manually reviewed, approved, and its `version.status`/
+`approval.status` genuinely reflect that approval. The tool must not invent
+missing Arabic text or translation; when a page section cannot be parsed
+deterministically, it must be reported as ambiguous rather than guessed. It
+fetches only the URLs allowlisted in `content_importer/config.py`, never a
+Kemenag or Quran Foundation API, and never a PDF — PDF may only be kept
+manually as a private visual reference (never parsed, never bundled, never
+displayed in the reader; see `docs/product/PRD.md` §5.2).
 
-**Istighosah production source is still pending.** PRD §6.2 only lists a
-*proposed* reference (the KH Romli Tamim collection via Quran NU Online),
-subject to selection and approval by the assigned kyai or sesepuh — not a
-confirmed source with a specific URL. Do not build an Istighosah scraper
-until a specific, approved source exists in project documentation.
+**Istighosah has a source for dev-draft tooling, still no production
+approval.** PRD §6.2's *proposed* reference (the KH Romli Tamim collection
+via Quran NU Online) now has a specific URL
+(`https://quran.nu.or.id/doa/istighotsah-mujahadah`, reading 1 of 7 —
+"Istighotsah (KH Romli Tamim)" only) wired into
+`tools/content-importer/content_importer/config.py` as of Milestone 4.5, so
+the tool may fetch/parse it into a `DRAFT` draft. This is not the same as
+kyai/sesepuh approval: the generated draft still needs manual review and
+sign-off before it may ever be copied into `app/src/main/assets/content/`.
+The other six readings on that page (other Mujahadah/reading collections)
+remain out of scope — no parser exists for them.
 
 ## Correction workflow
 

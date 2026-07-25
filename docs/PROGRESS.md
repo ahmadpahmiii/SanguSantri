@@ -720,3 +720,312 @@ tablet width, and fully offline use for all of the above.
 
 Not specified by this brief — revisit `docs/product/ROADMAP.md` for the
 next scheduled item once this milestone's manual validation is complete.
+
+## Milestone 4.5 — Fix Local Content Wiring and Add Istighosah Draft
+
+**Status:** Implemented and verified — `ktlintFormat`, `ktlintCheck`,
+`detekt`, `:app:assembleDebug`, `:app:assembleRelease` (R8/shrinking,
+`lintVitalRelease`), `:app:lintDebug`, and `:app:testDebugUnitTest` (37/37)
+all pass. `connectedDebugAndroidTest` was not run (existing instrumented
+tests are unchanged by this milestone and Milestone 4 already covers them;
+manual on-device verification below covers the actual regression risk of
+this milestone — real content rendering). Manually verified end-to-end on
+a running `Pixel_9` emulator (Android 15/API 35): fresh install imports and
+displays both Tahlil (59 steps) and Istighosah (27 steps) in Serambi, Full
+Reader, and Guided Reader; interactive tasbih counter increments to target,
+gates `Lanjutkan`, and shows the checkmark/colour completion state; restart
+does not duplicate content; offline throughout (no seeded network
+permission is used by the importer at runtime — it only reads bundled
+assets).
+
+**Scope:** Fix the broken local content pipeline (scraped Tahlil draft never
+reached the app; both amaliyah were stuck on DRAFT-filtered
+`ContentUnavailable`), add a second source-specific importer for Istighosah,
+and wire both through the existing seed importer / Room / repository /
+reader stack unchanged. No new reader features, no tests, no Room
+migrations — per this milestone's own brief.
+
+### Confirmed Tahlil root cause (two independent, stacked breaks)
+
+1. **The real draft never reached any Android asset source set.** The
+   Milestone 3.5 tool's output (`tools/content-importer/output/
+   tahlil-general-v1.draft.json`) is gitignored, developer-local-only
+   output. Nothing in the repository ever copied it into
+   `app/src/main/assets/content/` — that directory still held the
+   Milestone 1 bracket-placeholder fixture (`[FIXTURE-AR]` text), and
+   `manifest.json` only listed that placeholder's filename/checksum. The
+   seed importer had no path to the real content at all.
+2. **Even with the draft wired in, `DRAFT` content never rendered.**
+   `AmaliyahVersionDao.getLatestPublishedForVariant` (used by
+   `ContentRepositoryImpl.getDefaultVersionDetail`, which both `ReaderViewModel`
+   and `GuidedReaderViewModel` call, and which `ReaderEntryViewModel` uses
+   for its availability check) filters `status = 'PUBLISHED'` only. Every
+   bundled package — placeholder and real draft alike — is `DRAFT`. Serambi
+   itself was never blocked (`ContentRepositoryImpl.observeAmaliyah()` lists
+   `Amaliyah` rows unconditionally, not gated by version status), which is
+   why cards always rendered while the readers always showed
+   `ContentUnavailable`.
+
+A third, latent issue would have surfaced once (1) was fixed: the draft
+reuses the placeholder's exact `version.id`/step ids (`tahlil-umum-v1`,
+`tahlil-umum-v1-step-*`). `SeedContentImporter.importPackage` skips import
+whenever `amaliyahVersionDao.existsById(entry.versionId)` is already true —
+confirmed on-device (see Development database refresh below) — so any
+device that had already imported the placeholder would silently keep the
+stale bracket-placeholder rows forever.
+
+The importer itself was never the problem: `SeedContentValidator` performs
+purely structural validation (schema version, non-blank ids, per-`stepType`
+required fields) and has no `DRAFT`/`PUBLISHED` special-casing — it already
+accepted `DRAFT` packages correctly. Checksums, IDs, and the generated
+schema all matched the Android DTOs; parsing did not produce zero valid
+steps; import errors were logged (`Log.w` in `SanguSantriApplication`), just
+without enough detail (addressed below) — nothing was silently swallowed at
+the import layer. The break was entirely in **wiring** (asset placement)
+and **visibility policy** (release-shaped `PUBLISHED`-only queries used
+unconditionally, including for local development).
+
+### Tahlil wiring fix
+
+* Debug/release asset split (see Debug content policy below): main assets'
+  `content/manifest.json` now lists `packages: []` (nothing is
+  production-approved yet); a new `app/src/debug/assets/content/` holds the
+  real content, merged in only for debug builds.
+* Copied `tools/content-importer/output/tahlil-general-v1.draft.json`
+  byte-for-byte into `app/src/debug/assets/content/tahlil-general-v1.json`
+  (no edits) and added it to the debug manifest with the SHA-256 of those
+  exact bytes. No source-specific hack was added to the Android reader —
+  the fix is entirely in the asset pipeline and the repository's debug
+  fallback below.
+* `ContentRepositoryImpl.getDefaultVersionDetail` now resolves through a
+  new `resolveVersion` helper: try `getLatestPublishedForVariant` first
+  (unconditionally, so a future real `PUBLISHED` version always wins), and
+  only when that is `null` **and** `BuildConfig.DEBUG` is true, fall back to
+  a new `AmaliyahVersionDao.getLatestNonRevokedForVariant` query (latest
+  version by `versionNumber` excluding `REVOKED`). Release builds are
+  byte-for-byte unchanged — they only ever resolve `PUBLISHED`. Required
+  enabling `buildFeatures.buildConfig = true` (not previously on).
+
+### Istighosah importer result
+
+Added a second source-specific parser
+(`tools/content-importer/content_importer/parser_istighosah_nu.py`) for
+`https://quran.nu.or.id/doa/istighotsah-mujahadah`, reading 1 of 7 —
+"Istighotsah (KH Romli Tamim)" only, per this milestone's brief. The page
+has no stable container id (Tailwind/Next.js hashed classes); the reading is
+delimited by its own `<h1>` and the next reading's `<h1>`, and each verse is
+a `dir="rtl"` Arabic span + a Latin transliteration span (read only to keep
+sibling-order state correct, never stored) + an Indonesian translation span,
+in that fixed order, inside a `flex-grow` content-column div. One structural
+surprise found and fixed during development: a bare `dir="rtl"` sub-heading
+span ("Sayyidul Istighfar") sits outside any verse container immediately
+before the final verse it names — an earlier version of the parser
+(incorrectly scoped to the sibling `nui-ActionVerse` button-column div,
+which closes *before* the content column even opens) mistook it for that
+verse's Arabic text, shifting the final triplet by one slot. Fixed by
+scoping verse detection to the `flex-grow` div specifically and emitting
+the sub-heading as its own `HEADING` step in document order; re-verified
+against the live page afterwards.
+
+`fetch` → `parse` → `validate` ran end-to-end against the live page (not a
+canned fixture). **27 steps extracted**: 1 top-level heading, 1 sub-heading
+("Sayyidul Istighfar"), 25 `PRAYER` steps (all with real Arabic + Indonesian
+translation; empty-field check confirms zero steps are missing either
+field). Repetition counts are cross-checked from two independent places in
+the source (an Arabic-embedded `×N` marker using Arabic-Indic digits, and
+the Indonesian translation's trailing `(Nx)` — including a `30.000x)`
+thousands-separator form the parser normalises) — 4 sections flagged
+ambiguous where only one of the two confirmed the count (never invented,
+always extracted from whichever side stated it, with the discrepancy
+recorded for manual review). 2 headings/translations flagged as possible
+`QURAN_AYAH` candidates (`"Membaca Surat Yasin (1x)"`, `"Membaca Surat
+al-Fatihah (1x)"` — the source names these as instructions to recite
+elsewhere, not literal ayah text on the page, so nothing was invented for
+them). `validate` reports the package structurally **VALID**. Raw snapshot
+and generated draft are gitignored, not committed.
+
+To support a second source without duplicating the whole pipeline,
+`tools/content-importer/`'s previously Tahlil-only, hardcoded modules were
+generalised: `draft_model.py` (new — `DraftStep`/`ParseReport`/`ParseResult`
+moved out of `parser_nu_tahlil.py`, now shared by both parsers);
+`config.py`'s `SourceSpec` gained the canonical package identity fields
+(amaliyah/variant/version/approval ids, content slug, description) so a new
+source is one reviewed dict entry, not a code change; `builder.py`'s
+`build_draft_package` now takes a `SourceSpec` instead of hardcoded Tahlil
+constants; `cli.py` dispatches to the right parser via a `PARSERS` map keyed
+by `--source` and uses `SourceSpec.content_slug` for output filenames
+instead of a fragile `.replace('-nu-online', '-general-v1')` string hack.
+
+### Android integration status
+
+Both packages flow through the identical, unmodified path: canonical
+`schemaVersion: 1` JSON → `app/src/debug/assets/content/` → existing
+`SeedContentImporter`/`AssetSeedContentSource` → Room → the existing
+`ContentRepositoryImpl` (now with the debug-only fallback above) → Serambi
+→ Full Reader → Guided Reader. No second content schema, no
+Istighosah-specific repository or reader, no duplicated step models, no
+hardcoded Istighosah Kotlin content — verified by grep: no Arabic Unicode
+in any touched `.kt` file.
+
+### Debug content policy
+
+Per CLAUDE.md's debug content policy: `app/src/main/assets/content/`
+(release + debug fallback) now bundles zero content packages —
+`manifest.json` is `packages: []`, confirmed empty in a real
+`:app:assembleRelease` output APK (`unzip -l` shows only the 84-byte empty
+manifest under `assets/content/`). `app/src/debug/assets/content/` holds
+both `DRAFT` packages; Android's asset merger gives debug source-set files
+priority over main's for debug builds only, confirmed by inspecting
+`app/build/intermediates/assets/debug/mergeDebugAssets/content/manifest.json`
+against the release equivalent. `ContentRepositoryImpl`'s
+`BuildConfig.DEBUG`-gated fallback (above) is the second half of this
+policy — content being present in Room is not sufficient for it to render;
+it must also be `PUBLISHED`, unless the build is debug. No large intrusive
+development banner was added; distinguishing metadata already lives in each
+package's own `sourceName` ("automated draft transcription, unreviewed...")
+and `descriptionId` ("Draf transkripsi otomatis..., belum ditinjau
+manusia. Bukan konten produksi.") — both rendered as ordinary card/reader
+text, not a banner. Neither content is claimed as approved anywhere in code,
+strings, or documentation.
+
+### Development database refresh
+
+No Room schema change was needed this milestone (no new/changed tables), so
+no migration or version-reset was required. The one real hazard —
+`tahlil-umum-v1` colliding between the old placeholder and the new draft —
+was reproduced and confirmed on-device: installing the new debug build
+over an existing local install logged `Seed import: already imported
+tahlil-umum-v1` / `...istighosah-umum-v1` for both packages (stale rows
+kept). Running `adb shell pm clear com.sangusantri.app` (or a full
+reinstall) once, then relaunching, logged `Seed import: imported
+tahlil-umum-v1` / `...istighosah-umum-v1` correctly, and a subsequent
+relaunch logged `already imported` again with no duplicate rows or step
+counts changing across restarts — idempotent, as designed. This one-time
+clear-app-data step is a developer action, documented here per this
+milestone's own "simplest pre-release reset" allowance, not a code change.
+
+### Error visibility
+
+* `SeedContentImporter`: failure reasons (checksum mismatch, JSON parse
+  error, structural validation error, Room insertion failure) now all carry
+  the asset filename (`entry.file`) as a prefix, on top of the version id
+  already carried by `SeedImportOutcome.Failed.versionId` — e.g. `"tahlil-
+  general-v1.json: checksum mismatch"`.
+* `SanguSantriApplication`: `Imported`/`AlreadyImported` outcomes are now
+  also logged (`Log.d`), not just `Failed` (`Log.w`), so a debug logcat
+  shows the full import picture, not just failures.
+* `ReaderViewModel`, `GuidedReaderViewModel`, `ReaderEntryViewModel`:
+  the `catch (unexpected: Exception)` boundaries that turn any failure into
+  `ContentState.Error`/`RecoverableError` previously logged nothing at all
+  — now each logs the slug and exception via `Log.e`. The non-exceptional
+  "content unavailable" branch (`amaliyah == null || detail == null ||
+  detail.steps.isEmpty()`) also now logs which specific check failed
+  (`amaliyahFound`/`activeVersionFound`/`stepCount`) via `Log.w` — no
+  religious content is ever logged, only booleans/counts/ids. Release UI
+  behaviour is unchanged in all cases (still the existing controlled
+  `ContentUnavailable`/`RecoverableError` states, never a raw exception).
+* Plain JVM unit tests (`ReaderViewModelTest`, etc.) do not mock
+  `android.util.Log` and were failing after these `Log` calls were added
+  (`Method ... not mocked`) — fixed by enabling
+  `testOptions.unitTests.isReturnDefaultValues = true` in
+  `app/build.gradle.kts` (standard AGP setting; no test file changed).
+
+### Files created, modified, and removed
+
+Created: `app/src/debug/assets/content/{manifest,tahlil-general-v1,
+istighosah-general-v1}.json`, `tools/content-importer/content_importer/
+{draft_model.py,parser_istighosah_nu.py}`.
+
+Removed: `app/src/main/assets/content/{tahlil-general-v1,
+istighosah-general-v1}.json` (bracket-placeholder fixtures; replaced by the
+real drafts under `debug/assets/`, which are also not committed — see
+`.gitignore`'s existing `tools/content-importer/output/` rule; the copies
+under `app/src/debug/assets/content/` **are** committed since they're
+Android build inputs, not raw tool output).
+
+Modified (main): `app/build.gradle.kts` (`buildFeatures.buildConfig = true`,
+`testOptions.unitTests.isReturnDefaultValues = true`),
+`app/src/main/assets/content/manifest.json` (emptied to `packages: []`),
+`data/local/dao/AmaliyahVersionDao.kt` (new
+`getLatestNonRevokedForVariant`), `data/repository/ContentRepositoryImpl.kt`
+(new `resolveVersion` debug fallback), `data/local/seed/
+SeedContentImporter.kt` (failure reasons now include the asset filename),
+`SanguSantriApplication.kt` (log every outcome, not just failures),
+`feature/reader/ReaderViewModel.kt`, `feature/reader/
+ReaderEntryViewModel.kt`, `feature/guidedreader/GuidedReaderViewModel.kt`
+(added diagnostic logging to previously-silent branches).
+
+Modified (tools): `tools/content-importer/content_importer/{config.py,
+builder.py,cli.py,parser_nu_tahlil.py}` (generalised for a second source —
+see Istighosah importer result above), `tools/content-importer/README.md`.
+
+Modified (docs): `docs/content-schema.md` (debug/release asset split),
+`docs/operations/CONTENT_GOVERNANCE.md` (Istighosah now has a specific
+source for dev-draft tooling; still not approved), this file.
+
+### Commands executed
+
+`python3 -m content_importer fetch/parse/validate --source
+istighosah-nu-online`, `./gradlew :app:ktlintFormat`, `:app:ktlintCheck`,
+`:app:detekt`, `:app:assembleDebug`, `:app:testDebugUnitTest`,
+`:app:lintDebug`, `:app:assembleRelease` — all passed. `adb install`,
+`adb shell pm clear`, `adb shell input tap`/`keyevent`, `adb shell
+uiautomator dump`, `adb logcat` — manual on-device verification, Pixel_9
+emulator, Android 15/API 35.
+
+### Manual validation results (this session, on-device)
+
+Verified: Serambi shows both Tahlil and Istighosah with their real
+`descriptionId` text (not bracket placeholders); Tahlil Full Reader renders
+59 ordered steps with visible harakat, paired Indonesian translation, and
+Arabic remains selectable text (`SelectionContainer`, unchanged from
+Milestone 3); Istighosah Full Reader renders 27 ordered steps with
+"Dibaca N kali" repetition indicators; Guided Reader shows "N dari 59"/"N
+dari 27" position text, advances correctly step-by-step (verified against
+exact `uiautomator`-dumped element bounds, not estimated coordinates); the
+interactive tasbih counter increments 0→3, shows the green
+checkmark-and-colour completion state (never colour alone), and correctly
+gates `Lanjutkan` (disabled at `0/3`, enabled at `3/3`); one back-press from
+either reader returns directly to Serambi; restart after a fresh import
+does not duplicate content (repeat `already imported` logs, stable step
+counts). Not exercised this session: dark theme, font-scale 1.5×,
+landscape/tablet width, RTL app locale, process-death restoration — Milestone
+3/4's own known limitations for these already apply and nothing in this
+milestone touches that code.
+
+### Ambiguous content requiring manual review
+
+Before either draft could ever be promoted out of `DRAFT`, a human reviewer
+needs to resolve: Tahlil's carryover-from-Milestone-3.5 items (9 possible
+`QURAN_AYAH` headings, 2 Arabic blocks with an embedded Latin repetition
+marker, 1 empty-Arabic-paragraph anomaly — unchanged, not touched this
+milestone); Istighosah's 4 one-sided repetition-count confirmations, 2
+possible `QURAN_AYAH` instructions ("Membaca Surat Yasin (1x)", "Membaca
+Surat al-Fatihah (1x)"), and the "Sayyidul Istighfar" sub-heading's exact
+placement (currently its own `HEADING` step immediately before the verse it
+names — a reasonable but not human-confirmed structural choice).
+
+### Known limitations
+
+* Neither Tahlil nor Istighosah has been manually reviewed against its
+  source or received kyai/sesepuh approval — both remain `DRAFT`/`PENDING`
+  and are correctly invisible in release builds.
+* `connectedDebugAndroidTest` was not run — no Android/Kotlin production
+  logic changed in a way the existing instrumented tests (which use their
+  own dedicated `PUBLISHED` test fixtures, not the real assets) would catch
+  differently; the real regression surface for this milestone was
+  real-content rendering, covered by the manual on-device pass instead.
+* Dark theme, 1.5× font scale, landscape/tablet width, RTL locale, and
+  process-death restoration were not re-verified this session (unchanged
+  from Milestone 3/4's own recorded limitations).
+* The release-blocking content-validation gate (failing the build when
+  `main`'s manifest has zero packages) flagged since Milestone 1 is still
+  not built — release currently ships an intentionally empty catalogue
+  instead, which is a stronger (not weaker) form of the same protection.
+
+### Next recommended milestone
+
+Not specified by this brief. Promoting either draft into production content
+is a content-governance task (manual review + kyai/sesepuh approval), not
+an engineering milestone. `docs/product/ROADMAP.md` should be revisited for
+the next scheduled engineering item.

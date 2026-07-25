@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SanguSantri</string>
+    <string name="foundation_placeholder_message">Engineering foundation build — Serambi is not implemented yet.</string>
 </resources>

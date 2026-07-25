@@ -1,5 +1,21 @@
 # SanguSantri Engineering Progress
 
+## Documentation, security, and production-readiness pass (pre-Milestone 3)
+
+**Status:** Complete. Not a numbered milestone — no feature code shipped.
+Full detail: `docs/reviews/audit-resolution.md`.
+
+Resolved `docs/reviews/architecture-design-audit.md`: restructured
+documentation into the `docs/{product,engineering,design,security,
+operations,decisions,reviews}` tree, trimmed `CLAUDE.md` and
+`docs/product/PRD.md` to remove duplication, added ADRs 0007–0011, and
+re-enabled release R8/shrinking (`app/build.gradle.kts`,
+`gradle.properties`; verified with `./gradlew assembleRelease`,
+`detekt`, `ktlintCheck`, `testDebugUnitTest`, `lint`). Milestone 2
+(Serambi) has not started — see Milestone 1 below for the actual current
+implementation state; the `HEAD` commit is titled "milestone 2" but its
+content matches Milestone 1.
+
 ## Milestone 0 — Android project foundation
 
 **Status:** Implemented and verified locally — `ktlintFormat`, `detekt`,

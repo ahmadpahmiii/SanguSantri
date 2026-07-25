@@ -1,117 +1,84 @@
 # SanguSantri Engineering Instructions
 
-## Project
+SanguSantri is a long-term Android application for public and
+pesantren-specific amaliyah.
 
-SanguSantri is a long-term Android application for public and pesantren-specific amaliyah.
+* Platform: Native Android, Jetpack Compose, package `com.sangusantri.app`.
+* Minimum SDK: 26.
+* Current release: `0.0.1`. Current content: Tahlil and Istighosah.
+* Architecture: offline-first Clean Architecture, one Gradle module.
+* Current state: Milestones 0 (foundation) and 1 (content model + seed
+  import) are complete. Serambi and all reader UI are **not implemented
+  yet** — verify this against `docs/PROGRESS.md` before assuming otherwise;
+  commit titles in `git log` are not a reliable milestone indicator (see
+  `docs/reviews/audit-resolution.md`).
 
-Current target:
+Do not implement the entire PRD unless explicitly requested. Implement only
+the milestone actually asked for.
 
-* Platform: Native Android
-* UI: Jetpack Compose
-* Package: `com.sangusantri.app`
-* Minimum SDK: 26
-* Current release: `0.0.1`
-* Current content: Tahlil and Istighosah
-* Architecture: Offline-first Clean Architecture
+## Reading matrix — read only what the task needs
 
-Before making changes, read:
+Always read first: `docs/product/PRD.md` §Related Documents (bottom of
+file) tells you exactly which document below owns which topic — do not read
+every document for every task.
 
-1. `docs/product/PRD.md`
-2. `docs/PROGRESS.md`
-3. Relevant files in `docs/decisions/`
+| Task type | Read |
+|---|---|
+| Any task | `docs/PROGRESS.md` (current actual state) |
+| UI / Compose screen | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md` |
+| Data layer / Room / repository / sync | `docs/engineering/ARCHITECTURE.md`, `docs/engineering/CONTENT_MODEL.md`, `docs/engineering/OFFLINE_FIRST.md`, `docs/content-schema.md` |
+| Security / network / auth | `docs/security/SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md` |
+| Privacy / feedback / telemetry | `docs/security/PRIVACY.md` |
+| Release / CI / Gradle / signing | `docs/engineering/RELEASE_ENGINEERING.md`, `docs/operations/PRODUCTION_READINESS.md` |
+| Content entry / approval / correction | `docs/engineering/CONTENT_MODEL.md`, `docs/operations/CONTENT_GOVERNANCE.md` |
+| Testing | `docs/engineering/TESTING.md` |
+| Architecture decision review | `docs/decisions/` |
+| Product scope question | `docs/product/PRD.md`, `docs/product/ROADMAP.md` |
 
-Do not implement the entire PRD unless explicitly requested.
+## Hard architecture constraints
 
-## Current Engineering Priorities
+* One Android Gradle application module until a real modularisation trigger
+  appears (`docs/engineering/ARCHITECTURE.md`).
+* UI / domain / data boundaries: Room is the source of truth; the UI must
+  never render directly from network DTOs; no DAO access from ViewModels;
+  no network calls from composables.
+* Do not create: `BaseViewModel`, `BaseRepository`, generic `BaseUseCase`,
+  pass-through use cases, duplicate models without a boundary reason,
+  duplicate navigation systems, duplicate themes/design tokens. Full list:
+  `docs/engineering/CODING_STANDARD.md`.
+* Create a use case only when it contains meaningful or reusable business
+  logic.
+* Before adding a class, search the repository for an existing equivalent.
 
-1. Ship a small working release.
-2. Keep religious content outside Kotlin source files.
-3. Make all public amaliyah available offline.
-4. Keep one canonical content model.
-5. Preserve reading and counter progress.
-6. Avoid premature backend and architecture complexity.
-
-## Architecture Rules
-
-Use these boundaries:
-
-* UI: Compose, ViewModel, UI state and user actions.
-* Domain: business models and meaningful business rules.
-* Data: Room, DataStore, remote API, repositories and synchronisation.
-
-Room is the source of truth for application content.
-
-The UI must never render directly from network DTOs.
-
-Do not create:
-
-* `BaseViewModel`
-* `BaseRepository`
-* Generic `BaseUseCase`
-* Pass-through use cases
-* Duplicate models without a boundary reason
-* Duplicate navigation systems
-* Duplicate themes or design tokens
-* DAO access inside ViewModels
-* Network calls inside composables
-* Religious content inside Kotlin files
-
-Create a use case only when it contains meaningful or reusable business logic.
-
-Use one Android Gradle application module until project complexity demonstrates a real need for modularisation.
-
-## Compose Rules
-
-* Use stateless screen composables.
-* Use Route composables for ViewModel integration.
-* Expose screen state with `StateFlow`.
-* Collect state lifecycle-aware.
-* Pass state and callbacks to child composables.
-* Use stable keys in lazy lists.
-* Keep business logic outside composables.
-* Use string resources.
-* Support RTL, landscape and large screens.
-* Do not add `@Stable` or `@Immutable` without evidence.
-* Do not use `GlobalScope`.
-* Do not perform blocking work on the main thread.
-
-## Content Safety
+## Content safety — absolute, no phase exception
 
 Claude must not:
 
-* Invent Arabic amaliyah text.
-* Invent translations.
+* Invent Arabic amaliyah text, translations, or missing prayers.
+* Add Latin transliteration to any amaliyah content.
 * Automatically scrape and publish religious content.
+* Correct religious content based solely on AI judgement.
 * Claim that content has been approved.
-* Modify approved content without creating a new version.
+* Modify approved content in place — corrections create a new version
+  (ADR 0008).
 
-Development fixtures must be clearly labelled as non-production.
+Development fixtures must be clearly labelled non-production and must never
+reach the release build. Production religious content requires an external
+kyai or sesepuh approval (`docs/operations/CONTENT_GOVERNANCE.md`).
 
-Production religious content requires an external kyai or sesepuh approval.
+## Working method
 
-## Working Method
+For every task: inspect the existing implementation and Gradle state,
+search before creating a new class, state which files will change,
+implement only the requested milestone, run relevant formatting/build/test
+commands and fix failures caused by the change, update `docs/PROGRESS.md`,
+and do not repeat complete source files in the final response. Full method
+and prohibited-pattern list: `docs/engineering/CODING_STANDARD.md`.
 
-For every task:
+Never claim that a command passed unless it was actually executed
+successfully.
 
-1. Inspect the existing implementation.
-2. Search before creating a new class.
-3. State which files will change.
-4. Implement only the requested milestone.
-5. Run relevant formatting, build and tests.
-6. Fix failures caused by the change.
-7. Update `docs/PROGRESS.md`.
-8. Do not repeat complete source files in the final response.
+## Final response format
 
-Never claim that a command passed unless it was actually executed successfully.
-
-## Final Response Format
-
-Report only:
-
-* What was implemented
-* Files created
-* Files modified
-* Commands executed
-* Test results
-* Known limitations
-* Next recommended milestone
+Report only: what was implemented, files created, files modified, commands
+executed, test results, known limitations, next recommended milestone.

@@ -70,8 +70,88 @@ synchronisation, backend, auth, ads, or subscriptions.
 
 ### Next recommended milestone
 
-Canonical content model + offline seed import (PRD FR-001, §12.2): define
-the Room content entities (amaliyah, variant, version, step), the JSON seed
-schema under `app/src/main/assets/content/`, and the transactional import
-that makes the release build fail validation until approved production
-content is supplied.
+Canonical content model + offline seed import (PRD FR-001, §12.2) — see
+Milestone 1 below.
+
+## Milestone 1 — Content foundation
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `detekt`,
+`lint`, `testDebugUnitTest`, `connectedDebugAndroidTest` (Pixel_9 emulator,
+API 15/36), and a full `build` (including `assembleRelease` /
+`lintVitalRelease`) all pass.
+
+**Scope:** Canonical amaliyah content model, versioned JSON seed schema,
+non-production Tahlil/Istighosah fixtures, Room entities/DAOs/repository, and
+an idempotent transactional seed importer. No Serambi, reader UI, counters,
+network sync, backend, or auth — deliberately deferred to later milestones.
+
+### What shipped
+
+- **Domain model** (`domain/model/`): `Amaliyah`, `AmaliyahVariant`,
+  `Approval`, `AmaliyahVersion`, `AmaliyahStep`, `AmaliyahVersionDetail`, and
+  the shared `StepType`/`AmaliyahVersionStatus`/`ApprovalStatus`/
+  `OwnerType`/`Visibility` enums (PRD 10, 11.1). `domain/repository/ContentRepository`
+  defines the read contract; see ADR 0006 for the model-duplication
+  reasoning.
+- **Room** (`data/local/entity`, `data/local/dao`): `AmaliyahEntity`,
+  `AmaliyahVariantEntity`, `ApprovalEntity`, `AmaliyahVersionEntity`,
+  `AmaliyahStepEntity` with foreign keys/indices matching PRD 11.1, one DAO
+  per entity following the existing `AppMetadataDao` convention.
+  `SanguSantriDatabase` bumped to version 2 with a hand-written, schema-verified
+  `MIGRATION_1_2` (no destructive fallback, per ADR 0003) and `Converters`
+  for the shared enums.
+- **Seed content schema** (`docs/content-schema.md`,
+  `data/local/seed/dto/`): versioned (`schemaVersion: 1`) JSON manifest +
+  package format under `app/src/main/assets/content/`. Bundled
+  `manifest.json`, `tahlil-general-v1.json`, `istighosah-general-v1.json` are
+  **non-production fixtures** — every Arabic/Indonesian field is a bracketed
+  placeholder, `version.status = DRAFT`, `approval.status = PENDING` (PRD
+  6.3, Content Safety).
+- **Import pipeline** (`data/local/seed/`): `SeedContentChecksum` (pure
+  SHA-256), `SeedContentValidator` (pure structural validation),
+  `SeedContentSource`/`AssetSeedContentSource`, `SeedContentImporter`
+  (checksum-verified, structurally-validated, transactional via
+  `withTransaction`, per-package idempotent via an `existsById` check,
+  per-package failure isolation per PRD 12.4).
+- **Repository**: `ContentRepositoryImpl` reads Room via
+  `data/mapper/ContentEntityMappers.kt`; bound through a new
+  `di/ContentModule.kt` alongside the new DAOs registered in
+  `di/DatabaseModule.kt`.
+- ADR `docs/decisions/0006-content-schema-and-seed-import.md`.
+
+### Test results
+
+- `./gradlew testDebugUnitTest`: 16/16 JVM unit tests passed
+  (`AppMetadataEntityTest`, `SeedContentChecksumTest`,
+  `SeedContentValidatorTest`).
+- `./gradlew connectedDebugAndroidTest` (Pixel_9 emulator, API 15/36): 12/12
+  instrumented tests passed, including the four required seed-import
+  scenarios in `SeedContentImporterTest` (first import, duplicate import is
+  idempotent, invalid checksum rejected with no writes, a genuine SQLite
+  constraint failure mid-import rolls back the whole package) and
+  `SanguSantriMigrationTest` (migrate 1→2 with `MigrationTestHelper`,
+  preserving existing `app_metadata` rows).
+- `./gradlew detekt`, `./gradlew lint`, `./gradlew ktlintFormat` /
+  `ktlintCheck`: all pass.
+- `./gradlew assembleDebug`, `assembleRelease`, `build`: all pass, including
+  `lintVitalRelease`.
+
+### Known limitations
+
+- No release-blocking content validation gate yet: the release build does
+  not currently fail when only non-production fixtures are bundled (PRD 6.3,
+  25). The fixtures are clearly marked non-production and never reach
+  `PUBLISHED`/`APPROVED` status, but the enforcement mechanism itself is
+  deferred — tracked, not silently skipped.
+- Seed import is not yet wired into `SanguSantriApplication` startup; there
+  is no Serambi to observe its result yet; this is the natural first thing
+  the next milestone's bootstrap flow will call.
+- `ContentRepository.getDefaultVersionDetail` only returns `PUBLISHED`
+  versions, so it correctly returns `null` for the current `DRAFT` fixtures —
+  expected until production content is approved and published.
+
+### Next recommended milestone
+
+Serambi (PRD FR-002, §7–8.1): wire `SeedContentImporter` into app startup,
+render the Tahlil/Istighosah catalogue from `ContentRepository.observeAmaliyah()`,
+and add the offline-first Compose UI test (open Serambi in airplane mode).

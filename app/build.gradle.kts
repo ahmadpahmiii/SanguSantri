@@ -38,6 +38,9 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets {
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+    }
 }
 
 ksp {
@@ -84,6 +87,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.room.testing)
     kspAndroidTest(libs.hilt.android.compiler)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)

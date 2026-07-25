@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "amaliyah": {
+    "id": "tahlil",
+    "slug": "tahlil",
+    "titleId": "Tahlil",
+    "titleAr": "[FIXTURE-AR] Tahlil",
+    "descriptionId": "Rangkaian bacaan Tahlil. FIXTURE PENGEMBANGAN — bukan konten produksi.",
+    "descriptionAr": "[NON-PRODUCTION FIXTURE PLACEHOLDER]",
+    "category": "AMALIYAH"
+  },
+  "variant": {
+    "id": "tahlil-umum",
+    "slug": "umum",
+    "nameId": "Umum",
+    "nameAr": "[FIXTURE-AR] Umum",
+    "ownerType": "PUBLIC",
+    "pondokId": null,
+    "visibility": "PUBLIC",
+    "isDefault": true
+  },
+  "version": {
+    "id": "tahlil-umum-v1",
+    "versionNumber": 1,
+    "status": "DRAFT",
+    "sourceName": "NON-PRODUCTION FIXTURE — no real source used",
+    "sourceReference": "N/A (development fixture; approved production content not yet supplied, see PRD 25)",
+    "minimumAppVersionCode": 1,
+    "publishedAt": null,
+    "revokedAt": null
+  },
+  "approval": {
+    "id": "tahlil-umum-v1-approval",
+    "approverName": "NON-PRODUCTION FIXTURE",
+    "approverRole": "N/A",
+    "institutionName": null,
+    "approvalDate": "2026-07-25",
+    "approvalScope": "N/A — fixture only, not reviewed or approved",
+    "publicDocumentStorageKey": null,
+    "documentReferenceNumber": "DEV-FIXTURE-TAHLIL-0001",
+    "status": "PENDING"
+  },
+  "steps": [
+    {
+      "id": "tahlil-umum-v1-step-01",
+      "position": 1,
+      "stepType": "HEADING",
+      "titleId": "Pembukaan",
+      "titleAr": "[FIXTURE-AR] Pembukaan"
+    },
+    {
+      "id": "tahlil-umum-v1-step-02",
+      "position": 2,
+      "stepType": "INSTRUCTION",
+      "instructionId": "[FIXTURE] Instruksi placeholder sebelum memulai bacaan.",
+      "instructionAr": "[NON-PRODUCTION FIXTURE PLACEHOLDER]"
+    },
+    {
+      "id": "tahlil-umum-v1-step-03",
+      "position": 3,
+      "stepType": "ARABIC_TEXT",
+      "titleId": "Tawassul",
+      "titleAr": "[FIXTURE-AR] Tawassul",
+      "arabicText": "[NON-PRODUCTION FIXTURE — ARABIC TEXT PLACEHOLDER]",
+      "translationId": "[NON-PRODUCTION FIXTURE — TERJEMAHAN PLACEHOLDER]"
+    },
+    {
+      "id": "tahlil-umum-v1-step-04",
+      "position": 4,
+      "stepType": "QURAN_AYAH",
+      "titleId": "Al-Fatihah",
+      "titleAr": "[FIXTURE-AR] Al-Fatihah",
+      "arabicText": "[NON-PRODUCTION FIXTURE — ARABIC TEXT PLACEHOLDER]",
+      "translationId": "[NON-PRODUCTION FIXTURE — TERJEMAHAN PLACEHOLDER]",
+      "quranSurahNumber": 1,
+      "quranAyahStart": 1,
+      "quranAyahEnd": 7
+    },
+    {
+      "id": "tahlil-umum-v1-step-05",
+      "position": 5,
+      "stepType": "PRAYER",
+      "titleId": "Doa",
+      "titleAr": "[FIXTURE-AR] Doa",
+      "arabicText": "[NON-PRODUCTION FIXTURE — ARABIC TEXT PLACEHOLDER]",
+      "translationId": "[NON-PRODUCTION FIXTURE — TERJEMAHAN PLACEHOLDER]"
+    },
+    {
+      "id": "tahlil-umum-v1-step-06",
+      "position": 6,
+      "stepType": "REPEATED_READING",
+      "titleId": "Tahlil",
+      "titleAr": "[FIXTURE-AR] Tahlil",
+      "arabicText": "[NON-PRODUCTION FIXTURE — ARABIC TEXT PLACEHOLDER]",
+      "translationId": "[NON-PRODUCTION FIXTURE — TERJEMAHAN PLACEHOLDER]",
+      "repeatTarget": 33
+    },
+    {
+      "id": "tahlil-umum-v1-step-07",
+      "position": 7,
+      "stepType": "DIVIDER"
+    },
+    {
+      "id": "tahlil-umum-v1-step-08",
+      "position": 8,
+      "stepType": "CLOSING",
+      "titleId": "Penutup",
+      "titleAr": "[FIXTURE-AR] Penutup",
+      "instructionId": "[FIXTURE] Instruksi penutup placeholder."
+    }
+  ]
+}

@@ -34,14 +34,18 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AmaliyahStep
+import com.sangusantri.app.domain.model.Approval
+import com.sangusantri.app.domain.model.ApprovalStatus
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
+import com.sangusantri.app.feature.reader.components.ReaderOverflowMenu
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
 import com.sangusantri.app.feature.reader.components.ReaderStepItem
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
@@ -52,6 +56,7 @@ private val ReaderMaxWidth = 640.dp
 fun ReaderRoute(
     amaliyahSlug: String,
     onBack: () -> Unit,
+    onSwitchToGuided: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ReaderViewModel =
         hiltViewModel<ReaderViewModel, ReaderViewModel.Factory>(
@@ -60,6 +65,12 @@ fun ReaderRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val switchToGuidedReady by viewModel.switchToGuidedReady.collectAsStateWithLifecycle()
+
+    LaunchedEffect(switchToGuidedReady) {
+        if (switchToGuidedReady) onSwitchToGuided()
+    }
+
     ReaderScreen(
         uiState = uiState,
         settings = settings,
@@ -99,6 +110,13 @@ fun ReaderScreen(
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = stringResource(R.string.reader_settings_content_description),
+                        )
+                    }
+                    if (uiState is ReaderUiState.ContentAvailable) {
+                        ReaderOverflowMenu(
+                            switchModeLabel = stringResource(R.string.reader_switch_to_guided_action),
+                            onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
+                            approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
                         )
                     }
                 },
@@ -214,6 +232,19 @@ private val previewSteps =
         ),
     )
 
+private val previewApproval =
+    Approval(
+        id = "preview-approval",
+        approverName = "[FIXTURE] KH. Contoh Sesepuh",
+        approverRole = "[FIXTURE]",
+        institutionName = null,
+        approvalDate = "2026-01-01",
+        approvalScope = "[FIXTURE]",
+        publicDocumentStorageKey = null,
+        documentReferenceNumber = null,
+        status = ApprovalStatus.APPROVED,
+    )
+
 private fun previewContentState(settings: ReaderSettings = ReaderSettings()) =
     ReaderUiState.ContentAvailable(
         amaliyahTitleId = "Tahlil",
@@ -222,6 +253,7 @@ private fun previewContentState(settings: ReaderSettings = ReaderSettings()) =
         settings = settings,
         initialItemIndex = 0,
         initialItemOffset = 0,
+        approval = previewApproval,
     )
 
 @PreviewLightDark

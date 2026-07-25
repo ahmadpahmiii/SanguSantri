@@ -75,6 +75,15 @@ system must never mutate an already-approved version in place — see ADR
 `minimum_app_version_code`, `published_at`, `revoked_at`, `created_at`.
 Statuses: `DRAFT`, `IN_REVIEW`, `APPROVED`, `PUBLISHED`, `REVOKED`.
 
+`status` (readability/publication) and the linked `approvals.status`
+(user-facing `Approved by` display, PRD §6.5) are deliberately independent
+fields, not coupled into one enum: `status` controls whether the app can
+display a version at all (`ContentRepositoryImpl.resolveVersion`'s
+`PUBLISHED`-first, debug-only-fallback logic — `docs/content-schema.md`),
+while `approvals.status` controls only what the compact approval status
+shows. A version can be readable (debug fallback) before it is approved;
+the UI never conflates the two.
+
 ### `amaliyah_steps`
 
 `id`, `version_id`, `position`, `step_type`, `title_id`, `title_ar`,
@@ -141,15 +150,20 @@ Both tables are combined behind one `GuidedReadingRepository`
 (`domain/repository/GuidedReadingRepository.kt`) rather than one repository
 per table, per `CODING_STANDARD.md`'s no-duplicate-repository guidance.
 
-### `feedback_outbox` (not yet implemented)
+### `feedback_outbox` (removed from `0.0.1` scope)
 
-Local feedback payload, submission status, retry count, last error, created
-time, last attempt time.
+Public content-correction feedback was removed from release `0.0.1`
+(Milestone 5, `docs/product/PRD.md` FR-012) — content correction is an
+internal SanguSantri-team operation, not a user-facing feature
+(`docs/operations/CONTENT_GOVERNANCE.md`). This table was never
+implemented and is not planned for any currently scheduled release.
 
-### `sync_metadata` (not yet implemented)
+### `sync_metadata` (removed from `0.0.1` scope)
 
-Last successful sync, manifest ETag, manifest checksum, content schema
-version, last sync error.
+Remote content synchronisation was removed from release `0.0.1` (Milestone
+5, `docs/product/PRD.md` FR-010) along with the Go backend it depends on.
+This table was never implemented and remains an unscheduled future item,
+not a committed roadmap version (`docs/product/ROADMAP.md`).
 
 User preferences remain in DataStore, not Room.
 
@@ -159,9 +173,12 @@ Implemented: canonical domain model, Room entities/DAOs for the content
 hierarchy, versioned JSON seed schema, checksum-verified transactional
 import (`data/local/seed/`), `reading_positions` (Full Reader
 reading-position persistence), and `guided_reading_sessions`/`step_progress`
-(Milestone 4 Guided Reader step/counter/completion persistence). Not yet
-implemented: `feedback_outbox`, `sync_metadata`, remote content
-synchronisation (FR-010), and the entire backend. See `docs/PROGRESS.md` for
+(Milestone 4 Guided Reader step/counter/completion persistence, also used
+by Milestone 5's cross-mode progress mapping when switching between Full
+and Guided readers). `feedback_outbox`, `sync_metadata`, remote content
+synchronisation (FR-010), and the entire backend are removed from `0.0.1`
+scope (Milestone 5) — not merely deferred; see
+`docs/product/PRD.md`/`docs/product/ROADMAP.md`. See `docs/PROGRESS.md` for
 the authoritative current state.
 
 ## Schema-freeze policy (pre-public-release)

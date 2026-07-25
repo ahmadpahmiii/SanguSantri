@@ -37,10 +37,13 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AmaliyahStep
+import com.sangusantri.app.domain.model.Approval
+import com.sangusantri.app.domain.model.ApprovalStatus
 import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.StepType
@@ -49,9 +52,11 @@ import com.sangusantri.app.feature.guidedreader.components.TasbihActions
 import com.sangusantri.app.feature.reader.ReaderUiAction
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
+import com.sangusantri.app.feature.reader.components.ReaderOverflowMenu
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
 import com.sangusantri.app.feature.reader.settings.ProgressionModeControl
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
+import com.sangusantri.app.feature.reader.toApprovalDisplay
 
 private val GuidedReaderMaxWidth = 640.dp
 
@@ -67,6 +72,7 @@ data class GuidedReaderCallbacks(
 fun GuidedReaderRoute(
     amaliyahSlug: String,
     onBack: () -> Unit,
+    onSwitchToFull: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GuidedReaderViewModel =
         hiltViewModel<GuidedReaderViewModel, GuidedReaderViewModel.Factory>(
@@ -75,12 +81,17 @@ fun GuidedReaderRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val switchToFullReady by viewModel.switchToFullReady.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState) {
         val state = uiState
         if (state is GuidedReaderUiState.StepVisible && state.isCompleted) {
             onBack()
         }
+    }
+
+    LaunchedEffect(switchToFullReady) {
+        if (switchToFullReady) onSwitchToFull()
     }
 
     GuidedReaderScreen(
@@ -118,6 +129,15 @@ fun GuidedReaderScreen(
                 title = title,
                 onBack = callbacks.onBack,
                 onOpenSettings = { showSettings.value = true },
+                overflow = {
+                    if (uiState is GuidedReaderUiState.StepVisible) {
+                        ReaderOverflowMenu(
+                            switchModeLabel = stringResource(R.string.reader_switch_to_full_action),
+                            onSwitchMode = { callbacks.onAction(GuidedReaderUiAction.SwitchToFull) },
+                            approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
+                        )
+                    }
+                },
             )
         },
         bottomBar = {
@@ -329,6 +349,19 @@ private val previewCounterStep =
         audioGroupId = null,
     )
 
+private val previewApproval =
+    Approval(
+        id = "preview-approval",
+        approverName = "[FIXTURE] KH. Contoh Sesepuh",
+        approverRole = "[FIXTURE]",
+        institutionName = null,
+        approvalDate = "2026-01-01",
+        approvalScope = "[FIXTURE]",
+        publicDocumentStorageKey = null,
+        documentReferenceNumber = null,
+        status = ApprovalStatus.APPROVED,
+    )
+
 private fun previewStepVisible(currentCount: Int = 12) =
     GuidedReaderUiState.StepVisible(
         amaliyahTitleId = "Tahlil",
@@ -343,6 +376,7 @@ private fun previewStepVisible(currentCount: Int = 12) =
         continueEnabled = currentCount >= 33,
         allRequiredCountersComplete = false,
         isCompleted = false,
+        approval = previewApproval,
     )
 
 private val previewCallbacks =

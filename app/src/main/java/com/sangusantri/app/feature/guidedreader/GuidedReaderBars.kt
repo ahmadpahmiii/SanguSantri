@@ -26,6 +26,7 @@ internal fun GuidedReaderTopBar(
     title: String,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    overflow: @Composable () -> Unit = {},
 ) {
     TopAppBar(
         title = { Text(text = title) },
@@ -44,6 +45,7 @@ internal fun GuidedReaderTopBar(
                     contentDescription = stringResource(R.string.reader_settings_content_description),
                 )
             }
+            overflow()
         },
     )
 }

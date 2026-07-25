@@ -59,4 +59,12 @@
   <string name="guided_progression_mode_label">Mode lanjutan</string>
   <string name="guided_progression_mode_manual">Manual</string>
   <string name="guided_progression_mode_automatic">Otomatis</string>
+
+  <!-- Reader mode switch and compact approval status (FR-016, PRD 6.5, Milestone 5) -->
+  <string name="reader_overflow_content_description">Menu lainnya</string>
+  <string name="reader_switch_to_guided_action">Beralih ke Panduan</string>
+  <string name="reader_switch_to_full_action">Beralih ke Bacaan Lengkap</string>
+  <string name="content_approval_menu_action">Sumber &amp; Pentashihan</string>
+  <string name="content_approved_by_label">Disetujui oleh</string>
+  <string name="content_approval_pending_dev_only">Persetujuan akhir belum tersedia (build pengembangan).</string>
 </resources>

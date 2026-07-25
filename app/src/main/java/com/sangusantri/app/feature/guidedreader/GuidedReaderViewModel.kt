@@ -7,11 +7,14 @@ import com.sangusantri.app.domain.model.AmaliyahStep
 import com.sangusantri.app.domain.model.AmaliyahVersionDetail
 import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.GuidedReadingSession
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
+import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
+import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.feature.reader.ReaderUiAction
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -49,6 +52,7 @@ constructor(
     private val contentRepository: ContentRepository,
     private val guidedReadingRepository: GuidedReadingRepository,
     private val readerSettingsRepository: ReaderSettingsRepository,
+    private val readingPositionRepository: ReadingPositionRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -60,6 +64,9 @@ constructor(
     private val currentStepIndex = MutableStateFlow(0)
     private val completedAtEpochMillis = MutableStateFlow<Long?>(null)
     private var autoAdvanceJob: Job? = null
+
+    private val _switchToFullReady = MutableStateFlow(false)
+    val switchToFullReady: StateFlow<Boolean> = _switchToFullReady
 
     val uiState: StateFlow<GuidedReaderUiState> =
         combine(
@@ -96,6 +103,30 @@ constructor(
             GuidedReaderUiAction.ResetCounter -> onResetCounter()
             GuidedReaderUiAction.ConfirmCompletion -> onConfirmCompletion()
             GuidedReaderUiAction.Retry -> loadContent()
+            GuidedReaderUiAction.SwitchToFull -> onSwitchToFull()
+        }
+    }
+
+    /**
+     * Maps the current step to the Full Reader's starting position (FR-016): writes it directly
+     * into the existing per-version [ReadingPosition] row with a safe zero offset, so the Full
+     * Reader simply restores its usual position on load and finds this step already current — no
+     * second progress model, no nav-key state.
+     */
+    private fun onSwitchToFull() {
+        val detail = availableDetail() ?: return
+        viewModelScope.launch {
+            val clampedIndex = currentStepIndex.value.coerceIn(0, detail.steps.lastIndex)
+            readingPositionRepository.savePosition(
+                ReadingPosition(
+                    versionId = detail.version.id,
+                    itemIndex = clampedIndex,
+                    itemOffset = 0,
+                    lastOpenedAtEpochMillis = System.currentTimeMillis(),
+                ),
+            )
+            readerSettingsRepository.setLastReaderMode(ReaderMode.FULL)
+            _switchToFullReady.value = true
         }
     }
 
@@ -125,6 +156,7 @@ constructor(
             is ReaderUiAction.ScrollPositionChanged,
             is ReaderUiAction.PersistPositionNow,
             ReaderUiAction.Retry,
+            ReaderUiAction.SwitchToGuided,
                 -> Unit
         }
     }
@@ -327,6 +359,7 @@ constructor(
                         continueEnabled = isStepContinueEnabled(step, counts),
                         allRequiredCountersComplete = allRequiredCountersComplete(steps, counts),
                         isCompleted = completedAt != null,
+                        approval = detail.approval,
                     )
                 }
             }

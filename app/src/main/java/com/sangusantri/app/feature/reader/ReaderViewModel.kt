@@ -4,9 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.AmaliyahVersionDetail
+import com.sangusantri.app.domain.model.GuidedReadingSession
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.repository.ContentRepository
+import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import dagger.assisted.Assisted
@@ -44,6 +47,7 @@ constructor(
     private val contentRepository: ContentRepository,
     private val readingPositionRepository: ReadingPositionRepository,
     private val readerSettingsRepository: ReaderSettingsRepository,
+    private val guidedReadingRepository: GuidedReadingRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -52,9 +56,13 @@ constructor(
 
     private val contentState = MutableStateFlow<ContentState>(ContentState.Loading)
     private var loadJob: Job? = null
+    private var lastKnownItemIndex = 0
 
     private val scrollPositionUpdates =
         MutableSharedFlow<ScrollPosition>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    private val _switchToGuidedReady = MutableStateFlow(false)
+    val switchToGuidedReady: StateFlow<Boolean> = _switchToGuidedReady
 
     val uiState: StateFlow<ReaderUiState> =
         combine(contentState, readerSettingsRepository.observe()) { content, settings ->
@@ -86,8 +94,10 @@ constructor(
 
     fun onAction(action: ReaderUiAction) {
         when (action) {
-            is ReaderUiAction.ScrollPositionChanged ->
+            is ReaderUiAction.ScrollPositionChanged -> {
+                lastKnownItemIndex = action.itemIndex
                 scrollPositionUpdates.tryEmit(ScrollPosition(action.itemIndex, action.itemOffset))
+            }
 
             is ReaderUiAction.PersistPositionNow ->
                 viewModelScope.launch {
@@ -110,6 +120,32 @@ constructor(
                 viewModelScope.launch { readerSettingsRepository.setShowTranslation(action.show) }
 
             ReaderUiAction.Retry -> loadContent()
+            ReaderUiAction.SwitchToGuided -> onSwitchToGuided()
+        }
+    }
+
+    /**
+     * Maps the currently visible step to the Guided Reader's starting step (FR-016): writes it
+     * directly into the existing per-version [GuidedReadingSession] row (preserving any completion
+     * already recorded there) instead of inventing a second progress model — the Guided Reader then
+     * simply restores its usual session state on load and finds this step already current.
+     */
+    private fun onSwitchToGuided() {
+        val detail = (contentState.value as? ContentState.Available)?.detail ?: return
+        viewModelScope.launch {
+            val clampedIndex = lastKnownItemIndex.coerceIn(0, detail.steps.lastIndex)
+            val stepId = detail.steps[clampedIndex].id
+            val existingSession = guidedReadingRepository.getSession(detail.version.id)
+            guidedReadingRepository.saveSession(
+                GuidedReadingSession(
+                    versionId = detail.version.id,
+                    currentStepId = stepId,
+                    lastOpenedAtEpochMillis = System.currentTimeMillis(),
+                    completedAtEpochMillis = existingSession?.completedAtEpochMillis,
+                ),
+            )
+            readerSettingsRepository.setLastReaderMode(ReaderMode.GUIDED)
+            _switchToGuidedReady.value = true
         }
     }
 
@@ -137,10 +173,12 @@ constructor(
                             ContentState.Unavailable
                         } else {
                             val restored = readingPositionRepository.getPosition(detail.version.id)
+                            val position = validateRestoredPosition(restored, detail.steps.size)
+                            lastKnownItemIndex = position.itemIndex
                             ContentState.Available(
                                 amaliyahTitleId = amaliyah.titleId,
                                 detail = detail,
-                                restoredPosition = validateRestoredPosition(restored, detail.steps.size),
+                                restoredPosition = position,
                             )
                         }
                     } catch (cancellation: CancellationException) {
@@ -200,6 +238,7 @@ constructor(
                         settings = settings,
                         initialItemIndex = restoredPosition.itemIndex,
                         initialItemOffset = restoredPosition.itemOffset,
+                        approval = detail.approval,
                     )
             }
     }

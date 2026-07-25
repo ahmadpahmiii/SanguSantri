@@ -75,17 +75,36 @@ sign-off before it may ever be copied into `app/src/main/assets/content/`.
 The other six readings on that page (other Mujahadah/reading collections)
 remain out of scope — no parser exists for them.
 
+**Release-candidate baseline (Milestone 5).** The current Tahlil (59 steps)
+and Istighosah (27 steps) drafts are fixed as the `0.0.1` release-candidate
+content baseline: bundled locally, loaded in both debug and release builds,
+fully offline, through the existing canonical content model — not reparsed
+or rewritten during normal Android builds. This is a baseline-freeze
+decision, not a review/approval decision: both packages remain
+`DRAFT`/`PENDING` until the manual review and kyai/sesepuh approval steps
+above actually happen. `tools/content-importer/` remains available as a
+developer-only tool for preparing future content updates; it is never
+invoked automatically or at application runtime.
+
 ## Correction workflow
 
+Content correction is an internal SanguSantri-team operation. Users do not
+submit corrections through the application — there is no public feedback
+form, feedback outbox, or feedback endpoint in `0.0.1`, and none is
+currently planned (`docs/product/PRD.md` §6.7, FR-012). Corrections are
+triggered by the content team's own review, an internally reported error, or
+a source update — never by an in-app user submission:
+
 ```text
-Feedback received
-→ Triaged by content team
+Internal review, reported error, or source update noticed by the content team
 → Compared with source
 → Reviewed by kyai/sesepuh when required
 → New version created
 → New approval attached
 → Published
-→ Client automatically activates new version
+→ Client automatically activates new version (once synchronisation exists —
+  see docs/product/PRD.md FR-010; until then, updated packages are re-bundled
+  as a new local release-candidate package, see below)
 ```
 
 Corrections always create a new immutable version (ADR
@@ -153,9 +172,34 @@ application unless such endorsement exists in writing (PRD §6.5). This
 distinction must be visible wherever approval is shown to users (Sumber &
 Pentashihan, FR-009).
 
+## User-facing approval display (compact)
+
+Since Milestone 5, the app's normal UI shows only a compact status, never
+the full pentashihan workflow, checksum, raw approval document, or internal
+reviewer identity (`docs/product/PRD.md` §6.5):
+
+```text
+Approved by
+<approver name or institution>
+```
+
+* Shown only when the content version's approval metadata is genuinely
+  valid (`status = APPROVED`, real, non-blank approver name) — never
+  invented, guessed, or presented before real approval exists.
+* While approval metadata is still pending, a neutral internal status (e.g.
+  "Persetujuan akhir belum tersedia") is shown **only in development
+  builds** — release builds show nothing rather than a placeholder.
+* An optional future detail action may show approval evidence (a signed
+  letter, approval sheet, or other verifiable record); document upload, PDF
+  viewing, and a CMS remain out of scope.
+* Final public deployment requires real approver metadata and a real
+  approval-evidence reference — this display rule does not relax that gate.
+
 ## Approval document privacy
 
-The raw signed approval document is stored privately. Users may view a
-redacted approval document, approver identity, role, date, approval scope,
-and document reference number. Private signatures, phone numbers,
-addresses, and identity numbers are redacted when unnecessary (PRD §6.6).
+The raw signed approval document is stored privately. Internally, the
+content team may reference a redacted approval document, approver
+identity, role, date, approval scope, and document reference number.
+Private signatures, phone numbers, addresses, and identity numbers are
+redacted when unnecessary (PRD §6.6). This detail is not required in the
+normal app UI (see above).

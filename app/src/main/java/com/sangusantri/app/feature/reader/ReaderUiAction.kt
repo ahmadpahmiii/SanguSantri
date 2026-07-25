@@ -34,4 +34,7 @@ sealed interface ReaderUiAction {
     ) : ReaderUiAction
 
     data object Retry : ReaderUiAction
+
+    /** Switches to the Guided Reader at the currently visible step (FR-016). */
+    data object SwitchToGuided : ReaderUiAction
 }

@@ -1,13 +1,19 @@
 # SanguSantri Product Requirements Document
 
-**Document version:** 1.1
+**Document version:** 1.2 — Milestone 5 scope correction: removed public
+feedback (`Koreksi Bacaan`), remote content synchronisation, and the Go
+backend from `0.0.1`; simplified approval to a compact `Approved by` status;
+added the in-reader mode-switch requirement (FR-016).
 **Product:** SanguSantri
 **Initial release:** Android `0.0.1`
 **Package name:** `com.sangusantri.app`
 **Product owner:** Ahmad Fahmi Aisar
 **Document status:** Ready for engineering
 **Initial platform:** Native Android
-**Backend (planned, not started):** Go + PostgreSQL
+**Backend:** Not part of release `0.0.1`. A future Go + PostgreSQL backend
+(remote content synchronisation, public content API, admin CLI) remains an
+unscheduled future item, not a committed roadmap version — see
+`docs/product/ROADMAP.md`. Release `0.0.1` is local-only and offline-first.
 **Date:** 25 July 2026
 
 ---
@@ -213,28 +219,27 @@ Release `0.0.1` includes:
 14. Haptic feedback when the counter is pressed.
 15. Persisted reading progress.
 16. Persisted counter progress.
-17. Reader appearance settings.
-18. Light and dark themes.
-19. Green Islamic visual identity.
-20. Traditional-modern pesantren design direction.
-21. Offline seed content.
-22. Automatic non-blocking content synchronisation.
-23. Preservation of previous content versions.
-24. Source and approval details for every amaliyah.
-25. Content correction feedback.
-26. Portrait and landscape support.
-27. Phone and tablet support.
-28. Edge-to-edge layout.
-29. Go public content API.
-30. Go content administration CLI.
-31. PostgreSQL database.
-32. Temporary database administration through Supabase Studio.
-33. Automated Android and backend testing.
-34. CI validation.
+17. A saved reader-mode preference, with an in-reader action to switch
+    between Bacaan Lengkap and Panduan without losing progress (§8.4a).
+18. Reader appearance settings.
+19. Light and dark themes.
+20. Green Islamic visual identity.
+21. Traditional-modern pesantren design direction.
+22. Offline seed content, fixed as the release-candidate baseline (§6.7).
+23. Preservation of previous content versions (local fallback only; see
+    FR-011).
+24. A compact "Approved by" status for every amaliyah, sourced from
+    structured content metadata (§6.5).
+25. Portrait and landscape support.
+26. Phone and tablet support.
+27. Edge-to-edge layout.
+28. Automated Android testing.
+29. CI validation.
 
-Items 29–32 are backend scope; no backend implementation has started (see
-`docs/engineering/ARCHITECTURE.md` §Backend). Android work does not block on
-this.
+Remote content synchronisation, the Go public content API, the Go content
+administration CLI, PostgreSQL, and Supabase Studio are **not** part of
+release `0.0.1` — see §5.2 and `docs/product/ROADMAP.md`. The application is
+entirely local and offline-first for this release.
 
 ## 5.2 Explicitly excluded
 
@@ -259,6 +264,24 @@ Release `0.0.1` does not include:
 * A PDF reader, or PDF parsing/extraction, inside the Android application.
   Reader content is always Unicode text sourced from the canonical content
   model, never a rendered or extracted PDF page or image of Arabic text.
+* Public content-correction feedback (**Koreksi Bacaan**), a feedback form,
+  a local feedback outbox, or any feedback submission endpoint. Content
+  correction is handled internally by the SanguSantri team — see §6.7 and
+  `docs/operations/CONTENT_GOVERNANCE.md`. This is a scope correction from
+  document version 1.0, which described a public feedback flow (former
+  FR-012); no such flow has been built, and none is planned for `0.0.1`.
+* Remote content synchronisation and the Go + PostgreSQL backend (public
+  content API, admin CLI, Supabase Studio). Both remain an unscheduled
+  future item, not a committed roadmap version — see
+  `docs/product/ROADMAP.md`. This is a scope correction from document
+  version 1.0's former FR-010; no synchronisation code exists, and
+  `0.0.1` ships fully local and offline-first.
+* A full pentashihan (content-approval) workflow, checksum display, raw
+  approval documents, internal reviewer identity, or other detailed
+  content-governance data inside the normal app UI. Users see only a
+  compact `Approved by` status (§6.5); the underlying editorial and
+  approval workflow remains an internal, non-user-facing operation
+  (`docs/operations/CONTENT_GOVERNANCE.md`).
 
 The data model may support future variants, but the `0.0.1` interface
 exposes only one default general variant for each amaliyah.
@@ -325,26 +348,61 @@ Fatihah inside Tahlil); its text is entered and versioned as part of that
 amaliyah's approved content package, the same as any other step, never
 fetched from a separate Quran API or service at runtime.
 
-## 6.5 Approval
+## 6.5 Approval (user-facing, compact)
 
-Each published content version must include approver name, approver role,
-institution or pesantren (when applicable), approval date, approval status,
-approval document, source name, source reference, internal reviewer name,
-and content checksum.
+Content review and correction are internal SanguSantri-team operations
+(§6.7). Users do not submit corrections and do not participate in the
+approval workflow — approval is a deployment/content-operations gate, not a
+user-facing feature. The application's normal UI exposes only a compact
+public status, sourced from structured content metadata, never invented:
 
-Approval verifies the accuracy of the specified content version. It must not
-be presented as institutional endorsement of the entire SanguSantri
-application unless such endorsement exists in writing.
+```text
+Approved by
+<approver name or institution>
+```
+
+Rules:
+
+* When a content version's approval metadata is valid (status `APPROVED`
+  with a real approver name), the app displays `Approved by` and the
+  approver/institution name.
+* While final approval metadata has not been supplied, the app displays a
+  neutral internal status such as "Persetujuan akhir belum tersedia" only in
+  development builds. Release builds never display a fake or placeholder
+  approval status.
+* An optional future detail action may show approval evidence (e.g. a
+  signed letter or approval sheet reference). This is not required for
+  `0.0.1` and does not include document upload, PDF viewing, or a CMS.
+* Approval verifies the accuracy of the specified content version only. It
+  must not be presented as institutional endorsement of the entire
+  SanguSantri application unless such endorsement exists in writing.
+* Final public deployment requires real approver metadata and a real
+  approval-evidence reference (§13).
+
+Full internal approval record fields (approver role, institution, approval
+date, document reference number, internal reviewer name, checksum) remain
+part of the structured content model for internal/content-operations use —
+see `docs/engineering/CONTENT_MODEL.md` — but are not required to appear in
+the normal app UI.
 
 ## 6.6 Approval document privacy
 
-The raw signed document should be stored privately. Users may view a
-redacted approval document, approver identity, role, date, approval scope,
-and document reference number. Private signatures, phone numbers, addresses,
-and identity numbers must be redacted when unnecessary.
-
-Full editorial, approval, and revocation process: see
+The raw signed approval document, when one exists, is kept privately by the
+content-operations team, never bundled with the app and never displayed in
+the reader. Full editorial, approval, and revocation process:
 `docs/operations/CONTENT_GOVERNANCE.md`.
+
+## 6.7 Release-candidate content baseline
+
+Release `0.0.1`'s bundled Tahlil (59 ordered steps) and Istighosah (27
+ordered steps) are fixed local release-candidate packages, loaded through
+the existing canonical content model in both debug and release builds,
+fully offline. They are not reparsed or rewritten during normal Android
+builds; the developer-only `tools/content-importer/` remains available as a
+separate tool for preparing future content updates, never invoked at
+runtime. Neither package may be presented as finally approved until real
+kyai/sesepuh approval metadata is supplied (§6.5, §13) — see
+`docs/operations/CONTENT_GOVERNANCE.md` for the internal review process.
 
 ---
 
@@ -353,8 +411,10 @@ Full editorial, approval, and revocation process: see
 ## 7.1 Primary destinations
 
 Release `0.0.1` uses the following destinations: Bootstrap, Serambi, Reader
-mode selection, Amaliyah reader, Source and approval detail, Reader
-settings, Feedback form, About SanguSantri.
+mode selection, Amaliyah reader (Bacaan Lengkap or Panduan, switchable
+in-place — §8.4a), Reader settings, About SanguSantri. A compact approval
+status ("Approved by") is shown from within the reader itself, not as a
+separate destination (§6.5).
 
 A bottom navigation bar is not required for `0.0.1`. The number of
 destinations does not justify permanent bottom navigation.
@@ -368,9 +428,8 @@ Preferred Indonesian labels:
 * Guided reading: **Panduan**
 * Full reading: **Bacaan Lengkap**
 * Counter: **Tasbih**
-* Content verification: **Sumber & Pentashihan**
+* Content verification (compact status): **Sumber & Pentashihan**
 * Settings: **Setelan**
-* Feedback: **Koreksi Bacaan**
 * Continue reading: **Lanjutkan Bacaan**
 
 Arabic localisation must use natural Arabic labels and proper RTL layout
@@ -425,26 +484,39 @@ rather than transliterated Indonesian terminology.
 8. User may move to the previous step.
 9. The session resumes at the last unfinished step.
 
+## 8.4a Switching reading mode inside the reader
+
+1. Full Reader shows an easy-to-find but not visually dominant action,
+   "Beralih ke Panduan" (top-app-bar/overflow action, not a permanent bottom
+   navigation bar).
+2. Guided Reader shows the equivalent action, "Beralih ke Bacaan Lengkap".
+3. Switching preserves the same amaliyah and content version, and does not
+   show the initial mode-selection screen again.
+4. Full → Guide: the Guided Reader opens at the Full Reader's currently
+   visible step (or the nearest valid step), with existing Guided Reader
+   counter progress for that content version intact.
+5. Guide → Full: the Full Reader opens at the item index corresponding to
+   the Guided Reader's current step, with a safe scroll offset.
+6. The saved reader-mode preference (§8.2) updates to match the newly
+   active mode.
+7. Repeated switching does not duplicate navigation entries or progress
+   records; back navigation remains predictable (returns to Serambi, not to
+   an intermediate switch state).
+
 ## 8.5 Viewing source and approval
 
-1. User opens the overflow menu or information action.
+1. User opens the overflow menu inside the reader.
 2. User selects **Sumber & Pentashihan**.
-3. Application displays source, content version, approver, approval date,
-   approval status, and redacted approval document.
-4. Previous downloaded versions may be opened from this screen.
+3. Application displays the compact `Approved by` status (§6.5) — approver
+   or institution name when valid approval metadata exists, or a
+   development-only pending status otherwise.
+4. An optional future detail action may show approval evidence; not built
+   in `0.0.1`.
 
-## 8.6 Reporting a correction
-
-1. User opens **Koreksi Bacaan**.
-2. The current amaliyah, version, and step are preselected.
-3. User selects a category: Arabic text, Harakat, Translation, Repetition
-   count, Source, Audio (future), Other.
-4. User writes a description.
-5. Feedback is saved locally first.
-6. Application submits it when connected.
-7. The user receives a local submission status.
-
-No account is required.
+No account is required. Content correction is an internal SanguSantri-team
+operation (§6.7, `docs/operations/CONTENT_GOVERNANCE.md`) — users do not
+submit corrections or participate in the approval workflow through the
+application.
 
 ---
 
@@ -522,47 +594,51 @@ reader background style, show or hide translation, guided progression
 Preferences must use DataStore and apply without restarting the application
 when practical.
 
-## FR-009: Content details
+## FR-009: Content details (compact)
 
-Every published amaliyah version MUST expose source, version, approval,
-publication date, content checksum, and approval document metadata. A
-content item without an approved status must not appear in the production
-catalogue.
+Every displayed amaliyah MUST expose a compact `Approved by` status (§6.5),
+sourced from the content version's structured approval metadata, never
+invented. The application MUST NOT display fake approver names, fake
+approval dates, or fabricated approval evidence. A content item's
+publication/readability status (whether the app can display it at all) and
+its approval metadata (what `Approved by` shows) are controlled
+independently — see `docs/engineering/CONTENT_MODEL.md`.
 
-## FR-010: Content synchronisation
+Full internal approval fields (approver role, institution, approval date,
+document reference number, internal reviewer name, content checksum) remain
+part of the structured content model for content-operations use, but are
+not required in the normal app UI.
 
-Synchronisation MUST run without blocking local reads, compare local and
-remote manifests, download only newer or missing packages, validate schema
-version, validate checksum, import inside a database transaction, activate
-the new version only after a successful import, preserve previous versions,
-retain current local content when synchronisation fails, support manual
-retry, and respect network constraints.
+## FR-010: Content synchronisation (deferred beyond `0.0.1`)
 
-When a valid new version is imported, it becomes the default automatically.
+Remote content synchronisation is **not** part of release `0.0.1` — no
+synchronisation code, manifest comparison, or network content fetch exists
+or is built for this release. Release `0.0.1` ships fully local, fixed
+release-candidate content (§6.7). A future synchronisation requirement, if
+scheduled, would need to run without blocking local reads, validate schema
+version and checksum, import inside a database transaction, preserve
+previous versions, and respect network constraints — design detail (for
+that future work only): `docs/engineering/OFFLINE_FIRST.md`.
 
-Design detail: `docs/engineering/OFFLINE_FIRST.md`.
+## FR-011: Previous versions (local fallback)
 
-## FR-011: Previous versions
+The data model preserves previous content versions locally. If the active
+version is revoked (`AmaliyahVersionStatus.REVOKED`), the application falls
+back to the newest non-revoked version and the revoked version is not
+opened by default. This is a local, on-device fallback in `0.0.1` — there is
+no backend manifest or remote revocation signal yet (see FR-010). A
+dedicated screen for browsing previous versions is not required for
+`0.0.1`.
 
-Previous downloaded content versions must remain accessible through
-**Sumber & Pentashihan**. The main amaliyah card always opens the latest
-active approved version.
+## FR-012: Feedback (removed from scope)
 
-If the latest version is revoked: the backend manifest marks it revoked, the
-application falls back to the newest non-revoked approved version, and the
-revoked version is not opened by default.
-
-## FR-012: Feedback
-
-Feedback MUST be written locally before network submission. A local outbox
-must track Pending, Sending, Submitted, Failed.
-
-Feedback submission must include an anonymous installation identifier,
-application version, amaliyah ID, variant ID, content version ID, step ID
-(when applicable), feedback category, user description, device locale, and
-timestamp.
-
-It must not include the user's devotional history or counter history.
+Public content-correction feedback (**Koreksi Bacaan**) is **not** part of
+release `0.0.1` and none is currently planned. Content correction is
+handled internally by the SanguSantri team (§6.7,
+`docs/operations/CONTENT_GOVERNANCE.md`) — the application does not collect,
+store, or submit user feedback. This document version removes the feedback
+requirement that a previous document version (1.0) described here; no
+feedback outbox, feedback form, or feedback endpoint has been built.
 
 ## FR-013: Localisation
 
@@ -583,6 +659,17 @@ width on large displays rather than stretching from edge to edge.
 The application must use modern edge-to-edge rendering. System bar and
 keyboard insets must be handled exactly once. Interactive content must not
 be hidden beneath status bars, navigation bars, or the IME.
+
+## FR-016: Reader mode switching
+
+Both Full Reader and Guided Reader MUST expose an easy-to-find,
+non-dominant action to switch to the other mode (§8.4a) — a top-app-bar or
+overflow action, never a permanent bottom navigation bar. Switching MUST
+preserve the same amaliyah and content version, MUST NOT show the initial
+mode-selection screen again, MUST update the saved reader-mode preference
+(§8.2), MUST preserve existing Guided Reader counter progress, and MUST NOT
+duplicate navigation entries or Room progress records on repeated
+switching. Back navigation after switching must remain predictable.
 
 ---
 

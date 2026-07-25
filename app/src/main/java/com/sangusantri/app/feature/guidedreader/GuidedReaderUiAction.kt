@@ -15,4 +15,7 @@ sealed interface GuidedReaderUiAction {
     data object ConfirmCompletion : GuidedReaderUiAction
 
     data object Retry : GuidedReaderUiAction
+
+    /** Switches to the Full Reader at the current step's item index (FR-016). */
+    data object SwitchToFull : GuidedReaderUiAction
 }

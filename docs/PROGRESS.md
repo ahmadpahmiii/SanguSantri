@@ -1029,3 +1029,224 @@ Not specified by this brief. Promoting either draft into production content
 is a content-governance task (manual review + kyai/sesepuh approval), not
 an engineering milestone. `docs/product/ROADMAP.md` should be revisited for
 the next scheduled engineering item.
+
+## Milestone 5 — Content Release Baseline and Reader Mode Switching
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `ktlintCheck`,
+`detekt`, `:app:compileDebugKotlin`/`compileDebugUnitTestKotlin`/
+`compileDebugAndroidTestKotlin`, `:app:testDebugUnitTest` (37/37, unchanged
+count — no new unit tests added per this milestone's own testing policy),
+`:app:lintDebug`, `:app:assembleDebug`, and `:app:assembleRelease`
+(R8/shrinking, `lintVitalRelease`) all pass. `connectedDebugAndroidTest` and
+on-device manual verification were **not run** — no emulator was available
+this session (`adb devices` returned empty); see Manual validation still
+required below.
+
+**Scope:** Product-scope correction (remove public feedback and remote
+sync/backend from `0.0.1`, simplify approval to a compact `Approved by`
+status, fix current content as the release-candidate baseline) plus two
+Milestone 5 features: an in-reader Full ⇄ Guided mode-switch action
+(FR-016) and cross-mode progress mapping. No Room schema change — no
+entities were added, removed, or changed, so no migration/baseline reset
+was needed (`docs/engineering/CONTENT_MODEL.md` schema-freeze policy).
+
+### Scope correction (no code existed to remove)
+
+Public `Koreksi Bacaan`, a feedback form, and a feedback outbox were never
+actually implemented in any prior milestone (confirmed by search — no
+`feedback` code, strings, or navigation destination existed in
+`app/src/main`). The correction removed a **documented** requirement, not
+running code: `docs/product/PRD.md` (former FR-012, item 25 of §5.1, §8.6,
+the `Koreksi Bacaan` terminology entry), `docs/product/ROADMAP.md`, and
+`docs/engineering/CONTENT_MODEL.md`'s `feedback_outbox`/`sync_metadata`
+table descriptions were all rewritten to state the removal explicitly,
+rather than "not yet implemented." Likewise, no remote sync code or Go
+backend code exists anywhere in the repository — FR-010 and the PRD header
+now state plainly that `0.0.1` is local-only, and `docs/product/PRD.md`
+§5.1's item list dropped the Go/PostgreSQL/Supabase Studio items entirely
+(previously items 29–32). `docs/operations/CONTENT_GOVERNANCE.md`'s
+correction workflow no longer opens with "Feedback received" — it now
+opens with "Internal review, reported error, or source update noticed by
+the content team," since users never submit corrections through the app.
+
+### Compact approval display
+
+`docs/product/PRD.md` §6.5 was rewritten from a full pentashihan
+field-exposure requirement to a compact, deployment-gated status. New
+`feature/reader/ApprovalDisplay.kt`: a sealed `ApprovalDisplay`
+(`Approved(approverLabel)` / `Pending` / `Hidden`) plus
+`Approval.toApprovalDisplay(isDebugBuild)` — `Approved` only when
+`approval.status == APPROVED` and `approverName` is non-blank (using
+`institutionName` when present), `Pending` (a neutral "Persetujuan akhir
+belum tersedia" status) only in debug builds, `Hidden` otherwise (release
+builds with no real approval show nothing, never a placeholder). This
+reuses the existing `Approval`/`ApprovalStatus` domain model unchanged — no
+new Room columns, no checksum/raw-document/reviewer-name exposure. New
+shared `feature/reader/components/ReaderOverflowMenu.kt` renders an
+overflow (`MoreVert`) menu with the mode-switch action always, and a
+"Sumber & Pentashihan" item only when `ApprovalDisplay != Hidden`, opening
+a two-line `AlertDialog` ("Disetujui oleh" / approver name) or the
+dev-only pending message. `ReaderUiState.ContentAvailable` and
+`GuidedReaderUiState.StepVisible` both gained an `approval: Approval`
+field so both readers can render this without a new destination, document
+upload, PDF viewer, or CMS (none built, per this milestone's own
+exclusion list).
+
+### Content release-candidate baseline
+
+`docs/product/PRD.md` (new §6.7), `docs/product/ROADMAP.md`, and
+`docs/operations/CONTENT_GOVERNANCE.md` now state explicitly that the
+current bundled Tahlil (59 steps) and Istighosah (27 steps) — unchanged
+since Milestone 4.5 — are the fixed `0.0.1` release-candidate content:
+loaded through the existing canonical content model in both debug and
+release builds, fully offline, never reparsed or rewritten by normal
+Android builds. This is a documentation/baseline-freeze decision only —
+`app/src/debug/assets/content/` and `app/src/main/assets/content/` are
+byte-for-byte unchanged from Milestone 4.5, no Kotlin/Android source
+changed for content loading, and both packages remain `DRAFT`/`PENDING`
+until real manual review and kyai/sesepuh approval happen.
+`tools/content-importer/` is untouched and remains a separate developer
+tool, never invoked at runtime.
+
+### Reader mode switch (FR-016)
+
+Full Reader's top bar gained an overflow menu item "Beralih ke Panduan";
+Guided Reader's gained "Beralih ke Bacaan Lengkap" — both via the shared
+`ReaderOverflowMenu`, an overflow action rather than a permanent bottom bar
+or a new dashboard (`docs/design/DESIGN_SYSTEM.md` anti-patterns). Switching
+does **not** show the Milestone 4 mode-selection gate again and does update
+the saved `ReaderSettings.lastReaderMode` preference — which is also how
+this milestone satisfies "keep a clear way to change the saved
+preference" (§4 of the brief): switching mode from inside either reader
+is that way, so no separate reset UI was added.
+
+### Cross-mode progress mapping — reused existing Room tables, no new model
+
+Deliberately **not** a new progress model or a nav-key-carried parameter
+(a nav-key value would survive process death and could incorrectly
+re-apply a stale switch target after the user has since scrolled/advanced
+further — considered and rejected). Instead, switching writes directly
+into the same per-content-version Room rows each reader already restores
+from on load:
+
+* **Full → Guide** (`ReaderViewModel.onSwitchToGuided`): reads the
+  Full Reader's last-known visible item index (tracked from
+  `ScrollPositionChanged`, the same signal already driving debounced
+  position persistence), maps it to that step's stable id, then
+  `@Upsert`s `GuidedReadingSession(currentStepId = thatStep, completedAtEpochMillis
+  = <preserved from any existing session>)` via the existing
+  `GuidedReadingRepository`. `GuidedReaderViewModel.restoreProgress` needs
+  no change at all — it already reads `session.currentStepId` and every
+  `StepProgress` row on load, so it picks up the new starting step and
+  every existing counter automatically.
+* **Guide → Full** (`GuidedReaderViewModel.onSwitchToFull`): reads the
+  Guided Reader's current step index, `@Upsert`s
+  `ReadingPosition(itemIndex = thatIndex, itemOffset = 0)` via the
+  existing `ReadingPositionRepository`. `ReaderViewModel.loadContent`
+  needs no change either — it already restores from
+  `readingPositionRepository.getPosition(versionId)`.
+
+Both writes are keyed by the immutable `version.id` (`@Upsert`, one row
+per version), so repeated switching overwrites the same row rather than
+duplicating it, different content versions never share progress, and no
+extra navigation-entry bookkeeping was needed beyond the existing
+pop-and-push pattern below.
+
+### Navigation
+
+`SanguSantriNavHost`'s Milestone 4 `replaceGateWithResolvedReader` helper
+was generalised (renamed `replaceTopEntryWithReader`, doc comment updated)
+and is now called from three places: the mode gate (unchanged behaviour)
+and the two new `onSwitchToGuided`/`onSwitchToFull` callbacks from
+`FullReader`/`GuidedReader` entries. All three pop the current top entry
+before pushing the new one, so repeated switching never accumulates
+duplicate backstack entries and back navigation from either reader always
+returns to Serambi. The `entryProvider { }` builder block was extracted
+into a private top-level `sanguSantriEntryProvider(backStack)` function
+(a plain function, not `@Composable` — `entryProvider`/`entry<T>` don't
+require composition) to keep `SanguSantriNavHost` under detekt's
+`LongMethod` threshold after adding the two new entry callbacks.
+
+### Files created, modified, and removed
+
+Created: `feature/reader/ApprovalDisplay.kt`,
+`feature/reader/components/ReaderOverflowMenu.kt`.
+
+Modified (main): `feature/reader/ReaderUiState.kt` (`approval` field),
+`feature/reader/ReaderUiAction.kt` (`SwitchToGuided`),
+`feature/reader/ReaderViewModel.kt` (injects `GuidedReadingRepository`,
+tracks last-known item index, `switchToGuidedReady`, `onSwitchToGuided`),
+`feature/reader/ReaderScreen.kt` (`onSwitchToGuided` param, overflow menu
+wiring, preview approval fixture), `feature/guidedreader/
+GuidedReaderUiState.kt` (`approval` field), `feature/guidedreader/
+GuidedReaderUiAction.kt` (`SwitchToFull`), `feature/guidedreader/
+GuidedReaderViewModel.kt` (injects `ReadingPositionRepository`,
+`switchToFullReady`, `onSwitchToFull`, exhaustive `when` fix in
+`onSettingsAction`), `feature/guidedreader/GuidedReaderScreen.kt`
+(`onSwitchToFull` param, overflow menu wiring, preview approval fixture),
+`feature/guidedreader/GuidedReaderBars.kt` (`overflow` slot on
+`GuidedReaderTopBar`), `navigation/SanguSantriNavHost.kt` (generalised
+replace helper, two new callbacks, `entryProvider` extraction),
+`res/values/strings.xml` (mode-switch and approval-display strings). No
+Room entity, DAO, or migration changed.
+
+Modified (test): `feature/reader/ReaderViewModelTest.kt`
+(`FakeGuidedReadingRepository`, new constructor parameter) — required for
+compilation, not new test coverage, per this milestone's testing policy.
+
+Removed: none — no feedback/approval-detail code existed to remove (see
+Scope correction above).
+
+Modified (docs): `docs/product/PRD.md` (document version 1.1 → 1.2 —
+§5.1/§5.2/§6.5/§6.6/new §6.7/§7.1/§7.2/§8.4a (new)/§8.5/§8.6 (removed)/
+FR-009/FR-010/FR-011/FR-012/new FR-016), `docs/product/ROADMAP.md`
+(`0.0.1` bullets), `docs/operations/CONTENT_GOVERNANCE.md` (internal-only
+correction trigger, new compact approval-display section, release-candidate
+baseline note), `docs/engineering/CONTENT_MODEL.md` (`feedback_outbox`/
+`sync_metadata` marked removed from scope rather than "not yet
+implemented"; publication/approval decoupling note), this file. `CLAUDE.md`
+was **not** modified — nothing in it currently asserts feedback, sync, or
+backend are in `0.0.1` scope, so no hard global rule there was actually
+false; the scope correction lives entirely in the PRD/roadmap/governance
+docs it already points to.
+
+### Commands executed
+
+`./gradlew :app:ktlintFormat`, `:app:ktlintCheck`, `:app:detekt`,
+`:app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin`,
+`:app:compileDebugAndroidTestKotlin`, `:app:testDebugUnitTest`,
+`:app:lintDebug`, `:app:assembleDebug`, `:app:assembleRelease` — all
+passed. `adb devices` returned empty (no emulator this session).
+
+### Manual validation still required (no emulator this session)
+
+All items in this milestone's own validation checklist depend on a running
+device/emulator and were not exercised: Tahlil/Istighosah open in debug and
+release, offline behaviour, first-open mode chooser vs. remembered-mode
+reopen, Full→Guide and Guide→Full switching (including that the mode
+chooser does not reappear, the visible/current step carries over, and
+guided counter progress survives), repeated switching not duplicating
+navigation entries or Room rows, predictable back navigation, the "Sumber &
+Pentashihan" menu item showing nothing in a release-shaped state and the
+dev-only pending message in a debug build with unapproved content (today's
+real bundled content), and that restarting the app preserves both the mode
+preference and progress. `connectedDebugAndroidTest` was also not run.
+
+### Final approval metadata still needed before public deployment
+
+Unchanged from every prior milestone: neither Tahlil nor Istighosah has
+real kyai/sesepuh approval or a real approval-evidence reference. This
+milestone's compact `Approved by` display makes that gate a genuine
+UI-visible state (dev-only "Persetujuan akhir belum tersedia" today) rather
+than removing it — production publication still requires real approver
+metadata and a real approval-evidence reference (`docs/product/PRD.md`
+§6.5, §13).
+
+### Next recommended milestone
+
+Not specified by this brief. Promoting either draft into production
+content remains a content-governance task, not an engineering milestone.
+The release-blocking content-validation gate flagged since Milestone 1
+(failing the build when `main`'s manifest has zero packages) is still not
+built. `docs/product/ROADMAP.md` should be revisited for the next
+scheduled engineering item.

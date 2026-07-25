@@ -18,11 +18,21 @@ from a separate Quran API or service — see
 
 ## `0.0.1` — Core Amaliyah Reader (current)
 
-* Tahlil, Istighosah.
-* Full reader, guided reader.
+* Tahlil (59 steps), Istighosah (27 steps) — fixed local release-candidate
+  content, bundled offline in both debug and release builds.
+* Full reader, guided reader, with an in-reader action to switch between
+  them without losing progress.
 * Integrated repeated-reading counter.
-* Offline content, content synchronisation.
-* Source and approval, reader settings, feedback.
+* Offline content only — no remote content synchronisation in this release.
+* Compact `Approved by` status, reader settings.
+
+Content correction is an internal SanguSantri-team operation, not a
+user-facing feature (`docs/operations/CONTENT_GOVERNANCE.md`); there is no
+public feedback form, feedback outbox, or feedback endpoint in `0.0.1` or
+currently planned for any future version. Remote content synchronisation
+and a Go + PostgreSQL backend remain an unscheduled future item, not a
+committed roadmap version — they are not part of `0.0.1` and do not appear
+below until a real product decision schedules them.
 
 See `docs/product/PRD.md` for full scope and acceptance criteria.
 

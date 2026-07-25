@@ -8,11 +8,14 @@ import com.sangusantri.app.domain.model.AmaliyahVersionStatus
 import com.sangusantri.app.domain.model.Approval
 import com.sangusantri.app.domain.model.ApprovalStatus
 import com.sangusantri.app.domain.model.GuidedProgressionMode
+import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
+import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.domain.repository.ContentRepository
+import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
@@ -229,11 +232,13 @@ class ReaderViewModelTest {
         contentRepository: ContentRepository = FakeContentRepository(tahlil, detail),
         readingPositionRepository: ReadingPositionRepository = FakeReadingPositionRepository(),
         readerSettingsRepository: ReaderSettingsRepository = FakeReaderSettingsRepository(),
+        guidedReadingRepository: GuidedReadingRepository = FakeGuidedReadingRepository(),
     ) = ReaderViewModel(
         amaliyahSlug = "tahlil",
         contentRepository = contentRepository,
         readingPositionRepository = readingPositionRepository,
         readerSettingsRepository = readerSettingsRepository,
+        guidedReadingRepository = guidedReadingRepository,
     )
 
     private companion object {
@@ -402,5 +407,22 @@ private class FakeReaderSettingsRepository : ReaderSettingsRepository {
 
     override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
         state.value = state.value.copy(guidedProgressionMode = mode)
+    }
+}
+
+private class FakeGuidedReadingRepository : GuidedReadingRepository {
+    private val sessions = mutableMapOf<String, GuidedReadingSession>()
+    private val progress = mutableMapOf<String, MutableList<StepProgress>>()
+
+    override suspend fun getSession(versionId: String): GuidedReadingSession? = sessions[versionId]
+
+    override suspend fun saveSession(session: GuidedReadingSession) {
+        sessions[session.versionId] = session
+    }
+
+    override suspend fun getStepProgress(versionId: String): List<StepProgress> = progress[versionId].orEmpty()
+
+    override suspend fun saveStepProgress(progress: StepProgress) {
+        this.progress.getOrPut(progress.versionId) { mutableListOf() }.add(progress)
     }
 }

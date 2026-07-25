@@ -79,52 +79,63 @@ fun SanguSantriNavHost(modifier: Modifier = Modifier) {
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
             ),
-        entryProvider =
-            entryProvider {
-                entry<Serambi> {
-                    SerambiRoute(
-                        onAmaliyahSelected = { slug -> backStack.add(AmaliyahDetail(slug)) },
-                        onSetelanClick = { backStack.add(Setelan) },
-                        onAboutClick = { backStack.add(About) },
-                    )
-                }
-                entry<AmaliyahDetail> { key ->
-                    ReaderEntryRoute(
-                        amaliyahSlug = key.slug,
-                        onBack = { backStack.removeLastOrNull() },
-                        onModeResolved = { mode -> replaceGateWithResolvedReader(backStack, key.slug, mode) },
-                    )
-                }
-                entry<FullReader> { key ->
-                    ReaderRoute(
-                        amaliyahSlug = key.slug,
-                        onBack = { backStack.removeLastOrNull() },
-                    )
-                }
-                entry<GuidedReader> { key ->
-                    GuidedReaderRoute(
-                        amaliyahSlug = key.slug,
-                        onBack = { backStack.removeLastOrNull() },
-                    )
-                }
-                entry<Setelan> {
-                    PlaceholderScreen(
-                        message = stringResource(R.string.setelan_placeholder_message),
-                        onBack = { backStack.removeLastOrNull() },
-                    )
-                }
-                entry<About> {
-                    PlaceholderScreen(
-                        message = stringResource(R.string.about_placeholder_message),
-                        onBack = { backStack.removeLastOrNull() },
-                    )
-                }
-            },
+        entryProvider = sanguSantriEntryProvider(backStack),
     )
 }
 
-/** Pops the mode gate and pushes the resolved reader in its place — see [SanguSantriNavHost] doc. */
-private fun replaceGateWithResolvedReader(
+/** Builds every [NavKey]'s composable — split out of [SanguSantriNavHost] to keep that function short. */
+private fun sanguSantriEntryProvider(backStack: MutableList<NavKey>) =
+    entryProvider {
+        entry<Serambi> {
+            SerambiRoute(
+                onAmaliyahSelected = { slug -> backStack.add(AmaliyahDetail(slug)) },
+                onSetelanClick = { backStack.add(Setelan) },
+                onAboutClick = { backStack.add(About) },
+            )
+        }
+        entry<AmaliyahDetail> { key ->
+            ReaderEntryRoute(
+                amaliyahSlug = key.slug,
+                onBack = { backStack.removeLastOrNull() },
+                onModeResolved = { mode -> replaceTopEntryWithReader(backStack, key.slug, mode) },
+            )
+        }
+        entry<FullReader> { key ->
+            ReaderRoute(
+                amaliyahSlug = key.slug,
+                onBack = { backStack.removeLastOrNull() },
+                onSwitchToGuided = { replaceTopEntryWithReader(backStack, key.slug, ReaderMode.GUIDED) },
+            )
+        }
+        entry<GuidedReader> { key ->
+            GuidedReaderRoute(
+                amaliyahSlug = key.slug,
+                onBack = { backStack.removeLastOrNull() },
+                onSwitchToFull = { replaceTopEntryWithReader(backStack, key.slug, ReaderMode.FULL) },
+            )
+        }
+        entry<Setelan> {
+            PlaceholderScreen(
+                message = stringResource(R.string.setelan_placeholder_message),
+                onBack = { backStack.removeLastOrNull() },
+            )
+        }
+        entry<About> {
+            PlaceholderScreen(
+                message = stringResource(R.string.about_placeholder_message),
+                onBack = { backStack.removeLastOrNull() },
+            )
+        }
+    }
+
+/**
+ * Pops the current top entry and pushes the given reader in its place — used both for the
+ * Milestone 4 mode gate (resolving [AmaliyahDetail] into a reader) and the Milestone 5 in-reader
+ * mode switch (replacing [FullReader] with [GuidedReader] or vice versa, FR-016). Popping first
+ * means repeated switching never accumulates duplicate backstack entries, and back navigation from
+ * either reader always lands on [Serambi], never on a stale gate or the previous reader mode.
+ */
+private fun replaceTopEntryWithReader(
     backStack: MutableList<NavKey>,
     slug: String,
     mode: ReaderMode,

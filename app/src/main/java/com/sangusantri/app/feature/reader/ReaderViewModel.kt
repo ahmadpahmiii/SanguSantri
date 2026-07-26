@@ -121,20 +121,34 @@ constructor(
 
             ReaderUiAction.Retry -> loadContent()
             ReaderUiAction.SwitchToGuided -> onSwitchToGuided()
+            is ReaderUiAction.SwitchToGuidedAtStep -> onSwitchToGuidedAtStep(action.stepId)
         }
     }
 
-    /**
-     * Maps the currently visible step to the Guided Reader's starting step (FR-016): writes it
-     * directly into the existing per-version [GuidedReadingSession] row (preserving any completion
-     * already recorded there) instead of inventing a second progress model — the Guided Reader then
-     * simply restores its usual session state on load and finds this step already current.
-     */
+    /** Overflow-menu mode switch (FR-016) — targets the currently visible step. */
     private fun onSwitchToGuided() {
         val detail = (contentState.value as? ContentState.Available)?.detail ?: return
+        val clampedIndex = lastKnownItemIndex.coerceIn(0, detail.steps.lastIndex)
+        switchToGuided(detail, detail.steps[clampedIndex].id)
+    }
+
+    /** Full Reader repetition shortcut (FR-018) — targets the exact step whose pill was tapped. */
+    private fun onSwitchToGuidedAtStep(stepId: String) {
+        val detail = (contentState.value as? ContentState.Available)?.detail ?: return
+        switchToGuided(detail, stepId)
+    }
+
+    /**
+     * Writes [stepId] directly into the existing per-version [GuidedReadingSession] row
+     * (preserving any completion already recorded there) instead of inventing a second progress
+     * model — the Guided Reader then simply restores its usual session state on load and finds
+     * this step already current.
+     */
+    private fun switchToGuided(
+        detail: AmaliyahVersionDetail,
+        stepId: String,
+    ) {
         viewModelScope.launch {
-            val clampedIndex = lastKnownItemIndex.coerceIn(0, detail.steps.lastIndex)
-            val stepId = detail.steps[clampedIndex].id
             val existingSession = guidedReadingRepository.getSession(detail.version.id)
             guidedReadingRepository.saveSession(
                 GuidedReadingSession(

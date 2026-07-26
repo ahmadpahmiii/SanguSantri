@@ -13,25 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -48,15 +38,22 @@ import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepContent
+import com.sangusantri.app.feature.guidedreader.components.GuidedStepStatusRow
 import com.sangusantri.app.feature.guidedreader.components.TasbihActions
 import com.sangusantri.app.feature.reader.ReaderUiAction
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
+import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
 import com.sangusantri.app.feature.reader.components.ReaderOverflowMenu
+import com.sangusantri.app.feature.reader.components.ReaderProgressHeader
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
+import com.sangusantri.app.feature.reader.components.ReaderSavedPositionStatus
 import com.sangusantri.app.feature.reader.settings.ProgressionModeControl
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
 import com.sangusantri.app.feature.reader.toApprovalDisplay
+import com.sangusantri.app.feature.reader.toc.ReaderTableOfContentsSheet
+import com.sangusantri.app.feature.reader.toc.sectionContaining
+import com.sangusantri.app.feature.reader.toc.toTocSections
 
 private val GuidedReaderMaxWidth = 640.dp
 
@@ -116,68 +113,82 @@ fun GuidedReaderScreen(
     callbacks: GuidedReaderCallbacks,
     modifier: Modifier = Modifier,
 ) {
-    val showSettings = rememberSaveable { mutableStateOf(false) }
-    val showResetConfirm = rememberSaveable { mutableStateOf(false) }
-    val showCompletionConfirm = rememberSaveable { mutableStateOf(false) }
-
+    val overlays = rememberGuidedReaderOverlayVisibility()
+    val showSavedPosition = rememberInitialSavedPositionFlag(uiState)
     val title = (uiState as? GuidedReaderUiState.StepVisible)?.amaliyahTitleId ?: stringResource(R.string.app_name)
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            GuidedReaderTopBar(
-                title = title,
-                onBack = callbacks.onBack,
-                onOpenSettings = { showSettings.value = true },
-                overflow = {
-                    if (uiState is GuidedReaderUiState.StepVisible) {
-                        ReaderOverflowMenu(
-                            switchModeLabel = stringResource(R.string.reader_switch_to_full_action),
-                            onSwitchMode = { callbacks.onAction(GuidedReaderUiAction.SwitchToFull) },
-                            sourceName = uiState.sourceName,
-                            approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
-                        )
-                    }
-                },
-            )
-        },
-        bottomBar = {
-            if (uiState is GuidedReaderUiState.StepVisible) {
-                GuidedReaderBottomBar(
-                    state = uiState,
-                    onPrevious = { callbacks.onAction(GuidedReaderUiAction.Previous) },
-                    onContinue = {
-                        if (uiState.isLastStep) {
-                            showCompletionConfirm.value = true
-                        } else {
-                            callbacks.onAction(GuidedReaderUiAction.Continue)
-                        }
-                    },
-                )
-            }
-        },
+        topBar = { GuidedReaderTopBarWithOverflow(title, uiState, callbacks, overlays) },
+        bottomBar = { GuidedReaderBottomBarIfVisible(uiState, callbacks, overlays.showCompletionConfirm) },
     ) { innerPadding ->
         GuidedReaderContent(
             uiState = uiState,
             callbacks = callbacks,
-            onRequestReset = { showResetConfirm.value = true },
+            showSavedPosition = showSavedPosition,
+            onRequestReset = { overlays.showResetConfirm.value = true },
             modifier = Modifier.padding(innerPadding),
         )
     }
 
-    GuidedReaderOverlays(
-        settings = settings,
-        callbacks = callbacks,
-        showSettings = showSettings,
-        showResetConfirm = showResetConfirm,
-        showCompletionConfirm = showCompletionConfirm,
+    GuidedReaderOverlays(uiState = uiState, settings = settings, callbacks = callbacks, overlays = overlays)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GuidedReaderTopBarWithOverflow(
+    title: String,
+    uiState: GuidedReaderUiState,
+    callbacks: GuidedReaderCallbacks,
+    overlays: GuidedReaderOverlayVisibility,
+) {
+    GuidedReaderTopBar(
+        title = title,
+        onBack = callbacks.onBack,
+        overflow = {
+            if (uiState is GuidedReaderUiState.StepVisible) {
+                ReaderOverflowMenu(
+                    switchModeLabel = stringResource(R.string.reader_switch_to_full_action),
+                    actions =
+                        ReaderOverflowActions(
+                            onSwitchMode = { callbacks.onAction(GuidedReaderUiAction.SwitchToFull) },
+                            onOpenTableOfContents = { overlays.showTableOfContents.value = true },
+                            onOpenSettings = { overlays.showSettings.value = true },
+                        ),
+                    sourceName = uiState.sourceName,
+                    approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
+                )
+            }
+        },
     )
+}
+
+@Composable
+private fun GuidedReaderBottomBarIfVisible(
+    uiState: GuidedReaderUiState,
+    callbacks: GuidedReaderCallbacks,
+    showCompletionConfirm: MutableState<Boolean>,
+) {
+    if (uiState is GuidedReaderUiState.StepVisible) {
+        GuidedReaderBottomBar(
+            state = uiState,
+            onPrevious = { callbacks.onAction(GuidedReaderUiAction.Previous) },
+            onContinue = {
+                if (uiState.isLastStep) {
+                    showCompletionConfirm.value = true
+                } else {
+                    callbacks.onAction(GuidedReaderUiAction.Continue)
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun GuidedReaderContent(
     uiState: GuidedReaderUiState,
     callbacks: GuidedReaderCallbacks,
+    showSavedPosition: Boolean,
     onRequestReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -194,6 +205,7 @@ private fun GuidedReaderContent(
         is GuidedReaderUiState.StepVisible ->
             GuidedReaderBody(
                 state = uiState,
+                showSavedPosition = showSavedPosition,
                 actions =
                     TasbihActions(
                         onIncrement = { callbacks.onAction(GuidedReaderUiAction.IncrementCounter) },
@@ -206,17 +218,16 @@ private fun GuidedReaderContent(
 
 @Composable
 private fun GuidedReaderOverlays(
+    uiState: GuidedReaderUiState,
     settings: ReaderSettings,
     callbacks: GuidedReaderCallbacks,
-    showSettings: MutableState<Boolean>,
-    showResetConfirm: MutableState<Boolean>,
-    showCompletionConfirm: MutableState<Boolean>,
+    overlays: GuidedReaderOverlayVisibility,
 ) {
-    if (showSettings.value) {
+    if (overlays.showSettings.value) {
         ReaderSettingsSheet(
             settings = settings,
             onAction = callbacks.onSettingsAction,
-            onDismiss = { showSettings.value = false },
+            onDismiss = { overlays.showSettings.value = false },
             progressionModeControl =
                 ProgressionModeControl(
                     mode = settings.guidedProgressionMode,
@@ -225,7 +236,20 @@ private fun GuidedReaderOverlays(
         )
     }
 
-    if (showResetConfirm.value) {
+    if (overlays.showTableOfContents.value && uiState is GuidedReaderUiState.StepVisible) {
+        val sections = uiState.allSteps.toTocSections()
+        ReaderTableOfContentsSheet(
+            sections = sections,
+            currentSectionStepId = sections.sectionContaining(uiState.step.position)?.stepId,
+            onSectionSelected = { stepId ->
+                overlays.showTableOfContents.value = false
+                callbacks.onAction(GuidedReaderUiAction.JumpToStep(stepId))
+            },
+            onDismiss = { overlays.showTableOfContents.value = false },
+        )
+    }
+
+    if (overlays.showResetConfirm.value) {
         GuidedConfirmDialog(
             text =
                 ConfirmDialogText(
@@ -234,15 +258,15 @@ private fun GuidedReaderOverlays(
                     confirmLabel = stringResource(R.string.guided_counter_reset_confirm_action),
                     cancelLabel = stringResource(R.string.guided_counter_reset_cancel_action),
                 ),
-            onDismiss = { showResetConfirm.value = false },
+            onDismiss = { overlays.showResetConfirm.value = false },
             onConfirm = {
-                showResetConfirm.value = false
+                overlays.showResetConfirm.value = false
                 callbacks.onAction(GuidedReaderUiAction.ResetCounter)
             },
         )
     }
 
-    if (showCompletionConfirm.value) {
+    if (overlays.showCompletionConfirm.value) {
         GuidedConfirmDialog(
             text =
                 ConfirmDialogText(
@@ -251,47 +275,23 @@ private fun GuidedReaderOverlays(
                     confirmLabel = stringResource(R.string.guided_completion_confirm_action),
                     cancelLabel = stringResource(R.string.guided_completion_cancel_action),
                 ),
-            onDismiss = { showCompletionConfirm.value = false },
+            onDismiss = { overlays.showCompletionConfirm.value = false },
             onConfirm = {
-                showCompletionConfirm.value = false
+                overlays.showCompletionConfirm.value = false
                 callbacks.onAction(GuidedReaderUiAction.ConfirmCompletion)
             },
         )
     }
 }
 
-/** Bundles [GuidedConfirmDialog]'s four text values so the function stays under the parameter-count limit. */
-private data class ConfirmDialogText(
-    val title: String,
-    val message: String,
-    val confirmLabel: String,
-    val cancelLabel: String,
-)
-
-@Composable
-private fun GuidedConfirmDialog(
-    text: ConfirmDialogText,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = text.title) },
-        text = { Text(text = text.message) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(text = text.confirmLabel) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(text = text.cancelLabel) } },
-    )
-}
-
 @Composable
 private fun GuidedReaderBody(
     state: GuidedReaderUiState.StepVisible,
+    showSavedPosition: Boolean,
     actions: TasbihActions,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        val positionLabel =
-            stringResource(R.string.guided_reader_position_label, state.stepIndex + 1, state.stepCount)
         Column(
             modifier =
                 Modifier
@@ -300,18 +300,9 @@ private fun GuidedReaderBody(
                     .verticalScroll(rememberScrollState())
                     .padding(SanguSantriSpacing.default),
         ) {
-            Text(
-                text = positionLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier =
-                    Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .semantics {
-                            contentDescription = positionLabel
-                            liveRegion = LiveRegionMode.Polite
-                        },
-            )
+            ReaderProgressHeader(currentPosition = state.stepIndex + 1, totalSteps = state.stepCount)
+            Spacer(Modifier.padding(top = SanguSantriSpacing.default))
+            GuidedStepStatusRow(step = state.step)
             Spacer(Modifier.padding(top = SanguSantriSpacing.small))
             AnimatedContent(
                 targetState = state.step,
@@ -326,6 +317,11 @@ private fun GuidedReaderBody(
                     actions = actions,
                 )
             }
+            Spacer(Modifier.padding(top = SanguSantriSpacing.default))
+            ReaderSavedPositionStatus(
+                show = showSavedPosition,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
         }
     }
 }
@@ -337,7 +333,7 @@ private val previewCounterStep =
         versionId = "preview-version",
         position = 2,
         stepType = StepType.REPEATED_READING,
-        titleId = null,
+        titleId = "[FIXTURE] Tasbih",
         titleAr = null,
         arabicText = "[FIXTURE-AR] سُبْحَانَ اللَّهِ",
         translationId = "[FIXTURE] Maha Suci Allah.",
@@ -367,6 +363,7 @@ private fun previewStepVisible(currentCount: Int = 12) =
     GuidedReaderUiState.StepVisible(
         amaliyahTitleId = "Tahlil",
         versionId = "preview-version",
+        allSteps = listOf(previewCounterStep),
         step = previewCounterStep,
         stepIndex = 4,
         stepCount = 22,

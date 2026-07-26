@@ -11,6 +11,7 @@ sealed interface GuidedReaderUiState {
     data class StepVisible(
         val amaliyahTitleId: String,
         val versionId: String,
+        val allSteps: List<AmaliyahStep>,
         val step: AmaliyahStep,
         val stepIndex: Int,
         val stepCount: Int,

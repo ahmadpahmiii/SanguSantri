@@ -18,4 +18,9 @@ sealed interface GuidedReaderUiAction {
 
     /** Switches to the Full Reader at the current step's item index (FR-016). */
     data object SwitchToFull : GuidedReaderUiAction
+
+    /** Jump to a Table of Contents section (FR-017) — never marks skipped content complete. */
+    data class JumpToStep(
+        val stepId: String,
+    ) : GuidedReaderUiAction
 }

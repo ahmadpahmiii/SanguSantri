@@ -79,3 +79,4 @@ site
 tools/content-importer/snapshots/
 tools/content-importer/output/
 tools/content-importer/**/__pycache__/
+/app/release/app-release.aab

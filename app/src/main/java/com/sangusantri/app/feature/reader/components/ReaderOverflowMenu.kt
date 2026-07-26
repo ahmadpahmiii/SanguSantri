@@ -25,17 +25,19 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.feature.reader.ApprovalDisplay
 
 /**
- * Shared reader top-bar overflow menu (Milestone 5 FR-016, Milestone 6 source/approval split): the
- * mode-switch action, plus a compact "Sumber & Pentashihan" info dialog. Source attribution is
- * always shown, truthfully, for every amaliyah (PRD 6.5) — the compact `Approved by` line appears
- * only when real religious-authority approval metadata exists; neither is ever fabricated.
- * Deliberately not visually dominant — an overflow action, never a bottom navigation bar or a card.
+ * Shared reader top-bar overflow menu (Milestone 5 FR-016, Milestone 6 source/approval split,
+ * Figma product-alignment pass nodes `16:2`/`16:45`): mode-switch, Table of Contents (FR-017),
+ * reader appearance settings (moved here from a standalone top-bar icon — decision F), and a
+ * compact "Sumber & Pentashihan" info dialog, in that order. Source attribution is always shown,
+ * truthfully, for every amaliyah (PRD 6.5) — the compact `Approved by` line appears only when real
+ * religious-authority approval metadata exists; neither is ever fabricated. Deliberately not
+ * visually dominant — an overflow action, never a bottom navigation bar or a card.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderOverflowMenu(
     switchModeLabel: String,
-    onSwitchMode: () -> Unit,
+    actions: ReaderOverflowActions,
     sourceName: String,
     approvalDisplay: ApprovalDisplay,
     modifier: Modifier = Modifier,
@@ -55,7 +57,21 @@ fun ReaderOverflowMenu(
             text = { Text(switchModeLabel) },
             onClick = {
                 expanded = false
-                onSwitchMode()
+                actions.onSwitchMode()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.reader_open_toc_action)) },
+            onClick = {
+                expanded = false
+                actions.onOpenTableOfContents()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.reader_open_settings_action)) },
+            onClick = {
+                expanded = false
+                actions.onOpenSettings()
             },
         )
         DropdownMenuItem(

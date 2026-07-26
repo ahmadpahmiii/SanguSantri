@@ -37,4 +37,9 @@ sealed interface ReaderUiAction {
 
     /** Switches to the Guided Reader at the currently visible step (FR-016). */
     data object SwitchToGuided : ReaderUiAction
+
+    /** The repetition shortcut (FR-018) — switches to the Guided Reader at this exact step. */
+    data class SwitchToGuidedAtStep(
+        val stepId: String,
+    ) : ReaderUiAction
 }

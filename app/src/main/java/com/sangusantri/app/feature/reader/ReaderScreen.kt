@@ -1,16 +1,18 @@
 package com.sangusantri.app.feature.reader
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,8 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -45,10 +50,15 @@ import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
+import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
 import com.sangusantri.app.feature.reader.components.ReaderOverflowMenu
+import com.sangusantri.app.feature.reader.components.ReaderProgressHeader
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
+import com.sangusantri.app.feature.reader.components.ReaderSavedPositionStatus
 import com.sangusantri.app.feature.reader.components.ReaderStepItem
+import com.sangusantri.app.feature.reader.components.rememberInitialSavedPositionFlag
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
+import com.sangusantri.app.feature.reader.toc.ReaderTableOfContentsOverlay
 
 private val ReaderMaxWidth = 640.dp
 
@@ -90,37 +100,17 @@ fun ReaderScreen(
     modifier: Modifier = Modifier,
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    val title = (uiState as? ReaderUiState.ContentAvailable)?.amaliyahTitleId ?: stringResource(R.string.app_name)
+    var showTableOfContents by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_back_content_description),
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.reader_settings_content_description),
-                        )
-                    }
-                    if (uiState is ReaderUiState.ContentAvailable) {
-                        ReaderOverflowMenu(
-                            switchModeLabel = stringResource(R.string.reader_switch_to_guided_action),
-                            onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
-                            sourceName = uiState.sourceName,
-                            approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
-                        )
-                    }
-                },
+            ReaderTopBar(
+                uiState = uiState,
+                onBack = onBack,
+                onAction = onAction,
+                onOpenTableOfContents = { showTableOfContents = true },
+                onOpenSettings = { showSettings = true },
             )
         },
     ) { innerPadding ->
@@ -137,6 +127,8 @@ fun ReaderScreen(
                 ReaderStepList(
                     contentState = uiState,
                     onAction = onAction,
+                    showTableOfContents = showTableOfContents,
+                    onDismissTableOfContents = { showTableOfContents = false },
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -151,10 +143,50 @@ fun ReaderScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReaderTopBar(
+    uiState: ReaderUiState,
+    onBack: () -> Unit,
+    onAction: (ReaderUiAction) -> Unit,
+    onOpenTableOfContents: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val title = (uiState as? ReaderUiState.ContentAvailable)?.amaliyahTitleId ?: stringResource(R.string.app_name)
+    TopAppBar(
+        title = { Text(text = title) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.navigate_back_content_description),
+                )
+            }
+        },
+        actions = {
+            if (uiState is ReaderUiState.ContentAvailable) {
+                ReaderOverflowMenu(
+                    switchModeLabel = stringResource(R.string.reader_switch_to_guided_action),
+                    actions =
+                        ReaderOverflowActions(
+                            onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
+                            onOpenTableOfContents = onOpenTableOfContents,
+                            onOpenSettings = onOpenSettings,
+                        ),
+                    sourceName = uiState.sourceName,
+                    approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
+                )
+            }
+        },
+    )
+}
+
 @Composable
 private fun ReaderStepList(
     contentState: ReaderUiState.ContentAvailable,
     onAction: (ReaderUiAction) -> Unit,
+    showTableOfContents: Boolean,
+    onDismissTableOfContents: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState =
@@ -162,6 +194,8 @@ private fun ReaderStepList(
             initialFirstVisibleItemIndex = contentState.initialItemIndex,
             initialFirstVisibleItemScrollOffset = contentState.initialItemOffset,
         )
+    val coroutineScope = rememberCoroutineScope()
+    val showSavedPosition = rememberInitialSavedPositionFlag(contentState.initialItemIndex)
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
@@ -174,22 +208,84 @@ private fun ReaderStepList(
         )
     }
 
+    // Kept as a fixed element above the LazyColumn (not a lazy item) so the existing
+    // position-persistence contract (lazy-list index == `contentState.steps` index) is unchanged —
+    // Figma's frame nests the progress block inside the same scroll container, but perturbing an
+    // already-implemented, tested index contract for pixel-exact nesting is not worth the risk.
+    val currentItemIndex by remember {
+        derivedStateOf { listState.firstVisibleItemIndex.coerceIn(0, contentState.steps.lastIndex) }
+    }
+
+    ReaderStepListContent(
+        contentState = contentState,
+        renderState = ReaderStepListRenderState(listState, currentItemIndex, showSavedPosition),
+        onAction = onAction,
+        modifier = modifier,
+    )
+
+    if (showTableOfContents) {
+        ReaderTableOfContentsOverlay(
+            steps = contentState.steps,
+            currentItemIndex = currentItemIndex,
+            listState = listState,
+            coroutineScope = coroutineScope,
+            onDismiss = onDismissTableOfContents,
+        )
+    }
+}
+
+/** Bundles the composition-local rendering state [ReaderStepListContent] needs, under the parameter-count limit. */
+private data class ReaderStepListRenderState(
+    val listState: LazyListState,
+    val currentItemIndex: Int,
+    val showSavedPosition: Boolean,
+)
+
+@Composable
+private fun ReaderStepListContent(
+    contentState: ReaderUiState.ContentAvailable,
+    renderState: ReaderStepListRenderState,
+    onAction: (ReaderUiAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        LazyColumn(
-            state = listState,
-            modifier =
-                Modifier
-                    .widthIn(max = ReaderMaxWidth)
-                    .fillMaxSize(),
-            contentPadding =
-                PaddingValues(
-                    horizontal = SanguSantriSpacing.default,
-                    vertical = SanguSantriSpacing.default,
-                ),
-        ) {
-            items(items = contentState.steps, key = { it.id }) { step ->
-                ReaderStepItem(step = step, settings = contentState.settings)
+        Box(modifier = Modifier
+            .widthIn(max = ReaderMaxWidth)
+            .fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                ReaderProgressHeader(
+                    currentPosition = renderState.currentItemIndex + 1,
+                    totalSteps = contentState.steps.size,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SanguSantriSpacing.default, vertical = SanguSantriSpacing.small),
+                )
+                LazyColumn(
+                    state = renderState.listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding =
+                        PaddingValues(
+                            horizontal = SanguSantriSpacing.default,
+                            vertical = SanguSantriSpacing.default,
+                        ),
+                ) {
+                    items(items = contentState.steps, key = { it.id }) { step ->
+                        ReaderStepItem(
+                            step = step,
+                            settings = contentState.settings,
+                            onOpenGuidedAtStep = { stepId -> onAction(ReaderUiAction.SwitchToGuidedAtStep(stepId)) },
+                        )
+                    }
+                }
             }
+            ReaderSavedPositionStatus(
+                show = renderState.showSavedPosition,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = SanguSantriSpacing.default),
+            )
         }
     }
 }

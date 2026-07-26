@@ -1,15 +1,20 @@
 # SanguSantri Product Requirements Document
 
-**Document version:** 1.3 — Milestone 6 product-owner governance decision:
-replaced the universal kyai/sesepuh-approval-before-publication rule with a
-risk-based model (§3.1); standard public amaliyah (Tahlil, Istighosah as
-currently packaged) may publish on product-owner editorial acceptance
-alone; kyai/sesepuh review remains mandatory for higher-risk content;
-publication status, source verification, editorial acceptance,
-religious-authority approval, and institutional endorsement are five
-distinct concepts (§6.5). Supersedes version 1.2's Milestone 5 scope
-correction (public feedback, remote sync, and the Go backend removed from
-`0.0.1`; in-reader mode-switch requirement, FR-016), which stays in effect.
+**Document version:** 1.4 — Figma product-alignment pass: renamed the
+primary home destination Serambi → **Beranda** (§2.3, §7.2 — "Serambi" may
+persist as an internal/product-language label, not a second destination);
+rebuilt Beranda as a scalable, section-based dashboard and added the
+**Jelajahi Amaliyah** exploration destination (§7, new FR-019/FR-020);
+added the Full Reader repetition→Guided shortcut (new FR-018), the reader
+Table of Contents bottom sheet (new FR-017), and local favourites/recently
+opened (new FR-021); documented the target final navigation model
+(§7.1 — bottom nav/rail across Beranda, Aktivitas, Tasbih, Pesantren,
+Profil, with an open question on rollout timing, see
+`docs/design/FIGMA_HANDOFF.md`). Full gap analysis:
+`docs/reviews/figma-product-alignment.md`. Supersedes version 1.3's
+Milestone 6 risk-based publication model (§3.1) and version 1.2's
+Milestone 5 scope correction (FR-016 in-reader mode switch), both of which
+stay in effect unchanged.
 **Product:** SanguSantri
 **Initial release:** Android `0.0.1`
 **Package name:** `com.sangusantri.app`
@@ -96,6 +101,12 @@ containing:
 
 The first release is not the super-app itself. It is the reliable foundation
 upon which the super-app will be built.
+
+The application's primary home destination is named **Beranda** (Figma
+product-alignment pass — renamed from "Serambi"). "Serambi" may continue to
+be used as an internal or product-language section label, but it is not a
+separate user-facing destination from Beranda. The app opens directly to
+Beranda on launch; no login is required (§3.4, §7).
 
 ## 2.4 Target users
 
@@ -239,35 +250,43 @@ Release `0.0.1` includes:
 1. Native Android application using Jetpack Compose.
 2. Indonesian and Arabic application localisation.
 3. Right-to-left layout support for Arabic.
-4. A home screen named **Serambi**.
-5. Public Tahlil content.
-6. Public Istighosah content.
-7. Full Arabic text with complete harakat.
-8. Indonesian translation displayed per ayah or logical reading segment.
-9. No Latin transliteration.
-10. Full reading mode.
-11. Guided reading mode.
-12. Automatic and manual progression options in guided mode.
-13. Integrated counters for repeated readings.
-14. Haptic feedback when the counter is pressed.
-15. Persisted reading progress.
-16. Persisted counter progress.
-17. A saved reader-mode preference, with an in-reader action to switch
+4. A home destination named **Beranda** (renamed from Serambi — §2.3), built
+   as a scalable, section-based dashboard (§7) rather than a fixed card list.
+5. A **Jelajahi Amaliyah** exploration destination (§7, FR-020).
+6. Public Tahlil content.
+7. Public Istighosah content.
+8. Full Arabic text with complete harakat.
+9. Indonesian translation displayed per ayah or logical reading segment.
+10. No Latin transliteration.
+11. Full reading mode.
+12. Guided reading mode.
+13. Automatic and manual progression options in guided mode.
+14. Integrated counters for repeated readings.
+15. Haptic feedback when the counter is pressed.
+16. Persisted reading progress.
+17. Persisted counter progress.
+18. A saved reader-mode preference, with an in-reader action to switch
     between Bacaan Lengkap and Panduan without losing progress (§8.4a).
-18. Reader appearance settings.
-19. Light and dark themes.
-20. Green Islamic visual identity.
-21. Traditional-modern pesantren design direction.
-22. Offline seed content, fixed as the release-candidate baseline (§6.7).
-23. Preservation of previous content versions (local fallback only; see
+19. A Full Reader repetition shortcut into Guided Reader at the same step
+    (§8.4b, FR-018).
+20. A reader Table of Contents bottom sheet (§8.4c, FR-017).
+21. Reader appearance settings, presented as a modal bottom sheet.
+22. Local favourites and recently-opened amaliyah, with real persistence
+    (FR-021).
+23. Light and dark themes.
+24. Green Islamic visual identity, modern rather than ornamental
+    (`docs/design/DESIGN_SYSTEM.md` — supersedes this document's earlier
+    "traditional-modern pesantren design direction" wording).
+25. Offline seed content, fixed as the release-candidate baseline (§6.7).
+26. Preservation of previous content versions (local fallback only; see
     FR-011).
-24. A compact "Approved by" status for every amaliyah, sourced from
+27. A compact "Approved by" status for every amaliyah, sourced from
     structured content metadata (§6.5).
-25. Portrait and landscape support.
-26. Phone and tablet support.
-27. Edge-to-edge layout.
-28. Automated Android testing.
-29. CI validation.
+28. Portrait and landscape support.
+29. Phone and tablet support, with adaptive navigation (§7.1).
+30. Edge-to-edge layout.
+31. Automated Android testing.
+32. CI validation.
 
 Remote content synchronisation, the Go public content API, the Go content
 administration CLI, PostgreSQL, and Supabase Studio are **not** part of
@@ -318,6 +337,19 @@ Release `0.0.1` does not include:
 
 The data model may support future variants, but the `0.0.1` interface
 exposes only one default general variant for each amaliyah.
+
+Standalone digital tasbih, streaks, and a reading-history screen remain
+excluded from `0.0.1` (see the list above) and ship at `0.0.2`/`0.0.3`
+respectively (`docs/product/ROADMAP.md`) — Beranda's "continue reading",
+"recently opened", and "favourites" sections (§7) are read/write UI over
+existing or newly added local state, not the Aktivitas history screen
+itself, and must not be conflated with it.
+
+Whether the persistent bottom-navigation bar/rail chrome described in §7.1
+is introduced in `0.0.1` (with not-yet-built destinations present but
+inert) or only once a second real destination exists is an open question —
+see `docs/design/FIGMA_HANDOFF.md`. Do not build the full five-destination
+nav chrome speculatively before this is confirmed.
 
 ---
 
@@ -481,25 +513,53 @@ followed.
 
 ## 7.1 Primary destinations
 
-Release `0.0.1` uses the following destinations: Bootstrap, Serambi, Reader
-mode selection, Amaliyah reader (Bacaan Lengkap or Panduan, switchable
-in-place — §8.4a), Reader settings, About SanguSantri. Compact source
-attribution, and a compact `Approved by` status when one exists, are shown
-from within the reader itself, not as a separate destination (§6.5).
+Release `0.0.1` uses the following destinations: Bootstrap, Beranda,
+Jelajahi Amaliyah, Reader mode selection, Amaliyah reader (Bacaan Lengkap
+or Panduan, switchable in-place — §8.4a), Reader settings (a bottom sheet
+reached from the reader's overflow menu, not a separate destination),
+Reader Table of Contents (a bottom sheet, §8.4c), About SanguSantri.
+Compact source attribution, and a compact `Approved by` status when one
+exists, are shown from within the reader itself, not as a separate
+destination (§6.5).
 
-A bottom navigation bar is not required for `0.0.1`. The number of
-destinations does not justify permanent bottom navigation.
+**Target final navigation model** (product-alignment decision — see
+`docs/design/FIGMA_HANDOFF.md` for the open rollout question): five
+persistent destinations — **Beranda**, **Aktivitas**, **Tasbih**,
+**Pesantren**, **Profil** — presented as a bottom navigation bar on
+compact window-size class and a navigation rail or other adaptive nav on
+expanded window-size class (`docs/design/DESIGN_SYSTEM.md`,
+`docs/design/ACCESSIBILITY.md`). This supersedes this document's earlier
+"a bottom navigation bar is not required for `0.0.1`" statement, which was
+correct only while Beranda was the sole real destination. The five
+destinations are **not** all built in `0.0.1`:
+
+* **Beranda** — `0.0.1` (this release).
+* **Tasbih** — `0.0.2` (`docs/product/ROADMAP.md`).
+* **Aktivitas** — `0.0.3`.
+* **Profil** — `0.1.0` (implies an authenticated identity, §3.4).
+* **Pesantren** — `0.2.0`+.
+
+Jelajahi Amaliyah, the reading-mode gate, both readers, and About remain
+reachable from Beranda, not as bottom-nav destinations themselves — the
+bottom nav surfaces top-level sections only.
 
 ## 7.2 Pesantren terminology
 
 Preferred Indonesian labels:
 
-* Home: **Serambi**
+* Home: **Beranda** (Serambi may persist as an internal/product-language
+  label for this section, not a second destination)
 * Practices: **Amaliyah**
+* Exploration/catalogue: **Jelajahi Amaliyah**
 * Guided reading: **Panduan**
 * Full reading: **Bacaan Lengkap**
 * Counter: **Tasbih**
+* Table of contents: **Daftar Isi**
+* Reader appearance settings: **Tampilan Bacaan**
 * Content verification (compact status): **Sumber & Pentashihan**
+* Activity/history: **Aktivitas**
+* Pesantren community (future): **Pesantren**
+* Account (future): **Profil**
 * Settings: **Setelan**
 * Continue reading: **Lanjutkan Bacaan**
 
@@ -515,10 +575,12 @@ rather than transliterated Indonesian terminology.
 1. User launches the application.
 2. Application initialises the local database.
 3. Approved seed content is imported when the database is empty.
-4. Serambi appears immediately from local data.
-5. Network synchronisation begins in the background when connected.
-6. Synchronisation must not block Serambi.
-7. User sees Tahlil and Istighosah cards.
+4. Beranda appears immediately from local data.
+5. Network synchronisation begins in the background when connected (not
+   built in `0.0.1` — see FR-010).
+6. Synchronisation must not block Beranda.
+7. User sees Tahlil and Istighosah surfaced through Beranda's curated
+   amaliyah section (§7).
 
 ## 8.2 Opening an amaliyah
 
@@ -571,8 +633,36 @@ rather than transliterated Indonesian terminology.
 6. The saved reader-mode preference (§8.2) updates to match the newly
    active mode.
 7. Repeated switching does not duplicate navigation entries or progress
-   records; back navigation remains predictable (returns to Serambi, not to
+   records; back navigation remains predictable (returns to Beranda, not to
    an intermediate switch state).
+
+## 8.4b Full Reader repetition shortcut (FR-018)
+
+1. When a canonical step has a repetition target greater than one, Full
+   Reader shows an interactive action alongside it, e.g. "Dibaca 3 kali ·
+   Buka Panduan →" or "Dibaca 100 kali · Buka Panduan →" — visually
+   secondary to the Arabic text, never competing with it.
+2. Tapping the action immediately opens Guided Reader at the same
+   canonical step, with no confirmation dialog.
+3. Full Reader's own reading position is preserved for when the user
+   returns to it.
+4. Guided Reader restores the existing counter for that step (or starts at
+   zero if none exists yet) — it does not reset progress.
+5. No religious content is duplicated between modes; this is a second
+   entry point into the existing Full ⇄ Guided switch mechanism (§8.4a),
+   not a new reading surface.
+
+## 8.4c Reader Table of Contents (FR-017)
+
+1. User opens the reader's overflow menu and selects **Daftar Isi**.
+2. A modal bottom sheet lists the amaliyah's logical reading sections and
+   their step ranges, derived from the existing ordered step content — no
+   separate section data is authored (`docs/engineering/CONTENT_MODEL.md`).
+3. The section containing the reader's current position is highlighted.
+4. Selecting a section jumps the reader there without marking any skipped
+   step complete.
+5. Existing reading progress (position, counters) is preserved exactly as
+   an ordinary scroll/navigation would preserve it.
 
 ## 8.5 Viewing source and approval
 
@@ -592,6 +682,34 @@ operation (§6.7, `docs/operations/CONTENT_GOVERNANCE.md`) — users do not
 submit corrections or participate in any religious-authority approval
 workflow through the application.
 
+## 8.6 Using Beranda
+
+1. Beranda renders as independent, vertically scrollable sections, not a
+   fixed two-card list.
+2. Each section is shown only when a genuine local data source backs it;
+   a section with nothing to show renders nothing, never placeholder or
+   fabricated content (FR-019).
+3. `0.0.1` can genuinely back: search, continue reading (existing reading
+   position/guided session state), quick actions (static, no data
+   dependency), recently opened, favourites, and curated
+   amaliyah/explore-all-categories.
+4. Nearest reminder, pesantren content, and learning/Nahwu content sections
+   remain hidden until their owning roadmap version (`0.0.4`, `0.2.0`,
+   `0.4.0` respectively) ships real data.
+5. Selecting an amaliyah from any Beranda section opens the same reading-
+   mode flow as §8.2.
+
+## 8.7 Jelajahi Amaliyah
+
+1. User navigates to Jelajahi Amaliyah from Beranda.
+2. User can search by title, browse by category, or filter by All /
+   Favourite / Offline.
+3. Each list item shows compact metadata where available (category, step
+   count, repeat information) and current favourite/offline status.
+4. Selecting an amaliyah opens the same reading-mode flow as §8.2.
+5. The catalogue is scoped to amaliyah/religious reading content only — it
+   must not become a general content or news surface (FR-020).
+
 ---
 
 # 9. Functional Requirements
@@ -608,13 +726,15 @@ Acceptance criteria:
 * Seed import is idempotent.
 * Reopening the app does not duplicate content.
 
-## FR-002: Serambi
+## FR-002: Beranda
 
-Serambi MUST display SanguSantri identity, Tahlil card, Istighosah card, a
-continue-reading section when progress exists, a subtle content update
-status, access to Setelan, and access to About.
+Beranda MUST display SanguSantri identity, a curated-amaliyah section
+surfacing Tahlil and Istighosah, a continue-reading section when progress
+exists, a subtle content update status, access to Setelan, and access to
+About. See FR-019 for Beranda's full scalable-section model.
 
-Cards must use data from Room, not hardcoded screen lists.
+Every section's content must use data from Room (or the relevant local
+store), not hardcoded screen lists.
 
 ## FR-003: Default variants
 
@@ -750,6 +870,52 @@ mode-selection screen again, MUST update the saved reader-mode preference
 duplicate navigation entries or Room progress records on repeated
 switching. Back navigation after switching must remain predictable.
 
+## FR-017: Reader Table of Contents
+
+Both Full Reader and Guided Reader MUST expose a modal bottom-sheet Table
+of Contents (§8.4c) reachable from the overflow menu. It MUST show logical
+reading sections and step ranges derived from existing ordered step
+content (no separate authored section data), highlight the section
+containing the current position, allow jumping to a section without
+marking any skipped step complete, and preserve existing reading progress.
+
+## FR-018: Full Reader repetition shortcut
+
+When a canonical step's repetition target exceeds one, Full Reader MUST
+show an interactive, visually secondary action (§8.4b) that opens Guided
+Reader at the same step immediately, with no confirmation dialog, while
+preserving the Full Reader's own reading position and restoring the
+Guided Reader's existing counter for that step. This reuses the FR-016
+switch mechanism and MUST NOT duplicate content or progress records.
+
+## FR-019: Beranda (scalable dashboard)
+
+Beranda MUST render as independent, vertically scrollable sections (§8.6),
+each of which is shown only when backed by genuine local data — a section
+MUST NOT render placeholder or fabricated content when no real data
+exists. The implementation MUST NOT assume the catalogue will only ever
+contain Tahlil and Istighosah, and MUST NOT branch UI logic on hardcoded
+amaliyah slugs.
+
+## FR-020: Jelajahi Amaliyah
+
+The application MUST provide a Jelajahi Amaliyah destination (§8.7)
+supporting search, category browsing, and All/Favourite/Offline filtering
+over the full amaliyah catalogue, showing available metadata (category,
+step count, repeat information) and favourite/offline status per item. The
+underlying category taxonomy MUST support additional categories later
+without a screen-structure change (`docs/engineering/CONTENT_MODEL.md`).
+This destination remains scoped to amaliyah/religious reading content and
+MUST NOT become a general content or news surface.
+
+## FR-021: Favourites and recently opened
+
+The application MUST support local, offline-first favourites and a
+recently-opened list, both with real persistence (not preview-only fake
+state). Recently opened MUST be tracked independently from completion
+history (`0.0.3` Aktivitas scope) — opening an amaliyah is not the same
+event as completing it.
+
 ---
 
 # 10. Reader Content Model (summary)
@@ -862,6 +1028,8 @@ this one is product/legal/governance-owned.
 * CI/CD and release process: `docs/engineering/RELEASE_ENGINEERING.md`
 * Visual identity and anti-patterns: `docs/design/DESIGN_SYSTEM.md`
 * Accessibility and adaptive layout: `docs/design/ACCESSIBILITY.md`
+* Figma frame mapping and implementation order: `docs/design/FIGMA_HANDOFF.md`
+* Figma-vs-implementation gap analysis: `docs/reviews/figma-product-alignment.md`
 * Security controls by release phase: `docs/security/SECURITY_BASELINE.md`
 * Privacy commitments: `docs/security/PRIVACY.md`
 * Deferred security controls and rationale: `docs/security/THREAT_MODEL.md`

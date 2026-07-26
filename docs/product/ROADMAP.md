@@ -16,15 +16,32 @@ are entered as part of the approved amaliyah content itself, never fetched
 from a separate Quran API or service — see
 `docs/engineering/CONTENT_MODEL.md`.
 
-## `0.0.1` — Core Amaliyah Reader (current)
+## `0.0.1` — Core Reader Completion and Public Amaliyah Foundation (current)
 
+Rebaselined by the Figma product-alignment pass
+(`docs/reviews/figma-product-alignment.md`) — supersedes this version's
+previous "Core Amaliyah Reader" scope description below with a wider,
+still-`0.0.1`-scoped foundation:
+
+* Future-proof, scalable **Beranda** (renamed from Serambi — section-based,
+  hides a section when no real data backs it; not a hardcoded
+  Tahlil/Istighosah card list).
+* **Jelajahi Amaliyah** exploration destination (search, category browsing,
+  All/Favourite/Offline filters).
+* Continue reading, recently opened, local favourites — real persistence,
+  offline-first.
 * Tahlil (59 steps), Istighosah (27 steps) — fixed local release-candidate
   content, bundled offline in both debug and release builds.
 * Full reader, guided reader, with an in-reader action to switch between
   them without losing progress.
+* Contextual Full → Guided repetition shortcut (tap "Dibaca N kali · Buka
+  Panduan →" to jump into Guided Reader at the same step).
 * Integrated repeated-reading counter.
+* Reader Settings and Table of Contents, both modal bottom sheets reached
+  from the reader overflow menu.
+* Source and compact `Approved by` status.
 * Offline content only — no remote content synchronisation in this release.
-* Compact `Approved by` status, reader settings.
+* Phone/tablet/adaptive layout; light/dark theme and RTL support.
 
 Content correction is an internal SanguSantri-team operation, not a
 user-facing feature (`docs/operations/CONTENT_GOVERNANCE.md`); there is no
@@ -38,13 +55,29 @@ See `docs/product/PRD.md` for full scope and acceptance criteria.
 
 ## `0.0.2` — Standalone Tasbih
 
-* Independent digital tasbih, custom target, unlimited mode.
-* Haptic feedback, persisted unfinished count, reset confirmation.
-* Preset common counts.
+* Independent digital tasbih: **33, 100, unlimited, and custom target**
+  (deliberately no 99).
+* Compact target selector (not large preset cards); the target and the
+  main count are the strongest visual elements on the screen.
+* Optional dhikr/session name — no mandatory predefined dhikr selection.
+* Remembers the last-selected target; persists an unfinished count across
+  app restarts.
+* Haptic feedback on increment; reset requires confirmation.
+* Custom target opens a small numeric-input dialog, not a full-screen form.
 
-## `0.0.3` — Riwayat and Streak
+## `0.0.3` — Aktivitas
 
-* Daily amaliyah streak, completion history.
+Renamed from "Riwayat and Streak" — same underlying scope, restructured to
+match the confirmed UX: one vertically scrollable screen, independent
+sections, **no horizontal tabs**. No Figma frame has been supplied for
+this screen yet (`docs/design/FIGMA_HANDOFF.md`) — confirm one exists
+before implementation.
+
+* Independent sections, each with an optional "Lihat semua": streak
+  summary, this-week summary, amaliyah completion history, tasbih history,
+  reminders, quiz progress, pesantren activity.
+* Only sections backed by genuinely implemented data are shown — no
+  placeholder/fake activity.
 * Amaliyah name, version, completion time, duration.
 * Private local statistics only — no sharing yet.
 
@@ -74,6 +107,22 @@ See `docs/product/PRD.md` for full scope and acceptance criteria.
 
 * Question bank, individual score, pesantren representation.
 * Anti-cheating controls, seasonal leaderboard, moderated content.
+
+---
+
+## Final navigation model (target IA)
+
+The confirmed product direction is a five-destination navigation shell —
+**Beranda** (`0.0.1`), **Tasbih** (`0.0.2`), **Aktivitas** (`0.0.3`),
+**Profil** (`0.1.0`), **Pesantren** (`0.2.0`) — as a bottom navigation bar
+on compact window-size class and a rail/adaptive nav on expanded width
+(`docs/product/PRD.md` §7.1, `docs/design/DESIGN_SYSTEM.md`). Each
+destination becomes real, navigable content only once its own version
+ships; this roadmap does not schedule the persistent nav-bar chrome itself
+separately, and whether that chrome appears in `0.0.1` (with not-yet-built
+destinations present but inert) or is introduced once a second real
+destination exists (`0.0.2`) is an open question tracked in
+`docs/design/FIGMA_HANDOFF.md`, not yet resolved by this document.
 
 ---
 

@@ -16,14 +16,31 @@ after.
 
 ## Visual direction
 
+**Superseded by the Figma product-alignment pass** (`docs/design/FIGMA_HANDOFF.md`,
+`docs/reviews/figma-product-alignment.md`): the product direction is now
+a **modern Islamic identity** — premium, calm, comfortable to read — not
+necessarily traditional pesantren ornament. Where this document previously
+said "traditional-modern pesantren character/tone," read that as
+superseded by the direction below; it is kept in this document's history
+rather than silently deleted, per the project's own content/documentation
+change-tracking convention.
+
 * Content-first visual hierarchy — typography and spacing carry hierarchy,
   not decoration.
 * Restrained Islamic green identity (`SantriGreen10`–`90` in
-  `core/designsystem/theme/Color.kt`) — traditional-modern pesantren
-  character, not a generic startup palette.
+  `core/designsystem/theme/Color.kt`) — modern, not a generic startup
+  palette and not a traditional-ornament palette either.
 * Warm neutral reading surfaces (`SantriNeutral10/90/95/99`) — calm, high
   readability, non-ornamental.
-* Modern Material 3 interaction patterns, traditional pesantren tone.
+* A **limited spiritual-gold accent** — new token, not yet defined in
+  `Color.kt` (Phase A/B implementation task; do not build this
+  speculatively before that phase). Use it sparingly (e.g. a single
+  highlight state such as a completed counter or an active tab indicator),
+  never as a dominant surface colour.
+* Modern Material 3 interaction patterns.
+* The interface must remain comfortably usable by teenagers, adults, and
+  elderly users alike — legibility and touch-target size are product
+  requirements, not accessibility-only concerns (`docs/design/ACCESSIBILITY.md`).
 * Dynamic color is intentionally disabled (`SanguSantriTheme` in `Theme.kt`)
   so the SanguSantri identity stays consistent across devices instead of
   following the user's wallpaper — this is a deliberate, already-implemented
@@ -34,11 +51,12 @@ after.
 
 * No card-wall home screens — do not default every content block to a
   `Card`. Use a card only when a bounded, tappable, visually distinct unit
-  is genuinely needed.
+  is genuinely needed. Beranda in particular must not default to "every
+  section is a `Card`" (`docs/reviews/figma-product-alignment.md`).
 * No oversized hero sections or generic marketing-style headers.
 * No decorative gradients as a default background or accent treatment.
 * No glassmorphism (blurred translucent panels).
-* No ornamental backgrounds, textures, or patterns behind Arabic text —
+* No ornamental patterns, textures, or backgrounds behind Arabic text —
   Arabic devotional text sits on a plain, high-contrast reading surface.
 * No pseudo-Arabic Latin typefaces (decorative fonts that mimic Arabic
   calligraphy using Latin letterforms) anywhere in the app, including
@@ -99,6 +117,69 @@ ship a substitute Arabic font as if it were final.
 * RTL: mirror layout and navigation icons correctly; Arabic devotional
   content stays correctly aligned and readable regardless of the selected
   interface language (FR-013).
+
+## Adaptive navigation
+
+Target model (`docs/product/PRD.md` §7.1, `docs/design/FIGMA_HANDOFF.md`):
+a bottom navigation bar on compact window-size class, a navigation rail or
+other adaptive nav on expanded, across Beranda/Aktivitas/Tasbih/Pesantren/
+Profil. Use the AndroidX adaptive-navigation APIs and the installed
+`adaptive` skill rather than hand-rolling breakpoint logic — same rule as
+reader layout. Do not build this nav shell speculatively; it lands with
+whichever phase resolves the open rollout question in `FIGMA_HANDOFF.md`.
+
+## Component rules
+
+Restraint-first guidance for the new screens this pass introduces (Beranda,
+Jelajahi Amaliyah, Standalone Tasbih, Aktivitas). None of this is a license
+to reintroduce a card wall (see Anti-patterns above).
+
+* **Search**: a single, unobtrusive entry point (e.g. a search field or
+  affordance at the top of Beranda/Jelajahi), not a full-screen search
+  takeover by default.
+* **Section** (Beranda/Aktivitas): a plain vertical block with a title and
+  content — not automatically wrapped in a `Card`. A section that has no
+  real data to show renders nothing (FR-019), never an empty-state card.
+* **Card**: reserved for genuinely bounded, tappable, visually distinct
+  items — an amaliyah entry, for instance. Flat with a hairline border
+  (existing `AmaliyahCard` elevation policy), not shadow-elevated.
+* **Chip**: for compact filters (Jelajahi's All/Favourite/Offline) and
+  category labels — not for primary navigation.
+* **Counter**: the Guided Reader/Tasbih counter is the strongest visual
+  element in its immediate context (see Tasbih target hierarchy below);
+  completion is signalled with both an icon/shape change and a colour
+  change, never colour alone (`docs/design/ACCESSIBILITY.md`).
+* **Dialog**: reserved for short, focused decisions (reset confirmation,
+  custom Tasbih target). The custom Tasbih target dialog is a small
+  numeric-input dialog, never a full-screen form (decision J).
+* **Bottom sheet**: reader appearance settings and the reader Table of
+  Contents are both modal bottom sheets, not full navigation destinations
+  (FR-008, FR-017) — this is already the pattern `ReaderSettingsSheet`
+  established; the Table of Contents sheet follows the same convention.
+
+## Reader mode action
+
+The Full Reader repetition shortcut ("Dibaca N kali · Buka Panduan →",
+FR-018) must look interactive (e.g. an underline, arrow glyph, or tonal
+label) but must not visually outweigh the Arabic text it sits beside. It
+is a secondary action, styled closer to a caption/label than a button.
+
+## Tasbih target hierarchy
+
+On the Standalone Tasbih screen (`0.0.2`), visual weight ranks: (1) the
+main count, (2) the target, (3) the compact target selector, (4) the
+optional session name. The target selector itself is compact (segmented
+control or similar), not large preset cards — large preset cards were
+considered and rejected for this screen (decision J).
+
+## Motion
+
+Existing pattern: a short, fixed-duration fade for step transitions
+(`AnimatedContent` in `GuidedReaderScreen.kt`). Keep new motion equally
+restrained — no decorative or elaborate animation anywhere in the app.
+Respect the system's reduced-motion / animator-scale setting once a
+reduced-motion signal exists in the app (`docs/design/ACCESSIBILITY.md`) —
+this is a known gap (Milestone 4), not yet fixed.
 
 ## Previews and screenshot testing
 

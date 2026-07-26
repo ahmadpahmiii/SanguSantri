@@ -7,11 +7,20 @@ pesantren-specific amaliyah.
 * Minimum SDK: 26.
 * Current release: `0.0.1`. Current content: Tahlil and Istighosah.
 * Architecture: offline-first Clean Architecture, one Gradle module.
-* Current state: Milestones 0–3 (foundation, content model + seed import,
-  Serambi, Full Amaliyah Reader) are complete — verify this against
+* Current state: Milestones 0–6 (foundation; content model + seed import;
+  Serambi; Full Amaliyah Reader; local production content bootstrap;
+  Guided Reader + integrated tasbih; content-wiring fix + Istighosah
+  draft; content release baseline + reader mode switching; risk-based
+  content publication governance) are complete — verify this against
   `docs/PROGRESS.md` before assuming otherwise; commit titles in `git log`
   are not a reliable milestone indicator (see
-  `docs/reviews/audit-resolution.md`).
+  `docs/reviews/audit-resolution.md`). A Figma product-alignment
+  documentation pass (2026-07-26) has since renamed the home destination
+  Serambi → **Beranda** and expanded `0.0.1`'s documented scope (Beranda
+  rebuild, Jelajahi Amaliyah, reader TOC/repetition-shortcut) ahead of the
+  matching implementation milestones — see `docs/design/FIGMA_HANDOFF.md`
+  and `docs/reviews/figma-product-alignment.md` before assuming the
+  current code matches the current docs for any of that work.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, standalone Quran feature, Quran API integration (Kemenag or
   Quran Foundation), or Quran audio is on the roadmap
@@ -26,18 +35,18 @@ Always read first: `docs/product/PRD.md` §Related Documents (bottom of
 file) tells you exactly which document below owns which topic — do not read
 every document for every task.
 
-| Task type | Read |
-|---|---|
-| Any task | `docs/PROGRESS.md` (current actual state) |
-| UI / Compose screen | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md` |
-| Data layer / Room / repository / sync | `docs/engineering/ARCHITECTURE.md`, `docs/engineering/CONTENT_MODEL.md`, `docs/engineering/OFFLINE_FIRST.md`, `docs/content-schema.md` |
-| Security / network / auth | `docs/security/SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md` |
-| Privacy / feedback / telemetry | `docs/security/PRIVACY.md` |
-| Release / CI / Gradle / signing | `docs/engineering/RELEASE_ENGINEERING.md`, `docs/operations/PRODUCTION_READINESS.md` |
-| Content entry / approval / correction | `docs/engineering/CONTENT_MODEL.md`, `docs/operations/CONTENT_GOVERNANCE.md` |
-| Testing | `docs/engineering/TESTING.md` |
-| Architecture decision review | `docs/decisions/` |
-| Product scope question | `docs/product/PRD.md`, `docs/product/ROADMAP.md` |
+| Task type                             | Read                                                                                                                                                                           |
+|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Any task                              | `docs/PROGRESS.md` (current actual state)                                                                                                                                      |
+| UI / Compose screen                   | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md`, `docs/design/FIGMA_HANDOFF.md` (frame mapping and implementation order) |
+| Data layer / Room / repository / sync | `docs/engineering/ARCHITECTURE.md`, `docs/engineering/CONTENT_MODEL.md`, `docs/engineering/OFFLINE_FIRST.md`, `docs/content-schema.md`                                         |
+| Security / network / auth             | `docs/security/SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md`                                                                                                          |
+| Privacy / feedback / telemetry        | `docs/security/PRIVACY.md`                                                                                                                                                     |
+| Release / CI / Gradle / signing       | `docs/engineering/RELEASE_ENGINEERING.md`, `docs/operations/PRODUCTION_READINESS.md`                                                                                           |
+| Content entry / approval / correction | `docs/engineering/CONTENT_MODEL.md`, `docs/operations/CONTENT_GOVERNANCE.md`                                                                                                   |
+| Testing                               | `docs/engineering/TESTING.md`                                                                                                                                                  |
+| Architecture decision review          | `docs/decisions/`                                                                                                                                                              |
+| Product scope question                | `docs/product/PRD.md`, `docs/product/ROADMAP.md`                                                                                                                               |
 
 ## Hard architecture constraints
 
@@ -102,6 +111,31 @@ and prohibited-pattern list: `docs/engineering/CODING_STANDARD.md`.
 
 Never claim that a command passed unless it was actually executed
 successfully.
+
+## Temporary implementation-pass constraints (Figma product alignment)
+
+These apply only to the phases implementing the Figma product-alignment
+work (`docs/design/FIGMA_HANDOFF.md`, Phases A–E) and are not a permanent
+change to engineering standards. Remove this section once that
+implementation initiative concludes or the user says otherwise.
+
+* Do not create Room migration classes or a migration chain, and do not
+  add `fallbackToDestructiveMigration`. The app is pre-public-release
+  (`docs/engineering/CONTENT_MODEL.md` schema-freeze policy); when a
+  schema change is genuinely necessary, update the clean baseline schema
+  and state plainly that local developer data must be cleared or the app
+  reinstalled. Real migrations become mandatory again the moment the
+  initial public schema ships — this does not delete that long-term rule.
+* Do not add new unit, instrumented, or screenshot tests; do not spend the
+  phase building test infrastructure; do not delete existing tests to
+  avoid maintaining them; keep existing test sources compiling when
+  production APIs change. Never claim a test passed without executing it.
+* Minimum validation per Android implementation phase: `ktlintFormat`,
+  `ktlintCheck`, `detekt`, `lint`, `assembleDebug` — plus `installDebug`
+  and manual on-device verification whenever an emulator/device is
+  available, with exactly what was manually checked reported. Do not run
+  `testDebugUnitTest`/`connectedDebugAndroidTest` unless explicitly asked
+  for regression testing.
 
 ## Final response format
 

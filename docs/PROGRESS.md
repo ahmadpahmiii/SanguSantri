@@ -1455,3 +1455,128 @@ Google Play developer configuration (`docs/product/PRD.md` §13,
 `docs/operations/PRODUCTION_READINESS.md`). Kyai/sesepuh approval is no
 longer one of these for the current two standard public amaliyah, but
 remains required the moment any higher-risk content is added.
+
+## Figma product-alignment documentation pass (pre-Phase A)
+
+**Status:** Complete. Not a numbered milestone — no Android/Kotlin source
+changed. Documentation only.
+
+**Scope:** Align product documentation with a set of confirmed
+product/UX decisions and a named Figma file (11 node IDs covering revised
+Full/Guided Reader, reader overflow menus, Reader Settings and Table of
+Contents bottom sheets, Standalone Tasbih and its custom-target dialog,
+Beranda, and Jelajahi Amaliyah). No Android/Kotlin code was written this
+pass — that begins with Phase A once the user replies "done".
+
+### Figma access blocker
+
+The Figma MCP connection was rate-limited (Starter plan) for the entire
+session — every call, including a plain `get_metadata` on the top-level
+product-screens page, was rejected before a single node could be opened.
+Per the user's explicit choice when asked how to proceed, this pass wrote
+the documentation from the confirmed decisions given directly in the
+request plus the current repository state, and marked every Figma-derived
+visual specific (exact spacing, component variants, states drawn in each
+frame) as **pending Figma verification** rather than guessing measurements
+from node names alone. See `docs/design/FIGMA_HANDOFF.md`'s "Status of
+this document" section — re-run Figma discovery before Phase A begins.
+
+### What shipped
+
+* **`docs/design/FIGMA_HANDOFF.md`** (new): file/node reference,
+  frame-to-feature mapping against current code, navigation map (including
+  an explicitly flagged open question on bottom-nav rollout timing),
+  reader interaction map, responsive/state/motion notes, Compose component
+  mapping, implementation phase order (A–E, matching the request exactly),
+  and known incomplete Figma areas (no frame was supplied for Aktivitas).
+* **`docs/reviews/figma-product-alignment.md`** (new): gap table —
+  existing implementation vs. confirmed decision vs. gap vs. resolution
+  vs. owning document vs. phase, across terminology/navigation, reader,
+  Beranda/Jelajahi, Tasbih/Aktivitas, and accessibility/design-system rows.
+  Also records a pre-existing documentation drift found while reading
+  `ARCHITECTURE.md` (a stale `feature/feedback` package in the diagram,
+  even though feedback was removed from scope at Milestone 5) — fixed as
+  part of this pass since it was found, not because it relates to Figma.
+* **`docs/product/PRD.md`** (version 1.3 → 1.4): renamed the primary home
+  destination Serambi → Beranda (§2.3, §7.2, FR-002 — "Serambi" may persist
+  as an internal label only); rewrote §7 Information Architecture with the
+  target five-destination nav model and its open rollout question; added
+  §8.4b (Full Reader repetition shortcut), §8.4c (reader Table of
+  Contents), §8.6 (Beranda sections), §8.7 (Jelajahi Amaliyah); added
+  FR-017 (Table of Contents), FR-018 (repetition shortcut), FR-019 (Beranda
+  scalable dashboard), FR-020 (Jelajahi Amaliyah), FR-021 (favourites and
+  recently opened); updated §5.1/§5.2 scope lists accordingly.
+* **`docs/product/ROADMAP.md`**: rebaselined `0.0.1`'s bullet list to the
+  wider foundation (Beranda, Jelajahi Amaliyah, continue reading, recently
+  opened, favourites, repetition shortcut, TOC sheet); rewrote `0.0.2`
+  Standalone Tasbih bullets to match the confirmed requirements exactly
+  (33/100/unlimited/custom, no 99, compact selector, small custom dialog);
+  renamed `0.0.3` "Riwayat and Streak" → "Aktivitas" (vertical sections, no
+  tabs, flagged missing Figma frame); added a "Final navigation model"
+  section documenting the phased destination rollout and its open
+  question.
+* **`docs/design/DESIGN_SYSTEM.md`**: marked the "traditional-modern
+  pesantren character/tone" wording superseded by "modern Islamic identity,
+  not necessarily traditional ornament" (kept, not deleted, per the
+  request's own legacy-marking instruction); added a spiritual-gold accent
+  note (token not yet created); added Adaptive navigation, Component rules
+  (search/section/card/chip/counter/dialog/bottom-sheet), Reader mode
+  action, Tasbih target hierarchy, and Motion sections.
+* **`docs/design/ACCESSIBILITY.md`**: added modal-bottom-sheet focus/
+  dismissal rules, numeric-input validation rules (custom Tasbih target),
+  and an explicit reduced-motion callout (still an unfixed known gap since
+  Milestone 4); extended the 48dp/counter-semantics requirements to the
+  new screens.
+* **`docs/engineering/ARCHITECTURE.md`**: fixed the stale `feature/feedback`
+  package tree entry (see above); added `feature/explore`, `feature/tasbih`,
+  `feature/activity` as scheduled-but-unimplemented; added Navigation
+  destinations and Local user-state persistence ownership sections.
+* **`docs/engineering/CONTENT_MODEL.md`**: added a Category taxonomy note
+  (why updating `amaliyah.category`'s value is a metadata edit, not a new
+  content version); added a Table of Contents derivation note (sections
+  come from existing `HEADING`-typed steps — no schema change); forward-
+  documented (not created) `favorites`, `recently_opened`,
+  `tasbih_sessions`, and a reminder model, each tagged with its owning
+  phase.
+* **`docs/engineering/OFFLINE_FIRST.md`**: added a note that all new local
+  user-state features (favourites, recent, Tasbih, Aktivitas, reminders)
+  follow the existing offline-first/local-source-of-truth pattern, no
+  exceptions.
+* **`docs/content-schema.md`**: added a forward note on `amaliyah.category`
+  mirroring `CONTENT_MODEL.md`; no bundled JSON asset was edited.
+* **`CLAUDE.md`**: corrected the milestone-state summary to Milestones 0–6
+  (previously said 0–3); added a note that a Figma alignment pass has
+  since renamed Serambi → Beranda and expanded documented `0.0.1` scope
+  ahead of matching code; added `FIGMA_HANDOFF.md` to the UI/Compose
+  reading-matrix row; added a clearly-scoped, explicitly temporary
+  "Temporary implementation-pass constraints" section (no Room migrations,
+  no new tests, minimum validation command set) for Phases A–E only, to be
+  removed once that initiative concludes.
+
+### Commands executed
+
+None — documentation-only pass, no build/lint/test commands apply.
+
+### Known limitations
+
+* No Figma node was actually opened (rate limit) — every visual/spacing/
+  component-variant detail in `FIGMA_HANDOFF.md` is unverified and must be
+  confirmed before or during Phase A.
+* No Android/Kotlin source changed; none of the new Room tables mentioned
+  above exist yet; the reader overflow-menu restructure (settings/TOC
+  moving into the overflow) is documented but not implemented; Beranda is
+  still the Milestone 2 two-card `SerambiScreen`, not yet renamed or
+  rebuilt.
+* The bottom-navigation rollout-timing question (`FIGMA_HANDOFF.md`) is
+  unresolved and should be confirmed before Phase B, since it changes
+  whether Phase B builds nav-bar scaffolding at all.
+* No Figma frame was supplied for Aktivitas (`0.0.3`) — confirm one exists
+  before Phase D, or proceed from the written decision alone if the
+  product owner confirms none is coming.
+
+### Next recommended milestone
+
+Phase A — Release `0.0.1` Reader UX alignment (`docs/design/FIGMA_HANDOFF.md`),
+on the user's explicit "done" reply. Re-run Figma discovery (`get_metadata`/
+`get_design_context`/`get_screenshot` on nodes `14:2`, `14:32`, `16:2`,
+`16:45`, `16:89`, `16:148`) before writing any Phase A code.

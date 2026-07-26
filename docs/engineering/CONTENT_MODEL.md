@@ -42,6 +42,36 @@ Quran feature and no Quran API (Kemenag, Quran Foundation, or otherwise) —
 content package, the same as any other step, and is never fetched separately
 at runtime. See `docs/product/ROADMAP.md` and `docs/product/PRD.md` §6.4.
 
+## Category taxonomy (Figma product-alignment pass — Jelajahi Amaliyah, `0.0.1`)
+
+`amaliyah.category` already exists as a plain string field (both bundled
+packages currently use the single value `"AMALIYAH"`). Jelajahi Amaliyah
+(`docs/product/PRD.md` FR-020) needs a real, extensible taxonomy — initial
+values proposed: `Tahlil & Doa`, `Shalawat`, `Ratib & Wirid`, `Musiman`.
+This is a content-metadata change (editing `amaliyah.category`'s value in
+the existing published packages), not a step-content change — `amaliyah`
+sits above the versioned `variant → version → steps` tree (see Core
+hierarchy above), so updating it does not trigger ADR 0008's
+new-version-on-correction rule. No schema change is required: the field
+already exists as a free-form string. The screen structure must not branch
+on specific category values (`docs/product/PRD.md` FR-020) — treat the
+taxonomy as data, not a fixed enum baked into UI logic, so future
+categories need no code change. The actual JSON edits are an
+implementation-phase task (Phase B), not made by the documentation pass
+that added this note.
+
+## Table of Contents sections (Figma product-alignment pass — `0.0.1`)
+
+The reader Table of Contents (`docs/product/PRD.md` FR-017) needs "logical
+reading sections" and their step ranges. This is derived at read time from
+already-existing data — a section boundary is a `HEADING`-typed step, and
+a section's range runs from that heading's `position` to the position
+immediately before the next `HEADING` (or the end of the step list). **No
+new column, table, or schema change is needed** — this keeps Phase A
+inside the "no Room migrations this pass" constraint. If a future amaliyah
+package's heading structure turns out not to segment cleanly this way,
+revisit this note before assuming the derivation always holds.
+
 ## Translation segmentation
 
 For Quran content, translation maps to its corresponding ayah. For
@@ -157,6 +187,43 @@ Both tables are combined behind one `GuidedReadingRepository`
 (`domain/repository/GuidedReadingRepository.kt`) rather than one repository
 per table, per `CODING_STANDARD.md`'s no-duplicate-repository guidance.
 
+### `favorites` (planned, Phase B `0.0.1` — not yet implemented)
+
+`amaliyahId` (primary key), `addedAtEpochMillis`. One row per amaliyah the
+user has favourited — deliberately keyed by `amaliyahId`, not
+`versionId`, since favouriting is a user-curation action on the amaliyah
+itself, not on a specific immutable content version. Backs both Beranda's
+favourites section (FR-019) and Jelajahi Amaliyah's Favourite filter
+(FR-020).
+
+### `recently_opened` (planned, Phase B `0.0.1` — not yet implemented)
+
+`amaliyahId` (primary key), `lastOpenedAtEpochMillis`. One row per amaliyah
+ever opened, updated (not inserted again) on each open — `@Upsert`, same
+pattern as `reading_positions`/`guided_reading_sessions`. Deliberately
+**separate** from completion history (`0.0.3` Aktivitas scope,
+`docs/product/PRD.md` FR-021): opening an amaliyah is not the same event
+as completing it, and this table must not be read as if it were a
+completion log.
+
+### `tasbih_sessions` (planned, Phase C `0.0.2` — not yet implemented)
+
+Forward-documented here for content-model completeness only; do not
+create this table before Phase C. Expected shape: an identifier, a
+`target` (33 / 100 / unlimited / custom positive integer — never 99, per
+`docs/product/PRD.md` §0.0.2 requirements), an optional session/dhikr
+name, `currentCount`, `updatedAtEpochMillis`. Independent from
+`step_progress` — Standalone Tasbih is not tied to any amaliyah content
+step.
+
+### Reminder model (planned, Phase E `0.0.4` — not yet implemented)
+
+Forward-documented only. Expected shape: personal schedule entries (e.g.
+Tahlil malam Jumat, Istighosah weekly presets), a Gregorian/Hijri
+date/time representation, and enough state to reschedule after device
+reboot (WorkManager, `docs/engineering/OFFLINE_FIRST.md`). Not designed in
+detail until Phase E is explicitly requested.
+
 ### `feedback_outbox` (removed from `0.0.1` scope)
 
 Public content-correction feedback was removed from release `0.0.1`
@@ -185,8 +252,11 @@ by Milestone 5's cross-mode progress mapping when switching between Full
 and Guided readers). `feedback_outbox`, `sync_metadata`, remote content
 synchronisation (FR-010), and the entire backend are removed from `0.0.1`
 scope (Milestone 5) — not merely deferred; see
-`docs/product/PRD.md`/`docs/product/ROADMAP.md`. See `docs/PROGRESS.md` for
-the authoritative current state.
+`docs/product/PRD.md`/`docs/product/ROADMAP.md`. `favorites` and
+`recently_opened` are planned for Phase B of the `0.0.1` Figma
+product-alignment work (not yet implemented); `tasbih_sessions` (Phase C,
+`0.0.2`) and the reminder model (Phase E, `0.0.4`) are forward-documented
+only. See `docs/PROGRESS.md` for the authoritative current state.
 
 ## Schema-freeze policy (pre-public-release)
 

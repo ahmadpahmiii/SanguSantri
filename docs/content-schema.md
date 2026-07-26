@@ -115,6 +115,17 @@ the importer derives them from nesting when it maps DTOs to Room entities.
 }
 ```
 
+### `amaliyah.category` (forward note — Figma product-alignment pass)
+
+Currently a free-form string; both bundled packages use `"AMALIYAH"`.
+Jelajahi Amaliyah (`docs/product/PRD.md` FR-020) needs a real taxonomy
+(e.g. `Tahlil & Doa`, `Shalawat`, `Ratib & Wirid`, `Musiman`) — see
+`docs/engineering/CONTENT_MODEL.md`'s "Category taxonomy" section for why
+this is a content-metadata edit, not a schema change or a new content
+version. No change was made to the bundled JSON packages by this
+documentation pass; updating `category`'s actual value is a Phase B
+implementation task.
+
 ### Step types (PRD 10.2)
 
 `HEADING`, `INSTRUCTION`, `ARABIC_TEXT`, `QURAN_AYAH`, `PRAYER`,

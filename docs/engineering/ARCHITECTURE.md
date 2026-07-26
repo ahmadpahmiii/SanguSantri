@@ -77,19 +77,30 @@ com.sangusantri.app
 │   └── usecase
 ├── feature
 │   ├── home
+│   ├── explore
 │   ├── reader
 │   ├── guidedreader
+│   ├── tasbih
+│   ├── activity
 │   ├── contentdetail
 │   ├── settings
-│   ├── feedback
 │   └── about
 ├── navigation
 └── di
 ```
 
-`feature/home` (Serambi), `feature/reader` (Full Reader + the reading-mode
-gate), and `feature/guidedreader` (Guided Reader) are implemented; the rest
-remain unimplemented placeholders (`docs/PROGRESS.md`).
+`feature/home` (Beranda, renamed from Serambi — Figma product-alignment
+pass, `docs/reviews/figma-product-alignment.md`), `feature/reader` (Full
+Reader + the reading-mode gate), and `feature/guidedreader` (Guided
+Reader) are implemented; `feature/explore` (Jelajahi Amaliyah, `0.0.1`),
+`feature/tasbih` (Standalone Tasbih, `0.0.2`), and `feature/activity`
+(Aktivitas, `0.0.3`) are scheduled but not yet implemented — do not create
+their packages before the milestone that needs them. `feature/feedback`
+was removed from this diagram: public content-correction feedback was
+removed from `0.0.1` scope at Milestone 5 (`docs/product/PRD.md` FR-012)
+and no feedback code exists or is planned. `feature/contentdetail` and
+`feature/settings` remain unimplemented placeholders as before
+(`docs/PROGRESS.md`).
 
 ## Layer rules
 
@@ -138,6 +149,35 @@ skill during implementation.
   `buildTypes.release.optimization.enable = true`, requires
   `android.r8.gradual.support=true` in `gradle.properties` under AGP 9.2.1 —
   re-verify this flag is still required on every AGP upgrade).
+
+## Navigation destinations (Figma product-alignment pass)
+
+Target final IA (`docs/product/PRD.md` §7.1, `docs/design/FIGMA_HANDOFF.md`):
+Beranda / Aktivitas / Tasbih / Pesantren / Profil behind an adaptive nav
+shell (bottom bar on compact, rail on expanded — AndroidX adaptive-layout
+APIs, installed `adaptive` skill, not a hand-rolled breakpoint). The
+existing `SanguSantriNavHost` (Navigation 3, `NavKey` back stack, ADR 0004)
+is unchanged in shape for this documentation pass — no code was written.
+Whichever phase resolves the open rollout question in `FIGMA_HANDOFF.md`
+should implement the nav shell as an additional top-level composable
+wrapping the existing `NavDisplay`, not a second competing navigation
+framework (`docs/engineering/CODING_STANDARD.md`'s no-duplicate-navigation
+rule). The reading-mode gate (`AmaliyahDetail`), both readers, and the new
+Reader Table of Contents/Settings sheets stay reachable *through* Beranda
+or Jelajahi Amaliyah, not as their own bottom-nav destinations — the
+gate's existing "replace, don't push" backstack pattern
+(`replaceTopEntryWithReader`) is unaffected.
+
+## Local user-state persistence ownership
+
+Favourites, recently-opened, and (from `0.0.2`/`0.0.3`) Standalone Tasbih
+sessions and Aktivitas history are all local-only, offline-first state —
+same source-of-truth rule as existing reader progress
+(`docs/engineering/OFFLINE_FIRST.md`). Follow the existing
+per-concern-repository convention (`GuidedReadingRepository` already
+combines two Room tables behind one repository, not two) rather than one
+repository per table. Field-level detail:
+`docs/engineering/CONTENT_MODEL.md`.
 
 ---
 

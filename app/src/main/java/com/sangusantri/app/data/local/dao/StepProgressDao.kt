@@ -12,4 +12,7 @@ interface StepProgressDao {
 
     @Query("SELECT * FROM step_progress WHERE versionId = :versionId")
     suspend fun getByVersionId(versionId: String): List<StepProgressEntity>
+
+    @Query("DELETE FROM step_progress WHERE versionId = :versionId")
+    suspend fun deleteByVersionId(versionId: String)
 }

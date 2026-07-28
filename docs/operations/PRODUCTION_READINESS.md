@@ -30,10 +30,16 @@ Release `0.0.1` is complete only when:
 * Indonesian localisation is complete; Arabic localisation and RTL are
   complete.
 * Portrait, landscape, and tablet layouts work.
-* Previous versions remain accessible locally (FR-011). Remote content
-  synchronisation is not part of `0.0.1` (FR-010) — not a release blocker.
-* Android tests pass; a clean checkout builds successfully. No backend
-  exists in `0.0.1`, so no backend tests apply.
+* Android retains only the current active content version per variant, not
+  previous versions (FR-011, ADR 0012) — the backend keeps immutable
+  history instead. Remote content synchronisation (FR-010) is implemented
+  and ships in `0.0.1`; a real backend deployment is not yet a release
+  blocker since the app runs fully functional on bundled content alone
+  until one is configured (`SANGU_CONTENT_API_BASE_URL`).
+* Android tests pass (including the sync/importer test suite); a clean
+  checkout builds successfully. No backend service exists or is deployed
+  yet, so no backend-side tests apply — only the Android client against
+  its contract.
 * Privacy policy exists; store listing assets exist; final logo and app
   icon exist.
 * No critical or high-severity known defect remains.
@@ -63,9 +69,11 @@ Release `0.0.1` is complete only when:
   previous release, ANR rate increases, or a Critical-severity content
   error is reported (`docs/operations/CONTENT_GOVERNANCE.md`).
 * **Rollback**: halt the staged rollout in Play Console; for a content-only
-  issue, revoke the affected content version server-side instead of an app
-  rollback — content revocation is faster and does not require a new APK
-  (FR-011).
+  issue, revoke the affected content version server-side and publish its
+  replacement instead of an app rollback — this does not require a new APK.
+  Propagation to devices is bounded by each device's 24-hour sync gate, not
+  instantaneous — Android has no faster on-device fallback mechanism
+  (superseded FR-011, ADR 0012).
 
 ## Backup policy
 

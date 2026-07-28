@@ -36,7 +36,8 @@ is a real cost, not free caution.
   `MigrationTestHelper`-tested migrations, no destructive fallback (ADR
   0003).
 * Content package integrity — **done**: SHA-256 checksum verification,
-  tested against tamper/mismatch (`SeedContentChecksum`).
+  tested against tamper/mismatch (`ContentChecksum`), for both bundled and
+  remote packages.
 * `app/src/main/keepRules/rules.keep` is currently a stub; review real
   keep-rule needs with the `r8-analyzer` skill once feature code exists to
   shrink.
@@ -48,21 +49,35 @@ is a real cost, not free caution.
 * No devotional history uploaded — see FR-012 and
   `docs/security/PRIVACY.md`.
 
-## Required before backend synchronisation (FR-010)
+## Remote content synchronisation (FR-010, ADR 0012)
 
-* `network_security_config.xml` — must enforce HTTPS-only, no cleartext.
-  Not urgent today: zero network code exists in the repository (Retrofit/
-  OkHttp are declared in the stack but not yet added as dependencies).
-* API timeouts and rate limits on every outbound call.
-* Request-size limits on the feedback endpoint.
+Network code now exists (Retrofit/OkHttp, `data/remote/`, `data/sync/`) —
+this section is no longer forward-looking.
+
+* `network_security_config.xml` — **still outstanding**: this project has
+  no explicit network security config yet. Now that real network code
+  exists, this is a near-term gap, not a "not urgent" one — it must enforce
+  HTTPS-only/no cleartext before any build is used against a real,
+  non-`.invalid` backend host.
+* API timeouts on every outbound call — **done**: 15s connect/read/write
+  timeouts (`di/NetworkModule.kt`). Backend-side rate limiting remains a
+  backend concern (not yet built).
 * Checksum verification and schema validation on downloaded packages —
-  design already specified in `docs/engineering/OFFLINE_FIRST.md`; build to
-  that spec directly.
-* Immutable content versions, transactional import, rollback and
-  revocation — same document.
+  **done**: `ContentPackageImporter`, shared with the bundled path
+  (`docs/engineering/OFFLINE_FIRST.md`).
+* Immutable content versions, atomic transactional replacement, and
+  per-package failure isolation — **done**, same document. Revocation
+  itself remains a backend-side authority action (`docs/operations/CONTENT_GOVERNANCE.md`);
+  Android has no on-device previous-version fallback to reason about
+  (superseded FR-011, ADR 0012).
+* Response-size limit on downloaded packages — **done**: 5 MiB cap,
+  streamed to a temporary file (`ContentRemoteDataSource`).
 * Backup and restore testing (backend-side; no backend exists yet).
 * Structured logs and request IDs (backend-side).
 * Backend dependency-vulnerability scanning.
+* No content package body, full Arabic text, secret, or response payload is
+  logged (`ContentRemoteDataSource`/`ContentSyncWorker` log only ids,
+  counts, HTTP status codes, and exception types).
 
 ## Required before authentication and private pesantren access (`0.1.0`–`0.2.0`)
 

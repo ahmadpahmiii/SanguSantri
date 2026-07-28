@@ -1,31 +1,32 @@
 # SanguSantri Product Requirements Document
 
-**Document version:** 1.4 — Figma product-alignment pass: renamed the
-primary home destination Serambi → **Beranda** (§2.3, §7.2 — "Serambi" may
-persist as an internal/product-language label, not a second destination);
-rebuilt Beranda as a scalable, section-based dashboard and added the
-**Jelajahi Amaliyah** exploration destination (§7, new FR-019/FR-020);
-added the Full Reader repetition→Guided shortcut (new FR-018), the reader
-Table of Contents bottom sheet (new FR-017), and local favourites/recently
-opened (new FR-021); documented the target final navigation model
-(§7.1 — bottom nav/rail across Beranda, Aktivitas, Tasbih, Pesantren,
-Profil, with an open question on rollout timing, see
-`docs/design/FIGMA_HANDOFF.md`). Full gap analysis:
-`docs/reviews/figma-product-alignment.md`. Supersedes version 1.3's
-Milestone 6 risk-based publication model (§3.1) and version 1.2's
-Milestone 5 scope correction (FR-016 in-reader mode switch), both of which
-stay in effect unchanged.
+**Document version:** 1.5 — Content Delivery Foundation and Remote
+Synchronisation: approved product/tech-lead decision to build the Android
+remote content-synchronisation foundation now, ahead of the Go backend's
+own implementation (parallel workstream). Supersedes version 1.4's FR-010
+("not part of `0.0.1`, no synchronisation code exists") and FR-011 ("local
+on-device fallback to a retained previous version") — see the rewritten
+FR-010/FR-011 below. Bundled content remains the mandatory, always-shipped
+baseline; remote sync is an optional, additive refresh that must never
+degrade the offline experience defined in §3.2/ADR 0007. Everything else in
+version 1.4 (Beranda rename, Jelajahi Amaliyah, reader repetition
+shortcut/TOC, risk-based publication model) stays in effect unchanged. Full
+gap analysis for the Figma pass: `docs/reviews/figma-product-alignment.md`.
 **Product:** SanguSantri
 **Initial release:** Android `0.0.1`
 **Package name:** `com.sangusantri.app`
 **Product owner:** Ahmad Fahmi Aisar
 **Document status:** Ready for engineering
 **Initial platform:** Native Android
-**Backend:** Not part of release `0.0.1`. A future Go + PostgreSQL backend
-(remote content synchronisation, public content API, admin CLI) remains an
-unscheduled future item, not a committed roadmap version — see
-`docs/product/ROADMAP.md`. Release `0.0.1` is local-only and offline-first.
-**Date:** 25 July 2026
+**Backend:** The Go + PostgreSQL public content API (
+`docs/decisions/0011-go-and-supabase-managed-postgresql-backend.md`)
+is a parallel workstream, not yet deployed — see
+`docs/product/ROADMAP.md`. The Android client against that API contract
+(manifest/package fetch, ETag, WorkManager sync) is implemented and ships
+in `0.0.1` regardless of backend deployment status: the app must remain
+fully functional offline, with the backend unreachable, or before it has
+ever been deployed (§3.2, FR-010).
+**Date:** 28 July 2026
 
 ---
 
@@ -170,8 +171,14 @@ another (§6.5).
 
 Public amaliyah must remain usable without login, internet connection, an
 available backend, or previously completed synchronisation. The application
-must ship with approved seed content. See ADR
-[0007](../decisions/0007-offline-first-public-content.md) and
+must ship with approved bundled content, and remote synchronisation (FR-010)
+is strictly additive: the UI always renders from Room immediately, never
+waiting on a network response, and a remote failure — offline, DNS failure,
+timeout, HTTP error, malformed manifest, or a package that fails checksum or
+schema validation — must never remove, replace, downgrade, or hide valid
+content already stored in Room. See ADR
+[0007](../decisions/0007-offline-first-public-content.md),
+[0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md), and
 `docs/engineering/OFFLINE_FIRST.md`.
 
 ## 3.3 Progressive delivery
@@ -277,9 +284,14 @@ Release `0.0.1` includes:
 24. Green Islamic visual identity, modern rather than ornamental
     (`docs/design/DESIGN_SYSTEM.md` — supersedes this document's earlier
     "traditional-modern pesantren design direction" wording).
-25. Offline seed content, fixed as the release-candidate baseline (§6.7).
-26. Preservation of previous content versions (local fallback only; see
-    FR-011).
+25. Bundled offline content, mandatory and always shipped, as the
+    release-candidate baseline (§6.7) — the app must be fully usable
+    offline, fresh-installed, with no backend ever deployed.
+26. Optional background remote content synchronisation against the Go
+    content API (FR-010): a 24-hour-gated, opportunistic WorkManager
+    refresh that atomically replaces a variant's active content version
+    when the backend publishes a newer one, and never degrades, blocks, or
+    replaces the offline experience when unavailable.
 27. A compact "Approved by" status for every amaliyah, sourced from
     structured content metadata (§6.5).
 28. Portrait and landscape support.
@@ -288,10 +300,13 @@ Release `0.0.1` includes:
 31. Automated Android testing.
 32. CI validation.
 
-Remote content synchronisation, the Go public content API, the Go content
-administration CLI, PostgreSQL, and Supabase Studio are **not** part of
-release `0.0.1` — see §5.2 and `docs/product/ROADMAP.md`. The application is
-entirely local and offline-first for this release.
+The Go public content API, the Go content administration CLI, PostgreSQL,
+and Supabase Studio are backend-side, parallel-workstream items and remain
+**not** part of this Android release itself — see `docs/product/ROADMAP.md`
+and `docs/engineering/ARCHITECTURE.md` §Backend. The Android client against
+that API contract, described above, is part of `0.0.1` and must degrade
+safely to fully local, offline-first behaviour whenever the backend is
+absent, unreachable, or has never been deployed.
 
 ## 5.2 Explicitly excluded
 
@@ -322,12 +337,13 @@ Release `0.0.1` does not include:
   `docs/operations/CONTENT_GOVERNANCE.md`. This is a scope correction from
   document version 1.0, which described a public feedback flow (former
   FR-012); no such flow has been built, and none is planned for `0.0.1`.
-* Remote content synchronisation and the Go + PostgreSQL backend (public
-  content API, admin CLI, Supabase Studio). Both remain an unscheduled
-  future item, not a committed roadmap version — see
-  `docs/product/ROADMAP.md`. This is a scope correction from document
-  version 1.0's former FR-010; no synchronisation code exists, and
-  `0.0.1` ships fully local and offline-first.
+* The Go + PostgreSQL backend implementation itself (public content API,
+  admin CLI, Supabase Studio) — a parallel workstream, not yet deployed
+  (`docs/product/ROADMAP.md`, ADR 0011). This is unchanged from document
+  version 1.4. What *is* now part of `0.0.1` is the Android remote
+  content-synchronisation client against that API's contract (FR-010) —
+  see §5.1 item 26. The Android app remains fully usable offline
+  regardless of whether the backend has been deployed yet.
 * A full pentashihan (content-approval) workflow, checksum display, raw
   approval documents, internal reviewer identity, or other detailed
   content-governance data inside the normal app UI. Users see only compact
@@ -574,10 +590,14 @@ rather than transliterated Indonesian terminology.
 
 1. User launches the application.
 2. Application initialises the local database.
-3. Approved seed content is imported when the database is empty.
-4. Beranda appears immediately from local data.
-5. Network synchronisation begins in the background when connected (not
-   built in `0.0.1` — see FR-010).
+3. Approved bundled content is imported (or reconciled against Room, if
+   Room already has newer synced content) on every launch, non-blocking.
+4. Beranda appears immediately from local data — never waiting on step 3
+   or step 5.
+5. Remote content synchronisation is scheduled in the background, gated by
+   the 24-hour staleness check (FR-010); it silently does nothing if the
+   backend is unreachable, has never been deployed, or the device is
+   offline.
 6. Synchronisation must not block Beranda.
 7. User sees Tahlil and Istighosah surfaced through Beranda's curated
    amaliyah section (§7).
@@ -716,15 +736,19 @@ workflow through the application.
 
 ## FR-001: Offline bootstrap
 
-The application MUST bundle approved Tahlil and Istighosah content.
+The application MUST bundle approved Tahlil and Istighosah content and
+import it into Room on first launch, independent of network state or
+backend availability.
 
 Acceptance criteria:
 
 * A fresh installation opened in airplane mode displays both amaliyah.
 * The user can open and complete either amaliyah offline.
 * No empty loading screen waits for the backend.
-* Seed import is idempotent.
+* Bundled bootstrap is idempotent and safe to run on every launch.
 * Reopening the app does not duplicate content.
+* Bundled bootstrap never downgrades a variant already at a newer version
+  in Room (for example, one a prior remote sync installed) — see FR-010.
 
 ## FR-002: Beranda
 
@@ -808,26 +832,58 @@ document reference number, internal reviewer name, content checksum) remain
 part of the structured content model for content-operations use, but are
 not required in the normal app UI.
 
-## FR-010: Content synchronisation (deferred beyond `0.0.1`)
+## FR-010: Content synchronisation
 
-Remote content synchronisation is **not** part of release `0.0.1` — no
-synchronisation code, manifest comparison, or network content fetch exists
-or is built for this release. Release `0.0.1` ships fully local, fixed
-release-candidate content (§6.7). A future synchronisation requirement, if
-scheduled, would need to run without blocking local reads, validate schema
-version and checksum, import inside a database transaction, preserve
-previous versions, and respect network constraints — design detail (for
-that future work only): `docs/engineering/OFFLINE_FIRST.md`.
+The application MUST support optional background remote content
+synchronisation against the Go content API, additive to — and never a
+prerequisite for — the bundled offline baseline (§3.2, ADR 0007). Bundled
+content is mandatory; remote refresh is optional for usability.
 
-## FR-011: Previous versions (local fallback)
+Acceptance criteria:
 
-The data model preserves previous content versions locally. If the active
-version is revoked (`AmaliyahVersionStatus.REVOKED`), the application falls
-back to the newest non-revoked version and the revoked version is not
-opened by default. This is a local, on-device fallback in `0.0.1` — there is
-no backend manifest or remote revocation signal yet (see FR-010). A
-dedicated screen for browsing previous versions is not required for
-`0.0.1`.
+* Room is always rendered; no screen waits for a network response before
+  showing bundled/already-synced content.
+* Sync is opportunistic and one-time, triggered at app startup or
+  foreground entry, gated so it runs at most once per 24 hours based on the
+  last *terminal* remote sync attempt (including a terminal failure) —
+  never a permanently repeating periodic worker.
+* The manifest fetch sends the stored ETag (`If-None-Match`); a `304`
+  response performs no package download.
+* Only a variant whose remote `versionNumber` is greater than Room's active
+  version is downloaded and imported; a lower or equal-with-matching-checksum
+  remote version is never downloaded.
+* A downloaded package is checksum-verified, schema-validated, and identity-
+  checked (its own `version.id`/`versionNumber` must match the manifest
+  entry that named it) before any database write.
+* Package replacement is atomic: the new version, its approval, and its
+  steps are written, and the previously active version and its
+  version-scoped reading progress are removed, inside one database
+  transaction. A failure at any point leaves the previously valid content
+  exactly as it was.
+* API failure — offline, DNS failure, timeout, HTTP error, or a malformed
+  manifest — MUST NOT remove, replace, downgrade, or hide valid content
+  already in Room, MUST NOT show a raw error to the user, and MUST NOT
+  crash the application.
+* One malformed or stale package never affects another package in the same
+  manifest (per-package failure isolation).
+
+Full design and failure/retry semantics: `docs/engineering/OFFLINE_FIRST.md`,
+ADR [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md).
+
+## FR-011: On-device version retention
+
+Android retains only **one active content version per variant** — there is
+no previous-version retention, no previous-version browsing screen, and no
+previous-version fallback on-device. When remote sync replaces a variant's
+active version, the prior version's rows (and its version-scoped reading
+progress — position, guided-reader step/completion, repetition counters)
+are removed as part of the same atomic replacement (FR-010), not revoked
+and kept. The backend, separately, retains full immutable revision history
+for audit, publication, and rollback (ADR 0008 is unaffected by this — it
+governs the backend's publication/correction workflow, not what Android
+keeps locally). A dedicated screen for browsing previous versions remains
+out of scope for `0.0.1`, consistent with the fact that Android does not
+retain them.
 
 ## FR-012: Feedback (removed from scope)
 
@@ -1002,8 +1058,12 @@ until these assets exist:
 9. Final application icon.
 10. Privacy policy.
 11. Google Play developer configuration.
-12. Production backend credentials — not applicable to `0.0.1` (no
-    backend; see FR-010).
+12. Production backend deployment and credentials (real
+    `SANGU_CONTENT_API_BASE_URL`) — the Android sync client is implemented
+    and ships in `0.0.1`, but activates real remote refresh only once a
+    real backend is deployed and its base URL is configured; until then the
+    app runs on bundled content alone, which is by design, not a defect
+    (FR-010).
 13. Android signing key.
 
 Claude must use development-safe substitutes where possible, but must never

@@ -33,6 +33,20 @@ every launch without duplicating or corrupting local data.
   one `SanguSantriDatabase.withTransaction` block. Any failure at any stage
   yields a `SeedImportOutcome.Failed(reason)` for that package only; other
   packages in the same manifest are unaffected (PRD 12.4).
+  **Superseded, Content Delivery Foundation (ADR 0012).** This
+  seed-specific pipeline was renamed and extended into a shared,
+  transport-agnostic pipeline once remote sync needed the same
+  compare/import/replace logic bundled assets used:
+  `SeedContentImporter`/`SeedContentValidator`/`SeedContentChecksum`/
+  `SeedImportOutcome`/`SeedContentSource`/`AssetSeedContentSource` →
+  `ContentPackageImporter`/`ContentPackageValidator`/`ContentChecksum`/
+  `ContentImportOutcome` (`data/content/`) plus
+  `BundledContentBootstrapper` (`data/local/content/`, reads
+  `AssetManager` directly — no source-abstraction interface). The original
+  decision recorded here (one canonical content model, a versioned JSON
+  schema, checksum-verified transactional import, per-package idempotency)
+  is otherwise unchanged — only the class names and the addition of
+  version-compare/replace logic moved.
 - **Idempotency** is a plain existence check: `amaliyah_versions.id` is the
   package's natural key, so re-running the importer against an
   already-imported version is a no-op (`AlreadyImported`), not a duplicate

@@ -1,6 +1,5 @@
 package com.sangusantri.app.data.repository
 
-import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.data.local.dao.AmaliyahDao
 import com.sangusantri.app.data.local.dao.AmaliyahStepDao
 import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
@@ -15,7 +14,9 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /** Reads the amaliyah catalogue from Room, the local source of truth (PRD 12.1). */
-class ContentRepositoryImpl @Inject constructor(
+class ContentRepositoryImpl
+@Inject
+constructor(
     private val amaliyahDao: AmaliyahDao,
     private val amaliyahVariantDao: AmaliyahVariantDao,
     private val approvalDao: ApprovalDao,
@@ -36,7 +37,7 @@ class ContentRepositoryImpl @Inject constructor(
     override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? {
         val amaliyah = amaliyahDao.getBySlug(amaliyahSlug) ?: return null
         val variant = amaliyahVariantDao.getDefaultForAmaliyah(amaliyah.id) ?: return null
-        val version = resolveVersion(variant.id) ?: return null
+        val version = amaliyahVersionDao.getLatestPublishedForVariant(variant.id) ?: return null
         val approval = approvalDao.getById(version.approvalId) ?: return null
 
         return AmaliyahVersionDetail(
@@ -45,10 +46,4 @@ class ContentRepositoryImpl @Inject constructor(
             steps = amaliyahStepDao.getByVersionId(version.id).map { it.toDomain() },
         )
     }
-
-    // Debug builds may surface local DRAFT content (no public release yet); release builds
-    // must never silently treat DRAFT as approved, so this fallback only exists in debug.
-    private suspend fun resolveVersion(variantId: String) =
-        amaliyahVersionDao.getLatestPublishedForVariant(variantId)
-            ?: if (BuildConfig.DEBUG) amaliyahVersionDao.getLatestNonRevokedForVariant(variantId) else null
 }

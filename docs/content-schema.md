@@ -1,9 +1,39 @@
 # Content Schema (`schemaVersion: 1`)
 
-Defines the bundled JSON format the offline seed importer reads (PRD 12.2,
-FR-001), from one of two Android asset source sets. This is the only place
+Defines the canonical content-package JSON format (PRD 12.2, FR-001, FR-010)
+consumed identically by three producers: bundled Android assets, the
+backend's `GET /v1/content/packages/{versionId}` endpoint, and (in the
+future) the Go content-publication pipeline that generates those packages.
+`ContentPackageValidator`/`ContentPackageImporter` (`data/content/`) are the
+one shared validation/import boundary for all three — there is no
+bundled-only or remote-only copy of this schema. This is the only place
 Arabic/Indonesian amaliyah text may live — never inside Kotlin source (PRD
 12.2, CLAUDE.md).
+
+## Two manifests, one package contract
+
+The **package** JSON below (`ContentPackageDto`) is identical whether it
+arrives from a bundled asset file or a downloaded package response. The
+**manifest** that lists packages is deliberately transport-specific — the
+bundled manifest and the backend manifest have different fields because
+their concerns genuinely differ (a backend manifest needs `status`,
+`minimumAppVersionCode`, and an ETag-friendly shape; a bundled manifest
+does not):
+
+* Bundled: `BundledManifestDto`/`BundledManifestEntryDto`
+  (`data/local/content/BundledManifestDto.kt`) — `schemaVersion`,
+  `generatedAt`, `packages[]` of `{versionId, file, checksumSha256}`.
+* Remote: `RemoteContentManifestDto`/`RemoteContentManifestPackageDto`
+  (`data/remote/dto/RemoteContentManifestDto.kt`) — `manifestVersion`,
+  `schemaVersion`, `generatedAt`, `packages[]` of `{contentId, variantId,
+  versionId, versionNumber, checksumSha256, minimumAppVersionCode, status}`.
+  Full endpoint contract: `docs/engineering/ARCHITECTURE.md` §Remote
+  content synchronisation, `CLAUDE.md` §7.
+
+Neither manifest DTO is forced into one nullable shape with fields like
+both `assetFile` and `downloadUrl` — see ADR
+[0012](decisions/0012-bundled-bootstrap-and-remote-sync.md) for the
+reasoning.
 
 ## Layout and debug/release split (introduced Milestone 4.5, published Milestone 6)
 
@@ -32,26 +62,33 @@ override is needed for them anymore. The debug/release split mechanism
 itself remains available for a future amaliyah still being drafted and not
 yet accepted.
 
-`SeedContentImporter`/`AssetSeedContentSource` are unaware of this split —
-they just read whatever `content/manifest.json` the build merged in. There
-is no `DRAFT`-vs-`PUBLISHED` special-casing in the importer itself; the
-importer accepts a package at any `version.status` exactly the same way,
-structural validity is all it checks. Whether a `DRAFT` package (should one
-exist in the future) is visible once imported into Room is a
-repository-layer concern — see `ContentRepositoryImpl.resolveVersion`
-(`BuildConfig.DEBUG` fallback to the latest non-revoked version when no
-`PUBLISHED` version exists; release builds only ever resolve `PUBLISHED`).
+`BundledContentBootstrapper` is unaware of this split — it just reads
+whatever `content/manifest.json` the build merged in and hands the bytes to
+`ContentPackageImporter`. There is no `DRAFT`-vs-`PUBLISHED` special-casing
+in the importer itself; the importer accepts a package at any
+`version.status` exactly the same way, structural validity (plus checksum
+and version-identity) is all it checks. Whether a `DRAFT` package (should
+one exist in the future) is ever *rendered* once imported into Room is a
+repository-layer concern — `ContentRepositoryImpl.getDefaultVersionDetail`
+always resolves `AmaliyahVersionDao.getLatestPublishedForVariant` only, in
+every build; there is no debug-only fallback to a non-`PUBLISHED` version
+(Content Delivery Foundation, ADR 0012 — Android keeps and renders only one
+active version per variant, never a draft alongside it).
 
-## `manifest.json`
+## Bundled `manifest.json`
 
-| Field | Type | Notes |
-|---|---|---|
-| `schemaVersion` | int | Must equal `1`. |
-| `generatedAt` | string | ISO-8601 timestamp, informational only. |
-| `packages[]` | array | One entry per content package file. |
-| `packages[].versionId` | string | Must match `version.id` inside the package file. |
-| `packages[].file` | string | Filename under `content/`. |
-| `packages[].checksumSha256` | string | Lowercase hex SHA-256 of the **raw package file bytes**. The importer rejects the package if this does not match. |
+| Field                       | Type   | Notes                                                                                                                                                                      |
+|-----------------------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `schemaVersion`             | int    | Must equal `1`.                                                                                                                                                            |
+| `generatedAt`               | string | ISO-8601 timestamp, informational only.                                                                                                                                    |
+| `packages[]`                | array  | One entry per content package file.                                                                                                                                        |
+| `packages[].versionId`      | string | Must match `version.id` inside the package file — the importer rejects the package if the id declared inside the file itself disagrees with what the manifest entry named. |
+| `packages[].file`           | string | Filename under `content/`.                                                                                                                                                 |
+| `packages[].checksumSha256` | string | Lowercase hex SHA-256 of the **raw package file bytes**. The importer rejects the package if this does not match.                                                          |
+
+See "Two manifests, one package contract" above for the backend's
+`RemoteContentManifestDto` equivalent, which lists the same kind of
+per-package checksum plus `versionNumber`/`minimumAppVersionCode`/`status`.
 
 ## Package file (e.g. `tahlil-general-v1.json`)
 
@@ -133,7 +170,7 @@ implementation task.
 DTO, Room entity, and domain layers (`domain/model/StepType.kt`) — the
 vocabulary has no per-layer meaning, so it is not duplicated three times.
 
-### Structural validation (`SeedContentValidator`)
+### Structural validation (`ContentPackageValidator`)
 
 Enforced before any database write:
 
@@ -146,23 +183,35 @@ Enforced before any database write:
   `QURAN_AYAH` needs `arabicText` + `quranSurahNumber` + `quranAyahStart`;
   `REPEATED_READING` needs a positive `repeatTarget`).
 
-## Import behaviour (`SeedContentImporter`)
+## Import behaviour (`ContentPackageImporter`, shared by bundled and remote — ADR 0012)
 
-1. Read `manifest.json`; validate `schemaVersion`.
-2. For each entry, read the package file's raw bytes and verify
+1. (Bundled) Read `manifest.json`; validate `schemaVersion`. (Remote) fetch
+   the manifest with the stored `ETag`; a `304` short-circuits with nothing
+   downloaded.
+2. For each entry, read the package's raw bytes (from the asset or a
+   downloaded, size-limited temporary file) and verify
    `SHA-256(bytes) == checksumSha256`. Mismatch → package rejected, nothing
    written, import continues with the next package.
-3. Parse the package JSON; run structural validation. Failure → package
+3. Parse the package JSON; run structural validation; verify the parsed
+   `version.id` matches the manifest entry that named it. Failure → package
    rejected, nothing written.
-4. **Idempotency**: if `version.id` already exists in `amaliyah_versions`,
-   the package is skipped (already imported) — safe to re-run on every launch.
-5. Otherwise, insert amaliyah → variant → approval → version → steps inside
-   one `SanguSantriDatabase.withTransaction { }` block. Any failure during
-   insertion rolls back the entire package atomically; no partial rows remain
-   (PRD 12.4).
+4. **Version comparison** against Room's currently active version for that
+   variant (`AmaliyahVersionDao.getActiveForVariant`): no existing version →
+   import; a lower incoming version → skipped, Room never downgraded; equal
+   version with a matching checksum → skipped (already up to date, safe to
+   re-run on every launch or sync); equal version with a different checksum
+   → rejected as an immutable-version contract violation, Room unchanged; a
+   higher incoming version → replace.
+5. A fresh import inserts amaliyah → variant → approval → version → steps.
+   A replace additionally deletes the previous version's version-scoped
+   reading progress, its version row, and its approval row. Either way, all
+   writes for one package happen inside one
+   `SanguSantriDatabase.withTransaction { }` block — any failure rolls back
+   the entire package atomically; no partial rows remain (PRD 12.4).
 
-Each package is imported independently: one malformed package must never
-block or partially corrupt another (PRD 12.4).
+Each package is imported independently: one malformed or stale package must
+never block or partially corrupt another (PRD 12.4). Full algorithm and
+failure/retry semantics: `docs/engineering/OFFLINE_FIRST.md`.
 
 ## Content safety
 

@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
+import com.sangusantri.app.data.local.content.BundledContentBootstrapper
 import com.sangusantri.app.data.local.dao.AmaliyahDao
 import com.sangusantri.app.data.local.dao.AmaliyahStepDao
 import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
@@ -21,7 +22,6 @@ import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVersionEntity
 import com.sangusantri.app.data.local.entity.ApprovalEntity
-import com.sangusantri.app.data.local.seed.SeedContentImporter
 import com.sangusantri.app.domain.model.AmaliyahVersionStatus
 import com.sangusantri.app.domain.model.ApprovalStatus
 import com.sangusantri.app.domain.model.OwnerType
@@ -40,11 +40,10 @@ import javax.inject.Inject
 /**
  * Exercises the Full Reader against the real Hilt graph, reached the same way a user does: tap an
  * amaliyah card on Serambi, then choose **Bacaan Lengkap** from the Milestone 4 reading-mode gate.
- * The app's bundled seed content stays DRAFT/PENDING (Milestone 1 scope) and is never returned by
- * `ContentRepository.getDefaultVersionDetail`, so a dedicated, clearly-fixture-labelled PUBLISHED
- * test amaliyah is inserted directly via the injected DAOs — guarded by `existsById` so reruns on
- * the same emulator stay idempotent, mirroring
- * [com.sangusantri.app.data.local.seed.SeedContentImporter]'s own idempotency pattern.
+ * A dedicated, clearly-fixture-labelled PUBLISHED test amaliyah is inserted directly via the
+ * injected DAOs (independent of whichever amaliyah the bundled content itself currently ships) —
+ * guarded by `existsById` so reruns on the same emulator stay idempotent, mirroring
+ * [com.sangusantri.app.data.content.ContentPackageImporter]'s own idempotency pattern.
  *
  * Reader preferences live in the real, shared preferences DataStore — not a fake — so every test
  * clears it in `@Before` (not just resets the one field it touches) to guarantee the mode gate
@@ -76,7 +75,7 @@ class ReaderScreenTest {
     lateinit var amaliyahStepDao: AmaliyahStepDao
 
     @Inject
-    lateinit var seedContentImporter: SeedContentImporter
+    lateinit var bundledContentBootstrapper: BundledContentBootstrapper
 
     @Inject
     lateinit var preferencesDataStore: DataStore<Preferences>
@@ -86,7 +85,7 @@ class ReaderScreenTest {
         hiltRule.inject()
         runBlocking {
             preferencesDataStore.edit { it.clear() }
-            seedContentImporter.importSeedContent()
+            bundledContentBootstrapper.bootstrap()
             seedFixtureIfMissing()
         }
     }

@@ -11,20 +11,21 @@ duplicated here — this document is the target scenario list, not a log.
 
 ## Android unit tests
 
-Required coverage as features land: seed manifest comparison, content
-checksum validation, content version selection, revoked-version fallback,
-guided automatic advancement, guided manual advancement, counter increment,
-counter reset, completion eligibility, reading progress restoration,
-repository local-first behaviour, sync failure retaining old content,
-feedback outbox state transitions, reader settings mapping.
+Required coverage as features land: content manifest comparison, content
+checksum validation, content version selection, sync scheduling gate
+policy, guided automatic advancement, guided manual advancement, counter
+increment, counter reset, completion eligibility, reading progress
+restoration, repository local-first behaviour, sync failure retaining old
+content, feedback outbox state transitions, reader settings mapping.
 
 ## Room tests
 
-Use an in-memory Room database on Android instrumentation for: seed import,
-duplicate import, transaction rollback, version activation, previous-version
-retention, progress persistence, database migration. See
-`SeedContentImporterTest` and `SanguSantriMigrationTest` for the existing
-pattern to extend.
+Use an in-memory Room database on Android instrumentation for: content
+package import, duplicate import (idempotency), transaction rollback,
+version replacement (atomic, never downgrading), version-scoped progress
+reset on replacement, database migration. See `ContentPackageImporterTest`
+for the existing pattern to extend — Android intentionally has no
+previous-version retention to test (superseded FR-011, ADR 0012).
 
 ## Compose UI tests
 

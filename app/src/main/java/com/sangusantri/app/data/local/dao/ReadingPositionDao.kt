@@ -12,4 +12,7 @@ interface ReadingPositionDao {
 
     @Query("SELECT * FROM reading_positions WHERE versionId = :versionId")
     suspend fun getByVersionId(versionId: String): ReadingPositionEntity?
+
+    @Query("DELETE FROM reading_positions WHERE versionId = :versionId")
+    suspend fun deleteByVersionId(versionId: String)
 }

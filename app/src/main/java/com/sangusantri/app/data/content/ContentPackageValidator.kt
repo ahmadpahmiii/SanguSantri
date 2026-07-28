@@ -1,7 +1,7 @@
-package com.sangusantri.app.data.local.seed
+package com.sangusantri.app.data.content
 
-import com.sangusantri.app.data.local.seed.dto.AmaliyahStepDto
-import com.sangusantri.app.data.local.seed.dto.ContentPackageDto
+import com.sangusantri.app.data.content.dto.AmaliyahStepDto
+import com.sangusantri.app.data.content.dto.ContentPackageDto
 import com.sangusantri.app.domain.model.StepType
 
 sealed interface ContentPackageValidation {
@@ -13,7 +13,7 @@ sealed interface ContentPackageValidation {
 }
 
 /** Pure structural validation of a parsed content package, run before any database write (PRD 12.4). */
-object SeedContentValidator {
+object ContentPackageValidator {
     const val SUPPORTED_SCHEMA_VERSION = 1
 
     fun validate(pkg: ContentPackageDto): ContentPackageValidation {
@@ -88,10 +88,13 @@ object SeedContentValidator {
             step.arabicText.isNullOrBlank() -> "QURAN_AYAH requires arabicText"
             step.quranSurahNumber == null || step.quranSurahNumber <= 0 ->
                 "QURAN_AYAH requires a positive quranSurahNumber"
+
             step.quranAyahStart == null || step.quranAyahStart <= 0 ->
                 "QURAN_AYAH requires a positive quranAyahStart"
+
             step.quranAyahEnd != null && step.quranAyahEnd < step.quranAyahStart ->
                 "QURAN_AYAH quranAyahEnd must not precede quranAyahStart"
+
             else -> null
         }
 

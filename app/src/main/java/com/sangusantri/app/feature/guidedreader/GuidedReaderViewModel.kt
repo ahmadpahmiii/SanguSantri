@@ -45,7 +45,9 @@ import kotlinx.coroutines.launch
  */
 @Suppress("TooManyFunctions")
 @HiltViewModel(assistedFactory = GuidedReaderViewModel.Factory::class)
-class GuidedReaderViewModel @AssistedInject constructor(
+class GuidedReaderViewModel
+@AssistedInject
+constructor(
     @Assisted private val amaliyahSlug: String,
     private val contentRepository: ContentRepository,
     private val guidedReadingRepository: GuidedReadingRepository,

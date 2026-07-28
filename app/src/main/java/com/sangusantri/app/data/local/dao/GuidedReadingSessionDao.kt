@@ -12,4 +12,7 @@ interface GuidedReadingSessionDao {
 
     @Query("SELECT * FROM guided_reading_sessions WHERE versionId = :versionId")
     suspend fun getByVersionId(versionId: String): GuidedReadingSessionEntity?
+
+    @Query("DELETE FROM guided_reading_sessions WHERE versionId = :versionId")
+    suspend fun deleteByVersionId(versionId: String)
 }

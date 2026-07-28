@@ -49,8 +49,8 @@ fun AmaliyahCard(
     }
 }
 
-// Development-only preview fixture — mirrors the bracketed placeholder convention used by the
-// bundled non-production seed content (app/src/main/assets/content), never real amaliyah text.
+// Development-only preview fixture — mirrors the bracketed placeholder convention used for
+// non-production bundled content fixtures, never real amaliyah text.
 private val previewAmaliyah =
     Amaliyah(
         id = "tahlil",

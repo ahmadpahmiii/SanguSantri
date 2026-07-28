@@ -7,20 +7,31 @@ pesantren-specific amaliyah.
 * Minimum SDK: 26.
 * Current release: `0.0.1`. Current content: Tahlil and Istighosah.
 * Architecture: offline-first Clean Architecture, one Gradle module.
-* Current state: Milestones 0–6 (foundation; content model + seed import;
-  Serambi; Full Amaliyah Reader; local production content bootstrap;
-  Guided Reader + integrated tasbih; content-wiring fix + Istighosah
-  draft; content release baseline + reader mode switching; risk-based
-  content publication governance) are complete — verify this against
-  `docs/PROGRESS.md` before assuming otherwise; commit titles in `git log`
-  are not a reliable milestone indicator (see
+* Current state: Milestones 0–6 (foundation; content model + content
+  import; Serambi; Full Amaliyah Reader; local production content
+  bootstrap; Guided Reader + integrated tasbih; content-wiring fix +
+  Istighosah draft; content release baseline + reader mode switching;
+  risk-based content publication governance) are complete — verify this
+  against `docs/PROGRESS.md` before assuming otherwise; commit titles in
+  `git log` are not a reliable milestone indicator (see
   `docs/reviews/audit-resolution.md`). A Figma product-alignment
   documentation pass (2026-07-26) has since renamed the home destination
   Serambi → **Beranda** and expanded `0.0.1`'s documented scope (Beranda
   rebuild, Jelajahi Amaliyah, reader TOC/repetition-shortcut) ahead of the
   matching implementation milestones — see `docs/design/FIGMA_HANDOFF.md`
   and `docs/reviews/figma-product-alignment.md` before assuming the
-  current code matches the current docs for any of that work.
+  current code matches the current docs for any of that work. Milestone 8
+  (Content Delivery Foundation and Remote Synchronisation, 2026-07-28) has
+  since replaced the seed-only bundled-content pipeline
+  (`SeedContentSource`/`AssetSeedContentSource`/`SeedContentImporter`,
+  deleted) with a shared `ContentPackageImporter` used by both bundled
+  bootstrap and a new, implemented Android remote-content-synchronisation
+  client (`data/remote/`, `data/sync/`) against the still-undeployed Go
+  backend's contract — see ADR
+  [0012](decisions/0012-bundled-bootstrap-and-remote-sync.md) and the
+  rewritten `docs/product/PRD.md` FR-010/FR-011 before assuming remote
+  sync "is not part of `0.0.1`" or that Android retains previous content
+  versions — neither is true any more.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, standalone Quran feature, Quran API integration (Kemenag or
   Quran Foundation), or Quran audio is on the roadmap

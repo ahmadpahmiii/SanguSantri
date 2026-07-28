@@ -1952,3 +1952,326 @@ still-persisted translation-line-spacing preference remain outstanding.
 Phase B only after its required local favourite/recent/category state and
 navigation rollout decision are in scope; otherwise perform the missing
 on-device Phase A visual/accessibility validation first.
+
+## Milestone 8 — Content Delivery Foundation and Remote Synchronisation
+
+**Status:** Implemented and verified locally — `:app:ktlintFormat`,
+`:app:ktlintCheck`, `:app:detekt`, `:app:lintDebug`, `:app:testDebugUnitTest`
+(41/41), `:app:compileDebugAndroidTestKotlin`, `:app:assembleDebug`, and
+`:app:assembleRelease` (R8/shrinking, `lintVitalRelease`) all pass.
+`:app:connectedDebugAndroidTest` was **not** run — `adb devices` returned no
+attached device/emulator this session; the new and adapted instrumented
+tests below compile and are believed correct against a real in-memory Room
+database and MockWebServer, but are unverified on-device. No manual
+on-device verification was performed for the same reason.
+
+**Scope:** An explicitly approved product/tech-lead decision (out of the
+normal `0.0.1` reader-UX phase sequence, alongside Milestone 6's precedent)
+to refactor the bundled-content pipeline into a shared, transport-agnostic
+importer and implement the Android remote-content-synchronisation
+foundation now, ahead of the Go backend's own implementation (a parallel,
+still-undeployed workstream). The application remains fully functional
+offline, with the backend unreachable, or before it has ever been deployed
+— API failure never removes, replaces, downgrades, or hides valid content
+already in Room.
+
+### Refactor: one shared content-package importer, not two
+
+`data/local/seed/` (`SeedContentSource`, `AssetSeedContentSource`,
+`SeedContentImporter`, `SeedContentValidator`, `SeedContentChecksum`,
+`SeedImportOutcome`, `SeedContentMapper`, `dto/ContentManifestDto`,
+`dto/ContentPackageDto`) is deleted outright, not renamed in place. Its
+canonical-model/checksum/validation/transactional-import behaviour was
+extended (version comparison, atomic replace, progress reset) and moved to
+`data/content/` (`ContentPackageImporter`, `ContentPackageValidator`,
+`ContentChecksum`, `ContentImportOutcome`, `ContentPackageMapper`,
+`dto/ContentPackageDto`) — the one shared boundary bundled assets and the
+backend both go through. No second generic `ContentSource` interface was
+reintroduced: there are exactly two concrete responsibilities
+(`BundledContentBootstrapper` reads `AssetManager` directly, no interface
+around it; `ContentRemoteDataSource` talks to Retrofit), each with exactly
+one implementation.
+
+`ContentPackageImporter.importPackage(rawBytes, expectedVersionId,
+expectedChecksumSha256)` does, in order: checksum verify → parse → verify
+the parsed `version.id` matches what the caller declared → structural
+validation → minimum-app-version-code check → compare against
+`AmaliyahVersionDao.getActiveForVariant` (a new query returning Room's one
+active row for a variant regardless of status) → import fresh, skip
+(older/up-to-date), reject (checksum conflict), or replace. A replace
+inserts the new approval/version/steps first, then — only then — deletes
+the previous version's version-scoped reading progress
+(`ReadingPositionDao`/`GuidedReadingSessionDao`/`StepProgressDao`, each
+gained a new `deleteByVersionId`), the previous version row (cascades its
+steps via the existing foreign key), and the previous approval row, all
+inside one `SanguSantriDatabase.withTransaction` block — matching the
+brief's exact ordering (insert new before deleting old, since both carry
+different immutable ids and cannot collide). `AmaliyahDao`/
+`AmaliyahVariantDao` gained `@Upsert` methods (metadata such as a
+corrected title now updates in place across a version bump, per the
+brief); approval/version/step rows remain plain, never-updated inserts,
+consistent with their immutability.
+
+### Previous-version fallback removed (PRD FR-011 rewritten)
+
+`AmaliyahVersionDao.getLatestNonRevokedForVariant` and
+`ContentRepositoryImpl`'s corresponding `BuildConfig.DEBUG`-gated fallback
+in `resolveVersion` are deleted; `getDefaultVersionDetail` now resolves
+`getLatestPublishedForVariant` unconditionally, in every build. Android
+retains only the current active version per variant — no previous-version
+browsing, no previous-version fallback — while the backend keeps full
+immutable revision history (ADR 0008, unaffected). This on-device fallback
+was never actually wired to real revocation behaviour in the running app
+(it only ever surfaced local `DRAFT` fixtures in debug builds, a
+development affordance, not FR-011's revoked-version fallback), so no real
+production behaviour was removed — only dead/superseded logic and its
+matching documentation.
+
+### Remote data and sync layers (new)
+
+`data/remote/api/ContentApiService.kt` (Retrofit interface: `GET
+v1/content/manifest` with `If-None-Match`, `GET
+v1/content/packages/{versionId}` streamed via `@Streaming`),
+`data/remote/dto/RemoteContentManifestDto.kt` (backend-specific manifest
+shape — deliberately different from the bundled manifest DTO, sharing only
+`ContentPackageDto`), `data/remote/ContentRemoteDataSource.kt` (typed
+`ManifestFetchOutcome`/`PackageFetchOutcome`/`RemoteContentFailure` —
+Retrofit `Response`/`ResponseBody`/HTTP exceptions never cross this
+boundary; package bytes stream into a 5 MiB-capped temporary cache file,
+always deleted after use, success or failure).
+
+`data/sync/ContentSyncCoordinator.kt` implements the sync algorithm: fetch
+manifest with the stored ETag → `304` stops immediately (`NotModified`, no
+package touched) → `200` checks `schemaVersion`, then per package checks
+`minimumAppVersionCode` and compares the manifest-declared
+`versionNumber`/`checksumSha256` against `ContentPackageImporter`'s active-
+version summary *before downloading anything* (bandwidth avoidance) —
+older/up-to-date/checksum-conflicting packages are never downloaded; only
+a genuinely newer package is fetched and handed to the same
+`ContentPackageImporter.importPackage` bundled bootstrap uses. Per-package
+failure is isolated (one malformed/unreachable package never blocks
+another); the run's outcome distinguishes `NotModified`/`NoChanges`/
+`Updated`/`PartialFailure`/`CompleteFailure`/`Failed` (`ContentSyncOutcome.kt`).
+`data/sync/ContentSyncMetadata.kt` persists `content_last_sync`
+(status + the last *terminal* attempt's timestamp),
+`content_manifest_etag`, and `content_manifest_version` through the
+existing `app_metadata` table — no new table was created for this.
+`data/sync/ContentSyncScheduler.kt` enqueues one unique one-time
+`ContentSyncWorker` (`sangu-santri-content-sync`, `ExistingWorkPolicy.KEEP`,
+`NetworkType.CONNECTED`) only when the last terminal attempt is 24+ hours
+old or has never happened — not a periodic worker.
+`data/sync/ContentSyncWorker.kt` (`@HiltWorker`/`CoroutineWorker`)
+classifies `IOException`/timeout/HTTP 408/429/5xx as transient (bounded
+exponential backoff, `Result.retry()`, 3 attempts total; terminal `FAILED`
+recorded only after the last attempt) and everything else (unsupported
+schema, checksum mismatch, invalid structure, unsupported minimum app
+version, non-retriable 4xx) as permanent (terminal `FAILED` recorded
+immediately, Room untouched, no crash).
+
+### Network configuration and DI
+
+`gradle/libs.versions.toml`/`app/build.gradle.kts`: Retrofit `3.0.0` +
+`converter-kotlinx-serialization` `3.0.0`, OkHttp `5.4.0`, WorkManager
+(`work-runtime-ktx`) `2.11.2`, Hilt Worker extension
+(`androidx.hilt:hilt-work`/`hilt-compiler`) `1.4.0` — all latest stable,
+no alpha/beta. `BuildConfig.CONTENT_API_BASE_URL` is set from the Gradle
+property `SANGU_CONTENT_API_BASE_URL`, defaulting to the non-routable
+`https://content-api.sangusantri.invalid/` (RFC 2606) when unset — the
+project builds and the app runs fully offline with no real backend
+configured; supplying the real property later activates real sync with no
+Android code change. `di/NetworkModule.kt` provides the `OkHttpClient`,
+`Json`, `Retrofit`, and `ContentApiService` singletons.
+`di/ContentModule.kt`'s `SeedContentSource` binding was removed (no longer
+exists); every new class is a plain `@Inject constructor` with no `@Binds`
+needed. `AndroidManifest.xml` gained `INTERNET`/`ACCESS_NETWORK_STATE`
+permissions and a manifest-merge removal of WorkManager's default
+`androidx-startup` `WorkManagerInitializer` (verified absent from the
+built release manifest via `aapt2 dump xmltree`), since
+`SanguSantriApplication` now supplies its own `Configuration.Provider`
+(injected `HiltWorkerFactory`) per official Hilt+WorkManager guidance.
+
+### Application startup
+
+`SanguSantriApplication.onCreate()` launches one application-scoped IO
+coroutine that calls `bundledContentBootstrapper.bootstrap()` then
+`contentSyncScheduler.enqueueIfStale()` — neither blocks the first frame;
+Beranda continues to observe Room reactively exactly as before. Bootstrap
+failure is caught and logged, never crashes, and does not prevent sync
+scheduling from still running afterward.
+
+### Tests deleted, renamed, and added
+
+Deleted: `data/local/seed/SeedContentImporterTest.kt` (androidTest),
+`data/local/seed/SeedContentChecksumTest.kt`/`SeedContentValidatorTest.kt`
+(test) — superseded by the renamed/rewritten tests below, not merely
+duplicated at a different layer.
+
+Renamed and extended: `data/content/ContentChecksumTest.kt`,
+`data/content/ContentPackageValidatorTest.kt` (test, same coverage as
+before under the new names). `data/content/ContentPackageImporterTest.kt`
+(androidTest, in-memory Room) covers: fresh import into empty Room,
+re-import idempotency, never-downgrading a lower incoming version,
+same-version-different-checksum rejected as a conflict with Room
+unchanged, invalid checksum/structure rejected with nothing written, a
+genuine SQLite constraint failure mid-import rolling back the whole
+package, a higher version replacing the active version atomically
+(including updated amaliyah metadata), and version-scoped progress
+(reading position, guided session, step counters) being removed after a
+replace.
+
+Added: `data/sync/ContentSyncMetadataTest.kt` (test, fake in-memory
+`AppMetadataDao`, no Room needed — covers the metadata read/write
+contract the 24-hour gate depends on). `data/sync/ContentSyncCoordinatorTest.kt`
+(androidTest, MockWebServer + in-memory Room) covers: a `304` response
+never downloads any package, a manifest-fetch failure (`500`) leaves Room
+unchanged, a package already matching Room's active version/checksum is
+skipped without a package-endpoint request, and one package's `500`
+failure is isolated from another package's success in the same manifest
+(`PartialFailure`, correct updated/failed lists, Room holds the successful
+package only). `data/sync/ContentSyncSchedulerTest.kt` (androidTest,
+`androidx.work:work-testing`) covers: a fresh install with no prior sync
+enqueues work, a sync within the last 24 hours does not, a sync older than
+24 hours does, and repeated calls under `ExistingWorkPolicy.KEEP` never
+produce more than one enqueued work item.
+
+Adapted (compilation only, no behaviour change): `feature/home/SerambiScreenTest.kt`
+and `feature/reader/ReaderScreenTest.kt` now inject `BundledContentBootstrapper`
+and call `.bootstrap()` instead of the deleted `SeedContentImporter`/
+`.importSeedContent()`.
+
+### Files created
+
+`data/content/{ContentChecksum,ContentPackageValidator,ContentPackageMapper,
+ContentImportOutcome,ContentPackageImporter}.kt`,
+`data/content/dto/ContentPackageDto.kt`,
+`data/local/content/{BundledManifestDto,BundledContentBootstrapper}.kt`,
+`data/remote/api/ContentApiService.kt`,
+`data/remote/dto/RemoteContentManifestDto.kt`,
+`data/remote/{ContentRemoteDataSource,RemoteContentFailure}.kt`,
+`data/sync/{ContentSyncMetadata,ContentSyncOutcome,ContentSyncCoordinator,
+ContentSyncScheduler,ContentSyncWorker}.kt`, `di/NetworkModule.kt`,
+`docs/decisions/0012-bundled-bootstrap-and-remote-sync.md`.
+
+Test: `data/content/{ContentChecksumTest,ContentPackageValidatorTest}.kt`,
+`data/content/ContentPackageImporterTest.kt` (androidTest),
+`data/sync/ContentSyncMetadataTest.kt`,
+`data/sync/{ContentSyncCoordinatorTest,ContentSyncSchedulerTest}.kt`
+(androidTest).
+
+### Files modified
+
+`data/local/dao/{AmaliyahDao,AmaliyahVariantDao,AmaliyahVersionDao,
+ApprovalDao,ReadingPositionDao,GuidedReadingSessionDao,StepProgressDao}.kt`
+(new `@Upsert`/`getActiveForVariant`/`deleteById`/`deleteByVersionId`
+methods; removed dead `existsById`/`getLatestNonRevokedForVariant`),
+`data/repository/ContentRepositoryImpl.kt` (removed the `BuildConfig.DEBUG`
+fallback), `di/ContentModule.kt` (removed the deleted `SeedContentSource`
+binding), `SanguSantriApplication.kt` (`Configuration.Provider`, bundled
+bootstrap + sync scheduling on startup), `AndroidManifest.xml` (permissions,
+WorkManager initializer removal), `app/build.gradle.kts`,
+`gradle/libs.versions.toml` (new dependencies, `CONTENT_API_BASE_URL`),
+`feature/home/AmaliyahCard.kt`/`domain/model/StepType.kt` (stale "seed"
+wording in comments only), `feature/home/SerambiScreenTest.kt`,
+`feature/reader/ReaderScreenTest.kt` (see Tests above).
+
+Docs: `docs/product/PRD.md` (version 1.4 → 1.5: Backend/offline-first
+framing, §5.1/§5.2, §8.1, FR-001, rewritten FR-010, rewritten FR-011, §13
+item 12), `docs/product/ROADMAP.md`, `docs/engineering/ARCHITECTURE.md`
+(package structure, new Remote content synchronisation section, stale
+feedback-endpoint references removed), `docs/engineering/OFFLINE_FIRST.md`
+(rewritten to match implemented reality), `docs/engineering/CONTENT_MODEL.md`
+(backend-history-vs-Android-retention note, progress-reset note, sync
+metadata via `app_metadata`), `docs/content-schema.md` (shared
+package/two-manifests framing, renamed class references),
+`docs/decisions/0006-content-schema-and-seed-import.md` (Consequences
+marked superseded, not rewritten), `CLAUDE.md`, this file.
+
+### Files deleted
+
+`data/local/seed/` (entire package): `SeedContentSource.kt`,
+`AssetSeedContentSource.kt`, `SeedContentChecksum.kt`,
+`SeedContentValidator.kt`, `SeedContentImporter.kt`,
+`SeedContentMapper.kt`, `SeedImportOutcome.kt`,
+`dto/ContentManifestDto.kt`, `dto/ContentPackageDto.kt`. Test:
+`test/.../data/local/seed/{SeedContentChecksumTest,SeedContentValidatorTest}.kt`,
+`androidTest/.../data/local/seed/SeedContentImporterTest.kt`.
+
+### Commands executed
+
+`./gradlew :app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin`,
+`:app:compileDebugAndroidTestKotlin`, `:app:ktlintFormat`, `:app:ktlintCheck`,
+`:app:detekt`, `:app:testDebugUnitTest`, `:app:lintDebug`,
+`:app:assembleDebug`, `:app:assembleRelease` — all passed. `adb devices`
+returned no attached device/emulator. `aapt2 dump badging`/`dump xmltree`/
+`unzip -l` against the built release APK — confirmed manually (see Manual
+verification below).
+
+### Results
+
+`testDebugUnitTest`: 41/41 JVM unit tests passed (7 test classes, 0
+failures/errors). `ktlintFormat`/`ktlintCheck`/`detekt`: all pass (0 issues,
+`maxIssues: 0` gate). `lintDebug`: `BUILD SUCCESSFUL`, 13 pre-existing/
+version-suggestion warnings, 0 errors. `assembleDebug`/`assembleRelease`:
+`BUILD SUCCESSFUL`, including `lintVitalRelease` and R8 shrinking/
+optimisation. `compileDebugAndroidTestKotlin`: compiles clean (one
+pre-existing, unrelated `createAndroidComposeRule` deprecation warning).
+`connectedDebugAndroidTest` was not run — no device/emulator available.
+
+### Manual verification
+
+No emulator/device was available this session, so no on-device manual
+verification was performed. Verified instead by direct inspection of build
+artifacts: the built release APK (`aapt2 dump badging`) declares `INTERNET`/
+`ACCESS_NETWORK_STATE`; its merged manifest (`aapt2 dump xmltree`) shows the
+`androidx.work.WorkManagerInitializer` meta-data entry correctly absent
+from the `androidx-startup` provider (other libraries' initializers —
+EmojiCompat, ProcessLifecycle, OkHttp's platform initializer, ProfileInstaller
+— remain, confirming only the intended entry was removed) while
+`SanguSantriApplication`'s custom `Configuration.Provider` compiles and
+links correctly; `unzip -l` on the same release APK confirms
+`assets/content/{manifest.json,tahlil-general-v1.json,istighosah-general-v1.json}`
+remain bundled, byte-identical in size to before this milestone (bundled
+Tahlil/Istighosah were never touched).
+
+### Known limitations
+
+* **No real backend exists or is deployed.** `BuildConfig.CONTENT_API_BASE_URL`
+  points at a non-routable `.invalid` placeholder; every remote sync
+  attempt in a real build will fail with a network error (correctly
+  classified transient, correctly leaves Room untouched, correctly does
+  not crash) until a real, deployed backend URL is supplied via the
+  `SANGU_CONTENT_API_BASE_URL` Gradle/CI property. Implementing the actual
+  Go service remains explicitly out of scope for this milestone (and
+  remains a separate, explicitly-requested task per `CLAUDE.md`/ADR 0011).
+* **`connectedDebugAndroidTest` was not run** — no emulator/device this
+  session. The new and adapted instrumented tests (`ContentPackageImporterTest`,
+  `ContentSyncCoordinatorTest`, `ContentSyncSchedulerTest`, the adapted
+  `SerambiScreenTest`/`ReaderScreenTest`) compile successfully but are
+  unverified on a real device.
+* **No manual on-device verification** of the required scenarios (fresh
+  install in airplane mode, 24-hour gate not re-firing within the window,
+  a simulated newer/invalid remote package, progress reset after a real
+  replacement, higher-Room-version-not-downgraded-by-bundled-bootstrap,
+  process restart still showing Room immediately) — all are covered by the
+  automated test suite above, none by a real device this session.
+* The exact backend response shapes (`RemoteContentManifestDto`,
+  `ContentPackageDto` over HTTP) are this Android team's contract proposal,
+  informed by `CLAUDE.md`'s suggested shape — they have not been confirmed
+  against a real, running Go implementation, since none exists yet.
+* Revocation (`AmaliyahVersionStatus.REVOKED`) has no dedicated remote
+  handling beyond ordinary version comparison — a `REVOKED` remote entry is
+  not currently distinguished from any other manifest entry by
+  `ContentSyncCoordinator`; the backend is expected to simply stop listing
+  a revoked variant's old version in future manifests rather than the
+  Android client acting on a `status` value it receives. This was not
+  called out as required behaviour in the brief and was not built.
+
+### Next recommended milestone
+
+Not specified by this brief. Building the actual Go backend service (ADR
+
+0011) is the natural next step to make this Android work observably
+      functional end-to-end, but remains a separate, explicitly-requested task —
+      `docs/product/ROADMAP.md` should be revisited for the next scheduled
+      Android-side item in the meantime (Phase B — Beranda/Jelajahi Amaliyah, per
+      Milestone 7's own recommendation, still outstanding).

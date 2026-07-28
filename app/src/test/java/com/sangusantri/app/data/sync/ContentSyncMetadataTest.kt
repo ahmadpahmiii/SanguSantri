@@ -30,25 +30,15 @@ class ContentSyncMetadataTest {
         }
 
     @Test
-    fun saveManifestInfoPersistsEtagAndManifestVersion() =
+    fun recordTerminalSyncOverwritesThePreviousStatus() =
         runTest {
             val dao = FakeAppMetadataDao()
             val metadata = ContentSyncMetadata(dao)
 
-            metadata.saveManifestInfo(ManifestSyncInfo(etag = "\"abc123\"", manifestVersion = 4))
+            metadata.recordTerminalSync(ContentSyncStatus.PARTIAL)
+            metadata.recordTerminalSync(ContentSyncStatus.SUCCESS)
 
-            assertEquals("\"abc123\"", metadata.getStoredEtag())
-            assertEquals("4", dao.getByKey(ContentSyncMetadata.KEY_MANIFEST_VERSION)?.value)
-        }
-
-    @Test
-    fun saveManifestInfoWithNullEtagLeavesEtagUnset() =
-        runTest {
-            val metadata = ContentSyncMetadata(FakeAppMetadataDao())
-
-            metadata.saveManifestInfo(ManifestSyncInfo(etag = null, manifestVersion = 1))
-
-            assertNull(metadata.getStoredEtag())
+            assertEquals(ContentSyncStatus.SUCCESS.name, dao.getByKey(ContentSyncMetadata.KEY_LAST_SYNC)?.value)
         }
 
     private class FakeAppMetadataDao : AppMetadataDao {

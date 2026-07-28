@@ -58,8 +58,8 @@ constructor(
                         Log.w(
                             TAG,
                             "Content unavailable for slug=$amaliyahSlug: " +
-                                "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
-                                "stepCount=${detail?.steps?.size ?: 0}",
+                                    "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
+                                    "stepCount=${detail?.steps?.size ?: 0}",
                         )
                     }
                     isAvailable

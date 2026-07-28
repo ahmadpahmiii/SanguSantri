@@ -12,7 +12,7 @@ import javax.inject.Inject
  * Canonical transactional Room operation for a content package (PRD 12.2, 12.4). Does not know
  * whether [importPackage]'s bytes came from bundled assets
  * ([com.sangusantri.app.data.local.content.BundledContentBootstrapper]) or the backend
- * ([com.sangusantri.app.data.sync.ContentSyncCoordinator]) — both call this class.
+ * ([com.sangusantri.app.data.sync.ContentSyncManager]) — both call this class.
  *
  * Android keeps only the current active version per variant (no previous-version retention or
  * fallback): a package with a higher `versionNumber` than Room's active version replaces it

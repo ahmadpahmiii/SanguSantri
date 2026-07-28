@@ -274,17 +274,19 @@ implemented and is not planned for any currently scheduled release.
 Remote sync bookkeeping (`ContentSyncMetadata`, `data/sync/`) is stored
 through the existing generic `app_metadata` key-value table
 (`AppMetadataEntity`/`AppMetadataDao`) rather than a new dedicated table
-solely for one timestamp and one ETag — inspection confirmed the existing
-table already represents this safely. Keys: `content_last_sync`
-(`value` one of `UPDATED`/`NOT_MODIFIED`/`NO_CHANGES`/`FAILED`,
-`updatedAtEpochMillis` the last *terminal* remote sync attempt — including
-a terminal failure, which is what the 24-hour scheduling gate reads),
-`content_manifest_etag` (the stored `ETag` sent as `If-None-Match`), and
-`content_manifest_version` (the remote manifest's own `manifestVersion`
-field, informational). A previous version of this document said this table
-was "removed from `0.0.1` scope" alongside remote sync generally — that is
-superseded by the Content Delivery Foundation decision (ADR 0012); sync
-metadata now exists, just not as its own table.
+solely for one timestamp — inspection confirmed the existing table already
+represents this safely. One key: `content_last_sync` (`value` one of
+`SUCCESS`/`PARTIAL`/`FAILED`, `updatedAtEpochMillis` the last *terminal*
+remote sync attempt — including a terminal failure, which is what the
+24-hour scheduling gate reads). A previous version of this document said
+this table was "removed from `0.0.1` scope" alongside remote sync
+generally — that is superseded by the Content Delivery Foundation decision
+(ADR 0012); sync metadata now exists, just not as its own table. The
+2026-07-28 sync simplification (ADR 0012 amendment) removed the manifest
+ETag and manifest-version bookkeeping this section previously documented
+(`content_manifest_etag`, `content_manifest_version`) — the manifest is
+fetched plainly at most once every 24 hours, so there was nothing left for
+either key to usefully cache or debug.
 
 User preferences remain in DataStore, not Room.
 

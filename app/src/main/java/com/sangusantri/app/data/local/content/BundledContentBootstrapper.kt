@@ -4,6 +4,8 @@ import android.content.Context
 import com.sangusantri.app.data.content.ContentImportOutcome
 import com.sangusantri.app.data.content.ContentPackageImporter
 import com.sangusantri.app.data.content.ContentPackageValidator
+import com.sangusantri.app.data.content.ContentVersionAction
+import com.sangusantri.app.data.content.decideContentVersionAction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,8 +19,11 @@ import javax.inject.Inject
  * content if the backend has never been reached, and reconciles the bundled baseline against
  * whatever remote sync has already put in Room without ever downgrading it (PRD 3.2, FR-001).
  *
- * Idempotent and safe to call on every launch: [ContentPackageImporter] already skips a package
- * whose version is at or behind Room's active version for that variant.
+ * Idempotent and safe to call on every launch: each entry is compared against Room's active
+ * version for that variant *before* its package asset is even read (section 5) — an older or
+ * already-current bundled entry never touches [android.content.res.AssetManager] at all, and a
+ * genuinely newer bundled entry still goes through [ContentPackageImporter]'s own authoritative
+ * comparison and checksum verification.
  */
 class BundledContentBootstrapper
 @Inject
@@ -43,11 +48,23 @@ constructor(
                         ),
                     )
 
-                else -> manifest.packages.map { entry -> importEntry(entry) }
+                else -> manifest.packages.map { entry -> evaluate(entry) }
             }
         }
 
-    private suspend fun importEntry(entry: BundledManifestEntryDto): ContentImportOutcome =
+    private suspend fun evaluate(entry: BundledManifestEntryDto): ContentImportOutcome {
+        val active = contentPackageImporter.activeVersionSummary(entry.variantId) ?: return readAndImport(entry)
+        return when (decideContentVersionAction(entry.versionNumber, entry.checksumSha256, active)) {
+            ContentVersionAction.SKIP_OLDER ->
+                ContentImportOutcome.SkippedOlderVersion(entry.versionId, active.versionId)
+
+            ContentVersionAction.SKIP_UP_TO_DATE -> ContentImportOutcome.AlreadyUpToDate(entry.versionId)
+            ContentVersionAction.REJECT_CHECKSUM_CONFLICT -> ContentImportOutcome.ChecksumConflict(entry.versionId)
+            ContentVersionAction.IMPORT -> readAndImport(entry)
+            }
+        }
+
+    private suspend fun readAndImport(entry: BundledManifestEntryDto): ContentImportOutcome =
         runCatching {
             contentPackageImporter.importPackage(
                 rawBytes = readAsset(entry.file),

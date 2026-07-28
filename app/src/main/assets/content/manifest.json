@@ -3,12 +3,16 @@
   "generatedAt": "2026-07-25T00:00:00Z",
   "packages": [
     {
+      "variantId": "tahlil-umum",
       "versionId": "tahlil-umum-v1",
+      "versionNumber": 1,
       "file": "tahlil-general-v1.json",
       "checksumSha256": "399b569b0225831bff36f84e092c6d71618fab7be8d756eb5e6cb64dcf08afbd"
     },
     {
+      "variantId": "istighosah-umum",
       "versionId": "istighosah-umum-v1",
+      "versionNumber": 1,
       "file": "istighosah-general-v1.json",
       "checksumSha256": "166ca3bd7cffe9f930cc54bd36d260c71c226efd56ab236a8eb32a709eef6496"
     }

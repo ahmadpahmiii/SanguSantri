@@ -16,19 +16,28 @@ The **package** JSON below (`ContentPackageDto`) is identical whether it
 arrives from a bundled asset file or a downloaded package response. The
 **manifest** that lists packages is deliberately transport-specific — the
 bundled manifest and the backend manifest have different fields because
-their concerns genuinely differ (a backend manifest needs `status`,
-`minimumAppVersionCode`, and an ETag-friendly shape; a bundled manifest
-does not):
+their concerns genuinely differ (a backend manifest needs
+`minimumAppVersionCode`; a bundled manifest does not, since an
+unsupported-for-this-build bundled package would simply never have been
+shipped in that build's APK):
 
 * Bundled: `BundledManifestDto`/`BundledManifestEntryDto`
   (`data/local/content/BundledManifestDto.kt`) — `schemaVersion`,
-  `generatedAt`, `packages[]` of `{versionId, file, checksumSha256}`.
+  `generatedAt`, `packages[]` of `{variantId, versionId, versionNumber,
+  file, checksumSha256}`. `variantId`/`versionNumber` let
+  `BundledContentBootstrapper` compare against Room's active version
+  *before* reading the package asset (see Import behaviour below).
 * Remote: `RemoteContentManifestDto`/`RemoteContentManifestPackageDto`
-  (`data/remote/dto/RemoteContentManifestDto.kt`) — `manifestVersion`,
-  `schemaVersion`, `generatedAt`, `packages[]` of `{contentId, variantId,
-  versionId, versionNumber, checksumSha256, minimumAppVersionCode, status}`.
-  Full endpoint contract: `docs/engineering/ARCHITECTURE.md` §Remote
-  content synchronisation, `CLAUDE.md` §7.
+  (`data/remote/dto/RemoteContentManifestDto.kt`) — `schemaVersion`,
+  `packages[]` of `{contentId, variantId, versionId, versionNumber,
+  checksumSha256, minimumAppVersionCode}`. No conditional-request header
+  and no manifest-level version/status field — the manifest is fetched
+  plainly at most once every 24 hours (2026-07-28 sync simplification, ADR
+  0012 amendment) and lists only each variant's currently active published
+  package; the backend keeps full immutable revision history itself,
+  never sent to Android. Full endpoint contract:
+  `docs/engineering/ARCHITECTURE.md` §Remote content synchronisation,
+  `CLAUDE.md` §7.
 
 Neither manifest DTO is forced into one nullable shape with fields like
 both `assetFile` and `downloadUrl` — see ADR
@@ -77,18 +86,20 @@ active version per variant, never a draft alongside it).
 
 ## Bundled `manifest.json`
 
-| Field                       | Type   | Notes                                                                                                                                                                      |
-|-----------------------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `schemaVersion`             | int    | Must equal `1`.                                                                                                                                                            |
-| `generatedAt`               | string | ISO-8601 timestamp, informational only.                                                                                                                                    |
-| `packages[]`                | array  | One entry per content package file.                                                                                                                                        |
-| `packages[].versionId`      | string | Must match `version.id` inside the package file — the importer rejects the package if the id declared inside the file itself disagrees with what the manifest entry named. |
-| `packages[].file`           | string | Filename under `content/`.                                                                                                                                                 |
-| `packages[].checksumSha256` | string | Lowercase hex SHA-256 of the **raw package file bytes**. The importer rejects the package if this does not match.                                                          |
+| Field                       | Type   | Notes                                                                                                                                                                                                                                                                                            |
+|-----------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `schemaVersion`             | int    | Must equal `1`.                                                                                                                                                                                                                                                                                  |
+| `generatedAt`               | string | ISO-8601 timestamp, informational only.                                                                                                                                                                                                                                                          |
+| `packages[]`                | array  | One entry per content package file.                                                                                                                                                                                                                                                              |
+| `packages[].variantId`      | string | Must match `variant.id` inside the package file. Used to look up Room's active version for that variant *before* the package file is read (bandwidth/IO avoidance).                                                                                                                              |
+| `packages[].versionId`      | string | Must match `version.id` inside the package file — the importer rejects the package if the id declared inside the file itself disagrees with what the manifest entry named.                                                                                                                       |
+| `packages[].versionNumber`  | int    | Must match `version.versionNumber` inside the package file. Compared against Room's active version for `variantId` before the file is read: lower or equal-with-matching-checksum skips the read entirely; equal with a different checksum is an immutable-version conflict, logged and skipped. |
+| `packages[].file`           | string | Filename under `content/`.                                                                                                                                                                                                                                                                       |
+| `packages[].checksumSha256` | string | Lowercase hex SHA-256 of the **raw package file bytes**. The importer rejects the package if this does not match.                                                                                                                                                                                |
 
 See "Two manifests, one package contract" above for the backend's
 `RemoteContentManifestDto` equivalent, which lists the same kind of
-per-package checksum plus `versionNumber`/`minimumAppVersionCode`/`status`.
+per-package checksum plus `minimumAppVersionCode`.
 
 ## Package file (e.g. `tahlil-general-v1.json`)
 
@@ -186,12 +197,17 @@ Enforced before any database write:
 ## Import behaviour (`ContentPackageImporter`, shared by bundled and remote — ADR 0012)
 
 1. (Bundled) Read `manifest.json`; validate `schemaVersion`. (Remote) fetch
-   the manifest with the stored `ETag`; a `304` short-circuits with nothing
-   downloaded.
-2. For each entry, read the package's raw bytes (from the asset or a
-   downloaded, size-limited temporary file) and verify
-   `SHA-256(bytes) == checksumSha256`. Mismatch → package rejected, nothing
-   written, import continues with the next package.
+   the manifest plainly — no conditional-request header, since it is
+   checked at most once every 24 hours (the scheduler's own gate). Both
+   paths then compare each entry's `variantId`/`versionNumber`/
+   `checksumSha256` against Room's active version for that variant
+   (`decideContentVersionAction`, shared by both) *before* reading the
+   package's bytes — an older or already-current entry is skipped without
+   ever reading its asset file or downloading its bytes.
+2. For each entry actually worth reading, read the package's raw bytes
+   (from the asset or a downloaded, size-limited temporary file) and
+   verify `SHA-256(bytes) == checksumSha256`. Mismatch → package rejected,
+   nothing written, import continues with the next package.
 3. Parse the package JSON; run structural validation; verify the parsed
    `version.id` matches the manifest entry that named it. Failure → package
    rejected, nothing written.

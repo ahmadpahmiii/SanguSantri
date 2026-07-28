@@ -74,8 +74,8 @@ com.sangusantri.app
 │   │                          canonical package contract (bundled + remote)
 │   ├── local (dao, database, entity)
 │   │   └── content          BundledContentBootstrapper (reads AssetManager)
-│   ├── remote (api, dto)     ContentRemoteDataSource — backend HTTP client
-│   ├── sync                  ContentSyncCoordinator/Scheduler/Worker/Metadata
+│   ├── remote (api, dto)     ContentApiService (Retrofit) + DTOs only
+│   ├── sync                  ContentSyncManager/Scheduler/Worker/Metadata
 │   ├── mapper
 │   └── repository
 ├── domain
@@ -199,11 +199,13 @@ repository per table. Field-level detail:
 
 The Android client against the backend's content API contract (§Backend
 below) is implemented: `BundledContentBootstrapper` (bundled assets) and
-`ContentSyncCoordinator`/`ContentRemoteDataSource` (remote) both delegate
-the actual Room write to one shared `ContentPackageImporter` — neither
-knows or cares which transport produced the bytes. Room remains the sole
-source of truth; the network only ever updates Room, and the UI never
-observes network state directly.
+`ContentSyncManager` (remote — owns both the HTTP handling and the sync
+algorithm, since the 2026-07-28 sync simplification removed the separate
+`ContentRemoteDataSource` wrapper) both delegate the actual Room write to
+one shared `ContentPackageImporter` — neither knows or cares which
+transport produced the bytes. Room remains the sole source of truth; the
+network only ever updates Room, and the UI never observes network state
+directly.
 
 * **Scheduling**: `ContentSyncScheduler.enqueueIfStale()`, called from
   `SanguSantriApplication.onCreate()`, enqueues a unique one-time
@@ -211,18 +213,27 @@ observes network state directly.
   `sangu-santri-content-sync`) only when the last *terminal* sync attempt
   (success or failure) is 24+ hours old or has never happened. Not a
   periodic worker. `NetworkType.CONNECTED` is a hard constraint.
-* **Failure handling**: transient failures (`IOException`, timeout, HTTP
-  408/429/5xx) get bounded exponential-backoff retries (`Result.retry()`,
-  3 attempts total); permanent/data-contract failures (unsupported schema,
-  checksum mismatch, invalid structure, unsupported minimum app version,
-  non-retriable 4xx) record a terminal failure and stop, without crashing
-  or touching Room.
+* **Failure handling**: `ContentSyncManager.sync()` returns one of three
+  `SyncResult`s — `Completed`/`RetryableFailure`/`PermanentFailure`.
+  Retryable failures (`IOException`, timeout, HTTP 408/429/5xx) — whether
+  at the manifest level or for an individual package download — get
+  bounded exponential-backoff retries of the *whole* sync
+  (`Result.retry()`, 3 attempts total; packages already imported earlier
+  in the same attempt are skipped on retry since Room already matches
+  them). Permanent manifest-level failures (unsupported schema,
+  empty/malformed body, non-retriable 4xx) record a terminal failure and
+  stop. Permanent package-level failures (checksum mismatch, invalid
+  structure, unsupported minimum app version, non-retriable 4xx) reject
+  only that package and let the rest of the manifest continue — Room is
+  never touched for the rejected package, and the app never crashes.
 * **Base URL**: `BuildConfig.CONTENT_API_BASE_URL`, set from the Gradle
   property `SANGU_CONTENT_API_BASE_URL` (`app/build.gradle.kts`), defaulting
   to a non-routable `https://content-api.sangusantri.invalid/` when unset.
   Supplying the real property activates the real backend with no code
   change. Retrofit headers are never used as a local/remote content-source
-  switch — `If-None-Match` is the only header with sync-relevant meaning.
+  switch. There is no conditional-request header at all — the manifest is
+  small and checked at most once every 24 hours, so ETag/`304` caching was
+  deliberately removed as unnecessary complexity.
 * **Hilt Worker**: `SanguSantriApplication` implements
   `androidx.work.Configuration.Provider` with an injected
   `HiltWorkerFactory`; the manifest removes WorkManager's default
@@ -292,8 +303,10 @@ logic.
 * `GET /healthz` — service health.
 * `GET /v1/config` — supported content schema, minimum app version, feature
   flags, maintenance state.
-* `GET /v1/content/manifest` — active content versions, checksums, download
-  locations, revocations, minimum app version, ETag.
+* `GET /v1/content/manifest` — each variant's currently active published
+  package only (`contentId`, `variantId`, `versionId`, `versionNumber`,
+  `checksumSha256`, `minimumAppVersionCode`); no conditional-request
+  header, no full revision history (`docs/content-schema.md`).
 * `GET /v1/content/packages/{versionID}` — immutable content package.
 
 Public content-correction feedback (`POST /v1/feedback`) is not part of

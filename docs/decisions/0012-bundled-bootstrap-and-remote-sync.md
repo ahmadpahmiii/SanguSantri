@@ -143,3 +143,84 @@ version comparison naturally resolves.
   `docs/content-schema.md` together — the schema doc is the contract both
   the Android team and the (not yet built) Go publication pipeline must
   honour.
+
+## Amendment (2026-07-28): sync simplification
+
+Approved by the product owner and tech lead: the remote-sync implementation
+above had accumulated more machinery than the actual requirement (the
+manifest is checked at most once every 24 hours) justified. This amendment
+does not reopen the decision above — bundled-plus-remote sharing one
+`ContentPackageImporter`, Room as sole source of truth, one active version
+per variant, atomic replacement, and the 24-hour opportunistic worker are
+all unchanged. It simplifies the *implementation* of the remote path:
+
+* **ETag removed entirely.** The manifest is small and is fetched at most
+  once per 24 hours, so conditional-request caching added complexity with
+  no real bandwidth benefit. `If-None-Match`, `304` handling,
+  `ManifestFetchOutcome.NotModified`/`ContentSyncOutcome.NotModified`,
+  `ContentSyncStatus.NOT_MODIFIED`, `ManifestSyncInfo.etag`, and the stored
+  `content_manifest_etag` metadata key are all deleted. A normal sync now
+  always issues a plain `GET v1/content/manifest` and reads the `200`
+  response; the backend contract no longer needs to support conditional
+  requests at all. `content_manifest_version` is deleted too — the
+  simplified remote manifest (section 10 of the task brief that drove this
+  amendment) has no `manifestVersion` field left to store, and nothing else
+  read it.
+* **`ContentRemoteDataSource` deleted.** It was a typed wrapper around
+  exactly one Retrofit service with exactly one caller — the HTTP handling
+  (manifest fetch, package streaming into a size-limited temporary file,
+  HTTP/`IOException` classification) moved directly into the renamed
+  `ContentSyncManager`, which is still the only place in `data/sync`/
+  `data/remote` that touches a Retrofit `Response`/`ResponseBody`/HTTP
+  status code — those types still never reach domain, repository
+  contracts, ViewModels, or Compose UI.
+* **`ContentSyncCoordinator` renamed to `ContentSyncManager`.** Same single
+  responsibility (own one complete remote-sync execution), same shared
+  `ContentPackageImporter` dependency; the rename reflects that it now also
+  owns the HTTP handling `ContentRemoteDataSource` used to own.
+* **Six-outcome `ContentSyncOutcome` replaced by three-case `SyncResult`.**
+  `Completed(updatedVersionIds, skippedVersionIds, rejectedVersionIds)`
+  replaces the former `NotModified`/`NoChanges`/`Updated`/`PartialFailure`
+  distinction — a partial package-level failure is just a non-empty
+  `rejectedVersionIds` alongside whatever did update, not a separate
+  outcome type. `RetryableFailure`/`PermanentFailure` replace the former
+  `Failed(RemoteContentFailure)` and `CompleteFailure`, and are used
+  consistently for both manifest-level and package-level failures.
+* **Package-download retry behaviour fixed.** The previous implementation
+  isolated a package-level HTTP failure as if it were always a permanent,
+  per-package rejection (`Rejected(entry.versionId, describe(failure))`),
+  which meant a genuinely transient package timeout or `500` was never
+  retried at the sync level. `ContentSyncManager` now classifies a
+  package-level failure the same way a manifest-level failure is
+  classified: a retryable one (`IOException`, timeout, HTTP
+  408/429/5xx, a temporary download interruption) aborts the whole
+  `sync()` call with `SyncResult.RetryableFailure`, so `ContentSyncWorker`
+  retries the entire sync — packages already imported earlier in the same
+  attempt are simply skipped on the retry, since Room already matches
+  them. A permanent package failure (checksum mismatch, malformed JSON,
+  non-retryable HTTP 4xx, minimum-app-version too high) still only rejects
+  that one package and lets the rest of the manifest continue.
+* **Bundled manifest pre-comparison added.** `BundledManifestEntryDto`
+  gained `variantId`/`versionNumber` so `BundledContentBootstrapper` can
+  compare against `ContentPackageImporter.activeVersionSummary` *before*
+  reading a bundled package's asset bytes — an older or already-current
+  bundled entry is now skipped without ever opening its file, matching the
+  bandwidth-avoidance optimisation the remote path already had. The
+  comparison itself (`decideContentVersionAction`, `data/content/`) is one
+  pure function shared by both callers rather than duplicated; either way,
+  `ContentPackageImporter.importPackage` still re-runs its own
+  authoritative comparison and checksum verification — this is an
+  optimisation, not a safety relaxation.
+* **`ContentSyncMetadata` simplified.** Only `content_last_sync` remains
+  (`value` one of `SUCCESS`/`PARTIAL`/`FAILED`, per the new three-case
+  `SyncResult`); `content_manifest_etag` and `content_manifest_version` are
+  both gone, and the 24-hour gate reads only the terminal-sync timestamp,
+  as it always did.
+
+None of this changes: bundled content remaining mandatory, one active
+version per variant, atomic transactional replacement (including
+version-scoped progress deletion), the 24-hour opportunistic one-time
+worker (`ExistingWorkPolicy.KEEP`, not periodic), or API failure leaving
+Room untouched. The real Go backend remains undeployed; this amendment
+only changes what the Android client sends and how it classifies the
+responses it gets back.

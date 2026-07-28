@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.reader.toc
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,23 +8,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -32,7 +46,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 private val SheetTopCornerRadius = 28.dp
-private val MinRowTouchTarget = 48.dp
 
 /**
  * Reader Table of Contents (FR-017, `docs/design/FIGMA_HANDOFF.md` node `16:148`) — a modal bottom
@@ -48,37 +61,95 @@ fun ReaderTableOfContentsSheet(
     onSectionSelected: (stepId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val closeFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        closeFocusRequester.requestFocus()
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = SheetTopCornerRadius, topEnd = SheetTopCornerRadius),
     ) {
-        Column(
+        ReaderTableOfContentsContent(
+            sections = sections,
+            currentSectionStepId = currentSectionStepId,
+            closeFocusRequester = closeFocusRequester,
+            onSectionSelected = onSectionSelected,
+            onDismiss = onDismiss,
+        )
+    }
+}
+
+@Composable
+private fun ReaderTableOfContentsContent(
+    sections: List<TocSection>,
+    currentSectionStepId: String?,
+    closeFocusRequester: FocusRequester,
+    onSectionSelected: (stepId: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = SanguSantriDimensions.readerSheetMaxHeight)
+                .padding(horizontal = SanguSantriSpacing.default)
+                .padding(bottom = SanguSantriSpacing.default)
+                .navigationBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
+    ) {
+        ReaderTableOfContentsHeader(closeFocusRequester, onDismiss)
+        Text(
+            text = stringResource(R.string.reader_toc_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        LazyColumn(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = SanguSantriSpacing.default)
-                    .padding(bottom = SanguSantriSpacing.default)
-                    .navigationBarsPadding(),
+                    .weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
         ) {
-            Text(
-                text = stringResource(R.string.reader_toc_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = stringResource(R.string.reader_toc_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            sections.forEach { section ->
+            items(items = sections, key = { it.stepId }) { section ->
                 TocItemRow(
                     section = section,
                     isCurrent = section.stepId == currentSectionStepId,
                     onClick = { onSectionSelected(section.stepId) },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ReaderTableOfContentsHeader(
+    closeFocusRequester: FocusRequester,
+    onDismiss: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.reader_toc_title),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
+        IconButton(
+            onClick = onDismiss,
+            modifier =
+                Modifier
+                    .focusRequester(closeFocusRequester)
+                    .focusable(),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = stringResource(R.string.reader_toc_close_content_description),
+            )
         }
     }
 }
@@ -95,7 +166,19 @@ private fun TocItemRow(
         } else {
             "${section.startPosition}–${section.endPosition}"
         }
-    val stateText = stringResource(R.string.reader_toc_item_state, rangeText)
+    val rangeStateText = stringResource(R.string.reader_toc_item_state, rangeText)
+    val stateText =
+        stringResource(
+            if (isCurrent) {
+                R.string.reader_toc_item_current_state
+            } else {
+                R.string.reader_toc_item_other_state
+            },
+        )
+    val contentColor =
+        if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val supportingColor =
+        if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(
         onClick = onClick,
@@ -104,8 +187,12 @@ private fun TocItemRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = MinRowTouchTarget)
-                .semantics { stateDescription = stateText },
+                .heightIn(min = SanguSantriDimensions.minimumTouchTarget)
+                .semantics {
+                    contentDescription = "${section.titleId}, $rangeStateText"
+                    selected = isCurrent
+                    stateDescription = stateText
+                },
     ) {
         Row(
             modifier =
@@ -118,22 +205,12 @@ private fun TocItemRow(
             Text(
                 text = section.titleId,
                 style = MaterialTheme.typography.bodyLarge,
-                color =
-                    if (isCurrent) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                color = contentColor,
             )
             Text(
                 text = rangeText,
                 style = MaterialTheme.typography.labelLarge,
-                color =
-                    if (isCurrent) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                color = supportingColor,
             )
         }
     }
@@ -161,7 +238,7 @@ fun ReaderTableOfContentsOverlay(
             onDismiss()
             val targetIndex = steps.indexOfFirst { it.id == stepId }
             if (targetIndex >= 0) {
-                coroutineScope.launch { listState.animateScrollToItem(targetIndex) }
+                coroutineScope.launch { listState.scrollToItem(targetIndex) }
             }
         },
         onDismiss = onDismiss,

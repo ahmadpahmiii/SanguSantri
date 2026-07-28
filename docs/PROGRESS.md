@@ -1828,3 +1828,127 @@ empty (no emulator/device this session).
 Phase B — Release `0.0.1` Beranda and Explore Amaliyah
 (`docs/design/FIGMA_HANDOFF.md`, nodes `19:2`/`19:84`), on the user's
 explicit "done" reply.
+
+## Milestone 7 follow-up — Reader visual-fidelity and accessibility correction
+
+**Status:** Implemented and verified locally — `ktlintFormat`,
+`ktlintCheck`, `detekt`, `lint`, and `assembleDebug` pass. No connected
+emulator/device was available (`adb devices -l` returned an empty device
+list), so no install or manual on-device validation was performed.
+
+**Scope:** Close measurable presentation and accessibility gaps left by
+the initial Phase A implementation while preserving its existing reader
+behavior, navigation, ViewModels, repositories, Room/DataStore persistence,
+canonical content, counter state, and source/approval semantics. No
+Beranda/Jelajahi, Standalone Tasbih, data-layer, schema, migration, or
+religious-content work was added.
+
+### Figma exports inspected
+
+The JSON hierarchy and 2x PNG reference were inspected for every Phase A
+reader pair: `14:2` Full Reader, `14:32` Guided Reader, `16:2` Full Reader
+overflow, `16:45` Guided Reader overflow, `16:89` Reader Settings, and
+`16:148` Reader Table of Contents. The four future-screen pairs were also
+classified during the audit: `17:2`/`17:32` remain `0.0.2` Standalone
+Tasbih work; `19:84` requires the not-yet-implemented Explore/favourite/
+category state; `19:2` includes sections that cannot yet be truthfully
+backed by current persistence.
+
+### What changed
+
+* Added shared Figma-derived component dimensions for the 56dp compact app
+  bar, 20dp reader gutter, 640dp readable maximum width, 22/24dp reader
+  surface radii, 210×150dp Guided counter, 280dp overflow menu, 48dp touch
+  target, and 550dp sheet maximum.
+* Full Reader substantive Arabic/prayer/repetition blocks now sit on a
+  plain warm surfaced reading container with a hairline outline. Headings
+  and instructions stay unboxed to avoid turning the canonical step list
+  into a card wall.
+* Guided Reader now uses the same constrained gutter/max width, a surfaced
+  24dp-radius reading card, a section title derived from the nearest
+  canonical heading when the current content step has no title, and the
+  Figma-scale counter. The counter shows the count as the dominant element,
+  a separate `dari N` target, grows vertically under font scaling, and
+  retains haptics/reset/persistence plus icon-and-colour completion.
+* Both reader top bars use the exported compact height. Guided navigation
+  keeps 48dp targets, the filled tonal/primary pill treatment, mirrored
+  arrows, and the existing enabled/finish behavior.
+* Reader overflow matches the exported 280dp warm surface, 52dp rows,
+  order, labels, rounded shape, and trailing visual cues.
+* Reader Settings steppers now use compact tonal pill surfaces; exported
+  labels/capitalisation are aligned; the existing Guided-only progression
+  control remains contextual. Initial accessibility focus is requested on
+  the sheet heading.
+* Table of Contents now scrolls safely for the real Tahlil/Istighosah
+  section count, uses stable keys, has a visible close action, requests
+  initial focus, announces title/range/current state, and performs an
+  instant jump without completion side effects or unconditional motion.
+* `ReaderSettingStepper.kt` was renamed to `ReaderStepperControl.kt`, and
+  `GuidedReaderCallbacks` was extracted, to satisfy the existing Detekt
+  filename/function-count rules without suppressions.
+
+### Files created
+
+* `core/designsystem/theme/SanguSantriDimensions.kt`
+* `feature/guidedreader/GuidedReaderCallbacks.kt`
+* `feature/reader/settings/ReaderStepperControl.kt` (rename of
+  `ReaderSettingStepper.kt`)
+
+### Files modified
+
+* `feature/reader/ReaderScreen.kt`
+* `feature/reader/components/ReaderArabicContentBlocks.kt`
+* `feature/reader/components/ReaderOverflowMenu.kt`
+* `feature/reader/components/ReaderStepItem.kt`
+* `feature/reader/settings/ReaderSettingsSheet.kt`
+* `feature/reader/toc/ReaderTableOfContentsSheet.kt`
+* `feature/guidedreader/GuidedReaderBars.kt`
+* `feature/guidedreader/GuidedReaderScreen.kt`
+* `feature/guidedreader/components/GuidedStepContent.kt`
+* `feature/guidedreader/components/GuidedTasbihCounter.kt`
+* `app/src/main/res/values/strings.xml`
+* `docs/PROGRESS.md`
+
+The required project-wide `ktlintFormat` task also reformatted constructor
+indentation in the same previously reported DAO/repository/ViewModel files;
+`git diff --ignore-all-space` confirms those additional diffs are
+whitespace-only.
+
+### Commands executed
+
+* `adb devices -l` — the sandboxed attempt could not start the ADB socket;
+  the approved retry succeeded and returned no connected devices.
+* `./gradlew ktlintFormat` — the sandboxed attempt could not write the
+  Gradle wrapper lock; the approved retry passed.
+* `./gradlew assembleDebug` — passed after the first implementation pass.
+* `./gradlew ktlintCheck detekt` — first run exposed seven decomposition
+  issues; all were fixed without suppressions.
+* `./gradlew ktlintFormat ktlintCheck detekt lint assembleDebug` — final
+  gate passed (`BUILD SUCCESSFUL`).
+
+No unit, instrumented, connected, or screenshot tests were run or added,
+per the temporary Figma implementation-pass constraint.
+
+### Visual validation and known limitations
+
+Static comparison was completed against all six Phase A PNGs and their JSON
+measurements: layout hierarchy, gutters, touch sizes, surface/border roles,
+counter hierarchy, sheet/menu dimensions, and labels were checked after the
+final changes. Manual device checks for dark mode, RTL, landscape, tablet,
+large font, Arabic clipping, modal focus, and interaction could not be
+performed because no device/emulator was connected.
+
+The exported Full Reader mock groups a heading and reading content inside
+one card; the app keeps canonical heading steps unboxed and surfaces only
+substantive reading steps so lazy-list position IDs remain unchanged and
+the long reader does not become a card wall. The TOC close action is an
+intentional accessibility addition not drawn in `16:148`. No dark-mode
+Figma frame exists, so dark colours remain the prior Phase A reasoned
+mapping. The approved Arabic font and a Reader Settings decision for the
+still-persisted translation-line-spacing preference remain outstanding.
+
+### Next recommended milestone
+
+Phase B only after its required local favourite/recent/category state and
+navigation rollout decision are in scope; otherwise perform the missing
+on-device Phase A visual/accessibility validation first.

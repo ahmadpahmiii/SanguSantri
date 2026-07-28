@@ -1,15 +1,20 @@
 package com.sangusantri.app.feature.reader.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
+import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AmaliyahStep
@@ -32,19 +37,60 @@ fun ReaderStepItem(
     when (step.stepType) {
         StepType.DIVIDER -> ReaderDividerRow(modifier)
         StepType.CLOSING ->
-            ReaderStepFields(step, settings, isClosing = true, modifier) { target ->
-                ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
+            ReaderReadingSurface(modifier) {
+                ReaderStepFields(step, settings, isClosing = true) { target ->
+                    ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
+                }
             }
+
         StepType.HEADING,
         StepType.INSTRUCTION,
+            ->
+            ReaderStepFields(step, settings, isClosing = false, modifier) { target ->
+                ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
+            }
+
         StepType.ARABIC_TEXT,
         StepType.QURAN_AYAH,
         StepType.PRAYER,
         StepType.REPEATED_READING,
             ->
-            ReaderStepFields(step, settings, isClosing = false, modifier) { target ->
-                ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
+            ReaderReadingSurface(modifier) {
+                ReaderStepFields(step, settings, isClosing = false) { target ->
+                    ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
+                }
             }
+    }
+}
+
+/**
+ * Plain, high-contrast reading surface from the approved Full Reader export. Only substantive
+ * reading blocks use it; headings and instructions remain unboxed so the screen does not become
+ * a card wall.
+ */
+@Composable
+private fun ReaderReadingSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = SanguSantriSpacing.small),
+        shape = RoundedCornerShape(SanguSantriDimensions.readerCardCornerRadius),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(SanguSantriElevation.outlineWidth, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(
+                    horizontal = SanguSantriDimensions.readerHorizontalPadding,
+                    vertical = SanguSantriDimensions.readerCardVerticalPadding,
+                ),
+        ) {
+            content()
+        }
     }
 }
 

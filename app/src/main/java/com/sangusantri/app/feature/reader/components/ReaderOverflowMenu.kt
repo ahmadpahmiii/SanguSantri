@@ -1,9 +1,16 @@
 package com.sangusantri.app.feature.reader.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -19,8 +26,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
+import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.feature.reader.ApprovalDisplay
 
@@ -52,36 +63,16 @@ fun ReaderOverflowMenu(
         )
     }
 
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        DropdownMenuItem(
-            text = { Text(switchModeLabel) },
-            onClick = {
-                expanded = false
-                actions.onSwitchMode()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.reader_open_toc_action)) },
-            onClick = {
-                expanded = false
-                actions.onOpenTableOfContents()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.reader_open_settings_action)) },
-            onClick = {
-                expanded = false
-                actions.onOpenSettings()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.content_approval_menu_action)) },
-            onClick = {
-                expanded = false
-                showSourceInfo = true
-            },
-        )
-    }
+    ReaderOverflowDropdown(
+        switchModeLabel = switchModeLabel,
+        actions = actions,
+        expanded = expanded,
+        onDismiss = { expanded = false },
+        onOpenSource = {
+            expanded = false
+            showSourceInfo = true
+        },
+    )
 
     if (showSourceInfo) {
         SourceAndApprovalInfoDialog(
@@ -91,6 +82,65 @@ fun ReaderOverflowMenu(
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReaderOverflowDropdown(
+    switchModeLabel: String,
+    actions: ReaderOverflowActions,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onOpenSource: () -> Unit,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        modifier = Modifier.width(SanguSantriDimensions.overflowMenuWidth),
+        shape = SanguSantriShapes.large,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        ReaderMenuItem(switchModeLabel, Icons.AutoMirrored.Filled.ArrowForward) {
+            onDismiss()
+            actions.onSwitchMode()
+        }
+        ReaderMenuItem(stringResource(R.string.reader_open_toc_action), Icons.AutoMirrored.Filled.List) {
+            onDismiss()
+            actions.onOpenTableOfContents()
+        }
+        ReaderMenuItem(stringResource(R.string.reader_open_settings_action), Icons.Default.Settings) {
+            onDismiss()
+            actions.onOpenSettings()
+        }
+        ReaderMenuItem(stringResource(R.string.content_approval_menu_action), Icons.Default.Info, onOpenSource)
+    }
+}
+
+@Composable
+private fun ReaderMenuItem(
+    label: String,
+    imageVector: ImageVector,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        trailingIcon = { ReaderMenuIcon(imageVector) },
+        onClick = onClick,
+        modifier = Modifier.height(MENU_ITEM_HEIGHT),
+    )
+}
+
+@Composable
+private fun ReaderMenuIcon(imageVector: ImageVector) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(MENU_ICON_SIZE),
+    )
+}
+
+private val MENU_ITEM_HEIGHT = 52.dp
+private val MENU_ICON_SIZE = 18.dp
 
 @Composable
 private fun SourceAndApprovalInfoDialog(

@@ -45,9 +45,7 @@ import kotlinx.coroutines.launch
  */
 @Suppress("TooManyFunctions")
 @HiltViewModel(assistedFactory = GuidedReaderViewModel.Factory::class)
-class GuidedReaderViewModel
-@AssistedInject
-constructor(
+class GuidedReaderViewModel @AssistedInject constructor(
     @Assisted private val amaliyahSlug: String,
     private val contentRepository: ContentRepository,
     private val guidedReadingRepository: GuidedReadingRepository,
@@ -190,8 +188,8 @@ constructor(
                         Log.w(
                             TAG,
                             "Content unavailable for slug=$amaliyahSlug: " +
-                                    "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
-                                    "stepCount=${detail?.steps?.size ?: 0}",
+                                "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
+                                "stepCount=${detail?.steps?.size ?: 0}",
                         )
                         ContentState.Unavailable
                     } else {

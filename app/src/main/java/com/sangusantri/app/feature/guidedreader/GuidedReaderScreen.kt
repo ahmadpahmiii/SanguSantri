@@ -24,23 +24,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AmaliyahStep
 import com.sangusantri.app.domain.model.Approval
 import com.sangusantri.app.domain.model.ApprovalStatus
-import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepContent
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepStatusRow
 import com.sangusantri.app.feature.guidedreader.components.TasbihActions
-import com.sangusantri.app.feature.reader.ReaderUiAction
+import com.sangusantri.app.feature.guidedreader.components.currentSectionTitle
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
 import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
@@ -54,16 +53,6 @@ import com.sangusantri.app.feature.reader.toApprovalDisplay
 import com.sangusantri.app.feature.reader.toc.ReaderTableOfContentsSheet
 import com.sangusantri.app.feature.reader.toc.sectionContaining
 import com.sangusantri.app.feature.reader.toc.toTocSections
-
-private val GuidedReaderMaxWidth = 640.dp
-
-/** Bundles [GuidedReaderScreen]'s callbacks so the function stays under the parameter-count limit. */
-data class GuidedReaderCallbacks(
-    val onAction: (GuidedReaderUiAction) -> Unit,
-    val onSettingsAction: (ReaderUiAction) -> Unit,
-    val onSetProgressionMode: (GuidedProgressionMode) -> Unit,
-    val onBack: () -> Unit,
-)
 
 @Composable
 fun GuidedReaderRoute(
@@ -295,14 +284,20 @@ private fun GuidedReaderBody(
         Column(
             modifier =
                 Modifier
-                    .widthIn(max = GuidedReaderMaxWidth)
+                    .widthIn(max = SanguSantriDimensions.readerContentMaxWidth)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(SanguSantriSpacing.default),
+                    .padding(
+                        horizontal = SanguSantriDimensions.readerHorizontalPadding,
+                        vertical = SanguSantriSpacing.default,
+                    ),
         ) {
             ReaderProgressHeader(currentPosition = state.stepIndex + 1, totalSteps = state.stepCount)
             Spacer(Modifier.padding(top = SanguSantriSpacing.default))
-            GuidedStepStatusRow(step = state.step)
+            GuidedStepStatusRow(
+                step = state.step,
+                sectionTitle = state.allSteps.currentSectionTitle(state.stepIndex),
+            )
             Spacer(Modifier.padding(top = SanguSantriSpacing.small))
             AnimatedContent(
                 targetState = state.step,

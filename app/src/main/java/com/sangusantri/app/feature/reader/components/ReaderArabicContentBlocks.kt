@@ -3,7 +3,6 @@ package com.sangusantri.app.feature.reader.components
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -13,9 +12,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.arabicTextStyle
@@ -89,18 +89,20 @@ internal fun ReaderRepetitionShortcut(
         onClick = onClick,
         shape = SanguSantriShapes.extraLarge,
         color = MaterialTheme.colorScheme.primaryContainer,
-        modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET_DP.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = SanguSantriDimensions.minimumTouchTarget),
     ) {
         Text(
             text = stringResource(R.string.reader_repetition_shortcut, target),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
+            textAlign = TextAlign.Center,
             modifier =
                 Modifier
-                    .wrapContentWidth()
+                    .fillMaxWidth()
                     .padding(horizontal = SanguSantriSpacing.default, vertical = SanguSantriSpacing.medium),
         )
     }
 }
-
-private const val MIN_TOUCH_TARGET_DP = 48

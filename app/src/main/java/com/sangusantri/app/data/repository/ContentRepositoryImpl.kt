@@ -15,42 +15,40 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /** Reads the amaliyah catalogue from Room, the local source of truth (PRD 12.1). */
-class ContentRepositoryImpl
-    @Inject
-    constructor(
-        private val amaliyahDao: AmaliyahDao,
-        private val amaliyahVariantDao: AmaliyahVariantDao,
-        private val approvalDao: ApprovalDao,
-        private val amaliyahVersionDao: AmaliyahVersionDao,
-        private val amaliyahStepDao: AmaliyahStepDao,
-    ) : ContentRepository {
-        override fun observeAmaliyah(): Flow<List<Amaliyah>> =
-            amaliyahDao.observeAll().map { list ->
-                list.map { it.toDomain() }
-            }
+class ContentRepositoryImpl @Inject constructor(
+    private val amaliyahDao: AmaliyahDao,
+    private val amaliyahVariantDao: AmaliyahVariantDao,
+    private val approvalDao: ApprovalDao,
+    private val amaliyahVersionDao: AmaliyahVersionDao,
+    private val amaliyahStepDao: AmaliyahStepDao,
+) : ContentRepository {
+    override fun observeAmaliyah(): Flow<List<Amaliyah>> =
+        amaliyahDao.observeAll().map { list ->
+            list.map { it.toDomain() }
+        }
 
     override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? =
         amaliyahDao.getBySlug(amaliyahSlug)?.toDomain()
 
-        // Four sequential, independent lookups that each short-circuit to "not found" — flat
-        // guard clauses read more clearly here than the nested `?.let` chain the alternative forces.
-        @Suppress("ReturnCount")
-        override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? {
-            val amaliyah = amaliyahDao.getBySlug(amaliyahSlug) ?: return null
-            val variant = amaliyahVariantDao.getDefaultForAmaliyah(amaliyah.id) ?: return null
-            val version = resolveVersion(variant.id) ?: return null
-            val approval = approvalDao.getById(version.approvalId) ?: return null
+    // Four sequential, independent lookups that each short-circuit to "not found" — flat
+    // guard clauses read more clearly here than the nested `?.let` chain the alternative forces.
+    @Suppress("ReturnCount")
+    override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? {
+        val amaliyah = amaliyahDao.getBySlug(amaliyahSlug) ?: return null
+        val variant = amaliyahVariantDao.getDefaultForAmaliyah(amaliyah.id) ?: return null
+        val version = resolveVersion(variant.id) ?: return null
+        val approval = approvalDao.getById(version.approvalId) ?: return null
 
-            return AmaliyahVersionDetail(
-                version = version.toDomain(),
-                approval = approval.toDomain(),
-                steps = amaliyahStepDao.getByVersionId(version.id).map { it.toDomain() },
-            )
-        }
+        return AmaliyahVersionDetail(
+            version = version.toDomain(),
+            approval = approval.toDomain(),
+            steps = amaliyahStepDao.getByVersionId(version.id).map { it.toDomain() },
+        )
+    }
 
     // Debug builds may surface local DRAFT content (no public release yet); release builds
     // must never silently treat DRAFT as approved, so this fallback only exists in debug.
     private suspend fun resolveVersion(variantId: String) =
         amaliyahVersionDao.getLatestPublishedForVariant(variantId)
             ?: if (BuildConfig.DEBUG) amaliyahVersionDao.getLatestNonRevokedForVariant(variantId) else null
-    }
+}

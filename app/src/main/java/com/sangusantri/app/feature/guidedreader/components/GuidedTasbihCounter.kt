@@ -1,15 +1,12 @@
 package com.sangusantri.app.feature.guidedreader.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
@@ -28,14 +25,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sangusantri.app.R
-import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
-
-private val MinTouchTarget = 48.dp
 
 /**
  * The Guided Reader's interactive tasbih (FR-006): tapping increments the count up to [target],
@@ -54,13 +49,13 @@ internal fun GuidedTasbihCounter(
 ) {
     val haptics = LocalHapticFeedback.current
     val isComplete = currentCount >= target
-    val progressText = stringResource(R.string.guided_counter_progress, currentCount, target)
+    val targetText = stringResource(R.string.guided_counter_target, target)
     val tapLabel = stringResource(R.string.guided_counter_tap_action)
     val stateText =
         if (isComplete) {
             stringResource(R.string.guided_counter_completed_description, currentCount, target)
         } else {
-            progressText
+            stringResource(R.string.guided_counter_progress_description, currentCount, target)
         }
 
     Column(
@@ -69,10 +64,14 @@ internal fun GuidedTasbihCounter(
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
     ) {
         GuidedTasbihBadge(
-            isComplete = isComplete,
-            progressText = progressText,
-            tapLabel = tapLabel,
-            stateText = stateText,
+            visualState =
+                GuidedCounterVisualState(
+                    isComplete = isComplete,
+                    currentCount = currentCount,
+                    targetText = targetText,
+                    tapLabel = tapLabel,
+                    stateText = stateText,
+                ),
             onTap = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 onIncrement()
@@ -80,7 +79,7 @@ internal fun GuidedTasbihCounter(
         )
         TextButton(
             onClick = onRequestReset,
-            modifier = Modifier.heightIn(min = MinTouchTarget),
+            modifier = Modifier.heightIn(min = SanguSantriDimensions.minimumTouchTarget),
             contentPadding = PaddingValues(horizontal = SanguSantriSpacing.default),
         ) {
             Text(text = stringResource(R.string.guided_counter_reset_action))
@@ -88,54 +87,71 @@ internal fun GuidedTasbihCounter(
     }
 }
 
+private data class GuidedCounterVisualState(
+    val isComplete: Boolean,
+    val currentCount: Int,
+    val targetText: String,
+    val tapLabel: String,
+    val stateText: String,
+)
+
 @Composable
 private fun GuidedTasbihBadge(
-    isComplete: Boolean,
-    progressText: String,
-    tapLabel: String,
-    stateText: String,
+    visualState: GuidedCounterVisualState,
     onTap: () -> Unit,
 ) {
     Surface(
-        onClick = { if (!isComplete) onTap() },
-        shape = SanguSantriShapes.medium,
-        color = if (isComplete) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(SanguSantriElevation.outlineWidth, MaterialTheme.colorScheme.outline),
+        onClick = { if (!visualState.isComplete) onTap() },
+        shape = SanguSantriShapes.extraLarge,
+        color =
+            if (visualState.isComplete) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.primaryContainer
+            },
         modifier =
             Modifier
-                .sizeIn(minWidth = MinTouchTarget * 2, minHeight = MinTouchTarget)
+                .width(SanguSantriDimensions.guidedCounterWidth)
+                .heightIn(min = SanguSantriDimensions.guidedCounterHeight)
                 .semantics {
-                    contentDescription = tapLabel
-                    stateDescription = stateText
+                    contentDescription = visualState.tapLabel
+                    stateDescription = visualState.stateText
                 },
     ) {
-        Box(
+        Column(
             modifier = Modifier.padding(SanguSantriSpacing.default),
-            contentAlignment = Alignment.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (isComplete) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Text(
-                    text = progressText,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color =
-                        if (isComplete) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+            if (visualState.isComplete) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                 )
             }
+            Text(
+                text = visualState.currentCount.toString(),
+                fontSize = 58.sp,
+                lineHeight = 64.sp,
+                fontWeight = FontWeight.SemiBold,
+                color =
+                    if (visualState.isComplete) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
+            )
+            Text(
+                text = visualState.targetText,
+                style = MaterialTheme.typography.titleMedium,
+                color =
+                    if (visualState.isComplete) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
+            )
         }
     }
 }

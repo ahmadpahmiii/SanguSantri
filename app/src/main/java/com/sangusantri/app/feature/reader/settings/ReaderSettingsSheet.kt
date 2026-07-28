@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -15,7 +17,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,7 +24,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.GuidedProgressionMode
@@ -31,11 +34,20 @@ import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.feature.reader.ReaderUiAction
 import java.util.Locale
 
+private val SheetTopCornerRadius = 28.dp
+
 /**
  * Restrained reader appearance settings (FR-008 subset) — a bottom sheet, contextual to the
- * reader. Shared by the Full Reader and the Guided Reader (Milestone 4) rather than duplicated —
- * [progressionModeControl] is non-null only when opened from the Guided Reader, which adds one
- * extra section for the automatic/manual progression preference (FR-005).
+ * reader, reached from the reader overflow menu (decision F, Figma product-alignment pass — no
+ * longer a standalone top-bar icon). Shared by the Full Reader and the Guided Reader (Milestone 4)
+ * rather than duplicated — [progressionModeControl] is non-null only when opened from the Guided
+ * Reader, which adds one extra section for the automatic/manual progression preference (FR-005).
+ *
+ * Matches the revised Figma sheet (node `16:89`) exactly: a title + subtitle, three steppers
+ * (Arabic font size, translation font size, Arabic line spacing — translation line spacing has no
+ * dedicated control in the revised design, though the underlying preference and its DataStore
+ * field remain unchanged for forward compatibility), the translation toggle, and a single primary
+ * "Selesai" button rather than a header close action.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +58,12 @@ fun ReaderSettingsSheet(
     modifier: Modifier = Modifier,
     progressionModeControl: ProgressionModeControl? = null,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = SheetTopCornerRadius, topEnd = SheetTopCornerRadius),
+    ) {
         ReaderSettingsContent(
             settings = settings,
             onAction = onAction,
@@ -73,14 +90,21 @@ private fun ReaderSettingsContent(
                 .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
     ) {
-        ReaderSettingsHeader(onClose)
+        ReaderSettingsHeader()
         ReaderSettingsFontSizeControls(settings, onAction)
-        ReaderSettingsLineSpacingControls(settings, onAction)
+        ReaderSettingsArabicLineSpacingControl(settings, onAction)
         HorizontalDivider()
         ReaderSettingsTranslationToggleRow(settings, onAction)
         if (progressionModeControl != null) {
             HorizontalDivider()
             ReaderSettingsProgressionModeRow(progressionModeControl)
+        }
+        Button(
+            onClick = onClose,
+            shape = SanguSantriShapes.large,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(text = stringResource(R.string.reader_settings_done_action))
         }
     }
 }
@@ -110,20 +134,18 @@ private fun ReaderSettingsProgressionModeRow(control: ProgressionModeControl) {
 }
 
 @Composable
-private fun ReaderSettingsHeader(onClose: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+private fun ReaderSettingsHeader() {
+    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall)) {
         Text(
             text = stringResource(R.string.reader_settings_title),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.semantics { heading() },
         )
-        TextButton(onClick = onClose) {
-            Text(text = stringResource(R.string.reader_settings_close_action))
-        }
+        Text(
+            text = stringResource(R.string.reader_settings_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -183,8 +205,12 @@ private fun ReaderSettingsFontSizeControls(
     )
 }
 
+/**
+ * Only Arabic line spacing has a dedicated control, matching the revised Figma sheet exactly — see
+ * this file's class doc for why translation line spacing has no stepper this phase.
+ */
 @Composable
-private fun ReaderSettingsLineSpacingControls(
+private fun ReaderSettingsArabicLineSpacingControl(
     settings: ReaderSettings,
     onAction: (ReaderUiAction) -> Unit,
 ) {
@@ -210,31 +236,6 @@ private fun ReaderSettingsLineSpacingControls(
                 },
                 decreaseEnabled = settings.arabicLineSpacingMultiplier > ReaderSettings.MIN_LINE_SPACING,
                 increaseEnabled = settings.arabicLineSpacingMultiplier < ReaderSettings.MAX_LINE_SPACING,
-            ),
-    )
-
-    val translationLabel = stringResource(R.string.reader_settings_translation_line_spacing)
-    ReaderSettingStepper(
-        label = translationLabel,
-        control =
-            ReaderStepperControl(
-                valueText = formatMultiplier(settings.translationLineSpacingMultiplier),
-                onDecrease = {
-                    onAction(
-                        ReaderUiAction.SetTranslationLineSpacing(
-                            settings.translationLineSpacingMultiplier - ReaderSettings.LINE_SPACING_STEP,
-                        ),
-                    )
-                },
-                onIncrease = {
-                    onAction(
-                        ReaderUiAction.SetTranslationLineSpacing(
-                            settings.translationLineSpacingMultiplier + ReaderSettings.LINE_SPACING_STEP,
-                        ),
-                    )
-                },
-                decreaseEnabled = settings.translationLineSpacingMultiplier > ReaderSettings.MIN_LINE_SPACING,
-                increaseEnabled = settings.translationLineSpacingMultiplier < ReaderSettings.MAX_LINE_SPACING,
             ),
     )
 }

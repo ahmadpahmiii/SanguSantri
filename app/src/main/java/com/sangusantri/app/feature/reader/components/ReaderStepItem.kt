@@ -26,13 +26,14 @@ import com.sangusantri.app.domain.model.StepType
 fun ReaderStepItem(
     step: AmaliyahStep,
     settings: ReaderSettings,
+    onOpenGuidedAtStep: (stepId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (step.stepType) {
         StepType.DIVIDER -> ReaderDividerRow(modifier)
         StepType.CLOSING ->
             ReaderStepFields(step, settings, isClosing = true, modifier) { target ->
-                ReaderRepetitionIndicator(target)
+                ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
             }
         StepType.HEADING,
         StepType.INSTRUCTION,
@@ -42,7 +43,7 @@ fun ReaderStepItem(
         StepType.REPEATED_READING,
             ->
             ReaderStepFields(step, settings, isClosing = false, modifier) { target ->
-                ReaderRepetitionIndicator(target)
+                ReaderRepetitionShortcut(target) { onOpenGuidedAtStep(step.id) }
             }
     }
 }
@@ -50,7 +51,7 @@ fun ReaderStepItem(
 /**
  * `internal` (not `private`) so the Guided Reader (Milestone 4, `feature/guidedreader`) can reuse
  * the exact same field-presence rendering with an interactive tasbih counter swapped in for
- * [repetitionContent] instead of the Full Reader's informational [ReaderRepetitionIndicator] — one
+ * [repetitionContent] instead of the Full Reader's `ReaderRepetitionShortcut` (FR-018) — one
  * canonical step layout, per `CODING_STANDARD.md`'s no-duplication rule.
  */
 @Composable
@@ -209,10 +210,10 @@ private val previewInstructionStep =
 private fun ReaderStepItemNormalPreview() {
     SanguSantriTheme {
         Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
-            ReaderStepItem(previewHeadingStep, previewSettings)
-            ReaderStepItem(previewInstructionStep, previewSettings)
-            ReaderStepItem(previewQuranStep, previewSettings)
-            ReaderStepItem(previewRepeatedStep, previewSettings)
+            ReaderStepItem(previewHeadingStep, previewSettings, onOpenGuidedAtStep = {})
+            ReaderStepItem(previewInstructionStep, previewSettings, onOpenGuidedAtStep = {})
+            ReaderStepItem(previewQuranStep, previewSettings, onOpenGuidedAtStep = {})
+            ReaderStepItem(previewRepeatedStep, previewSettings, onOpenGuidedAtStep = {})
         }
     }
 }
@@ -222,7 +223,7 @@ private fun ReaderStepItemNormalPreview() {
 private fun ReaderStepItemLongArabicPreview() {
     SanguSantriTheme {
         Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
-            ReaderStepItem(previewLongArabicStep, previewSettings)
+            ReaderStepItem(previewLongArabicStep, previewSettings, onOpenGuidedAtStep = {})
         }
     }
 }
@@ -232,7 +233,7 @@ private fun ReaderStepItemLongArabicPreview() {
 private fun ReaderStepItemTranslationHiddenPreview() {
     SanguSantriTheme {
         Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
-            ReaderStepItem(previewArabicStep, previewSettings.copy(showTranslation = false))
+            ReaderStepItem(previewArabicStep, previewSettings.copy(showTranslation = false), onOpenGuidedAtStep = {})
         }
     }
 }
@@ -245,6 +246,7 @@ private fun ReaderStepItemLargeFontPreview() {
             ReaderStepItem(
                 previewArabicStep,
                 previewSettings.copy(arabicFontSizeSp = ReaderSettings.MAX_ARABIC_FONT_SIZE_SP),
+                onOpenGuidedAtStep = {},
             )
         }
     }

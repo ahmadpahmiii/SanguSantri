@@ -2,7 +2,7 @@ package com.sangusantri.app.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-// SanguSantri brand green — pesantren identity, traditional-modern direction.
+// SanguSantri brand green — modern Islamic identity (docs/design/DESIGN_SYSTEM.md).
 val SantriGreen10 = Color(0xFF00210E)
 val SantriGreen20 = Color(0xFF00391C)
 val SantriGreen30 = Color(0xFF00522A)
@@ -10,11 +10,32 @@ val SantriGreen40 = Color(0xFF0B6E3B)
 val SantriGreen80 = Color(0xFF7FDB9C)
 val SantriGreen90 = Color(0xFFA1F5B9)
 
+// Light primary-container tint — Figma product-alignment pass (docs/design/FIGMA_HANDOFF.md,
+// exported node color variable observed as rgb(215,248,223) across every revised reader/tasbih/
+// beranda frame: repeat-shortcut pills, the saved-position status pill, the guided counter
+// background, secondary pill actions, the active bottom-nav pill, and the active TOC/category
+// highlight). Distinct from — and noticeably lighter than — SantriGreen90 above.
+val SantriGreen95 = Color(0xFFD7F8DF)
+
 // Warm neutral surfaces — calm, readable, non-ornamental.
 val SantriNeutral10 = Color(0xFF1A1C19)
 val SantriNeutral90 = Color(0xFFE2E3DD)
 val SantriNeutral95 = Color(0xFFF1F1EB)
 val SantriNeutral99 = Color(0xFFFBFDF7)
+
+// Card/sheet surface — Figma product-alignment pass, observed as rgb(255,253,248) on every card,
+// bottom sheet, and dialog in the revised exports; warmer and distinct from SantriNeutral95/99.
+val SantriSurface = Color(0xFFFFFDF8)
+
+// Secondary/muted text — Figma product-alignment pass, observed as rgb(89,96,90) for every
+// secondary label (translations, captions, step counts) in the revised exports. No existing
+// token matched this tone; previously this role fell through to Material 3's unbranded default.
+val SantriNeutral40 = Color(0xFF59605A)
+
+// Hairline border / drag handle — Figma product-alignment pass, observed as rgb(195,200,192) for
+// every card/sheet stroke and bottom-sheet drag handle in the revised exports. Previously this
+// role fell through to Material 3's unbranded default.
+val SantriOutline = Color(0xFFC3C8C0)
 
 val SantriError40 = Color(0xFFBA1A1A)
 val SantriError80 = Color(0xFFFFB4AB)

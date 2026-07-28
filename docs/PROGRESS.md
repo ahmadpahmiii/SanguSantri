@@ -2275,3 +2275,212 @@ Not specified by this brief. Building the actual Go backend service (ADR
       `docs/product/ROADMAP.md` should be revisited for the next scheduled
       Android-side item in the meantime (Phase B — Beranda/Jelajahi Amaliyah, per
       Milestone 7's own recommendation, still outstanding).
+
+## Sync simplification pass (2026-07-28, post-Milestone 8)
+
+**Status:** Implemented and verified locally — `:app:ktlintFormat`,
+`:app:ktlintCheck`, `:app:detekt`, `:app:lintDebug`, `:app:testDebugUnitTest`
+(48/48), `:app:compileDebugAndroidTestKotlin`, `:app:assembleDebug`, and
+`:app:assembleRelease` (R8/shrinking, `lintVitalRelease`) all pass.
+`:app:connectedDebugAndroidTest` was **not** run — `adb devices` returned no
+attached device/emulator this session; the new/renamed instrumented test
+(`ContentSyncManagerTest`) compiles and is believed correct against a real
+in-memory Room database and MockWebServer, but is unverified on-device. No
+manual on-device verification was performed for the same reason.
+
+**Scope:** Explicitly approved product/tech-lead request to simplify
+Milestone 8's remote-sync implementation, which had accumulated more
+machinery (ETag conditional requests, a six-case sync outcome, a separate
+HTTP-client wrapper class) than the actual requirement — the manifest is
+checked at most once every 24 hours — justified. Not a new backend and not
+a product-scope change: offline-first behaviour, bundled Tahlil/Istighosah,
+Room as source of truth, atomic replacement, version/checksum comparison,
+progress reset on replacement, the 24-hour `WorkManager` gate, and backend
+contract compatibility are all preserved. Full decision record: ADR 0012's
+2026-07-28 amendment.
+
+### Why
+
+The brief identified five simplification targets: (1) ETag added
+conditional-request complexity for no real benefit given the 24-hour gate;
+(2) `ContentRemoteDataSource` was a typed wrapper around exactly one
+Retrofit service with exactly one caller; (3) the six-case
+`ContentSyncOutcome` (`NotModified`/`NoChanges`/`Updated`/`PartialFailure`/
+`CompleteFailure`/`Failed`) was more states than the three genuinely
+distinct outcomes (completed-with-some-rejections is not a different
+*kind* of result, just a non-empty list); (4) a package-level HTTP
+failure was previously always classified as a permanent per-package
+rejection, so a genuinely transient package timeout or `500` was never
+retried at the sync level — a real behavioural bug, not just excess
+structure; (5) the bundled bootstrap read and parsed every full package
+asset on every launch instead of comparing against Room first, unlike the
+remote path which already did this bandwidth-avoidance check.
+
+### Classes deleted
+
+`data/remote/ContentRemoteDataSource.kt`,
+`data/remote/RemoteContentFailure.kt` (`RemoteContentFailure`,
+`ManifestFetchOutcome`, `PackageFetchOutcome`),
+`data/sync/ContentSyncOutcome.kt` (`ContentSyncOutcome`,
+`ManifestSyncInfo`) — replaced by `data/sync/SyncResult.kt`.
+
+### Classes renamed
+
+`data/sync/ContentSyncCoordinator.kt` → `data/sync/ContentSyncManager.kt`
+(git-aware rename; HTTP handling — manifest fetch, package streaming into
+a size-limited temporary file, HTTP/`IOException` classification — moved
+in from the deleted `ContentRemoteDataSource`).
+`data/sync/ContentSyncCoordinatorTest.kt` (androidTest) →
+`data/sync/ContentSyncManagerTest.kt` (rewritten, not just renamed — see
+Tests below).
+
+### ETag removal
+
+`ContentApiService.getManifest()` no longer takes an `If-None-Match`
+header or returns a `304`-aware response; `RemoteContentManifestDto`
+dropped `manifestVersion`/`generatedAt`/`status` (the new manifest
+contract, section 10 of the brief, lists only each variant's currently
+active package: `contentId`, `variantId`, `versionId`, `versionNumber`,
+`checksumSha256`, `minimumAppVersionCode`). `ContentSyncMetadata` now
+stores only `content_last_sync` (`SUCCESS`/`PARTIAL`/`FAILED`) in
+`app_metadata` — `content_manifest_etag` and `content_manifest_version`
+are both gone; nothing else read the latter beyond storing it, so it had
+no debugging/operational use worth keeping (per the brief's own
+"remove unless inspection finds an actual runtime use" instruction).
+
+### Simplified sync results
+
+`SyncResult` (`data/sync/SyncResult.kt`) replaces the six-case
+`ContentSyncOutcome` with `Completed(updatedVersionIds, skippedVersionIds,
+rejectedVersionIds)` / `RetryableFailure(reason)` /
+`PermanentFailure(reason)`. There is no separate partial-failure case —
+`Completed` simply carries a non-empty `rejectedVersionIds` alongside
+whatever did update or was skipped.
+
+### Package retry fix
+
+`ContentSyncManager` now classifies a package-level HTTP/network failure
+using the same retryable/permanent rule as a manifest-level failure
+(`isRetryableHttpStatus` — HTTP 408/429/5xx or `IOException` — is
+retryable; other 4xx and data-contract violations are permanent). A
+retryable package failure aborts the whole `sync()` call with
+`SyncResult.RetryableFailure`, so `ContentSyncWorker` retries the entire
+sync; packages already imported earlier in the same attempt are simply
+skipped on the retry, since Room already matches them (verified by
+`ContentSyncManagerTest.retryAfterPackageFailureSkipsAlreadyImportedPackages`,
+which asserts the already-imported package's endpoint is never requested
+again). A permanent package failure (checksum mismatch, invalid JSON,
+non-retryable 4xx, minimum app version too high) still only rejects that
+one package and lets the rest of the manifest continue — `rejectedVersionIds`
+carries it, `ContentSyncWorker` records terminal `PARTIAL` rather than
+`FAILED`.
+
+### Bundled manifest pre-comparison
+
+`BundledManifestEntryDto` gained `variantId`/`versionNumber` (bundled
+`manifest.json` updated to match: `tahlil-umum`/`1`,
+`istighosah-umum`/`1`, read from the actual bundled package files, not
+invented). `BundledContentBootstrapper.evaluate` now calls
+`ContentPackageImporter.activeVersionSummary(entry.variantId)` and a new
+shared pure function, `decideContentVersionAction`
+(`data/content/ContentVersionAction.kt`), *before* reading the package
+asset — an older or already-current bundled entry is skipped without ever
+opening its file. `ContentSyncManager` was refactored to call the same
+shared function instead of its own inline copy of the same comparison,
+removing duplication between the two callers. `ContentPackageImporter`
+itself is unchanged and still re-runs its own authoritative comparison
+and checksum verification — this is an optimisation, not a safety
+relaxation (section 18 of the brief).
+
+### Tests deleted, rewritten, and added
+
+Deleted: the two ETag-specific `ContentSyncMetadataTest` cases
+(`saveManifestInfoPersistsEtagAndManifestVersion`,
+`saveManifestInfoWithNullEtagLeavesEtagUnset` — `saveManifestInfo`/
+`ManifestSyncInfo`/`getStoredEtag` no longer exist), the `304`-specific
+`ContentSyncCoordinatorTest.notModifiedResponseNeverDownloadsAnyPackage`
+case (folded into the rewrite below, since there is no `304` concept left
+to test).
+
+Rewritten: `ContentSyncManagerTest.kt` (androidTest, MockWebServer +
+in-memory Room, renamed from `ContentSyncCoordinatorTest.kt`) covers: a
+matching remote version skips the package download, a newer remote
+version downloads and replaces content, a manifest HTTP 500 returns
+`RetryableFailure`, a manifest non-retryable HTTP 4xx returns
+`PermanentFailure`, a package HTTP 500 returns `RetryableFailure`, a retry
+after a package failure re-attempts only the not-yet-imported package
+(asserting exact request counts on both attempts), a permanently invalid
+package (checksum mismatch) is rejected while another package in the same
+manifest still imports, a same-version-different-checksum conflict is
+rejected without a package download, and a `minimumAppVersionCode` too
+high for the current build rejects the package without a download.
+`ContentSyncMetadataTest.kt` (test) rewritten to the simplified
+`SUCCESS`/`PARTIAL`/`FAILED` contract, plus a new case confirming a
+second terminal sync overwrites the first status.
+`ContentSyncSchedulerTest.kt`'s fake DAO seed helper updated from the
+removed `ContentSyncStatus.UPDATED` to `SUCCESS`.
+
+Added: `ContentVersionActionTest.kt` (test,
+`data/content/ContentVersionAction.kt`'s pure decision function — no
+Room/MockWebServer needed) and `ContentSyncHttpClassificationTest.kt`
+(test, `isRetryableHttpStatus` — a top-level function in
+`ContentSyncManager.kt` kept public specifically so it is JVM-unit-testable
+without constructing the class), covering the brief's required "manifest
+version comparison logic" and "HTTP status classification /
+retryable-versus-permanent classification" JVM test bullets.
+
+### Commands executed
+
+`./gradlew :app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin`,
+`:app:compileDebugAndroidTestKotlin`, `:app:ktlintFormat`, `:app:ktlintCheck`,
+`:app:detekt`, `:app:testDebugUnitTest`, `:app:lintDebug`,
+`:app:assembleDebug`, `:app:assembleRelease` — all passed. `adb devices`
+returned no attached device/emulator.
+
+### Results
+
+`testDebugUnitTest`: 48/48 JVM unit tests passed (net +7 versus Milestone
+8's 41: −2 removed ETag cases, +1 new terminal-overwrite case, +5 new
+`ContentVersionActionTest`/`ContentSyncHttpClassificationTest` cases).
+`ktlintFormat`/`ktlintCheck`/`detekt`: all pass (0 issues). `lintDebug`:
+`BUILD SUCCESSFUL`, 0 errors. `assembleDebug`/`assembleRelease`: `BUILD
+SUCCESSFUL`, including `lintVitalRelease` and R8 shrinking. Verified the
+built release APK still bundles `assets/content/manifest.json` with the
+updated `variantId`/`versionNumber` fields and both content packages
+byte-identical to before this pass (`unzip -l`/`unzip -p`).
+`compileDebugAndroidTestKotlin`: compiles clean (two pre-existing,
+unrelated `createAndroidComposeRule` deprecation warnings).
+`connectedDebugAndroidTest` was not run — no device/emulator available.
+
+### Known limitations
+
+* **No real backend exists or is deployed** — unchanged from Milestone 8;
+  `BuildConfig.CONTENT_API_BASE_URL` still points at a non-routable
+  `.invalid` placeholder.
+* **`connectedDebugAndroidTest` was not run** — no emulator/device this
+  session. `ContentSyncManagerTest` (new/rewritten) compiles successfully
+  but is unverified on a real device.
+* **No manual on-device verification** of the required scenarios (fresh
+  install offline, backend unavailable leaves Room unchanged, no-update
+  skips the package endpoint, a new update replaces content, a temporary
+  package failure retries and old content stays readable, a retry after
+  partial success skips the already-imported package, an invalid package
+  is rejected while a valid one still imports, bundled downgrade
+  prevention) — all covered by the automated test suite above, none by a
+  real device this session.
+* Milestone 8's own "Known limitations" section still references
+  `ContentSyncCoordinator` by its pre-rename name in one bullet about
+  revocation handling — left as historical record of what was true when
+  that milestone was written, per this project's convention of not
+  rewriting past milestone entries; the class is `ContentSyncManager` as
+  of this pass. The underlying limitation itself (no dedicated remote
+  handling for `REVOKED` beyond ordinary version comparison) is unchanged.
+
+### Next recommended milestone
+
+Unchanged from Milestone 8: building the actual Go backend service (ADR
+
+0011) is the natural next step to make this Android work observably
+      functional end-to-end, but remains a separate, explicitly-requested task.
+      `docs/product/ROADMAP.md` should be revisited for the next scheduled
+      Android-side item in the meantime (Phase B — Beranda/Jelajahi Amaliyah).

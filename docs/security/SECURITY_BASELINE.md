@@ -71,12 +71,12 @@ this section is no longer forward-looking.
   Android has no on-device previous-version fallback to reason about
   (superseded FR-011, ADR 0012).
 * Response-size limit on downloaded packages — **done**: 5 MiB cap,
-  streamed to a temporary file (`ContentRemoteDataSource`).
+  streamed to a temporary file (`ContentSyncManager`).
 * Backup and restore testing (backend-side; no backend exists yet).
 * Structured logs and request IDs (backend-side).
 * Backend dependency-vulnerability scanning.
 * No content package body, full Arabic text, secret, or response payload is
-  logged (`ContentRemoteDataSource`/`ContentSyncWorker` log only ids,
+  logged (`ContentSyncManager`/`ContentSyncWorker` log only ids,
   counts, HTTP status codes, and exception types).
 
 ## Required before authentication and private pesantren access (`0.1.0`–`0.2.0`)

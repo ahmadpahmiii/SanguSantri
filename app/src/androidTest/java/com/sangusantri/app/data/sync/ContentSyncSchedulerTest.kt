@@ -88,7 +88,7 @@ class ContentSyncSchedulerTest {
         override suspend fun getByKey(key: String): AppMetadataEntity? = storage[key]
 
         suspend fun seedLastSync(epochMillis: Long) {
-            upsert(AppMetadataEntity(ContentSyncMetadata.KEY_LAST_SYNC, ContentSyncStatus.UPDATED.name, epochMillis))
+            upsert(AppMetadataEntity(ContentSyncMetadata.KEY_LAST_SYNC, ContentSyncStatus.SUCCESS.name, epochMillis))
         }
     }
 

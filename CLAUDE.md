@@ -31,7 +31,13 @@ pesantren-specific amaliyah.
   [0012](decisions/0012-bundled-bootstrap-and-remote-sync.md) and the
   rewritten `docs/product/PRD.md` FR-010/FR-011 before assuming remote
   sync "is not part of `0.0.1`" or that Android retains previous content
-  versions — neither is true any more.
+  versions — neither is true any more. A subsequent sync-simplification
+  pass (2026-07-28, ADR 0012 amendment) removed manifest ETag/`304`
+  handling, deleted `ContentRemoteDataSource`, renamed
+  `ContentSyncCoordinator` → `ContentSyncManager`, and replaced the former
+  six-case sync outcome with a three-case `SyncResult` — see that
+  amendment before assuming the Milestone 8 class names above are still
+  current.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, standalone Quran feature, Quran API integration (Kemenag or
   Quran Foundation), or Quran audio is on the roadmap

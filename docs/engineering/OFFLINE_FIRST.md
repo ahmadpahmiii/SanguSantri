@@ -58,24 +58,34 @@ Package version == Room version, checksum differs   → immutable-version
                                                         log, keep Room as is
 ```
 
-This is the same comparison for bundled content and remote content — a
-bundled package that is behind whatever a prior remote sync already
-installed in Room is skipped silently; a bundled package equal to Room's
-active version and checksum is a no-op. Bundled bootstrap never wins a
-race against a genuinely newer synced version, and remote sync never wins
-against a genuinely newer bundled version — whichever has the higher
-`versionNumber` is what Room ends up holding.
+This is the same comparison for bundled content and remote content —
+`decideContentVersionAction` (`data/content/ContentVersionAction.kt`) is one
+pure function both `BundledContentBootstrapper` and `ContentSyncManager`
+call, so a bundled package that is behind whatever a prior remote sync
+already installed in Room is skipped **without even reading its asset
+bytes**, and a bundled package equal to Room's active version and checksum
+is a no-op the same way. Bundled bootstrap never wins a race against a
+genuinely newer synced version, and remote sync never wins against a
+genuinely newer bundled version — whichever has the higher `versionNumber`
+is what Room ends up holding. `ContentPackageImporter.importPackage` always
+re-runs this same comparison itself before writing anything — the
+pre-check in each caller is a bandwidth/IO optimisation, not a relaxation
+of the importer's own safety.
 
 ## Remote manifest (implemented)
 
-`GET /v1/content/manifest` with `If-None-Match: <stored ETag>`. A `304`
-response performs no package download and no Room write. A `200` response
-is schema-version-checked, then every listed package is evaluated per the
-comparison above using the manifest's own declared `versionNumber`/
-`checksumSha256` — a package that is clearly not worth downloading (older,
-or equal-version-matching-checksum) is skipped **before** any network
-request for its bytes (`ContentSyncCoordinator`, bandwidth avoidance).
-Full contract: `docs/content-schema.md`, `CLAUDE.md` §7.
+`GET /v1/content/manifest` — no request body, no conditional-request
+header. The manifest is small and is checked at most once every 24 hours
+(the scheduler's own gate below), so ETag/`304` caching was deliberately
+removed as unnecessary complexity (2026-07-28 sync simplification, ADR
+0012 amendment): a normal sync always issues a plain request and reads the
+`200` response. The response is schema-version-checked, then every listed
+package is evaluated per the comparison above using the manifest's own
+declared `versionNumber`/`checksumSha256` — a package that is clearly not
+worth downloading (older, or equal-version-matching-checksum) is skipped
+**before** any network request for its bytes (`ContentSyncManager`,
+bandwidth avoidance). Full contract: `docs/content-schema.md`, `CLAUDE.md`
+§7.
 
 ## Package import (implemented)
 
@@ -118,24 +128,47 @@ against duplicate enqueues from rapid repeated calls).
 
 ## Failure and retry semantics (implemented)
 
-* **Transient** (`IOException`, timeout, HTTP 408/429/5xx): bounded
-  exponential backoff, `Result.retry()`, 3 attempts total. Only after the
-  final attempt is a terminal `FAILED` status recorded — earlier attempts
-  do not touch the 24-hour gate, so a still-retrying sync does not look
-  like a fresh terminal failure.
-* **Permanent/data-contract** (unsupported schema, checksum mismatch,
-  invalid structure, same version with different bytes, unsupported
-  minimum app version, non-retriable 4xx): terminal `FAILED` recorded
-  immediately, a concise diagnostic logged (never the package body or
-  Arabic text), Room untouched, no retry of the same invalid package this
-  run.
+`ContentSyncManager.sync()` returns one of three `SyncResult`s:
+`Completed(updatedVersionIds, skippedVersionIds, rejectedVersionIds)`,
+`RetryableFailure(reason)`, or `PermanentFailure(reason)` (2026-07-28 sync
+simplification, ADR 0012 amendment — replaces a former six-case outcome).
+There is no separate partial-failure result: `Completed` can carry
+`rejectedVersionIds` for package-level failures alongside whatever did
+update, without failing the whole sync.
+
+* **Retryable** (`IOException`, timeout, HTTP 408/429/5xx) at the manifest
+  level, **or** the same classification for an individual package
+  download: either aborts the whole `sync()` call with
+  `RetryableFailure`, and `ContentSyncWorker` retries the entire sync
+  (bounded exponential backoff, `Result.retry()`, 3 attempts total). A
+  package-level retryable failure is not treated as merely that one
+  package's problem — a timeout genuinely says nothing about that
+  specific package, so the whole attempt restarts. This is safe because
+  packages already imported earlier in the same attempt already match
+  Room and are skipped on the retry (per the version comparison above).
+  Only after the final attempt is a terminal `FAILED` status recorded —
+  earlier attempts do not touch the 24-hour gate, so a still-retrying sync
+  does not look like a fresh terminal failure.
+* **Permanent** at the manifest level (unsupported schema, empty/malformed
+  body, non-retriable manifest HTTP 4xx): terminal `FAILED` recorded
+  immediately, Room untouched.
+* **Permanent at the package level** (checksum mismatch, malformed
+  package JSON, invalid structure, same version with a different checksum,
+  non-retriable package HTTP 4xx, minimum app version too high): that one
+  package's version id is added to `rejectedVersionIds` and Room is left
+  unchanged for it, but the rest of the manifest's packages still get
+  processed — one bad package never blocks another. `ContentSyncWorker`
+  records terminal `PARTIAL` when any package was rejected this way (even
+  if others updated successfully), or `SUCCESS` when none were.
 * Either way: the application never crashes, no raw error reaches the
-  user, and Room's previously valid content keeps rendering exactly as
+  user, a concise diagnostic is logged (never the package body or Arabic
+  text), and Room's previously valid content keeps rendering exactly as
   before the sync attempt.
-* Sync bookkeeping (`content_last_sync`, `content_manifest_etag`,
-  `content_manifest_version`) lives in the existing `app_metadata`
-  key-value table (`ContentSyncMetadata`) — no dedicated sync table was
-  created solely for one timestamp and one ETag.
+* Sync bookkeeping is just `content_last_sync` (`value` one of
+  `SUCCESS`/`PARTIAL`/`FAILED`) in the existing `app_metadata` key-value
+  table (`ContentSyncMetadata`) — no dedicated sync table was created
+  solely for one timestamp. There is no stored ETag or manifest version to
+  track any more.
 
 ## Local user-state features (Figma product-alignment pass)
 

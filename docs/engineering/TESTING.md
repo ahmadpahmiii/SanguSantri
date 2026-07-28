@@ -47,7 +47,8 @@ latest version → fallback to previous approved version.
 
 ## Backend tests (not yet applicable — no backend exists)
 
-When backend work starts: manifest response, ETag handling, package
-retrieval, invalid feedback payload, rate limiting, content validation,
-approval enforcement, publishing transaction, revocation, database
-migration, storage failure, context cancellation.
+When backend work starts: manifest response (active-versions-only shape,
+no conditional-request header), package retrieval, invalid feedback
+payload, rate limiting, content validation, approval enforcement,
+publishing transaction, revocation, database migration, storage failure,
+context cancellation.

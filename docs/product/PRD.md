@@ -12,6 +12,10 @@ degrade the offline experience defined in §3.2/ADR 0007. Everything else in
 version 1.4 (Beranda rename, Jelajahi Amaliyah, reader repetition
 shortcut/TOC, risk-based publication model) stays in effect unchanged. Full
 gap analysis for the Figma pass: `docs/reviews/figma-product-alignment.md`.
+A 2026-07-28 engineering simplification pass (ADR 0012 amendment) removed
+manifest ETag/`304` handling and the former six-case sync outcome model
+from the implementation without changing FR-010/FR-011's product-level
+requirements below — see that amendment for what changed and why.
 **Product:** SanguSantri
 **Initial release:** Android `0.0.1`
 **Package name:** `com.sangusantri.app`
@@ -22,7 +26,7 @@ gap analysis for the Figma pass: `docs/reviews/figma-product-alignment.md`.
 `docs/decisions/0011-go-and-supabase-managed-postgresql-backend.md`)
 is a parallel workstream, not yet deployed — see
 `docs/product/ROADMAP.md`. The Android client against that API contract
-(manifest/package fetch, ETag, WorkManager sync) is implemented and ships
+(manifest/package fetch, WorkManager sync) is implemented and ships
 in `0.0.1` regardless of backend deployment status: the app must remain
 fully functional offline, with the backend unreachable, or before it has
 ever been deployed (§3.2, FR-010).
@@ -847,8 +851,10 @@ Acceptance criteria:
   foreground entry, gated so it runs at most once per 24 hours based on the
   last *terminal* remote sync attempt (including a terminal failure) —
   never a permanently repeating periodic worker.
-* The manifest fetch sends the stored ETag (`If-None-Match`); a `304`
-  response performs no package download.
+* The manifest fetch has no conditional-request header — the manifest is
+  small and is checked at most once every 24 hours (the next bullet's
+  scheduling gate), so a plain request is fetched and read every time sync
+  actually runs.
 * Only a variant whose remote `versionNumber` is greater than Room's active
   version is downloaded and imported; a lower or equal-with-matching-checksum
   remote version is never downloaded.

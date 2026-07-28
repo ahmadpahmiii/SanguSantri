@@ -104,7 +104,15 @@ constructor(
             GuidedReaderUiAction.ConfirmCompletion -> onConfirmCompletion()
             GuidedReaderUiAction.Retry -> loadContent()
             GuidedReaderUiAction.SwitchToFull -> onSwitchToFull()
+            is GuidedReaderUiAction.JumpToStep -> onJumpToStep(action.stepId)
         }
+    }
+
+    /** Table of Contents jump (FR-017) — moves to the section's first step, no counter side effects. */
+    private fun onJumpToStep(stepId: String) {
+        val detail = availableDetail() ?: return
+        val index = detail.steps.indexOfFirst { it.id == stepId }
+        if (index >= 0) moveTo(index)
     }
 
     /**
@@ -157,6 +165,7 @@ constructor(
             is ReaderUiAction.PersistPositionNow,
             ReaderUiAction.Retry,
             ReaderUiAction.SwitchToGuided,
+            is ReaderUiAction.SwitchToGuidedAtStep,
                 -> Unit
         }
     }
@@ -181,8 +190,8 @@ constructor(
                         Log.w(
                             TAG,
                             "Content unavailable for slug=$amaliyahSlug: " +
-                                "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
-                                "stepCount=${detail?.steps?.size ?: 0}",
+                                    "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
+                                    "stepCount=${detail?.steps?.size ?: 0}",
                         )
                         ContentState.Unavailable
                     } else {
@@ -349,6 +358,7 @@ constructor(
                     GuidedReaderUiState.StepVisible(
                         amaliyahTitleId = amaliyahTitleId,
                         versionId = detail.version.id,
+                        allSteps = steps,
                         step = step,
                         stepIndex = clampedIndex,
                         stepCount = steps.size,

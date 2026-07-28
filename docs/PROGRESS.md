@@ -1455,3 +1455,376 @@ Google Play developer configuration (`docs/product/PRD.md` §13,
 `docs/operations/PRODUCTION_READINESS.md`). Kyai/sesepuh approval is no
 longer one of these for the current two standard public amaliyah, but
 remains required the moment any higher-risk content is added.
+
+## Figma product-alignment documentation pass (pre-Phase A)
+
+**Status:** Complete. Not a numbered milestone — no Android/Kotlin source
+changed. Documentation only.
+
+**Scope:** Align product documentation with a set of confirmed
+product/UX decisions and a named Figma file (11 node IDs covering revised
+Full/Guided Reader, reader overflow menus, Reader Settings and Table of
+Contents bottom sheets, Standalone Tasbih and its custom-target dialog,
+Beranda, and Jelajahi Amaliyah). No Android/Kotlin code was written this
+pass — that begins with Phase A once the user replies "done".
+
+### Figma access blocker
+
+The Figma MCP connection was rate-limited (Starter plan) for the entire
+session — every call, including a plain `get_metadata` on the top-level
+product-screens page, was rejected before a single node could be opened.
+Per the user's explicit choice when asked how to proceed, this pass wrote
+the documentation from the confirmed decisions given directly in the
+request plus the current repository state, and marked every Figma-derived
+visual specific (exact spacing, component variants, states drawn in each
+frame) as **pending Figma verification** rather than guessing measurements
+from node names alone. See `docs/design/FIGMA_HANDOFF.md`'s "Status of
+this document" section — re-run Figma discovery before Phase A begins.
+
+### What shipped
+
+* **`docs/design/FIGMA_HANDOFF.md`** (new): file/node reference,
+  frame-to-feature mapping against current code, navigation map (including
+  an explicitly flagged open question on bottom-nav rollout timing),
+  reader interaction map, responsive/state/motion notes, Compose component
+  mapping, implementation phase order (A–E, matching the request exactly),
+  and known incomplete Figma areas (no frame was supplied for Aktivitas).
+* **`docs/reviews/figma-product-alignment.md`** (new): gap table —
+  existing implementation vs. confirmed decision vs. gap vs. resolution
+  vs. owning document vs. phase, across terminology/navigation, reader,
+  Beranda/Jelajahi, Tasbih/Aktivitas, and accessibility/design-system rows.
+  Also records a pre-existing documentation drift found while reading
+  `ARCHITECTURE.md` (a stale `feature/feedback` package in the diagram,
+  even though feedback was removed from scope at Milestone 5) — fixed as
+  part of this pass since it was found, not because it relates to Figma.
+* **`docs/product/PRD.md`** (version 1.3 → 1.4): renamed the primary home
+  destination Serambi → Beranda (§2.3, §7.2, FR-002 — "Serambi" may persist
+  as an internal label only); rewrote §7 Information Architecture with the
+  target five-destination nav model and its open rollout question; added
+  §8.4b (Full Reader repetition shortcut), §8.4c (reader Table of
+  Contents), §8.6 (Beranda sections), §8.7 (Jelajahi Amaliyah); added
+  FR-017 (Table of Contents), FR-018 (repetition shortcut), FR-019 (Beranda
+  scalable dashboard), FR-020 (Jelajahi Amaliyah), FR-021 (favourites and
+  recently opened); updated §5.1/§5.2 scope lists accordingly.
+* **`docs/product/ROADMAP.md`**: rebaselined `0.0.1`'s bullet list to the
+  wider foundation (Beranda, Jelajahi Amaliyah, continue reading, recently
+  opened, favourites, repetition shortcut, TOC sheet); rewrote `0.0.2`
+  Standalone Tasbih bullets to match the confirmed requirements exactly
+  (33/100/unlimited/custom, no 99, compact selector, small custom dialog);
+  renamed `0.0.3` "Riwayat and Streak" → "Aktivitas" (vertical sections, no
+  tabs, flagged missing Figma frame); added a "Final navigation model"
+  section documenting the phased destination rollout and its open
+  question.
+* **`docs/design/DESIGN_SYSTEM.md`**: marked the "traditional-modern
+  pesantren character/tone" wording superseded by "modern Islamic identity,
+  not necessarily traditional ornament" (kept, not deleted, per the
+  request's own legacy-marking instruction); added a spiritual-gold accent
+  note (token not yet created); added Adaptive navigation, Component rules
+  (search/section/card/chip/counter/dialog/bottom-sheet), Reader mode
+  action, Tasbih target hierarchy, and Motion sections.
+* **`docs/design/ACCESSIBILITY.md`**: added modal-bottom-sheet focus/
+  dismissal rules, numeric-input validation rules (custom Tasbih target),
+  and an explicit reduced-motion callout (still an unfixed known gap since
+  Milestone 4); extended the 48dp/counter-semantics requirements to the
+  new screens.
+* **`docs/engineering/ARCHITECTURE.md`**: fixed the stale `feature/feedback`
+  package tree entry (see above); added `feature/explore`, `feature/tasbih`,
+  `feature/activity` as scheduled-but-unimplemented; added Navigation
+  destinations and Local user-state persistence ownership sections.
+* **`docs/engineering/CONTENT_MODEL.md`**: added a Category taxonomy note
+  (why updating `amaliyah.category`'s value is a metadata edit, not a new
+  content version); added a Table of Contents derivation note (sections
+  come from existing `HEADING`-typed steps — no schema change); forward-
+  documented (not created) `favorites`, `recently_opened`,
+  `tasbih_sessions`, and a reminder model, each tagged with its owning
+  phase.
+* **`docs/engineering/OFFLINE_FIRST.md`**: added a note that all new local
+  user-state features (favourites, recent, Tasbih, Aktivitas, reminders)
+  follow the existing offline-first/local-source-of-truth pattern, no
+  exceptions.
+* **`docs/content-schema.md`**: added a forward note on `amaliyah.category`
+  mirroring `CONTENT_MODEL.md`; no bundled JSON asset was edited.
+* **`CLAUDE.md`**: corrected the milestone-state summary to Milestones 0–6
+  (previously said 0–3); added a note that a Figma alignment pass has
+  since renamed Serambi → Beranda and expanded documented `0.0.1` scope
+  ahead of matching code; added `FIGMA_HANDOFF.md` to the UI/Compose
+  reading-matrix row; added a clearly-scoped, explicitly temporary
+  "Temporary implementation-pass constraints" section (no Room migrations,
+  no new tests, minimum validation command set) for Phases A–E only, to be
+  removed once that initiative concludes.
+
+### Commands executed
+
+None — documentation-only pass, no build/lint/test commands apply.
+
+### Known limitations
+
+* No Figma node was actually opened (rate limit) — every visual/spacing/
+  component-variant detail in `FIGMA_HANDOFF.md` is unverified and must be
+  confirmed before or during Phase A.
+* No Android/Kotlin source changed; none of the new Room tables mentioned
+  above exist yet; the reader overflow-menu restructure (settings/TOC
+  moving into the overflow) is documented but not implemented; Beranda is
+  still the Milestone 2 two-card `SerambiScreen`, not yet renamed or
+  rebuilt.
+* The bottom-navigation rollout-timing question (`FIGMA_HANDOFF.md`) is
+  unresolved and should be confirmed before Phase B, since it changes
+  whether Phase B builds nav-bar scaffolding at all.
+* No Figma frame was supplied for Aktivitas (`0.0.3`) — confirm one exists
+  before Phase D, or proceed from the written decision alone if the
+  product owner confirms none is coming.
+
+### Next recommended milestone
+
+Phase A — Release `0.0.1` Reader UX alignment (`docs/design/FIGMA_HANDOFF.md`),
+on the user's explicit "done" reply. Re-run Figma discovery (`get_metadata`/
+`get_design_context`/`get_screenshot` on nodes `14:2`, `14:32`, `16:2`,
+`16:45`, `16:89`, `16:148`) before writing any Phase A code.
+
+## Milestone 7 — Phase A: Reader UX Alignment
+
+**Status:** Implemented and verified locally — `:app:ktlintFormat`,
+`:app:ktlintCheck`, `:app:detekt`, `:app:lintDebug`, `:app:assembleDebug`,
+`:app:compileDebugUnitTestKotlin`, `:app:compileDebugAndroidTestKotlin` all
+pass. `connectedDebugAndroidTest`/`testDebugUnitTest` were not run per this
+pass's own testing constraint. No emulator/device was available this
+session (`adb devices` returned empty), so no manual on-device verification
+was performed — see Known limitations.
+
+**Scope:** Align the Full Reader and Guided Reader with the locally
+exported revised Figma frames (`docs/design/figma-export/`, nodes `14:2`,
+`14:32`, `16:2`, `16:45`, `16:89`, `16:148`), per the Phase A brief: revised
+layouts, both overflow menus, the Full ↔ Guided switch (re-verified, not
+rebuilt), the Full Reader repetition shortcut, progress/counter
+preservation, the Reader Settings sheet, a new Table of Contents sheet,
+source/pentashihan entry, adaptive width, and dark-mode color tokens. No
+Standalone Tasbih, Beranda, Explore, or Activity work — out of scope per
+the brief. No Room migration; no new tests added.
+
+### Figma export inspection
+
+All 10 exported node pairs (JSON + PNG) were inspected via a local Python
+script that walks the `JSON_REST_V1`-shaped export tree (no Figma MCP
+call — still rate-limited). Concrete findings that changed the
+implementation from what the documentation-only pass had guessed:
+
+* **Both readers' top bars carry only back + overflow — no separate
+  settings gear icon.** Confirmed in both `14:2` and `14:32`: reader
+  appearance settings live entirely inside the overflow menu (decision F),
+  not as a standalone top-bar action as Milestone 3–6 had it.
+* **Overflow menu order is exactly**: switch mode → "Daftar isi" → "Tampilan
+  bacaan" → "Sumber & pentashihan" (nodes `16:2`/`16:45`), confirmed
+  identical between Full and Guided Reader apart from the switch-mode
+  label.
+* **A reading-progress header** ("Langkah N dari total" + percentage +
+  track/value bar) appears above the content in both readers — not
+  implemented in any prior milestone.
+* **The repetition indicator is a tappable, stadium-shaped tonal pill**
+  ("Dibaca N kali · Buka Panduan →"), not the plain informational text
+  Milestone 3 shipped.
+* **A "✓ Posisi bacaan tersimpan" status pill** appears in every reader
+  export — treated as a transient, one-shot confirmation shown when a
+  reader resumes at a saved position > 0 (the static export can't encode
+  transient-vs-persistent behaviour, so this is a reasoned choice, not a
+  guess about content that was actually absent from the export).
+* **Reader Settings sheet (`16:89`) has 3 steppers, not 4**: Arabic font
+  size, translation font size, Arabic line spacing — no dedicated
+  translation-line-spacing control — plus a translation toggle and a single
+  primary "Selesai" button at the bottom (no separate header close
+  action). See Known limitations for the FR-008 gap this opens.
+* **Table of Contents (`16:148`)** groups steps into named sections with
+  step ranges (e.g. "Pembukaan 1–4", "Surat Al-Ikhlas 5"), the current
+  section highlighted with the same tonal-pill treatment as the repetition
+  shortcut.
+* **Guided Reader's Previous/Continue buttons are both filled, stadium-
+  shaped pills** (`14:32`) — Previous uses the tonal `primaryContainer`
+  colour, not an outlined style as Milestone 4 shipped it.
+* **Color variables observed across every export** map almost exactly onto
+  the existing `SantriGreen`/`SantriNeutral` ramp already in `Color.kt`
+  (e.g. the primary green pill text matches `SantriGreen20` exactly, the
+  primary button colour matches `SantriGreen40` exactly), with four gaps:
+  no existing token matched the card/sheet surface tone, the secondary/
+  muted text tone, the hairline border tone, or the light pill/container
+  tone — see Design tokens below.
+
+### Design tokens
+
+`core/designsystem/theme/Color.kt`: added `SantriGreen95` (light
+primary-container pill tone), `SantriSurface` (card/sheet surface, distinct
+from the existing neutral background), `SantriNeutral40` (secondary/muted
+text), `SantriOutline` (hairline border/drag-handle). `Theme.kt`: explicitly
+set `surface`, `surfaceVariant`, `onSurfaceVariant`, `outline`, and
+`outlineVariant` for the light scheme (previously unset, silently falling
+back to Material 3's unbranded defaults everywhere they were already used —
+`AmaliyahCard`, `ReaderStepItem` dividers, `GuidedTasbihCounter`'s border,
+Serambi's empty-state text — a pre-existing, now-fixed defect); corrected
+`primaryContainer`/`onPrimaryContainer` from `SantriGreen90`/`SantriGreen10`
+to `SantriGreen95`/`SantriGreen20` to match the exported tone exactly. Dark
+scheme: added the same four roles using only existing dark-ramp tokens
+(`SantriGreen20`/`SantriGreen90`/`SantriGreen30`) as a reasoned
+approximation — no dark-mode Figma frame was exported, so no new hex value
+was invented for dark, per the project's own "do not guess" instruction.
+`Shape.kt`: added `SanguSantriShapes.extraLarge = RoundedCornerShape(percent
+= 50)` — a true stadium/pill shape at any aspect ratio, matching every pill
+element observed (repeat shortcut, saved-position status, progress bar,
+guided nav buttons), distinct from the existing three fixed-dp radii.
+
+### What shipped
+
+* **Repetition shortcut (FR-018)**: `ReaderRepetitionShortcut` (renamed
+  from the informational `ReaderRepetitionIndicator`,
+  `feature/reader/components/ReaderArabicContentBlocks.kt`) is now a
+  clickable tonal pill. `ReaderStepItem` threads a new
+  `onOpenGuidedAtStep: (stepId: String) -> Unit` down to it. New
+  `ReaderUiAction.SwitchToGuidedAtStep(stepId)`; `ReaderViewModel`'s
+  `onSwitchToGuided` logic was refactored into a shared private
+  `switchToGuided(detail, stepId)` so the existing overflow-menu switch
+  (current visible step) and the new shortcut (the exact tapped step) both
+  reuse the same session-write path — no duplicated logic, no new progress
+  model.
+* **Table of Contents (FR-017)**: new `feature/reader/toc/` package —
+  `TocSection.kt` (pure `List<AmaliyahStep>.toTocSections()`/
+  `sectionContaining()`, deriving sections from existing `HEADING` steps,
+  no schema change) and `ReaderTableOfContentsSheet.kt` (the bottom sheet
+  UI plus `ReaderTableOfContentsOverlay`, the Full Reader's entry point
+  that scrolls its `LazyListState` to the selected section — reusing the
+  existing scroll-position persistence path, no new ViewModel action
+  needed). Guided Reader gets a new `GuidedReaderUiAction.JumpToStep`
+  (moves to a step index via the existing private `moveTo`, no counter
+  side effects) and `GuidedReaderUiState.StepVisible` gained an `allSteps`
+  field so the sheet can derive sections from the full step list.
+* **Reader overflow menu**: `ReaderOverflowMenu` gained
+  `onOpenTableOfContents`/`onOpenSettings` (bundled into a new
+  `ReaderOverflowActions` data class, `feature/reader/components/
+  ReaderOverflowActions.kt`, to stay under detekt's parameter-count limit)
+  and two new `DropdownMenuItem`s ("Daftar isi", "Tampilan bacaan") in the
+  exact order the export shows.
+* **Reader Settings sheet**: restructured to match `16:89` — header is now
+  title + subtitle (no inline close button), translation-line-spacing
+  stepper removed from the UI (see Known limitations), a primary "Selesai"
+  button added at the bottom, explicit `containerColor`/28dp-top-corner
+  `shape` on the `ModalBottomSheet`. The standalone settings icon was
+  removed from both readers' top bars entirely (`GuidedReaderTopBar` no
+  longer takes an `onOpenSettings` parameter).
+* **Progress header (shared)**: new `ReaderProgressHeader`
+  (`feature/reader/components/ReaderProgressHeader.kt`) — "Langkah N dari
+  total" + percentage + a hand-drawn track/value bar (not M3's
+  `LinearProgressIndicator`, for exact colour/shape control) — used
+  identically by both readers. For the Full Reader it sits **above** the
+  `LazyColumn`, not as a lazy item, to avoid perturbing the existing
+  lazy-list-index-based position-persistence contract (a deliberate,
+  documented deviation from the export's literal single-scroll-container
+  nesting). Guided Reader's old plain "N dari total" text was replaced by
+  this shared header; `guided_reader_position_label` was removed as dead.
+* **Saved-position status (shared)**: new `ReaderSavedPositionStatus`
+  (+ `rememberInitialSavedPositionFlag`, same file) — a transient tonal
+  pill with a check icon, shown once per screen instance when the reader
+  resumes at a position/step index > 0, auto-hiding after 2.5s.
+* **Guided Reader step-status row (decision E)**: new
+  `GuidedStepStatusRow` (`feature/guidedreader/components/
+  GuidedStepContent.kt`) renders the step title and a prominent "Target N
+  kali" label above the reading card, in addition to the counter already
+  showing progress inside the card.
+* **Guided Reader nav buttons**: `GuidedReaderBottomBar` — "Sebelumnya" is
+  now a filled tonal (`primaryContainer`) pill instead of an
+  `OutlinedButton`; both buttons use the new `extraLarge` stadium shape.
+  Direction is still conveyed via `Icons.AutoMirrored.Filled.ArrowBack`
+  (RTL-correct), not a literal arrow glyph in the string, which is a
+  deliberate deviation from the export's own static mockup in favour of
+  the project's explicit RTL/mirrored-icon accessibility rule.
+
+### Detekt-driven decomposition
+
+Adding this much UI surface to `ReaderScreen.kt`/`GuidedReaderScreen.kt`
+tripped `LongMethod`/`LongParameterList`/`TooManyFunctions` repeatedly —
+resolved by extraction and relocation, not `@Suppress`: `ReaderTopBar`,
+`ReaderStepListContent` (+ a small `ReaderStepListRenderState` bundling
+data class) stay in `ReaderScreen.kt`; `GuidedReaderTopBarWithOverflow`/
+`GuidedReaderBottomBarIfVisible` stay in `GuidedReaderScreen.kt`;
+`ConfirmDialogText`/`GuidedConfirmDialog` moved to their own file
+`feature/guidedreader/ConfirmDialogText.kt`; `GuidedReaderOverlayVisibility`
+(+ its two `remember*` helpers) moved to `feature/guidedreader/
+GuidedReaderOverlayVisibility.kt`; `GuidedStepStatusRow` moved into
+`feature/guidedreader/components/GuidedStepContent.kt`;
+`ReaderOverflowActions` moved into its own file (detekt's
+`MatchingDeclarationName` flags a file with one top-level class-like
+declaration and a non-matching name); `TableOfContentsSections.kt` was
+renamed `TocSection.kt` for the same reason.
+
+### Files created
+
+`core/designsystem/theme` — none created, only `Color.kt`/`Shape.kt`/
+`Theme.kt` modified. `feature/reader/components/{ReaderOverflowActions,
+ReaderProgressHeader,ReaderSavedPositionStatus}.kt`,
+`feature/reader/toc/{TocSection,ReaderTableOfContentsSheet}.kt`,
+`feature/guidedreader/{ConfirmDialogText,GuidedReaderOverlayVisibility}.kt`.
+
+### Files modified
+
+`core/designsystem/theme/{Color,Shape,Theme}.kt`, `feature/reader/
+{ReaderScreen,ReaderUiAction,ReaderViewModel}.kt`, `feature/reader/
+components/{ReaderArabicContentBlocks,ReaderOverflowMenu,
+ReaderStepItem}.kt`, `feature/reader/settings/ReaderSettingsSheet.kt`,
+`feature/guidedreader/{GuidedReaderScreen,GuidedReaderBars,
+GuidedReaderUiAction,GuidedReaderUiState,GuidedReaderViewModel}.kt`,
+`feature/guidedreader/components/GuidedStepContent.kt`,
+`res/values/strings.xml`. `androidTest/.../feature/reader/
+ReaderScreenTest.kt` adapted (settings now reached through the overflow
+menu, not a content-description-tagged top-bar icon; close action is now
+"Selesai" not "Tutup") — required for compilation and accuracy, not a new
+test.
+
+`data/local/dao/AmaliyahVersionDao.kt`, `data/repository/
+{ContentRepositoryImpl,GuidedReadingRepositoryImpl,
+ReaderSettingsRepositoryImpl,ReadingPositionRepositoryImpl}.kt`,
+`feature/home/SerambiViewModel.kt`, `feature/reader/
+ReaderEntryViewModel.kt` also show as modified — confirmed via `git diff
+--ignore-all-space` to be **whitespace-only** (a pre-existing constructor-
+indentation style `ktlintFormat` corrected project-wide as a side effect of
+running the required formatting command). No logic in any of these files
+changed.
+
+### Commands executed
+
+`./gradlew :app:ktlintFormat`, `:app:ktlintCheck`, `:app:detekt`,
+`:app:lintDebug`, `:app:assembleDebug`, `:app:compileDebugUnitTestKotlin`,
+`:app:compileDebugAndroidTestKotlin` — all passed. `adb devices` returned
+empty (no emulator/device this session).
+
+### Known limitations
+
+* **No manual on-device verification** — no emulator was available.
+  Everything above is verified by static analysis and successful
+  compilation/build only.
+* **Translation line spacing has no UI control this phase.** The revised
+  Figma settings sheet only shows 3 steppers; `ReaderSettings.
+  translationLineSpacingMultiplier`, `ReaderUiAction.
+  SetTranslationLineSpacing`, and `ReaderSettingsRepository.
+  setTranslationLineSpacing` all remain fully functional in the data/domain
+  layer (untouched), but nothing in the UI calls them anymore. This is a
+  real, narrower-than-FR-008 gap opened by following the revised Figma
+  layout exactly rather than guessing a 4th stepper back in — flag for a
+  product decision (restore the control, or update FR-008) before this is
+  considered fully resolved.
+* **Dark-mode color tokens are a reasoned approximation, not
+  Figma-verified** — no dark-mode frame was exported; the new dark-scheme
+  role values reuse existing green-ramp tokens rather than inventing new,
+  unverified hex values.
+* **RTL was not manually re-verified** for any of the new UI (progress
+  header, repetition pill, TOC sheet, saved-position pill, restyled guided
+  nav buttons) — all use standard Compose layout primitives that mirror
+  automatically under RTL locale, and Arabic content blocks keep their
+  existing forced-RTL handling unchanged, but this is reasoned, not tested.
+* **Adaptive/tablet behaviour is unchanged from Milestone 3** — the
+  existing 640dp max-width constraint on both readers was preserved as-is;
+  no additional expanded-window-size-class work was done this phase beyond
+  what already existed.
+* The bottom-navigation rollout-timing question and the Aktivitas
+  Figma-frame gap (both flagged in `docs/design/FIGMA_HANDOFF.md`) are
+  unrelated to this phase and remain open.
+
+### Next recommended milestone
+
+Phase B — Release `0.0.1` Beranda and Explore Amaliyah
+(`docs/design/FIGMA_HANDOFF.md`, nodes `19:2`/`19:84`), on the user's
+explicit "done" reply.

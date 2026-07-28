@@ -51,6 +51,22 @@ periodic WorkManager work, on manual refresh, and after connectivity
 returns when pending work exists. The client must use backoff and avoid
 repeated network loops.
 
+## Local user-state features (Figma product-alignment pass)
+
+Favourites, recently-opened, Standalone Tasbih's unfinished count, and
+Aktivitas activity data (streak, completion history, tasbih history) are
+all local-first state, same as existing reading position/guided-session
+persistence — Room (structured, queryable state) or DataStore (simple
+preferences), never a network round-trip to read or write. None of these
+features depend on connectivity, an account, or a backend; all remain
+usable fully offline, consistent with the guest-first/offline-first
+principles (`docs/product/PRD.md` §3.2/§3.4, ADR 0007/0009). Reminder
+schedules (`0.0.4`) are also local (WorkManager-scheduled), with no server
+round-trip required to fire a locally-scheduled notification. None of
+these tables are designed or created by this documentation pass — see
+`docs/engineering/CONTENT_MODEL.md` for their planned shape and owning
+phase.
+
 ## Reliability requirements
 
 * Core reading must work when the API is unavailable.

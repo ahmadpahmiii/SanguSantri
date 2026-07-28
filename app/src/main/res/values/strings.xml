@@ -16,18 +16,32 @@
   <string name="reader_content_unavailable">Bacaan ini belum tersedia.</string>
   <string name="reader_error_message">Bacaan tidak dapat dimuat.</string>
   <string name="reader_retry_action">Coba lagi</string>
-  <string name="reader_settings_content_description">Pengaturan tampilan bacaan</string>
   <string name="reader_quran_reference_range">QS. %1$d: %2$d–%3$d</string>
   <string name="reader_quran_reference_single">QS. %1$d: %2$d</string>
-  <string name="reader_repetition_target">Dibaca %1$d kali</string>
 
-  <!-- Reader settings sheet -->
+  <!-- Reader progress header and saved-position status (Figma product-alignment pass, nodes 14:2/14:32) -->
+  <string name="reader_progress_label">Langkah %1$d dari %2$d</string>
+  <string name="reader_progress_percentage">%1$d%%</string>
+  <string name="reader_saved_position_status">Posisi bacaan tersimpan</string>
+
+  <!-- Full Reader repetition shortcut (decision D, FR-018) -->
+  <string name="reader_repetition_shortcut">Dibaca %1$d kali · Buka Panduan →</string>
+
+  <!-- Reader Table of Contents bottom sheet (FR-017, node 16:148) -->
+  <string name="reader_open_toc_action">Daftar isi</string>
+  <string name="reader_toc_title">Daftar Isi</string>
+  <string name="reader_toc_subtitle">Lompat ke bagian tanpa mengubah progres bacaan.</string>
+  <string name="reader_toc_item_state">Langkah %1$s</string>
+
+  <!-- Reader settings sheet (node 16:89) -->
+  <string name="reader_open_settings_action">Tampilan bacaan</string>
   <string name="reader_settings_title">Tampilan Bacaan</string>
+  <string name="reader_settings_subtitle">Atur kenyamanan membaca. Perubahan tersimpan otomatis.</string>
+  <string name="reader_settings_done_action">Selesai</string>
   <string name="reader_settings_close_action">Tutup</string>
   <string name="reader_settings_arabic_font_size">Ukuran teks Arab</string>
   <string name="reader_settings_translation_font_size">Ukuran teks terjemahan</string>
   <string name="reader_settings_arabic_line_spacing">Jarak baris teks Arab</string>
-  <string name="reader_settings_translation_line_spacing">Jarak baris terjemahan</string>
   <string name="reader_settings_show_translation">Tampilkan terjemahan</string>
   <string name="reader_settings_decrease_content_description">Kurangi %1$s</string>
   <string name="reader_settings_increase_content_description">Tambah %1$s</string>
@@ -40,10 +54,10 @@
   <string name="reader_mode_guided_description">Baca selangkah demi selangkah dengan tasbih interaktif.</string>
 
   <!-- Guided Reader (FR-005/FR-006, Milestone 4) -->
-  <string name="guided_reader_position_label">%1$d dari %2$d</string>
   <string name="guided_reader_previous_action">Sebelumnya</string>
   <string name="guided_reader_continue_action">Lanjutkan</string>
   <string name="guided_reader_finish_action">Selesaikan</string>
+  <string name="guided_reader_step_target_label">Target %1$d kali</string>
   <string name="guided_counter_progress">%1$d / %2$d</string>
   <string name="guided_counter_tap_action">Tambah hitungan tasbih</string>
   <string name="guided_counter_completed_description">Hitungan selesai, %1$d dari %2$d</string>

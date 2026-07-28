@@ -110,16 +110,21 @@ class ReaderScreenTest {
         composeRule.onNodeWithText(composeRule.activity.getString(R.string.reader_mode_full_title)).performClick()
         composeRule.onNodeWithText(FIXTURE_TRANSLATION_TEXT).assertExists()
 
+        // Reader appearance settings are reached through the overflow menu, not a standalone
+        // top-bar icon (decision F, Figma product-alignment pass).
         composeRule
             .onNodeWithContentDescription(
-                composeRule.activity.getString(R.string.reader_settings_content_description),
+                composeRule.activity.getString(R.string.reader_overflow_content_description),
             ).performClick()
+        composeRule
+            .onNodeWithText(composeRule.activity.getString(R.string.reader_open_settings_action))
+            .performClick()
         composeRule
             .onNodeWithText(composeRule.activity.getString(R.string.reader_settings_show_translation))
             .assertExists()
         composeRule.onNode(isToggleable()).performClick()
         composeRule
-            .onNodeWithText(composeRule.activity.getString(R.string.reader_settings_close_action))
+            .onNodeWithText(composeRule.activity.getString(R.string.reader_settings_done_action))
             .performClick()
 
         composeRule.onNodeWithText(FIXTURE_TRANSLATION_TEXT).assertDoesNotExist()

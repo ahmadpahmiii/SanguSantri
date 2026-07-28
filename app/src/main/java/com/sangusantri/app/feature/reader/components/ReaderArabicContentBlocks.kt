@@ -1,8 +1,12 @@
 package com.sangusantri.app.feature.reader.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -10,7 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.arabicTextStyle
 import com.sangusantri.app.core.designsystem.theme.translationTextStyle
 import com.sangusantri.app.domain.model.ReaderSettings
@@ -67,12 +74,33 @@ internal fun ReaderQuranReference(
     )
 }
 
-/** Informational only for Milestone 3 — must not resemble an interactive counter (no border/badge). */
+/**
+ * Full Reader's repetition shortcut (decision D, `docs/design/FIGMA_HANDOFF.md` node `14:2`):
+ * "Dibaca N kali · Buka Panduan →" — tapping opens Guided Reader at this exact step immediately,
+ * no confirmation. Styled as a tonal pill, visually secondary to the Arabic text above it, never a
+ * dominant button (48dp minimum touch target still applies).
+ */
 @Composable
-internal fun ReaderRepetitionIndicator(target: Int) {
-    Text(
-        text = stringResource(R.string.reader_repetition_target, target),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.secondary,
-    )
+internal fun ReaderRepetitionShortcut(
+    target: Int,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = SanguSantriShapes.extraLarge,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET_DP.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.reader_repetition_shortcut, target),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier =
+                Modifier
+                    .wrapContentWidth()
+                    .padding(horizontal = SanguSantriSpacing.default, vertical = SanguSantriSpacing.medium),
+        )
+    }
 }
+
+private const val MIN_TOUCH_TARGET_DP = 48

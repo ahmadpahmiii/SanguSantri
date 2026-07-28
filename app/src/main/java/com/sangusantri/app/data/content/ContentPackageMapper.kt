@@ -1,17 +1,17 @@
-package com.sangusantri.app.data.local.seed
+package com.sangusantri.app.data.content
 
+import com.sangusantri.app.data.content.dto.AmaliyahDto
+import com.sangusantri.app.data.content.dto.AmaliyahStepDto
+import com.sangusantri.app.data.content.dto.AmaliyahVariantDto
+import com.sangusantri.app.data.content.dto.AmaliyahVersionDto
+import com.sangusantri.app.data.content.dto.ApprovalDto
 import com.sangusantri.app.data.local.entity.AmaliyahEntity
 import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVersionEntity
 import com.sangusantri.app.data.local.entity.ApprovalEntity
-import com.sangusantri.app.data.local.seed.dto.AmaliyahDto
-import com.sangusantri.app.data.local.seed.dto.AmaliyahStepDto
-import com.sangusantri.app.data.local.seed.dto.AmaliyahVariantDto
-import com.sangusantri.app.data.local.seed.dto.AmaliyahVersionDto
-import com.sangusantri.app.data.local.seed.dto.ApprovalDto
 
-/** Maps validated seed content DTOs (PRD 12.2 boundary) to their Room entities. */
+/** Maps a validated content package's DTOs (PRD 12.2 boundary) to their Room entities. */
 
 fun AmaliyahDto.toEntity(): AmaliyahEntity =
     AmaliyahEntity(

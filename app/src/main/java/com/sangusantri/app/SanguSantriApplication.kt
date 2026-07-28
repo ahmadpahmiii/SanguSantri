@@ -2,8 +2,11 @@ package com.sangusantri.app
 
 import android.app.Application
 import android.util.Log
-import com.sangusantri.app.data.local.seed.SeedContentImporter
-import com.sangusantri.app.data.local.seed.SeedImportOutcome
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
+import com.sangusantri.app.data.content.ContentImportOutcome
+import com.sangusantri.app.data.local.content.BundledContentBootstrapper
+import com.sangusantri.app.data.sync.ContentSyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,33 +15,56 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class SanguSantriApplication : Application() {
+class SanguSantriApplication :
+    Application(),
+    Configuration.Provider {
     @Inject
-    lateinit var seedContentImporter: SeedContentImporter
+    lateinit var bundledContentBootstrapper: BundledContentBootstrapper
+
+    @Inject
+    lateinit var contentSyncScheduler: ContentSyncScheduler
+
+    @Inject
+    lateinit var hiltWorkerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(hiltWorkerFactory).build()
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        // Idempotent and non-blocking (PRD 8.1): Serambi observes Room reactively and
-        // renders as soon as rows exist, so this must not gate the first frame.
+        // Idempotent and non-blocking (PRD 8.1): Beranda observes Room reactively and renders as
+        // soon as rows exist, so neither bootstrap nor sync scheduling may gate the first frame.
         applicationScope.launch {
-            seedContentImporter.importSeedContent().forEach { outcome ->
-                when (outcome) {
-                    is SeedImportOutcome.Failed ->
-                        Log.w(
-                            TAG,
-                            "Seed import failed for ${outcome.versionId}: ${outcome.reason}",
-                        )
+            runCatching { bundledContentBootstrapper.bootstrap() }
+                .onSuccess { outcomes -> outcomes.forEach(::logBootstrapOutcome) }
+                .onFailure { Log.w(TAG, "bundled content bootstrap failed", it) }
 
-                    is SeedImportOutcome.Imported -> Log.d(TAG, "Seed import: imported ${outcome.versionId}")
-                    is SeedImportOutcome.AlreadyImported ->
-                        Log.d(
-                            TAG,
-                            "Seed import: already imported ${outcome.versionId}",
-                        )
-                }
-            }
+            // Scheduling still proceeds even if bootstrap failed above — remote sync is
+            // independent of whether the local baseline import succeeded this launch.
+            runCatching { contentSyncScheduler.enqueueIfStale() }
+                .onFailure { Log.w(TAG, "content sync scheduling failed", it) }
+        }
+    }
+
+    private fun logBootstrapOutcome(outcome: ContentImportOutcome) {
+        when (outcome) {
+            is ContentImportOutcome.Imported -> Log.d(TAG, "Bundled content: imported ${outcome.versionId}")
+            is ContentImportOutcome.Replaced ->
+                Log.d(TAG, "Bundled content: replaced ${outcome.oldVersionId} with ${outcome.newVersionId}")
+
+            is ContentImportOutcome.AlreadyUpToDate ->
+                Log.d(TAG, "Bundled content: already up to date ${outcome.versionId}")
+
+            is ContentImportOutcome.SkippedOlderVersion ->
+                Log.d(TAG, "Bundled content: skipped older ${outcome.versionId}, active is ${outcome.activeVersionId}")
+
+            is ContentImportOutcome.ChecksumConflict ->
+                Log.w(TAG, "Bundled content: checksum conflict for already-active version ${outcome.versionId}")
+
+            is ContentImportOutcome.Rejected ->
+                Log.w(TAG, "Bundled content import failed for ${outcome.versionId}: ${outcome.reason}")
         }
     }
 

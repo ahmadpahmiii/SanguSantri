@@ -22,6 +22,14 @@ android {
         versionName = "0.0.1"
 
         testInstrumentationRunner = "com.sangusantri.app.HiltTestRunner"
+
+        // Content sync backend base URL (section 8): a Gradle/CI property activates the real
+        // backend without any code change or source-selection flag. The `.invalid` default keeps
+        // the project buildable with no real backend configured — a non-routable TLD per RFC 2606.
+        val contentApiBaseUrl =
+            (project.findProperty("SANGU_CONTENT_API_BASE_URL") as String?)
+                ?: "https://content-api.sangusantri.invalid/"
+        buildConfigField("String", "CONTENT_API_BASE_URL", "\"$contentApiBaseUrl\"")
     }
 
     buildTypes {
@@ -86,6 +94,16 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.kotlinx.serialization.json)
 
+    // Networking (remote content manifest/package sync)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.okhttp)
+
+    // Background sync
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 
@@ -96,6 +114,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.work.testing)
+    androidTestImplementation(libs.okhttp.mockwebserver)
     kspAndroidTest(libs.hilt.android.compiler)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)

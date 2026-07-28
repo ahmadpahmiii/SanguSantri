@@ -102,7 +102,7 @@ Source page (allowlisted, one per source in content_importer/config.py)
   packages; app/src/debug/assets/content/ remains available for a package
   still being drafted and not yet accepted — see docs/content-schema.md's
   debug/release split)
-→ existing seed importer
+→ existing content importer (`ContentPackageImporter`, shared with remote sync)
 → Room
 → Full Reader / Guided Reader
 ```
@@ -197,16 +197,18 @@ category (§Risk-based publication model) the correction itself falls into
   person, not "whoever is available" — record the name once the operational
   team exists.
 * **Revocation authority**: the same named authority as publication.
-  `AmaliyahVersionStatus.REVOKED` and FR-011's fallback-to-previous-
-  approved-version logic are already implemented in the schema and seed
-  importer — the human process (who decides, how fast, what triggers it) is
-  what this document defines, not the mechanism.
+  `AmaliyahVersionStatus.REVOKED` is implemented in the schema. Android has
+  no on-device fallback-to-previous-approved-version logic (superseded
+  FR-011, ADR 0012) — a revocation only takes effect for a given device
+  once the backend publishes the corrected replacement version and that
+  device's own sync gate fetches it; the human process (who decides, how
+  fast, what triggers it) is what this document defines, not the mechanism.
 * **Emergency correction**: a Critical-severity error found in a published
   version triggers immediate revocation consideration by the named
   authority, independent of the normal weekly-release cadence (PRD §4.3).
-  The application must already fall back correctly to the newest
-  non-revoked approved version (FR-011) — verify this behaviour, don't
-  assume it, before relying on it in an emergency.
+  Propagation to devices is bounded by the 24-hour sync gate (FR-010), not
+  instantaneous — do not assume an emergency correction reaches devices
+  faster than that without verifying it.
 * **Two-person publication**: once the operational team is more than one
   person, production content publication requires two-person sign-off. For
   standard public amaliyah, this is the product owner plus a second

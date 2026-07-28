@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.sangusantri.app.data.local.entity.AmaliyahEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -11,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 interface AmaliyahDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: AmaliyahEntity)
+
+    @Upsert
+    suspend fun upsert(entity: AmaliyahEntity)
 
     @Query("SELECT EXISTS(SELECT 1 FROM amaliyah WHERE id = :id)")
     suspend fun existsById(id: String): Boolean

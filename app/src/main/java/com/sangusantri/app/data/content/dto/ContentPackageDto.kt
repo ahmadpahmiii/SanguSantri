@@ -1,4 +1,4 @@
-package com.sangusantri.app.data.local.seed.dto
+package com.sangusantri.app.data.content.dto
 
 import com.sangusantri.app.domain.model.AmaliyahVersionStatus
 import com.sangusantri.app.domain.model.ApprovalStatus
@@ -8,10 +8,12 @@ import com.sangusantri.app.domain.model.Visibility
 import kotlinx.serialization.Serializable
 
 /**
- * One bundled content package JSON file (PRD 10.1, 12.2, content-schema.md): a single
- * immutable amaliyah version with its variant, approval, and ordered steps.
- * `variantId`/`versionId` foreign keys are not repeated in the payload — the
- * importer derives them from the nesting when mapping to Room entities.
+ * One content package JSON (PRD 10.1, 12.2, content-schema.md): a single immutable amaliyah
+ * version with its variant, approval, and ordered steps. Shared verbatim between bundled assets
+ * and the backend package endpoint (`GET /v1/content/packages/{versionId}`) — [ContentPackageImporter]
+ * does not know which transport a given instance came from. `variantId`/`versionId` foreign keys
+ * are not repeated in the payload — the importer derives them from the nesting when mapping to
+ * Room entities.
  */
 @Serializable
 data class ContentPackageDto(

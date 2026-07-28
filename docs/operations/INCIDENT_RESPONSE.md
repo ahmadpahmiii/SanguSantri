@@ -22,11 +22,16 @@ do not assume default SDK behavior is safe here.
 
 ## Content-version adoption monitoring
 
-Once sync (FR-010) exists, track what fraction of active installs have
+The Android sync client (FR-010, ADR 0012) exists; server-side adoption
+tracking does not yet, since it requires the backend (not yet deployed).
+Once the backend exists, track what fraction of active installs have
 adopted the latest published content version per amaliyah. This is the
 signal that tells the content-governance authority
 (`docs/operations/CONTENT_GOVERNANCE.md`) whether a revocation has actually
-propagated, not just whether the manifest says it should have.
+propagated, not just whether the manifest says it should have — propagation
+now depends entirely on each device's own 24-hour sync gate firing and
+successfully downloading the new version, since Android no longer falls
+back locally to a previous version (superseded FR-011).
 
 ## Backend observability (once backend exists)
 
@@ -54,9 +59,13 @@ counter values, or personal devotional history in logs or analytics
 
 See `docs/operations/CONTENT_GOVERNANCE.md` for the full revocation
 authority and severity-level process. This section covers only the
-technical detection side: the application must correctly fall back to the
-newest non-revoked approved version (FR-011) — verify this with a real
-instrumented test before depending on it during an actual incident.
+technical detection side: Android has no on-device previous-version
+fallback (superseded FR-011, ADR 0012) — a revoked version stops being
+listed as a variant's active version in the backend's manifest, and each
+device only picks up the correction once its own 24-hour sync gate fires
+and successfully downloads the newly published replacement version. There
+is no faster on-device mechanism; an urgent correction's actual propagation
+speed is bounded by the sync gate, not instantaneous.
 
 ## Named contacts
 

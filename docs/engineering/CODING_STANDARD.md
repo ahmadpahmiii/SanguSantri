@@ -74,13 +74,13 @@ three similar lines is not a duplication problem.
 
 ## Reference policy
 
-| Engineering category | Consult | Do not copy |
-|---|---|---|
-| Compose navigation | `android/nav3-recipes` (stable), cross-checked against `compose-samples` | `nav3-recipes` multi-module wiring (`modular-hilt.md`/`modular-koin.md`) — this project stays single-module |
-| General app architecture (UI/domain/data, UDF) | `android/architecture-samples` | Its multi-module layout and one-use-case-per-repository-method pattern — pass-through use cases are forbidden here |
-| Design system / reader layout | `compose-samples`: Jetnews (long-form reader text), Reply (adaptive list-detail), Jetcaster (offline-first patterns) | Jetsnack's gradient/shape-heavy visual language — wrong tone for a devotional reader |
-| Testing | installed `testing-setup` skill; `compose-samples` test suites; `nowinandroid` only for Roborazzi screenshot-testing setup | `nowinandroid`'s module-per-feature test source-set layout |
-| Offline-first sync (FR-010, when built) | `nowinandroid`, narrowly for sync-then-render-from-Room and WorkManager scheduling | Its multi-module sync/data/datastore split and nav-graph merging |
-| Adaptive layout | official Android adaptive-layout docs, installed `adaptive` skill, `compose-samples` Reply | — |
-| R8/shrinking | installed `r8-analyzer` skill, official R8 docs | — |
-| Android security | installed `android-intent-security` skill, OWASP MASVS/MASTG, official Play policy docs | — |
+| Engineering category                           | Consult                                                                                                                    | Do not copy                                                                                                        |
+|------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| Compose navigation                             | `android/nav3-recipes` (stable), cross-checked against `compose-samples`                                                   | `nav3-recipes` multi-module wiring (`modular-hilt.md`/`modular-koin.md`) — this project stays single-module        |
+| General app architecture (UI/domain/data, UDF) | `android/architecture-samples`                                                                                             | Its multi-module layout and one-use-case-per-repository-method pattern — pass-through use cases are forbidden here |
+| Design system / reader layout                  | `compose-samples`: Jetnews (long-form reader text), Reply (adaptive list-detail), Jetcaster (offline-first patterns)       | Jetsnack's gradient/shape-heavy visual language — wrong tone for a devotional reader                               |
+| Testing                                        | installed `testing-setup` skill; `compose-samples` test suites; `nowinandroid` only for Roborazzi screenshot-testing setup | `nowinandroid`'s module-per-feature test source-set layout                                                         |
+| Offline-first sync (FR-010, implemented)       | `nowinandroid`, narrowly for sync-then-render-from-Room and WorkManager scheduling                                         | Its multi-module sync/data/datastore split and nav-graph merging                                                   |
+| Adaptive layout                                | official Android adaptive-layout docs, installed `adaptive` skill, `compose-samples` Reply                                 | —                                                                                                                  |
+| R8/shrinking                                   | installed `r8-analyzer` skill, official R8 docs                                                                            | —                                                                                                                  |
+| Android security                               | installed `android-intent-security` skill, OWASP MASVS/MASTG, official Play policy docs                                    | —                                                                                                                  |

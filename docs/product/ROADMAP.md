@@ -40,16 +40,34 @@ still-`0.0.1`-scoped foundation:
 * Reader Settings and Table of Contents, both modal bottom sheets reached
   from the reader overflow menu.
 * Source and compact `Approved by` status.
-* Offline content only — no remote content synchronisation in this release.
+* Bundled offline content is mandatory and always shipped; optional
+  24-hour-gated background remote sync against the Go content API refreshes
+  it additively once the backend is deployed, never blocking or degrading
+  offline use.
 * Phone/tablet/adaptive layout; light/dark theme and RTL support.
 
 Content correction is an internal SanguSantri-team operation, not a
 user-facing feature (`docs/operations/CONTENT_GOVERNANCE.md`); there is no
 public feedback form, feedback outbox, or feedback endpoint in `0.0.1` or
-currently planned for any future version. Remote content synchronisation
-and a Go + PostgreSQL backend remain an unscheduled future item, not a
-committed roadmap version — they are not part of `0.0.1` and do not appear
-below until a real product decision schedules them.
+currently planned for any future version.
+
+**Content Delivery Foundation and Remote Synchronisation** (approved
+product/tech-lead decision, superseding this section's earlier "remote
+sync remains unscheduled" wording): the Android remote content-sync
+foundation — bundled bootstrap, a shared content-package importer, a
+Retrofit/OkHttp client against the Go content API contract, and a
+24-hour-gated opportunistic WorkManager sync — is implemented in `0.0.1`.
+The Go backend itself (public content API, admin CLI, PostgreSQL, Supabase
+Studio) is a parallel workstream and is **not** deployed yet — see
+`docs/engineering/ARCHITECTURE.md` §Backend and ADR
+[0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md).
+Backend availability must never block core application usage: the app
+ships fully functional offline on bundled content alone, and activating
+real remote refresh requires only supplying the real, deployed backend's
+base URL via `SANGU_CONTENT_API_BASE_URL` — no Android code change or
+source-selection flag toggle. See ADR
+[0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md) and
+`docs/engineering/OFFLINE_FIRST.md`.
 
 See `docs/product/PRD.md` for full scope and acceptance criteria.
 

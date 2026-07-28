@@ -1,10 +1,10 @@
 # Content Model
 
 Applies to any task touching Room entities, the domain content model, the
-seed importer, or the future backend content tables. The bundled JSON
-seed format itself is documented separately in
-[`docs/content-schema.md`](../content-schema.md) — read both together for a
-seed-import task.
+content-package importer (bundled or remote), or the future backend content
+tables. The canonical content-package JSON format itself is documented
+separately in [`docs/content-schema.md`](../content-schema.md) — read both
+together for a content-import task.
 
 ## Core hierarchy
 
@@ -108,8 +108,8 @@ Statuses: `DRAFT`, `IN_REVIEW`, `APPROVED`, `PUBLISHED`, `REVOKED`.
 `status` (readability/publication) and the linked `approvals.status`
 (user-facing `Approved by` display, PRD §6.5) are deliberately independent
 fields, not coupled into one enum: `status` controls whether the app can
-display a version at all (`ContentRepositoryImpl.resolveVersion`'s
-`PUBLISHED`-first, debug-only-fallback logic — `docs/content-schema.md`),
+display a version at all (`ContentRepositoryImpl.getDefaultVersionDetail`,
+which always resolves `getLatestPublishedForVariant` — `docs/content-schema.md`),
 while `approvals.status` controls only what the compact `Approved by`
 status shows. A version can be, and as of Milestone 6 genuinely is,
 `PUBLISHED` (readable in every build) while its `approvals.status` stays
@@ -120,6 +120,28 @@ on `status = PUBLISHED` alone, while `approvals.status = APPROVED` remains
 reserved for genuine kyai/sesepuh sign-off, mandatory only for higher-risk
 content. The UI never conflates the two, and never infers one from the
 other.
+
+### Backend history vs. Android retention (Content Delivery Foundation, ADR 0012)
+
+The backend retains **immutable revision history** per variant — every
+published `AmaliyahVersion` row is kept, correction creates a new row with
+an incremented `versionNumber`, and `REVOKED` marks a row unusable without
+deleting it (ADR 0008, unaffected by this section). Android retains **only
+the current active version per variant** — no previous-version browsing
+screen, and no previous-version fallback logic on-device. When remote sync
+or bundled bootstrap replaces a variant's active version, the previous
+version's row, its steps, its approval row, and its version-scoped reading
+progress are deleted from Room as part of the same atomic transaction that
+inserts the new version (`ContentPackageImporter`, `docs/engineering/OFFLINE_FIRST.md`) —
+they are not marked `REVOKED` and kept, because the backend already owns
+that history; Android only ever needs to render the one currently valid
+version. A previous, since-superseded description of this document stated
+that Android preserves previous content versions locally and falls back to
+the newest non-revoked version when the active one is revoked (former
+PRD FR-011) — that on-device fallback was never implemented in code, and
+this decision replaces it outright: `AmaliyahVersionDao.getLatestNonRevokedForVariant`
+and `ContentRepositoryImpl`'s corresponding debug-only fallback have been
+removed.
 
 ### `amaliyah_steps`
 
@@ -187,6 +209,20 @@ Both tables are combined behind one `GuidedReadingRepository`
 (`domain/repository/GuidedReadingRepository.kt`) rather than one repository
 per table, per `CODING_STANDARD.md`'s no-duplicate-repository guidance.
 
+#### Progress reset on version replacement (Content Delivery Foundation, ADR 0012)
+
+All three tables above are keyed by `versionId`, and all three now have an
+explicit `deleteByVersionId` DAO operation. When `ContentPackageImporter`
+replaces a variant's active version (bundled or remote), the previous
+version's rows in all three tables are deleted inside the same atomic
+transaction that inserts the new version — a new content version may have
+inserted, removed, split, or reordered steps, so old progress is never
+remapped onto new step positions, only cleared. Amaliyah-level state (keyed
+by `amaliyahId`, not `versionId`) is unaffected by this and remains exactly
+as it was: `favorites` and `recently_opened` (below) are the concrete
+example once they exist — a favourite survives every content correction to
+that amaliyah, only per-version reading/counter progress resets.
+
 ### `favorites` (planned, Phase B `0.0.1` — not yet implemented)
 
 `amaliyahId` (primary key), `addedAtEpochMillis`. One row per amaliyah the
@@ -232,28 +268,46 @@ internal SanguSantri-team operation, not a user-facing feature
 (`docs/operations/CONTENT_GOVERNANCE.md`). This table was never
 implemented and is not planned for any currently scheduled release.
 
-### `sync_metadata` (removed from `0.0.1` scope)
+### Content sync metadata (implemented, Content Delivery Foundation — via
+`app_metadata`, no new table)
 
-Remote content synchronisation was removed from release `0.0.1` (Milestone
-5, `docs/product/PRD.md` FR-010) along with the Go backend it depends on.
-This table was never implemented and remains an unscheduled future item,
-not a committed roadmap version (`docs/product/ROADMAP.md`).
+Remote sync bookkeeping (`ContentSyncMetadata`, `data/sync/`) is stored
+through the existing generic `app_metadata` key-value table
+(`AppMetadataEntity`/`AppMetadataDao`) rather than a new dedicated table
+solely for one timestamp and one ETag — inspection confirmed the existing
+table already represents this safely. Keys: `content_last_sync`
+(`value` one of `UPDATED`/`NOT_MODIFIED`/`NO_CHANGES`/`FAILED`,
+`updatedAtEpochMillis` the last *terminal* remote sync attempt — including
+a terminal failure, which is what the 24-hour scheduling gate reads),
+`content_manifest_etag` (the stored `ETag` sent as `If-None-Match`), and
+`content_manifest_version` (the remote manifest's own `manifestVersion`
+field, informational). A previous version of this document said this table
+was "removed from `0.0.1` scope" alongside remote sync generally — that is
+superseded by the Content Delivery Foundation decision (ADR 0012); sync
+metadata now exists, just not as its own table.
 
 User preferences remain in DataStore, not Room.
 
 ## Current implementation status
 
 Implemented: canonical domain model, Room entities/DAOs for the content
-hierarchy, versioned JSON seed schema, checksum-verified transactional
-import (`data/local/seed/`), `reading_positions` (Full Reader
-reading-position persistence), and `guided_reading_sessions`/`step_progress`
-(Milestone 4 Guided Reader step/counter/completion persistence, also used
-by Milestone 5's cross-mode progress mapping when switching between Full
-and Guided readers). `feedback_outbox`, `sync_metadata`, remote content
-synchronisation (FR-010), and the entire backend are removed from `0.0.1`
+hierarchy, versioned JSON content-package schema, checksum-verified
+transactional import shared by bundled and remote content
+(`data/content/ContentPackageImporter`), bundled bootstrap
+(`data/local/content/BundledContentBootstrapper`), remote content
+synchronisation (`data/remote/`, `data/sync/`, FR-010) against the Go
+content API contract, `reading_positions` (Full Reader reading-position
+persistence), and `guided_reading_sessions`/`step_progress` (Milestone 4
+Guided Reader step/counter/completion persistence, also used by
+Milestone 5's cross-mode progress mapping when switching between Full and
+Guided readers) — all three reset per-version on atomic version
+replacement (see above). `feedback_outbox` remains removed from `0.0.1`
 scope (Milestone 5) — not merely deferred; see
-`docs/product/PRD.md`/`docs/product/ROADMAP.md`. `favorites` and
-`recently_opened` are planned for Phase B of the `0.0.1` Figma
+`docs/product/PRD.md`/`docs/product/ROADMAP.md`. The actual Go backend
+service (deployment, real credentials) remains a parallel, not-yet-deployed
+workstream — the Android client against its contract is implemented and
+degrades safely to bundled-only content until it is deployed. `favorites`
+and `recently_opened` are planned for Phase B of the `0.0.1` Figma
 product-alignment work (not yet implemented); `tasbih_sessions` (Phase C,
 `0.0.2`) and the reminder model (Phase E, `0.0.4`) are forward-documented
 only. See `docs/PROGRESS.md` for the authoritative current state.

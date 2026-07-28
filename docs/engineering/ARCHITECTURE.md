@@ -6,11 +6,14 @@ Applies to any UI, domain, or data-layer task. Read alongside
 
 ## Technology stack
 
-Kotlin, Jetpack Compose, Material 3, Navigation 3, Hilt, Kotlin coroutines,
-Flow/StateFlow, Room, DataStore, WorkManager, Retrofit, OkHttp, Kotlinx
-Serialization, AndroidX Lifecycle, AndroidX adaptive layout APIs, Gradle
-Kotlin DSL + version catalog, JUnit, Compose UI testing, Android Lint,
-Detekt, ktlint.
+Kotlin, Jetpack Compose, Material 3, Navigation 3, Hilt (+ Hilt Worker
+extension), Kotlin coroutines, Flow/StateFlow, Room, DataStore, WorkManager,
+Retrofit, OkHttp, Kotlinx Serialization, AndroidX Lifecycle, AndroidX
+adaptive layout APIs, Gradle Kotlin DSL + version catalog, JUnit, Compose UI
+testing, Android Lint, Detekt, ktlint. Retrofit/OkHttp/WorkManager/Hilt
+Worker are implemented (content sync foundation, ADR 0012) — see Remote
+content synchronisation below; they are no longer a future-tense entry in
+this list.
 
 Use the latest mutually compatible stable versions available when
 implementation begins. Do not use alpha or beta dependencies when a stable
@@ -66,11 +69,15 @@ com.sangusantri.app
 │   ├── model
 │   └── util
 ├── data
+│   ├── content              ContentPackageImporter, ContentPackageValidator,
+│   │   └── dto                ContentChecksum, ContentImportOutcome — shared
+│   │                          canonical package contract (bundled + remote)
 │   ├── local (dao, database, entity)
-│   ├── remote (api, dto)
+│   │   └── content          BundledContentBootstrapper (reads AssetManager)
+│   ├── remote (api, dto)     ContentRemoteDataSource — backend HTTP client
+│   ├── sync                  ContentSyncCoordinator/Scheduler/Worker/Metadata
 │   ├── mapper
-│   ├── repository
-│   └── sync
+│   └── repository
 ├── domain
 │   ├── model
 │   ├── repository
@@ -88,6 +95,13 @@ com.sangusantri.app
 ├── navigation
 └── di
 ```
+
+`data/content`, `data/local/content`, `data/remote`, and `data/sync` are
+implemented (ADR 0012, this is not a future-tense sketch). `data/local/seed`
+(`SeedContentSource`/`AssetSeedContentSource`/`SeedContentImporter`) was
+removed — bundled assets and remote packages now share one canonical
+`ContentPackageImporter` rather than a seed-specific abstraction; see
+`docs/content-schema.md`.
 
 `feature/home` (Beranda, renamed from Serambi — Figma product-alignment
 pass, `docs/reviews/figma-product-alignment.md`), `feature/reader` (Full
@@ -181,13 +195,52 @@ repository per table. Field-level detail:
 
 ---
 
+## Remote content synchronisation (implemented — Android side, ADR 0012)
+
+The Android client against the backend's content API contract (§Backend
+below) is implemented: `BundledContentBootstrapper` (bundled assets) and
+`ContentSyncCoordinator`/`ContentRemoteDataSource` (remote) both delegate
+the actual Room write to one shared `ContentPackageImporter` — neither
+knows or cares which transport produced the bytes. Room remains the sole
+source of truth; the network only ever updates Room, and the UI never
+observes network state directly.
+
+* **Scheduling**: `ContentSyncScheduler.enqueueIfStale()`, called from
+  `SanguSantriApplication.onCreate()`, enqueues a unique one-time
+  `ContentSyncWorker` (`ExistingWorkPolicy.KEEP`, name
+  `sangu-santri-content-sync`) only when the last *terminal* sync attempt
+  (success or failure) is 24+ hours old or has never happened. Not a
+  periodic worker. `NetworkType.CONNECTED` is a hard constraint.
+* **Failure handling**: transient failures (`IOException`, timeout, HTTP
+  408/429/5xx) get bounded exponential-backoff retries (`Result.retry()`,
+  3 attempts total); permanent/data-contract failures (unsupported schema,
+  checksum mismatch, invalid structure, unsupported minimum app version,
+  non-retriable 4xx) record a terminal failure and stop, without crashing
+  or touching Room.
+* **Base URL**: `BuildConfig.CONTENT_API_BASE_URL`, set from the Gradle
+  property `SANGU_CONTENT_API_BASE_URL` (`app/build.gradle.kts`), defaulting
+  to a non-routable `https://content-api.sangusantri.invalid/` when unset.
+  Supplying the real property activates the real backend with no code
+  change. Retrofit headers are never used as a local/remote content-source
+  switch — `If-None-Match` is the only header with sync-relevant meaning.
+* **Hilt Worker**: `SanguSantriApplication` implements
+  `androidx.work.Configuration.Provider` with an injected
+  `HiltWorkerFactory`; the manifest removes WorkManager's default
+  `androidx-startup` initializer (`tools:node="remove"` on its
+  `WorkManagerInitializer` meta-data) per official Hilt+WorkManager
+  guidance.
+
+Full behaviour, the sync algorithm, and retention rules:
+`docs/engineering/OFFLINE_FIRST.md`, `docs/engineering/CONTENT_MODEL.md`,
+ADR [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md).
+
 ## Backend (planned — not started)
 
 No `backend/` directory exists in this repository yet. Nothing below is
 implemented; this section exists so the decision and shape are not lost
-between now and whenever backend work actually starts. Do not build this
-ahead of an explicit request (Current Engineering Priority #5: avoid
-premature backend complexity).
+between now and whenever backend work actually starts. The Android sync
+client above is built against this contract already — implementing the
+actual Go service remains a separate, explicitly-requested task.
 
 ### Decision
 
@@ -211,7 +264,7 @@ must stay visible, reviewable, and testable.
 ```text
 backend/
 ├── cmd/{api,admin}
-├── internal/{config,content,feedback,httpapi,storage,database}
+├── internal/{config,content,httpapi,storage,database}
 ├── migrations
 ├── queries
 ├── openapi
@@ -242,9 +295,12 @@ logic.
 * `GET /v1/content/manifest` — active content versions, checksums, download
   locations, revocations, minimum app version, ETag.
 * `GET /v1/content/packages/{versionID}` — immutable content package.
-* `POST /v1/feedback` — anonymous correction feedback; body-size limits,
-  input validation, basic rate limiting, request identifier, structured
-  error response required.
+
+Public content-correction feedback (`POST /v1/feedback`) is not part of
+this contract — feedback was removed from product scope at Milestone 5
+(`docs/product/PRD.md` FR-012); content correction is an internal
+SanguSantri-team operation (`docs/operations/CONTENT_GOVERNANCE.md`), not a
+public endpoint.
 
 ### Admin CLI
 

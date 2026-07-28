@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
-import com.sangusantri.app.data.local.seed.SeedContentImporter
+import com.sangusantri.app.data.local.content.BundledContentBootstrapper
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
@@ -22,11 +22,11 @@ import org.junit.runners.JUnit4
 import javax.inject.Inject
 
 /**
- * Exercises Serambi against the real Hilt graph and bundled non-production fixtures — the same
+ * Exercises Serambi against the real Hilt graph and bundled published content — the same
  * offline-first path a fresh install takes (FR-001, FR-002): Serambi renders from Room, with no
  * network involved. [HiltTestRunner][com.sangusantri.app.HiltTestRunner] swaps in
- * `HiltTestApplication`, so the real `SanguSantriApplication.onCreate()` seed-import wiring never
- * runs here — the test seeds Room itself via the same injected [SeedContentImporter] instead.
+ * `HiltTestApplication`, so the real `SanguSantriApplication.onCreate()` bootstrap wiring never
+ * runs here — the test bootstraps Room itself via the same injected [BundledContentBootstrapper] instead.
  *
  * Reader preferences (including the Milestone 4 remembered reading mode) live in the real, shared
  * preferences DataStore, so `@Before` clears it — otherwise a mode remembered by a previous test
@@ -42,7 +42,7 @@ class SerambiScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Inject
-    lateinit var seedContentImporter: SeedContentImporter
+    lateinit var bundledContentBootstrapper: BundledContentBootstrapper
 
     @Inject
     lateinit var preferencesDataStore: DataStore<Preferences>
@@ -52,7 +52,7 @@ class SerambiScreenTest {
         hiltRule.inject()
         runBlocking {
             preferencesDataStore.edit { it.clear() }
-            seedContentImporter.importSeedContent()
+            bundledContentBootstrapper.bootstrap()
         }
     }
 

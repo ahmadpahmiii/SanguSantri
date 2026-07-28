@@ -1,11 +1,11 @@
-package com.sangusantri.app.data.local.seed
+package com.sangusantri.app.data.content
 
-import com.sangusantri.app.data.local.seed.dto.AmaliyahDto
-import com.sangusantri.app.data.local.seed.dto.AmaliyahStepDto
-import com.sangusantri.app.data.local.seed.dto.AmaliyahVariantDto
-import com.sangusantri.app.data.local.seed.dto.AmaliyahVersionDto
-import com.sangusantri.app.data.local.seed.dto.ApprovalDto
-import com.sangusantri.app.data.local.seed.dto.ContentPackageDto
+import com.sangusantri.app.data.content.dto.AmaliyahDto
+import com.sangusantri.app.data.content.dto.AmaliyahStepDto
+import com.sangusantri.app.data.content.dto.AmaliyahVariantDto
+import com.sangusantri.app.data.content.dto.AmaliyahVersionDto
+import com.sangusantri.app.data.content.dto.ApprovalDto
+import com.sangusantri.app.data.content.dto.ContentPackageDto
 import com.sangusantri.app.domain.model.AmaliyahVersionStatus
 import com.sangusantri.app.domain.model.ApprovalStatus
 import com.sangusantri.app.domain.model.OwnerType
@@ -14,17 +14,17 @@ import com.sangusantri.app.domain.model.Visibility
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class SeedContentValidatorTest {
+class ContentPackageValidatorTest {
     @Test
     fun validPackagePassesValidation() {
-        val result = SeedContentValidator.validate(validPackage())
+        val result = ContentPackageValidator.validate(validPackage())
 
         assertTrue(result is ContentPackageValidation.Valid)
     }
 
     @Test
     fun unsupportedSchemaVersionIsRejected() {
-        val result = SeedContentValidator.validate(validPackage().copy(schemaVersion = 99))
+        val result = ContentPackageValidator.validate(validPackage().copy(schemaVersion = 99))
 
         assertInvalid(result)
     }
@@ -32,14 +32,14 @@ class SeedContentValidatorTest {
     @Test
     fun blankAmaliyahIdIsRejected() {
         val pkg = validPackage()
-        val result = SeedContentValidator.validate(pkg.copy(amaliyah = pkg.amaliyah.copy(id = " ")))
+        val result = ContentPackageValidator.validate(pkg.copy(amaliyah = pkg.amaliyah.copy(id = " ")))
 
         assertInvalid(result)
     }
 
     @Test
     fun emptyStepsIsRejected() {
-        val result = SeedContentValidator.validate(validPackage().copy(steps = emptyList()))
+        val result = ContentPackageValidator.validate(validPackage().copy(steps = emptyList()))
 
         assertInvalid(result)
     }
@@ -48,7 +48,7 @@ class SeedContentValidatorTest {
     fun duplicateStepPositionsAreRejected() {
         val pkg = validPackage()
         val duplicated = pkg.steps[0].copy(id = "step-1-duplicate")
-        val result = SeedContentValidator.validate(pkg.copy(steps = pkg.steps + duplicated))
+        val result = ContentPackageValidator.validate(pkg.copy(steps = pkg.steps + duplicated))
 
         assertInvalid(result)
     }
@@ -57,7 +57,7 @@ class SeedContentValidatorTest {
     fun duplicateStepIdsAreRejected() {
         val pkg = validPackage()
         val duplicated = pkg.steps[0].copy(position = pkg.steps.size + 1)
-        val result = SeedContentValidator.validate(pkg.copy(steps = pkg.steps + duplicated))
+        val result = ContentPackageValidator.validate(pkg.copy(steps = pkg.steps + duplicated))
 
         assertInvalid(result)
     }
@@ -66,7 +66,7 @@ class SeedContentValidatorTest {
     fun arabicTextStepWithoutArabicTextIsRejected() {
         val step =
             AmaliyahStepDto(id = "s1", position = 1, stepType = StepType.ARABIC_TEXT, arabicText = null)
-        val result = SeedContentValidator.validate(validPackage().copy(steps = listOf(step)))
+        val result = ContentPackageValidator.validate(validPackage().copy(steps = listOf(step)))
 
         assertInvalid(result)
     }
@@ -81,7 +81,7 @@ class SeedContentValidatorTest {
                 arabicText = "[FIXTURE]",
                 repeatTarget = 0,
             )
-        val result = SeedContentValidator.validate(validPackage().copy(steps = listOf(step)))
+        val result = ContentPackageValidator.validate(validPackage().copy(steps = listOf(step)))
 
         assertInvalid(result)
     }
@@ -97,7 +97,7 @@ class SeedContentValidatorTest {
                 quranSurahNumber = null,
                 quranAyahStart = 1,
             )
-        val result = SeedContentValidator.validate(validPackage().copy(steps = listOf(step)))
+        val result = ContentPackageValidator.validate(validPackage().copy(steps = listOf(step)))
 
         assertInvalid(result)
     }
@@ -114,7 +114,7 @@ class SeedContentValidatorTest {
                 quranAyahStart = 5,
                 quranAyahEnd = 2,
             )
-        val result = SeedContentValidator.validate(validPackage().copy(steps = listOf(step)))
+        val result = ContentPackageValidator.validate(validPackage().copy(steps = listOf(step)))
 
         assertInvalid(result)
     }
@@ -122,7 +122,7 @@ class SeedContentValidatorTest {
     @Test
     fun dividerStepNeedsNoContent() {
         val step = AmaliyahStepDto(id = "s1", position = 1, stepType = StepType.DIVIDER)
-        val result = SeedContentValidator.validate(validPackage().copy(steps = listOf(step)))
+        val result = ContentPackageValidator.validate(validPackage().copy(steps = listOf(step)))
 
         assertTrue(result is ContentPackageValidation.Valid)
     }
@@ -133,7 +133,7 @@ class SeedContentValidatorTest {
 
     private fun validPackage(): ContentPackageDto =
         ContentPackageDto(
-            schemaVersion = SeedContentValidator.SUPPORTED_SCHEMA_VERSION,
+            schemaVersion = ContentPackageValidator.SUPPORTED_SCHEMA_VERSION,
             amaliyah =
                 AmaliyahDto(
                     id = "tahlil",

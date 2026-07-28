@@ -29,19 +29,22 @@
 
   <!-- Reader Table of Contents bottom sheet (FR-017, node 16:148) -->
   <string name="reader_open_toc_action">Daftar isi</string>
-  <string name="reader_toc_title">Daftar Isi</string>
+  <string name="reader_toc_title">Daftar isi</string>
   <string name="reader_toc_subtitle">Lompat ke bagian tanpa mengubah progres bacaan.</string>
   <string name="reader_toc_item_state">Langkah %1$s</string>
+  <string name="reader_toc_item_current_state">Bagian saat ini</string>
+  <string name="reader_toc_item_other_state">Bagian lain</string>
+  <string name="reader_toc_close_content_description">Tutup daftar isi</string>
 
   <!-- Reader settings sheet (node 16:89) -->
   <string name="reader_open_settings_action">Tampilan bacaan</string>
-  <string name="reader_settings_title">Tampilan Bacaan</string>
+  <string name="reader_settings_title">Tampilan bacaan</string>
   <string name="reader_settings_subtitle">Atur kenyamanan membaca. Perubahan tersimpan otomatis.</string>
   <string name="reader_settings_done_action">Selesai</string>
   <string name="reader_settings_close_action">Tutup</string>
   <string name="reader_settings_arabic_font_size">Ukuran teks Arab</string>
-  <string name="reader_settings_translation_font_size">Ukuran teks terjemahan</string>
-  <string name="reader_settings_arabic_line_spacing">Jarak baris teks Arab</string>
+  <string name="reader_settings_translation_font_size">Ukuran terjemahan</string>
+  <string name="reader_settings_arabic_line_spacing">Jarak baris Arab</string>
   <string name="reader_settings_show_translation">Tampilkan terjemahan</string>
   <string name="reader_settings_decrease_content_description">Kurangi %1$s</string>
   <string name="reader_settings_increase_content_description">Tambah %1$s</string>
@@ -55,10 +58,11 @@
 
   <!-- Guided Reader (FR-005/FR-006, Milestone 4) -->
   <string name="guided_reader_previous_action">Sebelumnya</string>
-  <string name="guided_reader_continue_action">Lanjutkan</string>
-  <string name="guided_reader_finish_action">Selesaikan</string>
+  <string name="guided_reader_continue_action">Lanjut</string>
+  <string name="guided_reader_finish_action">Selesai</string>
   <string name="guided_reader_step_target_label">Target %1$d kali</string>
-  <string name="guided_counter_progress">%1$d / %2$d</string>
+  <string name="guided_counter_target">dari %1$d</string>
+  <string name="guided_counter_progress_description">Hitungan %1$d dari %2$d</string>
   <string name="guided_counter_tap_action">Tambah hitungan tasbih</string>
   <string name="guided_counter_completed_description">Hitungan selesai, %1$d dari %2$d</string>
   <string name="guided_counter_reset_action">Ulangi hitungan</string>
@@ -76,9 +80,9 @@
 
   <!-- Reader mode switch and compact approval status (FR-016, PRD 6.5, Milestone 5) -->
   <string name="reader_overflow_content_description">Menu lainnya</string>
-  <string name="reader_switch_to_guided_action">Beralih ke Panduan</string>
-  <string name="reader_switch_to_full_action">Beralih ke Bacaan Lengkap</string>
-  <string name="content_approval_menu_action">Sumber &amp; Pentashihan</string>
+  <string name="reader_switch_to_guided_action">Buka mode Panduan</string>
+  <string name="reader_switch_to_full_action">Buka Bacaan Lengkap</string>
+  <string name="content_approval_menu_action">Sumber &amp; pentashihan</string>
   <string name="content_source_label">Sumber</string>
   <string name="content_approved_by_label">Disetujui oleh</string>
   <string name="content_approval_pending_dev_only">Baseline rilis internal (build pengembangan).</string>

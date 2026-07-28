@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.reader.settings
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedButton
@@ -18,8 +18,12 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -81,6 +85,12 @@ private fun ReaderSettingsContent(
     modifier: Modifier = Modifier,
     progressionModeControl: ProgressionModeControl? = null,
 ) {
+    val headingFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        headingFocusRequester.requestFocus()
+    }
+
     Column(
         modifier =
             modifier
@@ -90,13 +100,11 @@ private fun ReaderSettingsContent(
                 .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
     ) {
-        ReaderSettingsHeader()
+        ReaderSettingsHeader(headingFocusRequester)
         ReaderSettingsFontSizeControls(settings, onAction)
         ReaderSettingsArabicLineSpacingControl(settings, onAction)
-        HorizontalDivider()
         ReaderSettingsTranslationToggleRow(settings, onAction)
         if (progressionModeControl != null) {
-            HorizontalDivider()
             ReaderSettingsProgressionModeRow(progressionModeControl)
         }
         Button(
@@ -134,12 +142,16 @@ private fun ReaderSettingsProgressionModeRow(control: ProgressionModeControl) {
 }
 
 @Composable
-private fun ReaderSettingsHeader() {
+private fun ReaderSettingsHeader(focusRequester: FocusRequester) {
     Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall)) {
         Text(
             text = stringResource(R.string.reader_settings_title),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
+            modifier =
+                Modifier
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    .semantics { heading() },
         )
         Text(
             text = stringResource(R.string.reader_settings_subtitle),

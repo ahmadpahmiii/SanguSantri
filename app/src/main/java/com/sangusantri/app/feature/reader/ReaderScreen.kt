@@ -34,13 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AmaliyahStep
@@ -59,8 +59,6 @@ import com.sangusantri.app.feature.reader.components.ReaderStepItem
 import com.sangusantri.app.feature.reader.components.rememberInitialSavedPositionFlag
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
 import com.sangusantri.app.feature.reader.toc.ReaderTableOfContentsOverlay
-
-private val ReaderMaxWidth = 640.dp
 
 @Composable
 fun ReaderRoute(
@@ -155,6 +153,7 @@ private fun ReaderTopBar(
     val title = (uiState as? ReaderUiState.ContentAvailable)?.amaliyahTitleId ?: stringResource(R.string.app_name)
     TopAppBar(
         title = { Text(text = title) },
+        expandedHeight = SanguSantriDimensions.compactTopAppBarHeight,
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -249,9 +248,12 @@ private fun ReaderStepListContent(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Box(modifier = Modifier
-            .widthIn(max = ReaderMaxWidth)
-            .fillMaxSize()) {
+        Box(
+            modifier =
+                Modifier
+                    .widthIn(max = SanguSantriDimensions.readerContentMaxWidth)
+                    .fillMaxSize(),
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 ReaderProgressHeader(
                     currentPosition = renderState.currentItemIndex + 1,
@@ -259,14 +261,17 @@ private fun ReaderStepListContent(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = SanguSantriSpacing.default, vertical = SanguSantriSpacing.small),
+                            .padding(
+                                horizontal = SanguSantriDimensions.readerHorizontalPadding,
+                                vertical = SanguSantriSpacing.small,
+                            ),
                 )
                 LazyColumn(
                     state = renderState.listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding =
                         PaddingValues(
-                            horizontal = SanguSantriSpacing.default,
+                            horizontal = SanguSantriDimensions.readerHorizontalPadding,
                             vertical = SanguSantriSpacing.default,
                         ),
                 ) {

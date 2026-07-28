@@ -3,9 +3,11 @@ package com.sangusantri.app.feature.guidedreader
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 
@@ -35,6 +38,7 @@ internal fun GuidedReaderTopBar(
 ) {
     TopAppBar(
         title = { Text(text = title) },
+        expandedHeight = SanguSantriDimensions.compactTopAppBarHeight,
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -75,7 +79,10 @@ internal fun GuidedReaderBottomBar(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
-            modifier = Modifier.weight(1f),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = SanguSantriDimensions.minimumTouchTarget),
         ) {
             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             Text(
@@ -94,9 +101,17 @@ internal fun GuidedReaderBottomBar(
             onClick = onContinue,
             enabled = continueEnabled,
             shape = SanguSantriShapes.extraLarge,
-            modifier = Modifier.weight(1f),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = SanguSantriDimensions.minimumTouchTarget),
         ) {
             Text(text = continueLabel)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.padding(start = SanguSantriSpacing.extraSmall),
+            )
         }
     }
 }

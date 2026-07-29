@@ -5,8 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.navigation.SanguSantriNavHost
@@ -19,9 +17,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SanguSantriTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SanguSantriNavHost(modifier = Modifier.padding(innerPadding))
-                }
+                // SanguSantriNavHost owns the app's single top-level Scaffold (bottom navigation
+                // bar) — no outer Scaffold here, which would otherwise double-apply system-bar
+                // inset padding (docs/engineering/ARCHITECTURE.md's edge-to-edge rule).
+                SanguSantriNavHost(modifier = Modifier.fillMaxSize())
             }
         }
     }

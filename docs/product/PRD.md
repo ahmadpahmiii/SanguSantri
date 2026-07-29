@@ -365,11 +365,15 @@ respectively (`docs/product/ROADMAP.md`) — Beranda's "continue reading",
 existing or newly added local state, not the Aktivitas history screen
 itself, and must not be conflated with it.
 
-Whether the persistent bottom-navigation bar/rail chrome described in §7.1
-is introduced in `0.0.1` (with not-yet-built destinations present but
-inert) or only once a second real destination exists is an open question —
-see `docs/design/FIGMA_HANDOFF.md`. Do not build the full five-destination
-nav chrome speculatively before this is confirmed.
+**Resolved** (product owner/tech lead decision, 2026-07-29, ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)):
+the persistent bottom-navigation chrome described in §7.1 is introduced
+incrementally, starting at `0.0.2` (Beranda + Tasbih, the first release
+with two real root destinations) — not in `0.0.1` with inert placeholder
+destinations. It is a **bottom navigation bar only** through `0.0.5`, on
+every window-size class including expanded/tablet — no Navigation Rail is
+built in this window. This replaces this section's previous "open
+question" wording.
 
 ---
 
@@ -542,22 +546,30 @@ Compact source attribution, and a compact `Approved by` status when one
 exists, are shown from within the reader itself, not as a separate
 destination (§6.5).
 
-**Target final navigation model** (product-alignment decision — see
-`docs/design/FIGMA_HANDOFF.md` for the open rollout question): five
-persistent destinations — **Beranda**, **Aktivitas**, **Tasbih**,
-**Pesantren**, **Profil** — presented as a bottom navigation bar on
-compact window-size class and a navigation rail or other adaptive nav on
-expanded window-size class (`docs/design/DESIGN_SYSTEM.md`,
-`docs/design/ACCESSIBILITY.md`). This supersedes this document's earlier
-"a bottom navigation bar is not required for `0.0.1`" statement, which was
-correct only while Beranda was the sole real destination. The five
-destinations are **not** all built in `0.0.1`:
+**Navigation model through `0.0.5`** (product owner/tech lead decision,
+2026-07-29, ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md) —
+supersedes this section's earlier five-destination bottom-bar/rail
+description): a **bottom navigation bar only**, on every window-size
+class including expanded/tablet — no Navigation Rail is built in this
+window. Destinations are added incrementally as their own release ships,
+never speculatively:
 
-* **Beranda** — `0.0.1` (this release).
-* **Tasbih** — `0.0.2` (`docs/product/ROADMAP.md`).
-* **Aktivitas** — `0.0.3`.
-* **Profil** — `0.1.0` (implies an authenticated identity, §3.4).
-* **Pesantren** — `0.2.0`+.
+* **Beranda** — `0.0.1` (this release), initial destination throughout.
+* **Tasbih** — `0.0.2` (`docs/product/ROADMAP.md`). Bottom nav from this
+  release is Beranda | Tasbih.
+* **Aktivitas** — `0.0.3`. Bottom nav from this release is Beranda |
+  Aktivitas | Tasbih.
+* Pengingat Amaliyah (`0.0.4`) and Nahwu Quiz (`0.0.5`) are **never**
+  bottom-nav destinations — reachable only through entry points on
+  Beranda/Aktivitas (quick actions, sections), per their own release
+  specs.
+* **Profil** — `0.1.0`+ (implies an authenticated identity, §3.4) and
+  **Pesantren** — `0.2.0`+ are out of scope entirely through `0.0.5` — no
+  nav item is built for either, not even disabled/inert. Whether either
+  becomes a sixth/seventh bottom-nav destination, and whether a
+  Navigation Rail is ever introduced for a release beyond `0.0.5`, is a
+  future product decision not made by this document.
 
 Jelajahi Amaliyah, the reading-mode gate, both readers, and About remain
 reachable from Beranda, not as bottom-nav destinations themselves — the
@@ -719,7 +731,7 @@ workflow through the application.
    amaliyah/explore-all-categories.
 4. Nearest reminder, pesantren content, and learning/Nahwu content sections
    remain hidden until their owning roadmap version (`0.0.4`, `0.2.0`,
-   `0.4.0` respectively) ships real data.
+   `0.0.5` respectively) ships real data.
 5. Selecting an amaliyah from any Beranda section opens the same reading-
    mode flow as §8.2.
 

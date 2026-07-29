@@ -51,7 +51,7 @@ not preemptively:
 * A strong visibility-boundary requirement appears (e.g. a package must be
   hidden from another team's code).
 * Dynamic feature delivery is required.
-* A roadmap item (`0.2.0` pesantren membership, `0.4.0` Nahwu quiz)
+* A roadmap item (`0.2.0` pesantren membership, `0.0.5` Nahwu quiz)
   introduces a genuinely separable feature surface with its own release
   cadence.
 
@@ -105,11 +105,12 @@ removed — bundled assets and remote packages now share one canonical
 
 `feature/home` (Beranda, renamed from Serambi — Figma product-alignment
 pass, `docs/reviews/figma-product-alignment.md`), `feature/reader` (Full
-Reader + the reading-mode gate), and `feature/guidedreader` (Guided
-Reader) are implemented; `feature/explore` (Jelajahi Amaliyah, `0.0.1`),
-`feature/tasbih` (Standalone Tasbih, `0.0.2`), and `feature/activity`
-(Aktivitas, `0.0.3`) are scheduled but not yet implemented — do not create
-their packages before the milestone that needs them. `feature/feedback`
+Reader + the reading-mode gate), `feature/guidedreader` (Guided Reader),
+and `feature/tasbih` (Standalone Tasbih + Session History, `0.0.2`,
+Milestone 9) are implemented; `feature/explore` (Jelajahi Amaliyah,
+`0.0.1`) and `feature/activity` (Aktivitas, `0.0.3`) are scheduled but not
+yet implemented — do not create their packages before the milestone that
+needs them. `feature/feedback`
 was removed from this diagram: public content-correction feedback was
 removed from `0.0.1` scope at Milestone 5 (`docs/product/PRD.md` FR-012)
 and no feedback code exists or is planned. `feature/contentdetail` and
@@ -164,23 +165,35 @@ skill during implementation.
   `android.r8.gradual.support=true` in `gradle.properties` under AGP 9.2.1 —
   re-verify this flag is still required on every AGP upgrade).
 
-## Navigation destinations (Figma product-alignment pass)
+## Navigation destinations (bottom-navigation-only through 0.0.5)
 
-Target final IA (`docs/product/PRD.md` §7.1, `docs/design/FIGMA_HANDOFF.md`):
-Beranda / Aktivitas / Tasbih / Pesantren / Profil behind an adaptive nav
-shell (bottom bar on compact, rail on expanded — AndroidX adaptive-layout
-APIs, installed `adaptive` skill, not a hand-rolled breakpoint). The
-existing `SanguSantriNavHost` (Navigation 3, `NavKey` back stack, ADR 0004)
-is unchanged in shape for this documentation pass — no code was written.
-Whichever phase resolves the open rollout question in `FIGMA_HANDOFF.md`
-should implement the nav shell as an additional top-level composable
-wrapping the existing `NavDisplay`, not a second competing navigation
-framework (`docs/engineering/CODING_STANDARD.md`'s no-duplicate-navigation
-rule). The reading-mode gate (`AmaliyahDetail`), both readers, and the new
-Reader Table of Contents/Settings sheets stay reachable *through* Beranda
-or Jelajahi Amaliyah, not as their own bottom-nav destinations — the
-gate's existing "replace, don't push" backstack pattern
-(`replaceTopEntryWithReader`) is unaffected.
+**Implemented, Milestone 9.** Target IA through `0.0.5` (`docs/product/
+PRD.md` §7.1, ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)):
+Beranda / Aktivitas / Tasbih behind a **bottom navigation bar only** — no
+Navigation Rail on any window-size class, including expanded/tablet, in
+this window (supersedes this section's earlier adaptive bar-on-compact/
+rail-on-expanded description). `SanguSantriNavHost` owns the app's single
+top-level `Scaffold` (bottom bar) wrapping the existing `NavDisplay`/
+`entryProvider` (Navigation 3, ADR 0004) — one navigation system, not a
+second competing framework. `navigation/TopLevelBackStack.kt` implements
+the multiple-back-stacks pattern from `android/nav3-recipes`' "Common UI"
+recipe (one back stack per top-level tab, flattened for `NavDisplay`,
+switching tabs never duplicates a `NavKey`, each tab's state survives
+switching away and back). `navigation/BottomNavigationBar.kt` is a plain
+Material 3 `NavigationBar`/`NavigationBarItem` — deliberately **not**
+`NavigationSuiteScaffold` (whose entire purpose is exactly the adaptive
+bar/rail switch this window's product decision forbids); the AndroidX
+adaptive-layout APIs and installed `adaptive` skill remain the right tool
+for adaptive *content* layout (constrained/centred max-width columns) and
+for any future release that does introduce a rail. The reading-mode gate
+(`AmaliyahDetail`), both readers, Reader Table of Contents/Settings
+sheets, and Tasbih Session History stay reachable *through* their owning
+tab, not as their own bottom-nav destinations — hidden from the bottom bar
+whenever the current tab's own back stack is deeper than its root
+(`TopLevelBackStack.isAtTopLevelRoot`). The gate's existing "replace,
+don't push" backstack pattern (`replaceTopEntryWithReader`) is unaffected,
+now implemented via `TopLevelBackStack.replaceLast`.
 
 ## Local user-state persistence ownership
 

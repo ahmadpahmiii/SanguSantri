@@ -18,8 +18,8 @@ android {
         applicationId = "com.sangusantri.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.0.1"
+        versionCode = 3
+        versionName = "0.0.2"
 
         testInstrumentationRunner = "com.sangusantri.app.HiltTestRunner"
 
@@ -75,7 +75,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.compose.material.icons.core)
+    // Extended icon set (justified by the full approved 0.0.2-0.0.5 scope's broad icon
+    // vocabulary — history, restart_alt, check_circle, notifications, calendar_month, etc. — not
+    // "a couple of icons"; R8 resource/code shrinking is already enabled so unused icons are
+    // stripped from the release APK).
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // Dependency injection
     implementation(libs.hilt.android)

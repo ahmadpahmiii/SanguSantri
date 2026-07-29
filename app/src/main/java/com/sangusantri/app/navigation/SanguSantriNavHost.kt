@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -13,25 +15,36 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.icon.TasbihIcon
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.guidedreader.GuidedReaderRoute
 import com.sangusantri.app.feature.home.SerambiRoute
 import com.sangusantri.app.feature.reader.ReaderEntryRoute
 import com.sangusantri.app.feature.reader.ReaderRoute
+import com.sangusantri.app.feature.tasbih.TasbihRoute
+import com.sangusantri.app.feature.tasbih.history.TasbihHistoryRoute
 import kotlinx.serialization.Serializable
 
+/** Root destination — Beranda (0.0.2+, initial destination). */
 @Serializable
 private data object Serambi : NavKey
+
+/** Root destination — Tasbih (0.0.2+). */
+@Serializable
+private data object Tasbih : NavKey
+
+@Serializable
+private data object TasbihHistory : NavKey
 
 /** The reading-mode gate (PRD 8.2) — stable identifier only (the amaliyah slug), per FR-002/FR-003. */
 @Serializable
@@ -58,90 +71,131 @@ private data object Setelan : NavKey
 private data object About : NavKey
 
 /**
- * Navigation 3 host. [Serambi] is the Milestone 2 home destination; [AmaliyahDetail] is the
- * Milestone 4 reading-mode gate, which resolves into either [FullReader] (Milestone 3) or
- * [GuidedReader] (Milestone 4) — the gate entry is replaced (not pushed under) by the resolved
- * reader, so the back button from either reader returns to Serambi, not the gate. Reader settings
- * are a contextual bottom sheet inside each reader, not a destination, so [Setelan] remains a
- * placeholder (ADR 0004 placeholder pattern) — it is Serambi's own settings entry point, unrelated
- * to a specific amaliyah being read.
+ * Navigation 3 host and bottom-navigation shell in one composable — the one navigation system this
+ * project uses, wrapped by a [Scaffold]/[BottomNavigationBar] that never becomes a Navigation Rail
+ * on any window-size class (explicit product/tech-lead decision, bottom-navigation-only through
+ * `0.0.5`, superseding `docs/design/DESIGN_SYSTEM.md`'s previously documented adaptive-rail plan).
+ * [TopLevelBackStack] gives Beranda and Tasbih each their own back stack (extended with Aktivitas
+ * at `0.0.3`) so switching tabs never duplicates a [NavKey] and neither tab's state is lost.
+ * [Serambi] is the initial destination; [AmaliyahDetail] is the Milestone 4 reading-mode gate,
+ * which resolves into either [FullReader] (Milestone 3) or [GuidedReader] (Milestone 4) — the gate
+ * entry is replaced (not pushed under) by the resolved reader, so back from either reader returns
+ * to Beranda, not the gate.
  */
 @Composable
 fun SanguSantriNavHost(modifier: Modifier = Modifier) {
-    val backStack = rememberNavBackStack(Serambi)
+    val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
 
-    NavDisplay(
-        backStack = backStack,
+    Scaffold(
         modifier = modifier,
-        onBack = { backStack.removeLastOrNull() },
-        entryDecorators =
-            listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator(),
-            ),
-        entryProvider = sanguSantriEntryProvider(backStack),
-    )
+        bottomBar = {
+            if (topLevelBackStack.isAtTopLevelRoot) {
+                BottomNavigationBar(
+                    destinations = rootDestinations(),
+                    selectedKey = topLevelBackStack.topLevelKey,
+                    onSelect = topLevelBackStack::addTopLevel,
+                )
+            }
+        },
+    ) { innerPadding ->
+        NavDisplay(
+            backStack = topLevelBackStack.backStack,
+            modifier = Modifier.padding(innerPadding),
+            onBack = { topLevelBackStack.removeLast() },
+            entryDecorators =
+                listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                ),
+            entryProvider = sanguSantriEntryProvider(topLevelBackStack),
+        )
+    }
 }
 
+@Composable
+private fun rootDestinations(): List<RootDestination> =
+    listOf(
+        RootDestination(
+            key = Serambi,
+            label = stringResource(R.string.nav_beranda_label),
+            icon = { selected ->
+                Icon(
+                    imageVector = if (selected) Icons.Filled.Home else Icons.Outlined.Home,
+                    contentDescription = null,
+                )
+            },
+        ),
+        RootDestination(
+            key = Tasbih,
+            label = stringResource(R.string.nav_tasbih_label),
+            icon = { selected -> TasbihIcon(filled = selected) },
+        ),
+    )
+
 /** Builds every [NavKey]'s composable — split out of [SanguSantriNavHost] to keep that function short. */
-private fun sanguSantriEntryProvider(backStack: MutableList<NavKey>) =
+private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
     entryProvider {
         entry<Serambi> {
             SerambiRoute(
-                onAmaliyahSelected = { slug -> backStack.add(AmaliyahDetail(slug)) },
-                onSetelanClick = { backStack.add(Setelan) },
-                onAboutClick = { backStack.add(About) },
+                onAmaliyahSelected = { slug -> topLevelBackStack.add(AmaliyahDetail(slug)) },
+                onSetelanClick = { topLevelBackStack.add(Setelan) },
+                onAboutClick = { topLevelBackStack.add(About) },
             )
+        }
+        entry<Tasbih> {
+            TasbihRoute(onHistoryClick = { topLevelBackStack.add(TasbihHistory) })
+        }
+        entry<TasbihHistory> {
+            TasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
         }
         entry<AmaliyahDetail> { key ->
             ReaderEntryRoute(
                 amaliyahSlug = key.slug,
-                onBack = { backStack.removeLastOrNull() },
-                onModeResolved = { mode -> replaceTopEntryWithReader(backStack, key.slug, mode) },
+                onBack = { topLevelBackStack.removeLast() },
+                onModeResolved = { mode -> replaceTopEntryWithReader(topLevelBackStack, key.slug, mode) },
             )
         }
         entry<FullReader> { key ->
             ReaderRoute(
                 amaliyahSlug = key.slug,
-                onBack = { backStack.removeLastOrNull() },
-                onSwitchToGuided = { replaceTopEntryWithReader(backStack, key.slug, ReaderMode.GUIDED) },
+                onBack = { topLevelBackStack.removeLast() },
+                onSwitchToGuided = { replaceTopEntryWithReader(topLevelBackStack, key.slug, ReaderMode.GUIDED) },
             )
         }
         entry<GuidedReader> { key ->
             GuidedReaderRoute(
                 amaliyahSlug = key.slug,
-                onBack = { backStack.removeLastOrNull() },
-                onSwitchToFull = { replaceTopEntryWithReader(backStack, key.slug, ReaderMode.FULL) },
+                onBack = { topLevelBackStack.removeLast() },
+                onSwitchToFull = { replaceTopEntryWithReader(topLevelBackStack, key.slug, ReaderMode.FULL) },
             )
         }
         entry<Setelan> {
             PlaceholderScreen(
                 message = stringResource(R.string.setelan_placeholder_message),
-                onBack = { backStack.removeLastOrNull() },
+                onBack = { topLevelBackStack.removeLast() },
             )
         }
         entry<About> {
             PlaceholderScreen(
                 message = stringResource(R.string.about_placeholder_message),
-                onBack = { backStack.removeLastOrNull() },
+                onBack = { topLevelBackStack.removeLast() },
             )
         }
     }
 
 /**
- * Pops the current top entry and pushes the given reader in its place — used both for the
+ * Pops the current tab's top entry and pushes the given reader in its place — used both for the
  * Milestone 4 mode gate (resolving [AmaliyahDetail] into a reader) and the Milestone 5 in-reader
  * mode switch (replacing [FullReader] with [GuidedReader] or vice versa, FR-016). Popping first
  * means repeated switching never accumulates duplicate backstack entries, and back navigation from
  * either reader always lands on [Serambi], never on a stale gate or the previous reader mode.
  */
 private fun replaceTopEntryWithReader(
-    backStack: MutableList<NavKey>,
+    topLevelBackStack: TopLevelBackStack,
     slug: String,
     mode: ReaderMode,
 ) {
-    backStack.removeLastOrNull()
-    backStack.add(
+    topLevelBackStack.replaceLast(
         when (mode) {
             ReaderMode.FULL -> FullReader(slug)
             ReaderMode.GUIDED -> GuidedReader(slug)

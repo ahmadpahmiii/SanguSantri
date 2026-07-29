@@ -2484,3 +2484,236 @@ Unchanged from Milestone 8: building the actual Go backend service (ADR
       functional end-to-end, but remains a separate, explicitly-requested task.
       `docs/product/ROADMAP.md` should be revisited for the next scheduled
       Android-side item in the meantime (Phase B — Beranda/Jelajahi Amaliyah).
+
+## Product-owner scope decision (2026-07-29): bottom-navigation-only, Nahwu Quiz moved to 0.0.5
+
+**Not a milestone — a scope/decision record.** The product owner/tech lead
+approved, in writing, a scope change superseding parts of the 2026-07-26
+Figma product-alignment pass and its `docs/design/figma-export/
+future-releases/` specification:
+
+* Navigation for every release through `0.0.5` uses **bottom navigation
+  only** — no Navigation Rail is built for tablet/expanded width at any
+  point in this range. This supersedes `docs/design/ARCHITECTURE.md`'s and
+  `docs/design/DESIGN_SYSTEM.md`'s previously documented adaptive bottom-
+  bar/rail plan for that range specifically; adaptive *content* layout
+  (constrained/centred width) is unaffected and still required.
+* Nahwu Quiz moves from `0.4.0` to **`0.0.5`**, immediately after Pengingat
+  Amaliyah (`0.0.4`) and before Accounts (`0.1.0`). It remains individual/
+  guest/offline-first — no login, no pesantren representation, no
+  leaderboard — unchanged from the prior `0.4.0` scope, only the version
+  number and roadmap position moved.
+* Accounts (`0.1.0`), Pesantren Membership (`0.2.0`), Private Pesantren
+  Space (`0.3.0`), leaderboard, and inter-pesantren ranking remain
+  deferred/future, unchanged.
+* Recorded formally as ADR
+  [0013](decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md);
+  normative docs (`PRD.md`, `ROADMAP.md`, `ARCHITECTURE.md`,
+  `DESIGN_SYSTEM.md`, `FIGMA_HANDOFF.md`, `reviews/
+  figma-product-alignment.md`, `AGENTS.md`, `CLAUDE.md`) and the
+  `future-releases/` spec files were updated in the same pass — see that
+  ADR for the full list of touched files.
+
+## Milestone 9 — Release 0.0.2, Phase 1: Standalone Tasbih and Bottom Navigation Shell
+
+**Status:** Implemented and verified locally — `ktlintFormat`, `ktlintCheck`,
+`detekt`, `lintDebug`, `assembleDebug`, `compileDebugUnitTestKotlin`, and
+`compileDebugAndroidTestKotlin` all pass (see Commands executed below).
+`connectedDebugAndroidTest`/`installDebug`/manual on-device verification
+were **not** run — `adb devices` returned no attached device or emulator
+this session; this is an honest gap, not a claim of on-device verification
+that did not happen.
+
+**Scope:** Release `0.0.2` per the product-owner-approved scope above:
+Standalone Tasbih (counter, target presets/custom target, session naming,
+reset, session history) plus the one bottom-navigation shell the whole
+`0.0.2`–`0.0.5` body of work reuses (Beranda|Tasbih at this release). No
+Aktivitas, Pengingat, or Nahwu Quiz — those are Phases 2–4 of this same
+work order, phase-gated behind this phase compiling and validating first.
+
+### Audit of pre-existing untracked work
+
+Before this phase started, `git status` already showed a partial,
+untracked Standalone Tasbih implementation: `TasbihSession`/
+`TasbihHistoryEntry`/`TasbihTargetPreset` domain models, `TasbihRepository`/
+`TasbihRepositoryImpl`, `TasbihSessionEntity`/`TasbihHistoryEntity` + DAOs,
+`TasbihEntityMappers`, `TasbihModule`, and a hand-drawn `TasbihIcon` vector
+(`core/designsystem/icon/`) — none yet registered in `SanguSantriDatabase`/
+`DatabaseModule`, and no `feature/tasbih` UI existed. Audited against
+`docs/design/figma-export/future-releases/02-release-0.0.2-tasbih.md` and
+`CODING_STANDARD.md`: high quality, correct no-99-preset rule, correct
+singleton-active-session pattern, `TasbihIcon` a genuine custom vector (no
+Unicode glyph). All of it was kept and built on, not replaced. One real bug
+found and fixed: `TasbihRepositoryImpl.startSession` overwrote the active
+session without archiving it to history first, so switching the target
+preset mid-session (e.g. 33 → 100) silently discarded a completed or
+in-progress count with no history row. Fixed by applying the same
+archive-if-`currentCount > 0` rule `resetSession` already used.
+`incrementCount`'s existing "tap again after target reached starts a new
+cycle" behaviour was checked against the design spec's "Target tercapai —
+ketuk untuk mengulang" caption — that caption *is* the documented explicit
+tap-to-repeat interaction, so this behaviour was kept unchanged, not a bug.
+
+### What shipped
+
+* **Room**: `TasbihSessionEntity`/`TasbihHistoryEntity` and their DAOs
+  registered into `SanguSantriDatabase` (still schema version 1, per the
+  pre-public-release schema-freeze policy — no migration, developers must
+  clear app data/reinstall once) and `DatabaseModule`. `TasbihTargetPreset`
+  gained documented `MIN_CUSTOM_TARGET`/`MAX_CUSTOM_TARGET` (1–100,000 —
+  the ceiling is a documented engineering decision, chosen because real
+  amaliyah repetition counts already bundled in this app reach 30,000×)
+  and default `THIRTY_THREE_TARGET`/`ONE_HUNDRED_TARGET` constants.
+* **`core/designsystem/component/ConfirmationDialog.kt`** (+
+  `ConfirmationDialogText.kt`): the shared "Confirmation Dialog Shell" named
+  in `01-navigation-and-shared-components.md`, used by Tasbih's reset
+  confirmation now and intended for Pengingat's delete confirmation later —
+  a new shared component rather than reaching into `feature/guidedreader`'s
+  existing, feature-scoped `GuidedConfirmDialog`.
+* **`navigation/TopLevelBackStack.kt`**: the multiple-back-stacks helper
+  from `android/nav3-recipes`' "Common UI" recipe (the reference
+  `CODING_STANDARD.md` names for exactly this pattern), adapted to this
+  project's `NavKey` types — one back stack per top-level tab, a single
+  flattened back stack for `NavDisplay`, switching tabs never duplicates a
+  `NavKey`, and a `replaceLast` operation preserving the existing in-reader
+  mode-switch behaviour. This is bookkeeping on top of the same, one
+  Navigation 3 system already in use — not a second navigation framework.
+* **`navigation/BottomNavigationBar.kt`** + **`RootDestination.kt`**: a
+  plain Material 3 `NavigationBar`/`NavigationBarItem` bar — deliberately
+  **not** `NavigationSuiteScaffold` (which would auto-switch to a
+  Navigation Rail on expanded width, directly contradicting the
+  product-owner's bottom-navigation-only decision above). Always-visible
+  labels, tonal pill indicator + filled/outlined icon swap on selection
+  (colour is never the only signal), 48dp-minimum touch targets. Beranda
+  uses `Icons.Filled/Outlined.Home`; Tasbih uses the existing custom
+  `TasbihIcon`.
+* **`SanguSantriNavHost.kt`** rewritten to own the app's single top-level
+  `Scaffold` (bottom bar) wrapping the existing `NavDisplay`/`entryProvider`
+  — new `Tasbih`/`TasbihHistory` `NavKey`s alongside the existing Serambi/
+  reader graph, all switched from raw `MutableList<NavKey>` operations to
+  `TopLevelBackStack`. Bottom bar is shown only when the current tab's own
+  stack has depth 1 (its own root) — hidden on `AmaliyahDetail`/readers/
+  Setelan/About/`TasbihHistory`, matching "hide on nested flow."
+  `MainActivity.kt`'s previous outer `Scaffold` was removed (it would have
+  double-applied system-bar inset padding against the nav host's new own
+  `Scaffold` — `ARCHITECTURE.md`'s edge-to-edge rule).
+* **`feature/tasbih/`**: `TasbihUiState` (`NoSession` / one `Active` shape
+  covering design-spec states 2/3/4/9 — Sesi Aktif/Target Tercapai/Target
+  Tanpa Batas/Sesi Dipulihkan are the same session data with different
+  derived flags, not four screens), `TasbihUiAction`, `TasbihViewModel`
+  (derives the transient "restored" indicator from whether this ViewModel
+  instance's *first* observed session emission already had a positive
+  count — clears itself the moment the count changes, matching "shown once
+  per cold start, not persistent chrome"), `TasbihScreen`/`TasbihRoute`,
+  and `components/`: `TasbihCounter` (`NEUTRAL`/`COUNTING`/
+  `TARGET_REACHED` tones, 220dp minimum, haptic tap, `stateDescription`
+  semantics; deliberately never disables tapping at `TARGET_REACHED`,
+  unlike `GuidedTasbihCounter`, since tapping there is the documented
+  "ketuk untuk mengulang" cycle-repeat interaction — a deliberate
+  divergence, documented in code), `TasbihTargetSelector` (33/100/
+  Unlimited/Custom chip row, no 99 preset, Custom chip never shows
+  selected itself per the design spec), `CustomTasbihTargetDialog` +
+  `CustomTargetValidation` (all six validation states: Valid/Empty/Zero/
+  Negative/NonNumeric/TooLarge, rejected before dismissal is possible),
+  `TasbihSessionNameField` (inline expanding text field, not a dialog, per
+  spec), `TasbihSecondaryActions` (Reset/Riwayat chips), and
+  `TasbihScreenLabels` (target-header eyebrow, autosave caption, restored
+  indicator).
+* **`feature/tasbih/history/`**: `TasbihHistoryUiState`/
+  `TasbihHistoryViewModel`/`TasbihHistoryScreen` — empty state (`Status
+  State`-equivalent, `history` icon) and filled list (session name or
+  "Tasbih" fallback, target + final count, end time + duration), reachable
+  via the Tasbih screen's Riwayat entry points; bottom bar hidden on this
+  screen.
+* **`gradle/libs.versions.toml`/`app/build.gradle.kts`**: replaced
+  `material-icons-core` with `material-icons-extended` — justified by the
+  full approved `0.0.2`–`0.0.5` scope's broad icon vocabulary (history,
+  restart_alt, check_circle, notifications, calendar_month, repeat,
+  lock_clock, wifi_off, etc. across the four phases), not "a couple of
+  icons"; R8 resource/code shrinking (already enabled) strips unused icons
+  from the release build.
+* **Strings**: every new user-facing string added to `strings.xml` in
+  Indonesian, none hardcoded in Kotlin.
+
+### Files created
+
+`navigation/TopLevelBackStack.kt`, `navigation/BottomNavigationBar.kt`,
+`navigation/RootDestination.kt`, `core/designsystem/component/
+ConfirmationDialog.kt`, `core/designsystem/component/
+ConfirmationDialogText.kt`, `feature/tasbih/TasbihUiState.kt`,
+`TasbihUiAction.kt`, `TasbihViewModel.kt`, `TasbihScreen.kt`,
+`TasbihDialog.kt`, `feature/tasbih/components/TasbihCounter.kt`,
+`TasbihCounterTone.kt`, `TasbihTargetSelector.kt`,
+`CustomTasbihTargetDialog.kt`, `CustomTargetValidation.kt`,
+`TasbihSessionNameField.kt`, `TasbihSecondaryActions.kt`,
+`TasbihScreenLabels.kt`, `feature/tasbih/history/
+TasbihHistoryUiState.kt`, `TasbihHistoryViewModel.kt`,
+`TasbihHistoryScreen.kt`.
+
+### Files modified
+
+`domain/model/TasbihTargetPreset.kt`, `data/repository/
+TasbihRepositoryImpl.kt`, `data/local/database/SanguSantriDatabase.kt`,
+`di/DatabaseModule.kt`, `core/designsystem/theme/
+SanguSantriDimensions.kt` (new `tasbihCounterMinSize` token),
+`navigation/SanguSantriNavHost.kt`, `MainActivity.kt`,
+`app/src/main/res/values/strings.xml`, `gradle/libs.versions.toml`,
+`app/build.gradle.kts` (dependency swap + `versionCode = 3`/
+`versionName = "0.0.2"`), `app/schemas/com.sangusantri.app.data.local.
+database.SanguSantriDatabase/1.json` (regenerated by the Room/KSP compiler
+to include the two new tables).
+
+### Commands executed
+
+`./gradlew :app:ktlintFormat` — passed (two manual line-length fixes
+needed first; ktlint auto-corrected everything else). `./gradlew
+:app:ktlintCheck :app:detekt` — failed on the first pass with 10 detekt
+findings (`TooManyFunctions` in `DatabaseModule`/`SanguSantriDatabase`,
+`LongParameterList` in `ConfirmationDialog`/`TasbihScreenContent`,
+`LongMethod` in `TasbihScreen`/`TasbihCounter`/`TasbihActiveContent`,
+`MatchingDeclarationName` in three files with a stray top-level type, one
+extra `ReturnCount`); all ten fixed (two `@Suppress("TooManyFunctions")`
+matching this codebase's own established convention for a Room `@Database`
+class and its DI module, everything else by extracting types/functions
+into correctly-named files or reducing parameter counts) — re-run passed
+clean. `./gradlew :app:lintDebug` — passed. `./gradlew :app:assembleDebug`
+— passed. `./gradlew :app:compileDebugUnitTestKotlin
+:app:compileDebugAndroidTestKotlin` — both passed (only pre-existing,
+unrelated `createAndroidComposeRule` deprecation warnings). `adb devices`
+— no attached device/emulator.
+
+### Known limitations
+
+* **No on-device verification this session** — no emulator/device
+  attached. Persistence-across-restart, haptic feedback, reset
+  confirmation, history archival, dark mode, RTL, landscape, tablet width,
+  and font-scale 1.5× are all implemented per spec but not manually
+  exercised on a real device yet.
+* **Expanded-width counter enlargement not implemented.** The design spec
+  calls for the Tasbih counter to grow to 280dp/96sp on expanded (tablet)
+  width; this pass reused the existing Reader's simpler pattern instead —
+  a fixed 220dp-minimum counter inside a max-width-constrained, centred
+  column (`SanguSantriDimensions.readerContentMaxWidth`, reused rather than
+  a near-duplicate token) — since no `WindowSizeClass` adaptive
+  infrastructure exists anywhere in this codebase yet and building it
+  solely for one counter's font size would be disproportionate to this
+  phase. The counter still reads correctly and meets every touch-target/
+  minimum-size requirement at every width; only the literal 96sp expanded
+  enlargement is deferred.
+* **`connectedDebugAndroidTest` was not run** — no existing instrumented
+  test touches Tasbih or the new nav shell yet (none were added, per this
+  pass's explicit no-new-tests constraint), and no emulator was available
+  to manually verify either.
+* Both dialogs in the Standalone Tasbih layer map from the baseline export
+  (`17:2`) are implemented as specified: a top-app-bar Reset icon *and* a
+  bottom "Preset / Reset" chip both open the same Reset Confirmation
+  Dialog — this reads as two entry points to one action, which is what the
+  reused baseline frame actually specifies, not an inconsistency
+  introduced by this pass.
+
+### Next recommended milestone
+
+Phase 2 (Release `0.0.3` — Aktivitas), per the product-owner-approved,
+phase-gated work order above — starts once this phase's on-device
+verification (whenever a device/emulator becomes available) confirms no
+regression.

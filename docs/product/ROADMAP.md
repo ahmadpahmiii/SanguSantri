@@ -105,6 +105,24 @@ before implementation.
 * Gregorian and Hijri date, notification permission flow.
 * Rescheduling after reboot. No "remind me later" requirement.
 
+## `0.0.5` — Nahwu Quiz
+
+**Moved from `0.4.0`** (product owner/tech lead decision, 2026-07-29, ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)) —
+scope unchanged from the prior `0.4.0` description below, only the version
+number and roadmap position moved, to immediately after Pengingat Amaliyah
+and before Accounts:
+
+* Individual, guest, offline-first — bundled static JSON question bank, no
+  login, no pesantren selection/representation, no leaderboard, no social
+  ranking, no user-generated questions.
+* Never a bottom-nav destination — reached only from a Beranda "Belajar"
+  entry point (see `docs/product/PRD.md` §7.1).
+* Anti-cheating controls, pesantren representation, and seasonal
+  leaderboard are **blocked** on Accounts (`0.1.0`) and Pesantren
+  Membership (`0.2.0`) and remain future/deferred, not built at `0.0.5` —
+  local score is never trusted for competitive ranking.
+
 ## `0.1.0` — Accounts
 
 * Google login, phone-number login, minimal profile.
@@ -121,26 +139,27 @@ before implementation.
 * Private amaliyah variants, private schedules, pesantren announcements.
 * No chat, no public posting.
 
-## `0.4.0` — Nahwu Quiz
-
-* Question bank, individual score, pesantren representation.
-* Anti-cheating controls, seasonal leaderboard, moderated content.
-
 ---
 
-## Final navigation model (target IA)
+## Navigation model through `0.0.5` (product owner/tech lead decision)
 
-The confirmed product direction is a five-destination navigation shell —
-**Beranda** (`0.0.1`), **Tasbih** (`0.0.2`), **Aktivitas** (`0.0.3`),
-**Profil** (`0.1.0`), **Pesantren** (`0.2.0`) — as a bottom navigation bar
-on compact window-size class and a rail/adaptive nav on expanded width
-(`docs/product/PRD.md` §7.1, `docs/design/DESIGN_SYSTEM.md`). Each
-destination becomes real, navigable content only once its own version
-ships; this roadmap does not schedule the persistent nav-bar chrome itself
-separately, and whether that chrome appears in `0.0.1` (with not-yet-built
-destinations present but inert) or is introduced once a second real
-destination exists (`0.0.2`) is an open question tracked in
-`docs/design/FIGMA_HANDOFF.md`, not yet resolved by this document.
+Bottom-navigation-only through `0.0.5` (ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md),
+2026-07-29) — supersedes this section's earlier five-destination bottom-
+bar/rail description. No Navigation Rail is built for any window-size
+class, including expanded/tablet, in this window. Destinations are added
+incrementally, never speculatively:
+
+* **Beranda** (`0.0.1`) — initial destination throughout.
+* **Beranda | Tasbih** (`0.0.2`).
+* **Beranda | Aktivitas | Tasbih** (`0.0.3` onward through `0.0.5`).
+* Pengingat Amaliyah (`0.0.4`) and Nahwu Quiz (`0.0.5`) are never bottom-
+  nav destinations.
+* **Profil** (`0.1.0`+) and **Pesantren** (`0.2.0`+) remain entirely out of
+  scope through `0.0.5` — no nav item, not even disabled/inert. Whether
+  either becomes a further bottom-nav destination, and whether a
+  Navigation Rail is ever introduced beyond `0.0.5`, is a future product
+  decision not made by this roadmap.
 
 ---
 

@@ -18,7 +18,10 @@ emerges — not preemptively once networking code exists.
 ## Root/tamper detection, Play Integrity API enforcement
 
 **Deferred.** Reconsider only once pesantren membership codes (`0.2.0`) or
-Nahwu quiz rankings (`0.4.0`) exist, where fraud has real cost. Adding this
+competitive Nahwu quiz rankings exist (a later, currently unscheduled
+release — the individual/offline Nahwu Quiz itself ships at `0.0.5`, ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md),
+with no ranking and no Play Integrity), where fraud has real cost. Adding this
 now defends nothing — there is no reader-content threat that root detection
 mitigates. SanguSantri is currently non-commercial, so there is no payments
 milestone to trigger this either.

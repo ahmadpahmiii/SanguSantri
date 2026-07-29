@@ -11,6 +11,8 @@ import com.sangusantri.app.data.local.dao.ApprovalDao
 import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
 import com.sangusantri.app.data.local.dao.ReadingPositionDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
+import com.sangusantri.app.data.local.dao.TasbihHistoryDao
+import com.sangusantri.app.data.local.dao.TasbihSessionDao
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import dagger.Module
 import dagger.Provides
@@ -19,6 +21,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+// One @Provides function per Room DAO is the established convention in this file (mirrors
+// SanguSantriDatabase's own one-abstract-getter-per-DAO shape) — splitting it would mean an
+// artificial second module for no boundary reason, which CODING_STANDARD.md also warns against.
+@Suppress("TooManyFunctions")
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -61,4 +67,10 @@ object DatabaseModule {
 
     @Provides
     fun provideStepProgressDao(database: SanguSantriDatabase): StepProgressDao = database.stepProgressDao()
+
+    @Provides
+    fun provideTasbihSessionDao(database: SanguSantriDatabase): TasbihSessionDao = database.tasbihSessionDao()
+
+    @Provides
+    fun provideTasbihHistoryDao(database: SanguSantriDatabase): TasbihHistoryDao = database.tasbihHistoryDao()
 }

@@ -5,7 +5,7 @@ pesantren-specific amaliyah.
 
 * Platform: Native Android, Jetpack Compose, package `com.sangusantri.app`.
 * Minimum SDK: 26.
-* Current release: `0.0.1`. Current content: Tahlil and Istighosah.
+* Current release: `0.0.2`. Current content: Tahlil and Istighosah.
 * Architecture: offline-first Clean Architecture, one Gradle module.
 * Current state: Milestones 0–6 (foundation; content model + content
   import; Serambi; Full Amaliyah Reader; local production content
@@ -31,7 +31,24 @@ pesantren-specific amaliyah.
   [0012](decisions/0012-bundled-bootstrap-and-remote-sync.md) and the
   rewritten `docs/product/PRD.md` FR-010/FR-011 before assuming remote
   sync "is not part of `0.0.1`" or that Android retains previous content
-  versions — neither is true any more.
+  versions — neither is true any more. A subsequent sync-simplification
+  pass (2026-07-28, ADR 0012 amendment) removed manifest ETag/`304`
+  handling, deleted `ContentRemoteDataSource`, renamed
+  `ContentSyncCoordinator` → `ContentSyncManager`, and replaced the former
+  six-case sync outcome with a three-case `SyncResult` — see that
+  amendment before assuming the Milestone 8 class names above are still
+  current. Milestone 9 (Standalone Tasbih and the bottom-navigation shell,
+  2026-07-29) has since implemented `0.0.2`: `feature/tasbih` (counter,
+  target presets/custom target, session naming, reset, session history)
+  and the app's first real navigation shell (`navigation/
+  TopLevelBackStack.kt`, `BottomNavigationBar.kt`). The product owner/tech
+  lead separately approved, in the same session, a **bottom-navigation-
+  only** scope through `0.0.5` (no Navigation Rail on any window-size
+  class in that window) and moved Nahwu Quiz from `0.4.0` to `0.0.5` — see
+  ADR [0013](decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)
+  before assuming `docs/design/DESIGN_SYSTEM.md`'s/`ARCHITECTURE.md`'s
+  previously documented bar/rail plan, or `docs/product/ROADMAP.md`'s
+  previous `0.4.0` Nahwu Quiz position, are still current.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, standalone Quran feature, Quran API integration (Kemenag or
   Quran Foundation), or Quran audio is on the roadmap

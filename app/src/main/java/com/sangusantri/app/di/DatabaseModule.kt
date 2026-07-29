@@ -2,6 +2,7 @@ package com.sangusantri.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.sangusantri.app.data.local.dao.AmaliyahCompletionEventDao
 import com.sangusantri.app.data.local.dao.AmaliyahDao
 import com.sangusantri.app.data.local.dao.AmaliyahStepDao
 import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
@@ -73,4 +74,8 @@ object DatabaseModule {
 
     @Provides
     fun provideTasbihHistoryDao(database: SanguSantriDatabase): TasbihHistoryDao = database.tasbihHistoryDao()
+
+    @Provides
+    fun provideAmaliyahCompletionEventDao(database: SanguSantriDatabase): AmaliyahCompletionEventDao =
+        database.amaliyahCompletionEventDao()
 }

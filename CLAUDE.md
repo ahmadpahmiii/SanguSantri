@@ -5,7 +5,7 @@ pesantren-specific amaliyah.
 
 * Platform: Native Android, Jetpack Compose, package `com.sangusantri.app`.
 * Minimum SDK: 26.
-* Current release: `0.0.2`. Current content: Tahlil and Istighosah.
+* Current release: `0.0.3`. Current content: Tahlil and Istighosah.
 * Architecture: offline-first Clean Architecture, one Gradle module.
 * Current state: Milestones 0–6 (foundation; content model + content
   import; Serambi; Full Amaliyah Reader; local production content
@@ -48,7 +48,12 @@ pesantren-specific amaliyah.
   ADR [0013](decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)
   before assuming `docs/design/DESIGN_SYSTEM.md`'s/`ARCHITECTURE.md`'s
   previously documented bar/rail plan, or `docs/product/ROADMAP.md`'s
-  previous `0.4.0` Nahwu Quiz position, are still current.
+  previous `0.4.0` Nahwu Quiz position, are still current. Milestone 10
+  (Aktivitas, 2026-07-29) has since implemented `0.0.3`: `feature/activity`
+  (streak, this-week summary, filterable amaliyah-completion and
+  tasbih-history sections), a new durable `amaliyah_completion_events`
+  table decoupled from the version-scoped progress tables ADR 0012 wipes on
+  content replacement, and bottom nav is now Beranda | Aktivitas | Tasbih.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, standalone Quran feature, Quran API integration (Kemenag or
   Quran Foundation), or Quran audio is on the roadmap

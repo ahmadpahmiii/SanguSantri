@@ -156,6 +156,7 @@ constructor(
                     currentStepId = stepId,
                     lastOpenedAtEpochMillis = System.currentTimeMillis(),
                     completedAtEpochMillis = existingSession?.completedAtEpochMillis,
+                    startedAtEpochMillis = existingSession?.startedAtEpochMillis ?: System.currentTimeMillis(),
                 ),
             )
             readerSettingsRepository.setLastReaderMode(ReaderMode.GUIDED)

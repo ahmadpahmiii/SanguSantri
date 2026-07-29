@@ -74,23 +74,32 @@ fun TasbihHistoryScreen(
     ) { innerPadding ->
         when (uiState) {
             TasbihHistoryUiState.Loading ->
-                Box(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
                     CircularProgressIndicator()
                 }
 
             TasbihHistoryUiState.Empty ->
                 TasbihHistoryEmptyState(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
 
             is TasbihHistoryUiState.Filled ->
-                TasbihHistoryList(entries = uiState.entries, modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                TasbihHistoryList(
+                    entries = uiState.entries,
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
         }
     }
 }
@@ -143,9 +152,10 @@ private fun TasbihHistoryRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = SanguSantriSpacing.small),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = SanguSantriSpacing.small),
         horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
     ) {

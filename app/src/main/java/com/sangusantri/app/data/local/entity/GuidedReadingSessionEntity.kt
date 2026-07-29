@@ -15,4 +15,5 @@ data class GuidedReadingSessionEntity(
     val currentStepId: String,
     val lastOpenedAtEpochMillis: Long,
     val completedAtEpochMillis: Long?,
+    val startedAtEpochMillis: Long,
 )

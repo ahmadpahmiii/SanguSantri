@@ -106,11 +106,11 @@ removed — bundled assets and remote packages now share one canonical
 `feature/home` (Beranda, renamed from Serambi — Figma product-alignment
 pass, `docs/reviews/figma-product-alignment.md`), `feature/reader` (Full
 Reader + the reading-mode gate), `feature/guidedreader` (Guided Reader),
-and `feature/tasbih` (Standalone Tasbih + Session History, `0.0.2`,
-Milestone 9) are implemented; `feature/explore` (Jelajahi Amaliyah,
-`0.0.1`) and `feature/activity` (Aktivitas, `0.0.3`) are scheduled but not
-yet implemented — do not create their packages before the milestone that
-needs them. `feature/feedback`
+`feature/tasbih` (Standalone Tasbih + Session History, `0.0.2`,
+Milestone 9), and `feature/activity` (Aktivitas, `0.0.3`, Milestone 10)
+are implemented; `feature/explore` (Jelajahi Amaliyah, `0.0.1`) is
+scheduled but not yet implemented — do not create its package before the
+milestone that needs it. `feature/feedback`
 was removed from this diagram: public content-correction feedback was
 removed from `0.0.1` scope at Milestone 5 (`docs/product/PRD.md` FR-012)
 and no feedback code exists or is planned. `feature/contentdetail` and

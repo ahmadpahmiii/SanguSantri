@@ -75,9 +75,10 @@ fun TasbihCounter(
                 },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(SanguSantriSpacing.large),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(SanguSantriSpacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {

@@ -11,4 +11,10 @@ data class GuidedReadingSession(
     val currentStepId: String,
     val lastOpenedAtEpochMillis: Long,
     val completedAtEpochMillis: Long?,
+    /**
+     * When this session was first created — set once and preserved on every subsequent save
+     * (never overwritten on step moves), so `completedAtEpochMillis - startedAtEpochMillis` is a
+     * real, non-fabricated duration for Aktivitas' completion history (`0.0.3`).
+     */
+    val startedAtEpochMillis: Long,
 )

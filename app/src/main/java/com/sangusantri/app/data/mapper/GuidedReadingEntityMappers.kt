@@ -17,6 +17,7 @@ fun GuidedReadingSessionEntity.toDomain(): GuidedReadingSession =
         currentStepId = currentStepId,
         lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
         completedAtEpochMillis = completedAtEpochMillis,
+        startedAtEpochMillis = startedAtEpochMillis,
     )
 
 fun GuidedReadingSession.toEntity(): GuidedReadingSessionEntity =
@@ -25,6 +26,7 @@ fun GuidedReadingSession.toEntity(): GuidedReadingSessionEntity =
         currentStepId = currentStepId,
         lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
         completedAtEpochMillis = completedAtEpochMillis,
+        startedAtEpochMillis = startedAtEpochMillis,
     )
 
 fun StepProgressEntity.toDomain(): StepProgress =

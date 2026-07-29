@@ -11,6 +11,7 @@ import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.model.StepProgress
+import com.sangusantri.app.domain.repository.ActivityRepository
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
@@ -53,6 +54,7 @@ constructor(
     private val guidedReadingRepository: GuidedReadingRepository,
     private val readerSettingsRepository: ReaderSettingsRepository,
     private val readingPositionRepository: ReadingPositionRepository,
+    private val activityRepository: ActivityRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -64,6 +66,11 @@ constructor(
     private val currentStepIndex = MutableStateFlow(0)
     private val completedAtEpochMillis = MutableStateFlow<Long?>(null)
     private var autoAdvanceJob: Job? = null
+
+    // Set once per load from the restored session (or "now" for a genuinely new session) and
+    // preserved thereafter — the real, non-fabricated start of this reading session, used to
+    // compute Aktivitas' (0.0.3) completion-event duration. Never reset on individual step moves.
+    private var sessionStartedAtEpochMillis: Long = 0L
 
     private val _switchToFullReady = MutableStateFlow(false)
     val switchToFullReady: StateFlow<Boolean> = _switchToFullReady
@@ -212,6 +219,7 @@ constructor(
         val progress = guidedReadingRepository.getStepProgress(detail.version.id)
         stepCounts.value = progress.associate { it.stepId to it.currentCount }
         completedAtEpochMillis.value = session?.completedAtEpochMillis
+        sessionStartedAtEpochMillis = session?.startedAtEpochMillis ?: System.currentTimeMillis()
         val restoredIndex = session?.currentStepId?.let { id -> detail.steps.indexOfFirst { it.id == id } }
         currentStepIndex.value = restoredIndex?.takeIf { it >= 0 } ?: 0
     }
@@ -255,15 +263,22 @@ constructor(
         persistCounter(detail.version.id, step.id, 0)
     }
 
+    // completedAtEpochMillis.value != null is a defensive guard, not just the three existing
+    // step/counter checks — the Route navigates away as soon as isCompleted becomes true, but this
+    // ensures a stray re-trigger can never record a second Aktivitas (0.0.3) completion event for
+    // the same completion action (FR-007's "exactly one event" requirement).
     @Suppress("ReturnCount")
     private fun onConfirmCompletion() {
-        val detail = availableDetail() ?: return
+        val available = contentState.value as? ContentState.Available ?: return
+        val detail = available.detail
         if (currentStepIndex.value != detail.steps.lastIndex) return
         if (!allRequiredCountersComplete(detail.steps, stepCounts.value)) return
+        if (completedAtEpochMillis.value != null) return
 
         val now = System.currentTimeMillis()
         completedAtEpochMillis.value = now
         val stepId = detail.steps[currentStepIndex.value].id
+        val startedAt = sessionStartedAtEpochMillis
         viewModelScope.launch {
             guidedReadingRepository.saveSession(
                 GuidedReadingSession(
@@ -271,7 +286,15 @@ constructor(
                     currentStepId = stepId,
                     lastOpenedAtEpochMillis = now,
                     completedAtEpochMillis = now,
+                    startedAtEpochMillis = startedAt,
                 ),
+            )
+            activityRepository.recordCompletion(
+                amaliyahSlug = amaliyahSlug,
+                amaliyahTitleId = available.amaliyahTitleId,
+                versionNumber = detail.version.versionNumber,
+                startedAtEpochMillis = startedAt,
+                completedAtEpochMillis = now,
             )
         }
     }
@@ -298,6 +321,7 @@ constructor(
         versionId: String,
         stepId: String,
     ) {
+        val startedAt = sessionStartedAtEpochMillis
         viewModelScope.launch {
             guidedReadingRepository.saveSession(
                 GuidedReadingSession(
@@ -305,6 +329,7 @@ constructor(
                     currentStepId = stepId,
                     lastOpenedAtEpochMillis = System.currentTimeMillis(),
                     completedAtEpochMillis = completedAtEpochMillis.value,
+                    startedAtEpochMillis = startedAt,
                 ),
             )
         }

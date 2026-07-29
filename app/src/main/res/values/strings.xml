@@ -6,6 +6,65 @@
   <string name="serambi_about_content_description">Tentang SanguSantri</string>
   <string name="serambi_empty_state">Konten sedang disiapkan.</string>
 
+  <!-- Bottom navigation shell (0.0.2+, docs/design/figma-export/future-releases/01-navigation-and-shared-components.md) -->
+  <string name="nav_beranda_label">Beranda</string>
+  <string name="nav_tasbih_label">Tasbih</string>
+
+  <!-- Standalone Tasbih (0.0.2, 02-release-0.0.2-tasbih.md) -->
+  <string name="tasbih_title">Tasbih</string>
+  <string name="tasbih_reset_action">Reset hitungan</string>
+  <string name="tasbih_history_action">Riwayat</string>
+  <string name="tasbih_session_name_label">Nama sesi</string>
+  <string name="tasbih_session_name_empty">Tanpa nama</string>
+  <string name="tasbih_session_name_action">Nama opsional</string>
+  <string name="tasbih_target_header_eyebrow">TARGET BACAAN</string>
+  <string name="tasbih_target_choose_prompt">Pilih target untuk memulai</string>
+  <string name="tasbih_target_value">%1$d kali</string>
+  <string name="tasbih_target_unlimited">Tanpa batas</string>
+  <string name="tasbih_target_unlimited_short">tanpa batas</string>
+  <string name="tasbih_choose_target_label">Pilih target</string>
+  <string name="tasbih_autosave_caption">Hitungan tersimpan otomatis.</string>
+  <string name="tasbih_counter_tap_action">Tambah hitungan tasbih</string>
+  <string name="tasbih_counter_caption_counting">Ketuk untuk menghitung</string>
+  <string name="tasbih_counter_caption_target_reached">Target tercapai — ketuk untuk mengulang</string>
+  <string name="tasbih_counter_state_description">%1$d dari %2$s, %3$s</string>
+  <string name="tasbih_counter_state_no_target">Hitungan %1$d, belum ada target</string>
+  <string name="tasbih_status_counting">sedang menghitung</string>
+  <string name="tasbih_status_target_reached">target tercapai</string>
+  <string name="tasbih_restored_indicator">Hitungan sebelumnya dipulihkan</string>
+
+  <!-- Tasbih target preset chips -->
+  <string name="tasbih_preset_thirty_three">33 kali</string>
+  <string name="tasbih_preset_one_hundred">100 kali</string>
+  <string name="tasbih_preset_unlimited_symbol">∞</string>
+  <string name="tasbih_preset_unlimited_description">Tanpa batas</string>
+  <string name="tasbih_preset_custom">Atur sendiri</string>
+
+  <!-- Custom Tasbih target dialog -->
+  <string name="tasbih_custom_target_dialog_title">Atur target</string>
+  <string name="tasbih_custom_target_input_label">Jumlah target</string>
+  <string name="tasbih_custom_target_unit">kali</string>
+  <string name="tasbih_custom_target_save_action">Simpan</string>
+  <string name="tasbih_custom_target_cancel_action">Batal</string>
+  <string name="tasbih_custom_target_error_must_be_positive">Masukkan angka lebih dari 0</string>
+  <string name="tasbih_custom_target_error_non_numeric">Hanya angka yang diperbolehkan</string>
+  <string name="tasbih_custom_target_error_too_large">Target maksimum adalah %1$d</string>
+
+  <!-- Tasbih reset confirmation dialog -->
+  <string name="tasbih_reset_dialog_title">Reset hitungan?</string>
+  <string name="tasbih_reset_dialog_message">Hitungan saat ini (%1$d) akan dihapus dan tidak dapat dikembalikan.</string>
+  <string name="tasbih_reset_dialog_confirm_action">Reset</string>
+  <string name="tasbih_reset_dialog_cancel_action">Batal</string>
+
+  <!-- Tasbih Session History (0.0.2) -->
+  <string name="tasbih_history_title">Riwayat Tasbih</string>
+  <string name="tasbih_history_empty_heading">Belum ada riwayat tasbih</string>
+  <string name="tasbih_history_empty_body">Sesi yang selesai akan muncul di sini.</string>
+  <string name="tasbih_history_row_name_default">Tasbih</string>
+  <string name="tasbih_history_row_target">Target %1$s · Hitungan akhir %2$d</string>
+  <string name="tasbih_history_row_duration_minutes">%1$d menit</string>
+  <string name="tasbih_history_row_duration_less_than_minute">Kurang dari 1 menit</string>
+
   <!-- Placeholder destinations replaced screen-by-screen as their milestones land (ADR 0004) -->
   <string name="setelan_placeholder_message">Setelan belum tersedia.</string>
   <string name="about_placeholder_message">Tentang SanguSantri belum tersedia.</string>

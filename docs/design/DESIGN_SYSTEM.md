@@ -118,15 +118,22 @@ ship a substitute Arabic font as if it were final.
   content stays correctly aligned and readable regardless of the selected
   interface language (FR-013).
 
-## Adaptive navigation
+## Adaptive navigation (bottom-navigation-only through 0.0.5)
 
-Target model (`docs/product/PRD.md` §7.1, `docs/design/FIGMA_HANDOFF.md`):
-a bottom navigation bar on compact window-size class, a navigation rail or
-other adaptive nav on expanded, across Beranda/Aktivitas/Tasbih/Pesantren/
-Profil. Use the AndroidX adaptive-navigation APIs and the installed
-`adaptive` skill rather than hand-rolling breakpoint logic — same rule as
-reader layout. Do not build this nav shell speculatively; it lands with
-whichever phase resolves the open rollout question in `FIGMA_HANDOFF.md`.
+**Implemented, Milestone 9.** Product owner/tech lead decision (ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md),
+2026-07-29) — supersedes this section's earlier bar-on-compact/rail-on-
+expanded model: a **bottom navigation bar only**, on every window-size
+class including expanded/tablet, through `0.0.5` (Beranda/Aktivitas/
+Tasbih; Pengingat and Nahwu Quiz are never nav destinations; Pesantren/
+Profil are out of scope entirely in this window). `NavigationSuiteScaffold`
+is deliberately not used, since its purpose is exactly the adaptive
+bar/rail swap this decision forbids — a plain Material 3 `NavigationBar`
+is used instead (`navigation/BottomNavigationBar.kt`). The AndroidX
+adaptive-layout APIs and installed `adaptive` skill remain the correct
+tool for adaptive *content* layout (a constrained, centred max-width
+column on large screens, same rule as reader layout) and for whichever
+future release, if any, revisits a rail.
 
 ## Component rules
 

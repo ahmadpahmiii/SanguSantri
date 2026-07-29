@@ -17,6 +17,17 @@ specifics remain pending re-verification (`FIGMA_HANDOFF.md`).
 
 ## Terminology and navigation
 
+**Resolution update (2026-07-29, ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)):**
+the "Unresolved" navigation-rollout question in the table row below is now
+resolved by product owner/tech lead decision — bottom navigation bar only
+through `0.0.5`, no navigation rail on any window-size class, chrome
+introduced incrementally starting at `0.0.2` (not `0.0.1`). The table row
+is left as-is below as the historical record of the gap this pass actually
+found; see the ADR and the updated `PRD.md`/`ROADMAP.md`/
+`ARCHITECTURE.md`/`DESIGN_SYSTEM.md`/`FIGMA_HANDOFF.md` for the current,
+resolved statement.
+
 | Existing                                                                                                      | Expectation                                                                                             | Gap                                                                                                                                     | Resolution                                                                                                                                                                                                                                                                                             | Owning doc                 | Phase                                    |
 |---------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|------------------------------------------|
 | Home screen named "Serambi" everywhere (PRD §2.3/§7, code: `SerambiScreen`/`SerambiViewModel`/`SerambiRoute`) | Primary destination renamed "Beranda"; "Serambi" may persist as an internal/product-language label only | PRD, ROADMAP, and code all currently say Serambi as the user-facing name                                                                | PRD/ROADMAP updated this pass to Beranda terminology. Code rename (`SerambiScreen` → a Beranda-named screen, or keep the class name and change only user-facing strings) is an implementation decision for Phase B — not resolved here                                                                 | PRD §7.2                   | Phase B                                  |

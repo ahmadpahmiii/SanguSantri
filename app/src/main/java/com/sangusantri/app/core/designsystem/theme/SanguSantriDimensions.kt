@@ -15,4 +15,7 @@ object SanguSantriDimensions {
     val guidedCounterHeight = 150.dp
     val overflowMenuWidth = 280.dp
     val readerSheetMaxHeight = 550.dp
+
+    /** Standalone Tasbih counter (0.0.2) — the strongest visual element on its screen, min 220dp. */
+    val tasbihCounterMinSize = 220.dp
 }

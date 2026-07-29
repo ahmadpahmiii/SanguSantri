@@ -12,6 +12,8 @@ import com.sangusantri.app.data.local.dao.ApprovalDao
 import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
 import com.sangusantri.app.data.local.dao.ReadingPositionDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
+import com.sangusantri.app.data.local.dao.TasbihHistoryDao
+import com.sangusantri.app.data.local.dao.TasbihSessionDao
 import com.sangusantri.app.data.local.entity.AmaliyahEntity
 import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
@@ -21,6 +23,8 @@ import com.sangusantri.app.data.local.entity.ApprovalEntity
 import com.sangusantri.app.data.local.entity.GuidedReadingSessionEntity
 import com.sangusantri.app.data.local.entity.ReadingPositionEntity
 import com.sangusantri.app.data.local.entity.StepProgressEntity
+import com.sangusantri.app.data.local.entity.TasbihHistoryEntity
+import com.sangusantri.app.data.local.entity.TasbihSessionEntity
 
 /**
  * Canonical local source of truth (PRD 12.1). Pre-public-release schema baseline, reset to
@@ -32,6 +36,10 @@ import com.sangusantri.app.data.local.entity.StepProgressEntity
  * declares). Destructive migration (`fallbackToDestructiveMigration`) is deliberately NOT used
  * here or anywhere else — real Room migrations become mandatory again once the initial public
  * schema is frozen (ADR 0003).
+ *
+ * `TasbihSessionEntity`/`TasbihHistoryEntity` (0.0.2 Standalone Tasbih) were added directly to this
+ * same version-1 baseline rather than bumping to version 2, per `CONTENT_MODEL.md`'s schema-freeze
+ * policy — developers with an existing local install must clear app data or reinstall once again.
  */
 @Database(
     entities = [
@@ -44,10 +52,14 @@ import com.sangusantri.app.data.local.entity.StepProgressEntity
         ReadingPositionEntity::class,
         GuidedReadingSessionEntity::class,
         StepProgressEntity::class,
+        TasbihSessionEntity::class,
+        TasbihHistoryEntity::class,
     ],
     version = 1,
     exportSchema = true,
 )
+// One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.
+@Suppress("TooManyFunctions")
 @TypeConverters(Converters::class)
 abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun appMetadataDao(): AppMetadataDao
@@ -67,6 +79,10 @@ abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun guidedReadingSessionDao(): GuidedReadingSessionDao
 
     abstract fun stepProgressDao(): StepProgressDao
+
+    abstract fun tasbihSessionDao(): TasbihSessionDao
+
+    abstract fun tasbihHistoryDao(): TasbihHistoryDao
 
     companion object {
         const val DATABASE_NAME = "sangusantri.db"

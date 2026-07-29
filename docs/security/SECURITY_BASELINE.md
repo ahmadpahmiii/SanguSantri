@@ -94,12 +94,26 @@ this section is no longer forward-looking.
 * Private cache deletion or access protection.
 * Account and data deletion.
 
-## Required before quizzes or rankings (`0.4.0`)
+## Required before quiz rankings (blocked on Accounts/Pesantren Membership)
+
+Nahwu Quiz moved from `0.4.0` to `0.0.5` (ADR
+[0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)),
+but `0.0.5` itself is individual/guest/offline-only — no ranking, no
+pesantren representation, no server-verified competitive scoring, and
+therefore none of this section's controls are required at `0.0.5`. This
+section applies only once a *later*, currently unscheduled release adds
+competitive quiz rankings (which needs Accounts `0.1.0`/Pesantren
+Membership `0.2.0` first):
 
 * Abuse prevention and anti-cheating controls for the Nahwu quiz.
 * Play Integrity API — only once there is something worth defrauding (quiz
   rankings); see THREAT_MODEL.md.
 * Moderation procedures for quiz content and any user-submitted content.
+* Server-authoritative answer verification — local score/answer-key data
+  is never trusted for ranking (the bundled `0.0.5` question JSON,
+  including `correctOptionId`, is extractable from the APK/device by
+  design; this is a documented, accepted limitation for the individual/
+  offline release, not a gap to close before `0.0.5` ships).
 
 SanguSantri is currently a non-commercial application — advertising,
 subscriptions, and purchase verification are not on the roadmap

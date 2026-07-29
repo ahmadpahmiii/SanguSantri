@@ -2717,3 +2717,231 @@ Phase 2 (Release `0.0.3` — Aktivitas), per the product-owner-approved,
 phase-gated work order above — starts once this phase's on-device
 verification (whenever a device/emulator becomes available) confirms no
 regression.
+
+## Milestone 10 — Release 0.0.3, Phase 2: Aktivitas
+
+**Status:** Implemented and verified — `ktlintFormat`, `ktlintCheck`,
+`detekt`, `lintDebug`, `assembleDebug`, `compileDebugUnitTestKotlin`, and
+`compileDebugAndroidTestKotlin` all pass. An emulator became available
+partway through this phase (`Pixel_9`, Android 15/API 35) — installed after
+clearing app data (required: `AmaliyahCompletionEventEntity` and
+`GuidedReadingSessionEntity.startedAtEpochMillis` were added to the same
+pre-release version-1 baseline) and manually verified end-to-end on-device
+(see Manual verification below).
+
+**Scope:** Aktivitas (`03-release-0.0.3-aktivitas.md`): one vertically
+scrollable root screen, no horizontal tabs, per-section hide-if-empty,
+streak + this-week summary, amaliyah-completion and tasbih-history
+sections each with a filterable "Lihat semua", private/local-first only
+(no share/export). Bottom navigation becomes Beranda | Aktivitas | Tasbih.
+Real completion-event persistence for the amaliyah-completion history,
+since no such signal existed before this phase.
+
+### Completion-event design
+
+The only existing "done" signal anywhere in the app was
+`GuidedReadingSession.completedAtEpochMillis` (Milestone 4), which is
+**version-scoped and gets deleted** when a content package is replaced
+(ADR 0012's atomic version-replacement transaction) — unusable as a
+durable history log, and it recorded no start time, so no honest duration
+could be derived from it alone. Two changes:
+
+* `GuidedReadingSession`/`GuidedReadingSessionEntity` gained
+  `startedAtEpochMillis` — set once when a session is first created,
+  preserved on every subsequent save (step moves, mode switches), never
+  reset. This is the real, first-opened timestamp for that reading
+  session, not a fabricated one. `ReaderViewModel.switchToGuided` (the
+  Full→Guided in-reader switch, Milestone 5) also preserves it from any
+  existing session rather than resetting it.
+* A new, deliberately durable `amaliyah_completion_events` table
+  (`AmaliyahCompletionEventEntity`/`AmaliyahCompletionEventDao`) — no
+  foreign key to `amaliyah_versions`, snapshotting `amaliyahTitleId` and
+  `versionNumber` at completion time instead, so it is untouched by a
+  later content update or amaliyah rename (unlike the version-scoped
+  tables, which are correctly wiped on replacement). Written exactly once
+  per valid completion action: `GuidedReaderViewModel.onConfirmCompletion`
+  gained a `completedAtEpochMillis.value != null` guard on top of its
+  existing step/counter checks, specifically to guarantee "exactly one
+  event," even though the Route already navigates away the instant
+  `isCompleted` becomes true (defence in depth, not a fix for an observed
+  bug).
+
+### What shipped
+
+* **Room**: `AmaliyahCompletionEventEntity`/`AmaliyahCompletionEventDao`
+  registered into the existing version-1 baseline; `GuidedReadingSessionEntity`
+  gained `startedAtEpochMillis` in the same baseline (no migration, per
+  pre-release schema-freeze policy — clear app data/reinstall required).
+* **`domain/repository/ActivityRepository`** +
+  `data/repository/ActivityRepositoryImpl` — the one repository for the
+  amaliyah-completion-event concern (`recordCompletion`,
+  `observeCompletions`). Tasbih activity data is **not** duplicated into
+  this repository or a new model — `TasbihRepository` (existing, `0.0.2`)
+  is reused directly by consumers.
+* **`domain/usecase/ObserveActivityOverviewUseCase`** — combines
+  `ActivityRepository` + `TasbihRepository` (the genuine cross-repository
+  aggregation logic `CODING_STANDARD.md` says justifies a use case):
+  current/longest streak (consecutive local calendar days with at least
+  one real completion or tasbih session — current streak counts backward
+  from today, or from yesterday if nothing has happened yet today, per a
+  standard one-day grace rule), a rolling 7-day "this week" summary
+  (amaliyah completed count, tasbih session count, total minutes — summed
+  from real recorded durations, never estimated), and the recent-5 preview
+  list for each history section. `domain/model/ActivityOverview` exposes
+  `hasStreak`/`hasWeeklyActivity`/`hasAmaliyahHistory`/`hasTasbihHistory`/
+  `isEntirelyEmpty` — the per-section and screen-level hide-if-empty logic
+  lives on the domain model, not scattered across the UI layer.
+* **`core/designsystem/component/`**: `SectionHeader`, `SummaryMetric`
+  (+`SummaryMetricEmphasis`), `ActivityRow` (+`ActivityRowKind`,
+  `ActivityRowContent`), `TimeRangeFilterChips`/`filterByTimeRange`
+  (+`TimeRangeFilterState`) — the shared components
+  `01-navigation-and-shared-components.md` names, genuinely reused across
+  Aktivitas' own 4 sections and 2 detail screens (not built speculatively
+  for a single call site).
+* **`feature/activity/`**: `ActivityUiState`/`ActivityViewModel`/
+  `ActivityScreen` (root: constrained/centred scroll column mirroring
+  Tasbih's own pattern, conditional `ActivityStreakSection`/
+  `ActivityWeeklySection`/two `ActivityHistorySection`s, screen-level empty
+  state only when `overview.isEntirelyEmpty`), `ActivityRowMappers.kt`
+  (`AmaliyahCompletionEvent`/`TasbihHistoryEntry` → `ActivityRowContent`,
+  reusing Tasbih's own (`0.0.2`) field-list strings for the tasbih-row
+  wording rather than duplicating near-identical strings),
+  `feature/activity/detail/`: `ActivityAmaliyahHistoryViewModel`/
+  `ActivityTasbihHistoryViewModel` (each a thin `combine(repository flow,
+  filter) →` filtered list) + one shared `ActivityHistoryDetailScaffold`
+  (back + title-derived-from-kind + `TimeRangeFilterChips` + plain
+  `ActivityRow` list, no pagination) reused by both detail screens rather
+  than two near-duplicate layouts. Phase 1's own unfiltered
+  `TasbihHistoryScreen` (reached from the Tasbih tab) is untouched — the
+  Aktivitas "Lihat semua" Tasbih screen is a distinct, additional,
+  filterable screen over the same underlying `TasbihRepository` data, per
+  the design spec's explicit intent.
+* **Navigation**: `Aktivitas`/`ActivityAmaliyahHistory`/
+  `ActivityTasbihHistory` `NavKey`s added to `SanguSantriNavHost`; bottom
+  nav is now Beranda | Aktivitas | Tasbih (`history` outlined/filled icon);
+  the two detail screens hide the bottom bar like every other nested flow.
+* **Strings**: all new user-facing text added to `strings.xml` in
+  Indonesian; Tasbih-row formatting reuses Phase 1's existing strings
+  rather than duplicating them.
+
+### Files created
+
+`domain/model/AmaliyahCompletionEvent.kt`, `ActivityOverview.kt`,
+`domain/repository/ActivityRepository.kt`,
+`domain/usecase/ObserveActivityOverviewUseCase.kt`,
+`data/local/entity/AmaliyahCompletionEventEntity.kt`,
+`data/local/dao/AmaliyahCompletionEventDao.kt`,
+`data/mapper/AmaliyahCompletionEntityMappers.kt`,
+`data/repository/ActivityRepositoryImpl.kt`, `di/ActivityModule.kt`,
+`core/designsystem/component/{SectionHeader,SummaryMetric,
+SummaryMetricEmphasis,ActivityRow,ActivityRowKind,ActivityRowContent,
+TimeRangeFilter,TimeRangeFilterState}.kt`, `feature/activity/
+{ActivityUiState,ActivityViewModel,ActivityScreen,ActivityRowMappers,
+ActivityFormatting}.kt`, `feature/activity/components/
+{ActivityHistorySection,ActivityStreakSection,ActivityWeeklySection}.kt`,
+`feature/activity/detail/{ActivityAmaliyahHistoryUiState,
+ActivityAmaliyahHistoryViewModel,ActivityAmaliyahHistoryScreen,
+ActivityTasbihHistoryUiState,ActivityTasbihHistoryViewModel,
+ActivityTasbihHistoryScreen,ActivityHistoryDetailScaffold}.kt`.
+
+### Files modified
+
+`domain/model/GuidedReadingSession.kt`, `data/local/entity/
+GuidedReadingSessionEntity.kt`, `data/mapper/GuidedReadingEntityMappers.kt`,
+`data/local/database/SanguSantriDatabase.kt`, `di/DatabaseModule.kt`,
+`feature/guidedreader/GuidedReaderViewModel.kt` (new `ActivityRepository`
+dependency, session-start tracking, completion recording + duplicate-event
+guard), `feature/reader/ReaderViewModel.kt` (`switchToGuided` preserves
+`startedAtEpochMillis`), `navigation/SanguSantriNavHost.kt`,
+`app/src/main/res/values/strings.xml`, `app/build.gradle.kts`
+(`versionCode = 4`/`versionName = "0.0.3"`), `app/schemas/....../1.json`
+(regenerated), and one existing instrumented test
+(`ContentPackageImporterTest.kt`, one `GuidedReadingSessionEntity(...)`
+call site updated with the new field to keep compiling — no test logic
+changed).
+
+### Commands executed
+
+`./gradlew :app:ktlintFormat` — passed after two rounds (missing
+`androidx.compose.runtime.getValue` import, then all clean).
+`./gradlew :app:ktlintCheck :app:detekt` — first pass found 7 detekt
+findings (`LongParameterList` ×3, `LongMethod` ×1, `MatchingDeclarationName`
+×3) from the new Aktivitas components/nav wiring; fixed by bundling
+parameters into small holder types (`ActivityRowContent`,
+`TimeRangeFilterState`), deriving the detail screen's title from `kind`
+instead of passing it, and splitting stray top-level types into their own
+files — re-run passed clean. `./gradlew :app:compileDebugKotlin` — first
+pass failed twice (missing `getValue` import; `ReaderViewModel.
+switchToGuided`'s pre-existing `GuidedReadingSession(...)` call site needed
+the new `startedAtEpochMillis` argument) — fixed, then passed.
+`./gradlew :app:lintDebug :app:assembleDebug :app:compileDebugUnitTestKotlin
+:app:compileDebugAndroidTestKotlin` — `compileDebugAndroidTestKotlin`
+failed once (`ContentPackageImporterTest.kt`'s existing
+`GuidedReadingSessionEntity(...)` call site needed the new field) — fixed,
+then all four passed together. `adb devices` returned an attached emulator
+partway through this phase; `./gradlew :app:installDebug` (after `adb
+shell pm clear com.sangusantri.app`) succeeded.
+
+### Manual verification (Pixel_9 emulator, Android 15/API 35)
+
+Fresh install (post clear-data) launched with no crash; bundled content
+imported (`tahlil-umum-v1`, `istighosah-umum-v1`); `logcat` showed no
+`FATAL`/`AndroidRuntime` exceptions throughout the session. Verified by
+screenshot at each step: bottom nav is Beranda | Aktivitas | Tasbih in
+order, correct icons/labels/selected-pill; Aktivitas screen-level empty
+state ("Belum ada aktivitas") on first launch; selected target 33 in
+Tasbih, counted to target (`TargetReached` tone, check icon, "Target
+tercapai — ketuk untuk mengulang" — Phase 1 behaviour unaffected), reset
+with confirmation (shared `ConfirmationDialog`, destructive-red "Reset"
+action); Aktivitas immediately reflected the real archived session:
+streak "1 hari" (current, highlighted) / "1 hari" (longest), this-week
+summary "0 Amaliyah selesai / 1 Sesi tasbih / 1 Total menit", "Riwayat
+Tasbih" section appeared with the correct row (name fallback "Tasbih",
+"Target 33 · Hitungan akhir 33", "10:49 · 1 menit") — **and no "Riwayat
+penyelesaian amaliyah" section rendered**, confirming per-section
+hide-if-empty is real, not just a description; "Lihat semua" opened the
+filtered detail screen (back action, Semua/7 hari/30 hari chips, the same
+row); state was preserved switching away to Beranda and back to Aktivitas
+(`TopLevelBackStack` per-tab state retention, Phase 1's own mechanism,
+confirmed still correct with a third tab added). Opened Istighosah in
+Guided mode (mode gate → Panduan) to confirm the new `ActivityRepository`
+constructor dependency resolves through Hilt without a DI graph error —
+loaded correctly ("Langkah 1 dari 27", 4%, "Lanjut" enabled).
+
+### Known limitations
+
+* **A real `AmaliyahCompletionEvent` was not recorded on-device this
+  session.** Completing a full Guided Reader session was impractical to
+  drive manually within this session — Istighosah's bundled draft content
+  includes at least one step with an extreme repetition target (an
+  istighfar recitation recorded at 30,000×, per Milestone 4.5's own
+  content-extraction notes), and `allRequiredCountersComplete` correctly
+  requires every step's counter to reach its target before completion is
+  even reachable, for either bundled amaliyah (Tahlil is 59 steps).
+  `onConfirmCompletion`'s new completion-recording call, the
+  `startedAtEpochMillis` plumbing, and the "Riwayat penyelesaian amaliyah"
+  section's rendering were verified by code review, successful compilation,
+  and confirmed-working Hilt dependency resolution (the Guided Reader loads
+  correctly with the new `ActivityRepository` dependency) — but not by an
+  actual completed amaliyah appearing in Aktivitas on a real device. The
+  identical aggregation code path (`ObserveActivityOverviewUseCase`) *was*
+  exercised end-to-end for real via the Tasbih branch (same `combine`/
+  streak/weekly-window logic, different repository), which is meaningful
+  but not a substitute for exercising the amaliyah branch itself.
+* No new automated tests were added, per this pass's explicit constraint —
+  the streak/longest-streak date-window math and the duplicate-completion
+  guard are exactly the kind of logic that would benefit from unit tests
+  when that constraint is lifted.
+* "This week" is a rolling 7-day window from the current instant, not a
+  calendar-aligned week (Monday–Sunday or similar) — a reasonable, honestly
+  documented interpretation of "minggu ini," not the only possible one.
+* RTL, dark mode, landscape, tablet-width, and font-scale-1.5× were not
+  separately exercised for the new Aktivitas screens this session (only
+  light-mode portrait was captured); Compose previews exist for the light/
+  dark states of every new component but were not cross-checked against a
+  live RTL/large-font device configuration.
+
+### Next recommended milestone
+
+Phase 3 (Release `0.0.4` — Pengingat Amaliyah), per the product-owner-
+approved, phase-gated work order.

@@ -176,7 +176,7 @@ class ContentPackageImporterTest {
             database.readingPositionDao().upsert(ReadingPositionEntity(v1.version.id, 3, 10, 1_000L))
             database
                 .guidedReadingSessionDao()
-                .upsert(GuidedReadingSessionEntity(v1.version.id, v1.steps.first().id, 1_000L, null))
+                .upsert(GuidedReadingSessionEntity(v1.version.id, v1.steps.first().id, 1_000L, null, 1_000L))
             database.stepProgressDao().upsert(StepProgressEntity(v1.version.id, v1.steps.first().id, 2, 1_000L))
 
             val v2 = packageFor(versionNumber = 2, versionId = "sample-umum-v2")

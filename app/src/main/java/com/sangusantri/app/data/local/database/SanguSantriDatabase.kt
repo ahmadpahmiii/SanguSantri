@@ -3,6 +3,7 @@ package com.sangusantri.app.data.local.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.sangusantri.app.data.local.dao.AmaliyahCompletionEventDao
 import com.sangusantri.app.data.local.dao.AmaliyahDao
 import com.sangusantri.app.data.local.dao.AmaliyahStepDao
 import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
@@ -14,6 +15,7 @@ import com.sangusantri.app.data.local.dao.ReadingPositionDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
 import com.sangusantri.app.data.local.dao.TasbihHistoryDao
 import com.sangusantri.app.data.local.dao.TasbihSessionDao
+import com.sangusantri.app.data.local.entity.AmaliyahCompletionEventEntity
 import com.sangusantri.app.data.local.entity.AmaliyahEntity
 import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
 import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
@@ -40,6 +42,8 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * `TasbihSessionEntity`/`TasbihHistoryEntity` (0.0.2 Standalone Tasbih) were added directly to this
  * same version-1 baseline rather than bumping to version 2, per `CONTENT_MODEL.md`'s schema-freeze
  * policy — developers with an existing local install must clear app data or reinstall once again.
+ * `AmaliyahCompletionEventEntity` (0.0.3 Aktivitas) was added the same way; `GuidedReadingSessionEntity`
+ * also gained a new `startedAtEpochMillis` column in the same pass.
  */
 @Database(
     entities = [
@@ -54,6 +58,7 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         StepProgressEntity::class,
         TasbihSessionEntity::class,
         TasbihHistoryEntity::class,
+        AmaliyahCompletionEventEntity::class,
     ],
     version = 1,
     exportSchema = true,
@@ -83,6 +88,8 @@ abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun tasbihSessionDao(): TasbihSessionDao
 
     abstract fun tasbihHistoryDao(): TasbihHistoryDao
+
+    abstract fun amaliyahCompletionEventDao(): AmaliyahCompletionEventDao
 
     companion object {
         const val DATABASE_NAME = "sangusantri.db"

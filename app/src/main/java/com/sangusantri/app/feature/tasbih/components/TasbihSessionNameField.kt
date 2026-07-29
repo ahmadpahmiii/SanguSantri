@@ -47,9 +47,10 @@ fun TasbihSessionNameField(
         OutlinedTextField(
             value = draft,
             onValueChange = { draft = it },
-            modifier = modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
             label = { Text(text = stringResource(R.string.tasbih_session_name_label)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),

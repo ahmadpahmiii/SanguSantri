@@ -8,7 +8,34 @@
 
   <!-- Bottom navigation shell (0.0.2+, docs/design/figma-export/future-releases/01-navigation-and-shared-components.md) -->
   <string name="nav_beranda_label">Beranda</string>
+  <string name="nav_aktivitas_label">Aktivitas</string>
   <string name="nav_tasbih_label">Tasbih</string>
+
+  <!-- Aktivitas (0.0.3, 03-release-0.0.3-aktivitas.md) -->
+  <string name="activity_title">Aktivitas</string>
+  <string name="activity_empty_heading">Belum ada aktivitas</string>
+  <string name="activity_empty_body">Selesaikan amaliyah atau mulai sesi tasbih untuk melihat aktivitasmu di sini.</string>
+  <string name="activity_section_streak">Ringkasan streak</string>
+  <string name="activity_streak_current_label">Streak saat ini</string>
+  <string name="activity_streak_longest_label">Streak terpanjang</string>
+  <string name="activity_streak_days_value">%1$d hari</string>
+  <string name="activity_section_weekly">Ringkasan minggu ini</string>
+  <string name="activity_weekly_amaliyah_label">Amaliyah selesai</string>
+  <string name="activity_weekly_tasbih_label">Sesi tasbih</string>
+  <string name="activity_weekly_minutes_label">Total menit</string>
+  <string name="activity_section_amaliyah_history">Riwayat penyelesaian amaliyah</string>
+  <string name="activity_section_tasbih_history">Riwayat Tasbih</string>
+  <string name="activity_see_all_action">Lihat semua</string>
+  <string name="activity_amaliyah_row_secondary">Versi %1$d · %2$s</string>
+  <string name="activity_row_trailing_time_and_duration">%1$s · %2$s</string>
+
+  <!-- Aktivitas "Lihat semua" detail screens -->
+  <string name="activity_detail_amaliyah_title">Riwayat Penyelesaian Amaliyah</string>
+  <string name="activity_detail_tasbih_title">Riwayat Tasbih</string>
+  <string name="activity_detail_empty">Tidak ada data pada rentang ini.</string>
+  <string name="activity_filter_all">Semua</string>
+  <string name="activity_filter_last_7_days">7 hari</string>
+  <string name="activity_filter_last_30_days">30 hari</string>
 
   <!-- Standalone Tasbih (0.0.2, 02-release-0.0.2-tasbih.md) -->
   <string name="tasbih_title">Tasbih</string>

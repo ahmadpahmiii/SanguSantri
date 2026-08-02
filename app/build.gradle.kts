@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.firebase.crashlytics)
 }
 
 android {
@@ -80,6 +82,7 @@ dependencies {
     // "a couple of icons"; R8 resource/code shrinking is already enabled so unused icons are
     // stripped from the release APK).
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.firebase.crashlytics)
 
     // Dependency injection
     implementation(libs.hilt.android)

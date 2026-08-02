@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted (decided; not yet implemented — no `backend/` directory exists)
+Superseded by ADR [0014](0014-firebase-hosting-static-content-delivery.md)
+(2026-08-02) — the product owner and tech lead decided to drop the backend
+entirely in favour of static content on Firebase Hosting, before this ADR
+was ever implemented (no `backend/` directory ever existed). Kept below as
+a historical record of the decision that was later reversed; do not use it
+to justify new backend work without first reading ADR 0014.
 
 ## Context
 

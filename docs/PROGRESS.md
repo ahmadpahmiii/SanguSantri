@@ -2945,3 +2945,69 @@ loaded correctly ("Langkah 1 dari 27", 4%, "Lanjut" enabled).
 
 Phase 3 (Release `0.0.4` — Pengingat Amaliyah), per the product-owner-
 approved, phase-gated work order.
+
+## Firebase Hosting static content delivery decision and documentation pass (2026-08-02)
+
+**Status:** Complete. Not a numbered milestone — documentation and
+architecture-decision-record only; no Kotlin source under `app/` changed.
+
+**Scope:** Explicitly approved product/tech-lead decision to drop the Go +
+Supabase-managed PostgreSQL backend (ADR 0011), which had never actually
+been implemented (no `backend/` directory ever existed), entirely and
+permanently — not defer it further. Content the backend would have served
+is instead published as static files on Firebase Hosting, under a new
+top-level `content-hosting/` directory, with a Firebase MCP server used
+only as development/CI tooling for managing that static deployment (never
+a runtime/Android dependency). Recorded in new ADR
+[0014](decisions/0014-firebase-hosting-static-content-delivery.md); ADR
+0011 marked Superseded (kept as historical record); ADR 0012 (bundled
+bootstrap plus remote sync) and ADR 0010 (no custom CMS) amended in place
+to reflect the new backend-free static-hosting model. Key technical fact
+established during this pass: `ContentApiService` (`data/remote/api/`)
+already only issues plain `GET` requests against `v1/content/manifest` and
+`v1/content/packages/{versionId}` — static files at those same paths on
+Firebase Hosting satisfy the existing Retrofit contract with **no Android
+code change**, only a different `SANGU_CONTENT_API_BASE_URL` once the
+actual `content-hosting/` migration is scheduled as its own task.
+
+Updated in this pass for internal consistency (ADR 0012's own precedent —
+a content-delivery decision touches every document that described the
+backend): `docs/product/PRD.md` (document version 1.6, backend metadata
+field, FR-010/FR-011), `docs/engineering/ARCHITECTURE.md` (§Backend
+rewritten), `docs/content-schema.md`, `docs/engineering/CONTENT_MODEL.md`
+("Server tables" section replaced — there is no database), `docs/
+engineering/OFFLINE_FIRST.md`, `docs/operations/CONTENT_GOVERNANCE.md`
+(publication/revocation authority), `docs/product/ROADMAP.md`, `docs/
+operations/PRODUCTION_READINESS.md`, `docs/operations/INCIDENT_RESPONSE.md`,
+`docs/engineering/RELEASE_ENGINEERING.md`, `docs/security/
+SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md`, `docs/README.md`,
+and this file. New `docs/engineering/MCP_TOOLING.md` documents the Firebase
+MCP tooling boundary itself.
+
+### Known limitations
+
+* This is a documentation/architecture-decision pass only. The actual
+  `content-hosting/` directory, its `firebase.json`, the CI content-
+  validation script, the Firebase project itself, and repointing
+  `SANGU_CONTENT_API_BASE_URL` at a real deployed URL are all **not yet
+  implemented** — each remains a separate, explicitly-requested task.
+* Unrelated, pre-existing uncommitted changes adding the Firebase
+  Crashlytics Android SDK (`google-services` plugin, `firebase-crashlytics`
+  dependency, `app/google-services.json`) were found in the working tree
+  during this pass and deliberately left untouched — they are a
+  crash-reporting concern, not a content-delivery one, and out of scope
+  for ADR 0014.
+* Server-side content-version adoption tracking and centralised sync
+  observability, previously described as "not yet, pending backend
+  deployment," are now permanent gaps rather than temporary ones — static
+  Firebase Hosting has no request-level application logging to build that
+  on top of without reintroducing the dynamic service ADR 0014 removed.
+
+### Next recommended milestone
+
+Implement the `content-hosting/` directory, the CI content-validation
+script, and the Firebase project/deploy pipeline described in ADR 0014 and
+`docs/engineering/MCP_TOOLING.md` — or continue Phase 3 (Release `0.0.4` —
+Pengingat Amaliyah) first and treat the Firebase Hosting migration as a
+parallel workstream, consistent with how ADR 0012's Android-side sync
+client was originally built ahead of its backend.

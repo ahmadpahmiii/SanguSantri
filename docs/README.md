@@ -14,18 +14,21 @@ is a map of what exists, not a reading order.
 ## Engineering
 
 * [`engineering/ARCHITECTURE.md`](engineering/ARCHITECTURE.md) — stack,
-  package structure, layer rules, modularisation triggers, planned backend
-  shape.
+  package structure, layer rules, modularisation triggers, Firebase Hosting
+  static content delivery shape.
 * [`engineering/CODING_STANDARD.md`](engineering/CODING_STANDARD.md) —
   Compose rules, prohibited patterns, working method, reference policy.
 * [`engineering/CONTENT_MODEL.md`](engineering/CONTENT_MODEL.md) — content
-  hierarchy, Room/server field reference.
+  hierarchy, Room field reference.
 * [`engineering/OFFLINE_FIRST.md`](engineering/OFFLINE_FIRST.md) —
   synchronisation design, reliability requirements.
 * [`engineering/TESTING.md`](engineering/TESTING.md) — required test
   scenarios by layer.
 * [`engineering/RELEASE_ENGINEERING.md`](engineering/RELEASE_ENGINEERING.md)
   — CI/CD design, quality commands, release build configuration.
+* [`engineering/MCP_TOOLING.md`](engineering/MCP_TOOLING.md) — Firebase MCP
+  as development/CI tooling for `content-hosting/`, and its boundaries with
+  the Android app.
 
 ## Design
 

@@ -30,16 +30,19 @@ assembleDebug
 assembleRelease
 ```
 
-Backend CI (once backend work starts) must run:
+Content-hosting CI (once `content-hosting/` work starts, ADR 0014) must
+run:
 
 ```text
-go test ./...
-go vet ./...
-golangci-lint run
-migration validation
-OpenAPI validation
-Docker image build
+content schema validation (schema version, required fields, checksums)
+manifest/package cross-reference check (no dangling versionId, no version-number regression)
+duplicate-id check
+firebase deploy --only hosting (on merge to the deploy branch, after the above pass)
 ```
+
+There is no Go service, no database migrations, and no OpenAPI contract to
+validate — the backend those would have belonged to (ADR 0011) was
+superseded before implementation.
 
 Claude must not claim that a build or test passes unless the command was
 actually executed successfully in this session.
@@ -48,15 +51,15 @@ actually executed successfully in this session.
 
 Use GitHub Actions.
 
-Pull request checks: Android static analysis, Android unit tests, backend
-tests, formatting, OpenAPI validation, debug build, content schema
-validation, no uncommitted generated files.
+Pull request checks: Android static analysis, Android unit tests,
+formatting, debug build, content schema validation over `content-hosting/`,
+no uncommitted generated files.
 
 Release workflow: create version tag → build signed Android App Bundle
-using protected secrets → build backend Docker image → generate release
-notes → upload Android bundle to the selected Play testing track → deploy
-backend image → run health check → verify content manifest → promote only
-after smoke testing.
+using protected secrets → generate release notes → upload Android bundle
+to the selected Play testing track → run `firebase deploy --only hosting`
+for `content-hosting/` → verify the deployed content manifest is reachable
+→ promote only after smoke testing.
 
 Production signing credentials must never be exposed to Claude output or
 committed.

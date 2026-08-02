@@ -58,23 +58,30 @@ this section is no longer forward-looking.
   no explicit network security config yet. Now that real network code
   exists, this is a near-term gap, not a "not urgent" one — it must enforce
   HTTPS-only/no cleartext before any build is used against a real,
-  non-`.invalid` backend host.
+  non-`.invalid` Firebase Hosting host.
 * API timeouts on every outbound call — **done**: 15s connect/read/write
-  timeouts (`di/NetworkModule.kt`). Backend-side rate limiting remains a
-  backend concern (not yet built).
+  timeouts (`di/NetworkModule.kt`). There is no server to rate-limit —
+  Firebase Hosting has no request-processing logic of its own to abuse
+  beyond standard CDN bandwidth limits (ADR 0014).
 * Checksum verification and schema validation on downloaded packages —
   **done**: `ContentPackageImporter`, shared with the bundled path
   (`docs/engineering/OFFLINE_FIRST.md`).
 * Immutable content versions, atomic transactional replacement, and
   per-package failure isolation — **done**, same document. Revocation
-  itself remains a backend-side authority action (`docs/operations/CONTENT_GOVERNANCE.md`);
-  Android has no on-device previous-version fallback to reason about
-  (superseded FR-011, ADR 0012).
+  itself remains a content-governance authority action
+  (`docs/operations/CONTENT_GOVERNANCE.md`) enacted by editing
+  `manifest.json` and redeploying, not a backend action; Android has no
+  on-device previous-version fallback to reason about (superseded FR-011,
+  ADR 0012).
 * Response-size limit on downloaded packages — **done**: 5 MiB cap,
   streamed to a temporary file (`ContentSyncManager`).
-* Backup and restore testing (backend-side; no backend exists yet).
-* Structured logs and request IDs (backend-side).
-* Backend dependency-vulnerability scanning.
+* Backup and restore testing — not applicable to a static hosting target;
+  `content-hosting/`'s git history is the restore mechanism (ADR 0014).
+* Structured logs and request IDs — not applicable; there is no backend
+  and none is planned.
+* Dependency-vulnerability scanning for the CI content-validation script
+  and any Firebase MCP tooling used in CI (`docs/engineering/
+  MCP_TOOLING.md`) — still outstanding.
 * No content package body, full Arabic text, secret, or response payload is
   logged (`ContentSyncManager`/`ContentSyncWorker` log only ids,
   counts, HTTP status codes, and exception types).

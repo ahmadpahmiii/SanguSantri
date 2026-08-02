@@ -1,9 +1,11 @@
 # Content Schema (`schemaVersion: 1`)
 
 Defines the canonical content-package JSON format (PRD 12.2, FR-001, FR-010)
-consumed identically by three producers: bundled Android assets, the
-backend's `GET /v1/content/packages/{versionId}` endpoint, and (in the
-future) the Go content-publication pipeline that generates those packages.
+consumed identically by two producers: bundled Android assets, and static
+files served from `content-hosting/` via Firebase Hosting's
+`v1/content/packages/{versionId}` path (ADR 0014) — there is no dynamic
+publication pipeline; both producers are hand-authored JSON files, CI-
+validated before being committed/deployed.
 `ContentPackageValidator`/`ContentPackageImporter` (`data/content/`) are the
 one shared validation/import boundary for all three — there is no
 bundled-only or remote-only copy of this schema. This is the only place
@@ -15,8 +17,8 @@ Arabic/Indonesian amaliyah text may live — never inside Kotlin source (PRD
 The **package** JSON below (`ContentPackageDto`) is identical whether it
 arrives from a bundled asset file or a downloaded package response. The
 **manifest** that lists packages is deliberately transport-specific — the
-bundled manifest and the backend manifest have different fields because
-their concerns genuinely differ (a backend manifest needs
+bundled manifest and the remote (Firebase Hosting) manifest have different
+fields because their concerns genuinely differ (a remote manifest needs
 `minimumAppVersionCode`; a bundled manifest does not, since an
 unsupported-for-this-build bundled package would simply never have been
 shipped in that build's APK):
@@ -34,8 +36,9 @@ shipped in that build's APK):
   and no manifest-level version/status field — the manifest is fetched
   plainly at most once every 24 hours (2026-07-28 sync simplification, ADR
   0012 amendment) and lists only each variant's currently active published
-  package; the backend keeps full immutable revision history itself,
-  never sent to Android. Full endpoint contract:
+  package; full immutable revision history lives in `content-hosting/`'s
+  git history instead (ADR 0014), never sent to Android. Full endpoint
+  contract:
   `docs/engineering/ARCHITECTURE.md` §Remote content synchronisation,
   `CLAUDE.md` §7.
 
@@ -97,7 +100,7 @@ active version per variant, never a draft alongside it).
 | `packages[].file`           | string | Filename under `content/`.                                                                                                                                                                                                                                                                       |
 | `packages[].checksumSha256` | string | Lowercase hex SHA-256 of the **raw package file bytes**. The importer rejects the package if this does not match.                                                                                                                                                                                |
 
-See "Two manifests, one package contract" above for the backend's
+See "Two manifests, one package contract" above for the remote
 `RemoteContentManifestDto` equivalent, which lists the same kind of
 per-package checksum plus `minimumAppVersionCode`.
 

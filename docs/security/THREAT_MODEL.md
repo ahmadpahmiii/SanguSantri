@@ -28,10 +28,10 @@ milestone to trigger this either.
 
 ## Enterprise secret management (Vault/HSM-backed KMS)
 
-**Deferred.** Environment-variable or Supabase-managed secrets (PRD backend
-architecture, `docs/engineering/ARCHITECTURE.md`) are sufficient at this
-scale. Revisit only if the backend genuinely operates at a scale or
-compliance tier that requires it.
+**Deferred.** There is no backend and none is planned (ADR 0014); the only
+secret in this architecture is a Firebase Hosting deploy credential for
+CI, which environment-variable/CI-secret storage is sufficient for at this
+scale. Revisit only if a genuinely higher-stakes credential is introduced.
 
 ## Screenshot/clipboard blocking
 

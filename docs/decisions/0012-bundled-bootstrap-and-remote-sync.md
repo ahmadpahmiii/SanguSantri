@@ -224,3 +224,33 @@ worker (`ExistingWorkPolicy.KEEP`, not periodic), or API failure leaving
 Room untouched. The real Go backend remains undeployed; this amendment
 only changes what the Android client sends and how it classifies the
 responses it gets back.
+
+## Amendment (2026-08-02): backend dropped, static Firebase Hosting instead
+
+Approved by the product owner and tech lead, recorded fully in ADR
+[0014](0014-firebase-hosting-static-content-delivery.md): the Go +
+Supabase backend this decision was written against (ADR 0011) is dropped
+entirely, before it was ever implemented. Every reference above and in
+`docs/engineering/ARCHITECTURE.md` §Remote content synchronisation to "the
+backend" now means **static files on Firebase Hosting**, not a dynamic Go
+service — see ADR 0014 for the full reasoning.
+
+This amendment does not reopen anything else this decision or the prior
+amendment settled: `ContentPackageImporter` remains the one shared
+transactional Room operation for both bundled and remote content; Room
+remains the sole source of truth; Android keeps one active version per
+variant with atomic replacement; the 24-hour opportunistic
+`ExistingWorkPolicy.KEEP` worker is unchanged; `ContentSyncManager` keeps
+the same three-case `SyncResult` and the same retryable/permanent failure
+classification. `ContentApiService`'s two `GET` endpoints
+(`v1/content/manifest`, `v1/content/packages/{versionId}`) are unchanged —
+static files at those same paths on Firebase Hosting satisfy the same
+Retrofit contract with no Android code change, only a different
+`SANGU_CONTENT_API_BASE_URL`.
+
+What does change, once the actual migration is scheduled as its own task:
+`RemoteContentManifestDto` keeps its current shape (it already matches a
+static manifest file exactly); "the backend keeps immutable history" in
+this document and in `docs/engineering/CONTENT_MODEL.md` now means "git
+history of the `content-hosting/` directory," not a Postgres table — there
+is no database anywhere in this architecture any more.

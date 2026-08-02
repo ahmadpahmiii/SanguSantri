@@ -41,9 +41,9 @@ still-`0.0.1`-scoped foundation:
   from the reader overflow menu.
 * Source and compact `Approved by` status.
 * Bundled offline content is mandatory and always shipped; optional
-  24-hour-gated background remote sync against the Go content API refreshes
-  it additively once the backend is deployed, never blocking or degrading
-  offline use.
+  24-hour-gated background remote sync against static content on Firebase
+  Hosting refreshes it additively once that hosting is deployed, never
+  blocking or degrading offline use.
 * Phone/tablet/adaptive layout; light/dark theme and RTL support.
 
 Content correction is an internal SanguSantri-team operation, not a
@@ -55,17 +55,20 @@ currently planned for any future version.
 product/tech-lead decision, superseding this section's earlier "remote
 sync remains unscheduled" wording): the Android remote content-sync
 foundation — bundled bootstrap, a shared content-package importer, a
-Retrofit/OkHttp client against the Go content API contract, and a
+Retrofit/OkHttp client against the static content contract, and a
 24-hour-gated opportunistic WorkManager sync — is implemented in `0.0.1`.
-The Go backend itself (public content API, admin CLI, PostgreSQL, Supabase
-Studio) is a parallel workstream and is **not** deployed yet — see
-`docs/engineering/ARCHITECTURE.md` §Backend and ADR
-[0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md).
-Backend availability must never block core application usage: the app
-ships fully functional offline on bundled content alone, and activating
-real remote refresh requires only supplying the real, deployed backend's
-base URL via `SANGU_CONTENT_API_BASE_URL` — no Android code change or
-source-selection flag toggle. See ADR
+The `content-hosting/` static files and the Firebase project/CI pipeline
+that deploys them are a parallel content-operations workstream and are
+**not** deployed yet — see `docs/engineering/ARCHITECTURE.md` §Backend and
+ADR [0014](../decisions/0014-firebase-hosting-static-content-delivery.md)
+(superseding ADR
+[0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md)'s
+never-implemented Go + Supabase backend). Hosting availability must never
+block core application usage: the app ships fully functional offline on
+bundled content alone, and activating real remote refresh requires only
+supplying the real, deployed Firebase Hosting base URL via
+`SANGU_CONTENT_API_BASE_URL` — no Android code change or source-selection
+flag toggle. See ADR
 [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md) and
 `docs/engineering/OFFLINE_FIRST.md`.
 

@@ -208,10 +208,11 @@ repository per table. Field-level detail:
 
 ---
 
-## Remote content synchronisation (implemented — Android side, ADR 0012)
+## Remote content synchronisation (implemented — Android side, ADR 0012/0014)
 
-The Android client against the backend's content API contract (§Backend
-below) is implemented: `BundledContentBootstrapper` (bundled assets) and
+The Android client against the static content contract served by Firebase
+Hosting (§Backend below, ADR 0014) is implemented: `BundledContentBootstrapper`
+(bundled assets) and
 `ContentSyncManager` (remote — owns both the HTTP handling and the sync
 algorithm, since the 2026-07-28 sync simplification removed the separate
 `ContentRemoteDataSource` wrapper) both delegate the actual Room write to
@@ -242,11 +243,11 @@ directly.
 * **Base URL**: `BuildConfig.CONTENT_API_BASE_URL`, set from the Gradle
   property `SANGU_CONTENT_API_BASE_URL` (`app/build.gradle.kts`), defaulting
   to a non-routable `https://content-api.sangusantri.invalid/` when unset.
-  Supplying the real property activates the real backend with no code
-  change. Retrofit headers are never used as a local/remote content-source
-  switch. There is no conditional-request header at all — the manifest is
-  small and checked at most once every 24 hours, so ETag/`304` caching was
-  deliberately removed as unnecessary complexity.
+  Supplying the real Firebase Hosting URL activates real remote sync with no
+  code change. Retrofit headers are never used as a local/remote
+  content-source switch. There is no conditional-request header at all — the
+  manifest is small and checked at most once every 24 hours, so ETag/`304`
+  caching was deliberately removed as unnecessary complexity.
 * **Hilt Worker**: `SanguSantriApplication` implements
   `androidx.work.Configuration.Provider` with an injected
   `HiltWorkerFactory`; the manifest removes WorkManager's default
@@ -258,81 +259,90 @@ Full behaviour, the sync algorithm, and retention rules:
 `docs/engineering/OFFLINE_FIRST.md`, `docs/engineering/CONTENT_MODEL.md`,
 ADR [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md).
 
-## Backend (planned — not started)
+## Backend (Firebase Hosting static content, ADR 0014)
 
-No `backend/` directory exists in this repository yet. Nothing below is
-implemented; this section exists so the decision and shape are not lost
-between now and whenever backend work actually starts. The Android sync
-client above is built against this contract already — implementing the
-actual Go service remains a separate, explicitly-requested task.
+No `backend/` directory exists in this repository, and none is planned. ADR
+[0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md)'s
+Go + PostgreSQL service was never implemented and was superseded by ADR
+[0014](../decisions/0014-firebase-hosting-static-content-delivery.md) before
+implementation started: there is no dynamic API, no database, and no
+Supabase project. Content is published as static files served by Firebase
+Hosting. The Android sync client above (`ContentApiService`) already only
+ever issues plain `GET` requests, so it requires **no code change** for
+this — only `SANGU_CONTENT_API_BASE_URL` needs to point at the deployed
+Firebase Hosting domain once `content-hosting/` is actually deployed, which
+remains a separate, explicitly-requested task.
 
 ### Decision
 
-Go (latest stable) + PostgreSQL, Supabase-managed for initial production,
-Supabase Storage for content packages/approval documents/future audio,
-Supabase Studio as the temporary DB interface, a custom Go API between
-Android and the database, and a Go admin CLI for validation and publication.
-Android must not connect directly to PostgreSQL or expose Supabase service
-credentials. See ADR
-[0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md).
-
-### Preferred stack
-
-`net/http`, Chi router, `pgx`, `sqlc`, Goose (or equivalent SQL migration
-tool), `log/slog`, OpenAPI 3.1, standard Go testing, Testcontainers/Docker
-PostgreSQL for integration tests, `golangci-lint`. Avoid a heavy ORM — SQL
-must stay visible, reviewable, and testable.
+Firebase Hosting serving static JSON files under a new top-level
+`content-hosting/` directory (parallel to `app/`, not bundled into the
+APK). No Firestore, no Cloud Functions, no other Firebase backend product —
+see ADR 0014's Alternatives rejected. A Firebase MCP server is used only as
+development/CI tooling to help manage and validate that static deployment;
+it never ships in the APK and is never called from production Kotlin code
+— see `docs/engineering/MCP_TOOLING.md`.
 
 ### Project structure
 
 ```text
-backend/
-├── cmd/{api,admin}
-├── internal/{config,content,httpapi,storage,database}
-├── migrations
-├── queries
-├── openapi
-├── testdata
-├── Dockerfile
-├── compose.yaml
-├── go.mod
-└── README.md
+content-hosting/
+├── firebase.json          # Hosting config: public dir, rewrites, ignore list
+├── v1/
+│   ├── config.json        # supported schema version, min app version, feature flags
+│   └── content/
+│       ├── manifest.json  # RemoteContentManifestDto shape (docs/content-schema.md)
+│       └── packages/
+│           ├── tahlil-umum-v1
+│           └── istighosah-umum-v1
 ```
+
+Filenames under `packages/` must exactly match the `versionId` values
+`ContentApiService.getPackage(versionId)` requests, since Firebase Hosting
+resolves them as literal static file paths, not templated routes.
 
 ### Rules
 
-Package names describe business responsibilities. Interfaces are declared
-by consumers — do not introduce a repository interface for every database
-query. Database access accepts `context.Context`; every outbound operation
-uses a timeout; transactions are explicit. Generated `sqlc` files are never
-manually edited. Errors retain their original cause. Public API errors use
-consistent codes. Logs are structured. Secrets come from environment
-variables or a secret manager — no global mutable database client, no
-business logic in HTTP handlers, no HTTP-specific types inside core content
-logic.
+* `content-hosting/` files are authored and reviewed the same way bundled
+  assets are (`app/src/main/assets/content/`) — structured JSON, no
+  Kotlin/Go code, validated by CI before deploy.
+* Publication is `firebase deploy --only hosting`, run by CI after
+  validation passes, never a manual upload of an unvalidated file.
+* A published package file is never edited in place — a correction adds a
+  new version file and updates `manifest.json` to point at it (ADR 0008,
+  unaffected). The directory's git history is the durable, append-only
+  revision record that ADR 0011's Postgres tables would have been.
+* No secrets or service-role credentials are needed for Android to read
+  this content — it is public, static, and unauthenticated by design,
+  consistent with §3.4 (no forced account).
 
-### Initial public endpoints
+### Public content paths
 
-* `GET /healthz` — service health.
-* `GET /v1/config` — supported content schema, minimum app version, feature
-  flags, maintenance state.
-* `GET /v1/content/manifest` — each variant's currently active published
+* `v1/config.json` — supported content schema, minimum app version, feature
+  flags, maintenance state, as static data. Replaces the previously planned
+  `GET /v1/config` endpoint; there is no `/healthz` equivalent, since
+  Firebase Hosting's own availability is Google-managed, not this project's
+  service to health-check.
+* `v1/content/manifest.json` — each variant's currently active published
   package only (`contentId`, `variantId`, `versionId`, `versionNumber`,
   `checksumSha256`, `minimumAppVersionCode`); no conditional-request
   header, no full revision history (`docs/content-schema.md`).
-* `GET /v1/content/packages/{versionID}` — immutable content package.
+* `v1/content/packages/{versionId}` — immutable content package, one static
+  file per version.
 
-Public content-correction feedback (`POST /v1/feedback`) is not part of
-this contract — feedback was removed from product scope at Milestone 5
-(`docs/product/PRD.md` FR-012); content correction is an internal
-SanguSantri-team operation (`docs/operations/CONTENT_GOVERNANCE.md`), not a
-public endpoint.
+Public content-correction feedback is not part of this contract — feedback
+was removed from product scope at Milestone 5 (`docs/product/PRD.md`
+FR-012); content correction is an internal SanguSantri-team operation
+(`docs/operations/CONTENT_GOVERNANCE.md`), not a network endpoint.
 
-### Admin CLI
+### CI validation (replaces the former Go admin CLI)
 
-`content validate|import|review|approve|publish|revoke|list|export`.
-Publication must fail when approval is missing/invalid, Arabic text is
-empty, required translation is empty, positions are duplicated, a repeat
-target is invalid, a Quran reference is incomplete, a checksum cannot be
-generated, or the schema is unsupported. Supabase Studio may edit draft
-data but must not be the publication mechanism.
+A CI script validates `content-hosting/` before every deploy and must fail
+the same way the previously planned Go admin CLI's `content validate` would
+have: approval missing/invalid, Arabic text empty, required translation
+empty, duplicated positions, an invalid repeat target, an incomplete Quran
+reference, a checksum that cannot be reproduced, an unsupported schema
+version, a `manifest.json` entry with no matching package file, or a
+`versionNumber` that regresses. There is no interactive publish tool and no
+Supabase Studio equivalent — the only way to publish is committing a valid
+file and passing CI.

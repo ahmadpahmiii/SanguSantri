@@ -7,7 +7,10 @@ decision this implements, ADR
 [0003](../decisions/0003-room-as-local-source-of-truth.md) for the local
 source-of-truth decision, and ADR
 [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md) for the
-bundled-bootstrap-plus-remote-sync architecture this document describes.
+bundled-bootstrap-plus-remote-sync architecture this document describes,
+and ADR [0014](../decisions/0014-firebase-hosting-static-content-delivery.md)
+for the static Firebase Hosting content source that replaced the originally
+planned Go backend.
 
 ## Source of truth
 
@@ -20,18 +23,19 @@ ever writes to Room, never to a UI-visible cache of its own.
 ## Data flow (implemented)
 
 ```text
-Bundled JSON assets ─────┐
-                         ├── ContentPackageImporter ── Room ── Repository ── UI
-Backend content API ─────┘
+Bundled JSON assets ──────────┐
+                              ├── ContentPackageImporter ── Room ── Repository ── UI
+Firebase Hosting static files ┘
 ```
 
-Bundled assets and the backend are not mutually exclusive modes — both feed
-the same Room tables through the same shared, transport-agnostic
-`ContentPackageImporter` (`data/content/`). Bundled JSON guarantees a
-fresh-install/offline/no-backend-ever-reached baseline; the backend
-provides a remote manifest, newer content packages, and corrections without
-requiring an APK release. The backend updates Room; it is never rendered
-directly by the UI.
+Bundled assets and Firebase Hosting's static files are not mutually
+exclusive modes — both feed the same Room tables through the same shared,
+transport-agnostic `ContentPackageImporter` (`data/content/`). Bundled JSON
+guarantees a fresh-install/offline/hosting-never-reached baseline; Firebase
+Hosting provides a remote manifest, newer content packages, and corrections
+without requiring an APK release (ADR 0014 — no dynamic backend involved,
+just static files fetched over plain HTTPS `GET`). Remote sync updates
+Room; it is never rendered directly by the UI.
 
 ## Bundled bootstrap (implemented)
 

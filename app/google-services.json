@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "920716796161",
+    "project_id": "sangusantri-81cc6",
+    "storage_bucket": "sangusantri-81cc6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:920716796161:android:6854114b0a814811b63b00",
+        "android_client_info": {
+          "package_name": "com.sangusantri.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNafC--IlJSs8NjCLftZAitjWEWkrkghA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

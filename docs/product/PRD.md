@@ -1,36 +1,47 @@
 # SanguSantri Product Requirements Document
 
-**Document version:** 1.5 — Content Delivery Foundation and Remote
-Synchronisation: approved product/tech-lead decision to build the Android
-remote content-synchronisation foundation now, ahead of the Go backend's
-own implementation (parallel workstream). Supersedes version 1.4's FR-010
-("not part of `0.0.1`, no synchronisation code exists") and FR-011 ("local
-on-device fallback to a retained previous version") — see the rewritten
-FR-010/FR-011 below. Bundled content remains the mandatory, always-shipped
-baseline; remote sync is an optional, additive refresh that must never
-degrade the offline experience defined in §3.2/ADR 0007. Everything else in
-version 1.4 (Beranda rename, Jelajahi Amaliyah, reader repetition
-shortcut/TOC, risk-based publication model) stays in effect unchanged. Full
-gap analysis for the Figma pass: `docs/reviews/figma-product-alignment.md`.
-A 2026-07-28 engineering simplification pass (ADR 0012 amendment) removed
-manifest ETag/`304` handling and the former six-case sync outcome model
-from the implementation without changing FR-010/FR-011's product-level
-requirements below — see that amendment for what changed and why.
+**Document version:** 1.6 — Firebase Hosting static content delivery:
+approved product/tech-lead decision (ADR
+[0014](../decisions/0014-firebase-hosting-static-content-delivery.md)) to
+drop the Go + Supabase backend (ADR 0011, never implemented) entirely and
+publish content as static files on Firebase Hosting instead. This changes
+where content is served from, not the Android sync contract or product
+requirements below — FR-010/FR-011 as rewritten in version 1.5 stand
+unchanged; only "the backend" in their text now means static Firebase
+Hosting files, not a dynamic Go service. Document version 1.5 — Content
+Delivery Foundation and Remote Synchronisation: approved product/tech-lead
+decision to build the Android remote content-synchronisation foundation
+ahead of the (then-planned) Go backend's own implementation. Supersedes
+version 1.4's FR-010 ("not part of `0.0.1`, no synchronisation code
+exists") and FR-011 ("local on-device fallback to a retained previous
+version") — see the rewritten FR-010/FR-011 below. Bundled content remains
+the mandatory, always-shipped baseline; remote sync is an optional,
+additive refresh that must never degrade the offline experience defined in
+§3.2/ADR 0007. Everything else in version 1.4 (Beranda rename, Jelajahi
+Amaliyah, reader repetition shortcut/TOC, risk-based publication model)
+stays in effect unchanged. Full gap analysis for the Figma pass:
+`docs/reviews/figma-product-alignment.md`. A 2026-07-28 engineering
+simplification pass (ADR 0012 amendment) removed manifest ETag/`304`
+handling and the former six-case sync outcome model from the
+implementation without changing FR-010/FR-011's product-level requirements
+below — see that amendment for what changed and why.
 **Product:** SanguSantri
 **Initial release:** Android `0.0.1`
 **Package name:** `com.sangusantri.app`
 **Product owner:** Ahmad Fahmi Aisar
 **Document status:** Ready for engineering
 **Initial platform:** Native Android
-**Backend:** The Go + PostgreSQL public content API (
-`docs/decisions/0011-go-and-supabase-managed-postgresql-backend.md`)
-is a parallel workstream, not yet deployed — see
-`docs/product/ROADMAP.md`. The Android client against that API contract
-(manifest/package fetch, WorkManager sync) is implemented and ships
-in `0.0.1` regardless of backend deployment status: the app must remain
-fully functional offline, with the backend unreachable, or before it has
-ever been deployed (§3.2, FR-010).
-**Date:** 28 July 2026
+**Backend:** None. Content is published as static files on Firebase
+Hosting (ADR
+[0014](../decisions/0014-firebase-hosting-static-content-delivery.md),
+superseding the never-implemented Go + PostgreSQL backend, ADR
+[0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md)) —
+see `docs/product/ROADMAP.md`. The Android client against that static
+contract (manifest/package fetch, WorkManager sync) is implemented and
+ships in `0.0.1` regardless of whether static hosting has been deployed:
+the app must remain fully functional offline, with hosting unreachable, or
+before it has ever been deployed (§3.2, FR-010).
+**Date:** 2 August 2026
 
 ---
 
@@ -290,12 +301,13 @@ Release `0.0.1` includes:
     "traditional-modern pesantren design direction" wording).
 25. Bundled offline content, mandatory and always shipped, as the
     release-candidate baseline (§6.7) — the app must be fully usable
-    offline, fresh-installed, with no backend ever deployed.
-26. Optional background remote content synchronisation against the Go
-    content API (FR-010): a 24-hour-gated, opportunistic WorkManager
-    refresh that atomically replaces a variant's active content version
-    when the backend publishes a newer one, and never degrades, blocks, or
-    replaces the offline experience when unavailable.
+    offline, fresh-installed, with no remote hosting ever deployed.
+26. Optional background remote content synchronisation against static
+    content published on Firebase Hosting (FR-010, ADR 0014): a
+    24-hour-gated, opportunistic WorkManager refresh that atomically
+    replaces a variant's active content version when a newer one is
+    published, and never degrades, blocks, or replaces the offline
+    experience when unavailable.
 27. A compact "Approved by" status for every amaliyah, sourced from
     structured content metadata (§6.5).
 28. Portrait and landscape support.
@@ -304,13 +316,14 @@ Release `0.0.1` includes:
 31. Automated Android testing.
 32. CI validation.
 
-The Go public content API, the Go content administration CLI, PostgreSQL,
-and Supabase Studio are backend-side, parallel-workstream items and remain
-**not** part of this Android release itself — see `docs/product/ROADMAP.md`
-and `docs/engineering/ARCHITECTURE.md` §Backend. The Android client against
-that API contract, described above, is part of `0.0.1` and must degrade
-safely to fully local, offline-first behaviour whenever the backend is
-absent, unreachable, or has never been deployed.
+Authoring and deploying the `content-hosting/` static files and the
+Firebase project/CI pipeline that publishes them are content-operations
+items, not Android release engineering, and remain **not** part of this
+Android release itself — see `docs/product/ROADMAP.md` and
+`docs/engineering/ARCHITECTURE.md` §Backend. The Android client against
+that static contract, described above, is part of `0.0.1` and must degrade
+safely to fully local, offline-first behaviour whenever the hosted content
+is absent, unreachable, or has never been deployed.
 
 ## 5.2 Explicitly excluded
 
@@ -341,13 +354,13 @@ Release `0.0.1` does not include:
   `docs/operations/CONTENT_GOVERNANCE.md`. This is a scope correction from
   document version 1.0, which described a public feedback flow (former
   FR-012); no such flow has been built, and none is planned for `0.0.1`.
-* The Go + PostgreSQL backend implementation itself (public content API,
-  admin CLI, Supabase Studio) — a parallel workstream, not yet deployed
-  (`docs/product/ROADMAP.md`, ADR 0011). This is unchanged from document
-  version 1.4. What *is* now part of `0.0.1` is the Android remote
-  content-synchronisation client against that API's contract (FR-010) —
+* Standing up the `content-hosting/` static files and the Firebase project/
+  CI pipeline that deploys them — a content-operations workstream, not yet
+  deployed (`docs/product/ROADMAP.md`, ADR 0014, superseding ADR 0011's
+  never-built Go backend). What *is* part of `0.0.1` is the Android remote
+  content-synchronisation client against that static contract (FR-010) —
   see §5.1 item 26. The Android app remains fully usable offline
-  regardless of whether the backend has been deployed yet.
+  regardless of whether the hosted content has been deployed yet.
 * A full pentashihan (content-approval) workflow, checksum display, raw
   approval documents, internal reviewer identity, or other detailed
   content-governance data inside the normal app UI. Users see only compact
@@ -851,9 +864,10 @@ not required in the normal app UI.
 ## FR-010: Content synchronisation
 
 The application MUST support optional background remote content
-synchronisation against the Go content API, additive to — and never a
-prerequisite for — the bundled offline baseline (§3.2, ADR 0007). Bundled
-content is mandatory; remote refresh is optional for usability.
+synchronisation against static content published on Firebase Hosting (ADR
+0014), additive to — and never a prerequisite for — the bundled offline
+baseline (§3.2, ADR 0007). Bundled content is mandatory; remote refresh is
+optional for usability.
 
 Acceptance criteria:
 
@@ -896,9 +910,10 @@ previous-version fallback on-device. When remote sync replaces a variant's
 active version, the prior version's rows (and its version-scoped reading
 progress — position, guided-reader step/completion, repetition counters)
 are removed as part of the same atomic replacement (FR-010), not revoked
-and kept. The backend, separately, retains full immutable revision history
-for audit, publication, and rollback (ADR 0008 is unaffected by this — it
-governs the backend's publication/correction workflow, not what Android
+and kept. Full immutable revision history for audit, publication, and
+rollback is retained separately, in the `content-hosting/` git history
+(ADR 0014) rather than a database (ADR 0008 is unaffected by this — it
+governs the content-publication/correction workflow, not what Android
 keeps locally). A dedicated screen for browsing previous versions remains
 out of scope for `0.0.1`, consistent with the fact that Android does not
 retain them.
@@ -1076,12 +1091,12 @@ until these assets exist:
 9. Final application icon.
 10. Privacy policy.
 11. Google Play developer configuration.
-12. Production backend deployment and credentials (real
+12. Production Firebase Hosting deployment and its base URL (real
     `SANGU_CONTENT_API_BASE_URL`) — the Android sync client is implemented
-    and ships in `0.0.1`, but activates real remote refresh only once a
-    real backend is deployed and its base URL is configured; until then the
-    app runs on bundled content alone, which is by design, not a defect
-    (FR-010).
+    and ships in `0.0.1`, but activates real remote refresh only once
+    `content-hosting/` is actually deployed and its base URL is configured;
+    until then the app runs on bundled content alone, which is by design,
+    not a defect (FR-010, ADR 0014).
 13. Android signing key.
 
 Claude must use development-safe substitutes where possible, but must never

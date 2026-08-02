@@ -31,15 +31,16 @@ Release `0.0.1` is complete only when:
   complete.
 * Portrait, landscape, and tablet layouts work.
 * Android retains only the current active content version per variant, not
-  previous versions (FR-011, ADR 0012) — the backend keeps immutable
-  history instead. Remote content synchronisation (FR-010) is implemented
-  and ships in `0.0.1`; a real backend deployment is not yet a release
-  blocker since the app runs fully functional on bundled content alone
-  until one is configured (`SANGU_CONTENT_API_BASE_URL`).
+  previous versions (FR-011, ADR 0012) — `content-hosting/`'s git history
+  keeps immutable history instead (ADR 0014). Remote content
+  synchronisation (FR-010) is implemented and ships in `0.0.1`; a real
+  Firebase Hosting deployment is not yet a release blocker since the app
+  runs fully functional on bundled content alone until one is configured
+  (`SANGU_CONTENT_API_BASE_URL`).
 * Android tests pass (including the sync/importer test suite); a clean
-  checkout builds successfully. No backend service exists or is deployed
-  yet, so no backend-side tests apply — only the Android client against
-  its contract.
+  checkout builds successfully. No backend service exists, and none is
+  planned (ADR 0014) — only static-file validation applies, not
+  server-side tests.
 * Privacy policy exists; store listing assets exist; final logo and app
   icon exist.
 * No critical or high-severity known defect remains.
@@ -87,14 +88,22 @@ silently leave the device via Auto Backup.
 
 ## Cost and quota alerts
 
-Not yet applicable — no metered infrastructure exists (no backend, no audio
-storage/CDN), and no downloadable-audio roadmap item currently exists (see
-`docs/product/ROADMAP.md`). Revisit this section only if a future, explicit
-product decision reintroduces downloadable audio.
+Firebase Hosting has a metered free tier (storage, bandwidth); this
+project's static JSON/text content is small enough that default quotas are
+expected to be sufficient, but no billing/quota alert has been configured
+yet — do this before the real Firebase project is deployed. No audio
+storage/CDN is needed, and no downloadable-audio roadmap item currently
+exists (see `docs/product/ROADMAP.md`). Revisit the audio part of this
+section only if a future, explicit product decision reintroduces
+downloadable audio.
 
 ## Production credential ownership
 
-Not yet applicable — no production credentials exist (no backend, no
-signing key, no third-party SDK keys). When they are created: record who
-owns each credential, where it is stored (never in the repository), and a
-rotation cadence, in a location this document will link to once it exists.
+Not yet applicable — no production credentials exist yet (no Firebase
+deploy credentials, no signing key, no third-party SDK keys). The Firebase
+project itself and its Hosting deploy token/service account will be the
+first production credential this section needs to track once ADR 0014's
+`content-hosting/` migration is actually deployed. When they are created:
+record who owns each credential, where it is stored (never in the
+repository), and a rotation cadence, in a location this document will link
+to once it exists.

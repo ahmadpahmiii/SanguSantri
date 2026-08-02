@@ -26,8 +26,8 @@ pesantren-specific amaliyah.
   (`SeedContentSource`/`AssetSeedContentSource`/`SeedContentImporter`,
   deleted) with a shared `ContentPackageImporter` used by both bundled
   bootstrap and a new, implemented Android remote-content-synchronisation
-  client (`data/remote/`, `data/sync/`) against the still-undeployed Go
-  backend's contract — see ADR
+  client (`data/remote/`, `data/sync/`) against a backend's contract — see
+  ADR
   [0012](decisions/0012-bundled-bootstrap-and-remote-sync.md) and the
   rewritten `docs/product/PRD.md` FR-010/FR-011 before assuming remote
   sync "is not part of `0.0.1`" or that Android retains previous content
@@ -53,7 +53,20 @@ pesantren-specific amaliyah.
   (streak, this-week summary, filterable amaliyah-completion and
   tasbih-history sections), a new durable `amaliyah_completion_events`
   table decoupled from the version-scoped progress tables ADR 0012 wipes on
-  content replacement, and bottom nav is now Beranda | Aktivitas | Tasbih.
+  content replacement, and bottom nav is now Beranda | Aktivitas | Tasbih. A
+  Firebase Hosting static content delivery decision (2026-08-02) has since
+  dropped the Go + Supabase-managed PostgreSQL backend (ADR 0011) entirely
+  — it was never implemented — in favour of static files served from a new
+  `content-hosting/` directory via Firebase Hosting, with a Firebase MCP
+  server used only as development/CI tooling (never an Android runtime
+  dependency, never a Gradle dependency of `app/`) — see ADR
+  [0014](decisions/0014-firebase-hosting-static-content-delivery.md),
+  ADR 0011 (now Superseded), the amended ADR 0012/0010, and
+  `docs/engineering/MCP_TOOLING.md` before assuming a Go backend is still
+  planned anywhere in this project. This is a documentation/architecture
+  decision only — no Android code changed, and the Android sync client's
+  `ContentApiService` needs no code change either, since it already only
+  issues plain `GET` requests that static files satisfy identically.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, standalone Quran feature, Quran API integration (Kemenag or
   Quran Foundation), or Quran audio is on the roadmap
@@ -68,18 +81,19 @@ Always read first: `docs/product/PRD.md` §Related Documents (bottom of
 file) tells you exactly which document below owns which topic — do not read
 every document for every task.
 
-| Task type                             | Read                                                                                                                                                                           |
-|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Any task                              | `docs/PROGRESS.md` (current actual state)                                                                                                                                      |
-| UI / Compose screen                   | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md`, `docs/design/FIGMA_HANDOFF.md` (frame mapping and implementation order) |
-| Data layer / Room / repository / sync | `docs/engineering/ARCHITECTURE.md`, `docs/engineering/CONTENT_MODEL.md`, `docs/engineering/OFFLINE_FIRST.md`, `docs/content-schema.md`                                         |
-| Security / network / auth             | `docs/security/SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md`                                                                                                          |
-| Privacy / feedback / telemetry        | `docs/security/PRIVACY.md`                                                                                                                                                     |
-| Release / CI / Gradle / signing       | `docs/engineering/RELEASE_ENGINEERING.md`, `docs/operations/PRODUCTION_READINESS.md`                                                                                           |
-| Content entry / approval / correction | `docs/engineering/CONTENT_MODEL.md`, `docs/operations/CONTENT_GOVERNANCE.md`                                                                                                   |
-| Testing                               | `docs/engineering/TESTING.md`                                                                                                                                                  |
-| Architecture decision review          | `docs/decisions/`                                                                                                                                                              |
-| Product scope question                | `docs/product/PRD.md`, `docs/product/ROADMAP.md`                                                                                                                               |
+| Task type                                 | Read                                                                                                                                                                           |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Any task                                  | `docs/PROGRESS.md` (current actual state)                                                                                                                                      |
+| UI / Compose screen                       | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md`, `docs/design/FIGMA_HANDOFF.md` (frame mapping and implementation order) |
+| Data layer / Room / repository / sync     | `docs/engineering/ARCHITECTURE.md`, `docs/engineering/CONTENT_MODEL.md`, `docs/engineering/OFFLINE_FIRST.md`, `docs/content-schema.md`                                         |
+| Security / network / auth                 | `docs/security/SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md`                                                                                                          |
+| Privacy / feedback / telemetry            | `docs/security/PRIVACY.md`                                                                                                                                                     |
+| Release / CI / Gradle / signing           | `docs/engineering/RELEASE_ENGINEERING.md`, `docs/operations/PRODUCTION_READINESS.md`                                                                                           |
+| Content entry / approval / correction     | `docs/engineering/CONTENT_MODEL.md`, `docs/operations/CONTENT_GOVERNANCE.md`                                                                                                   |
+| Firebase MCP / `content-hosting/` tooling | `docs/engineering/MCP_TOOLING.md`, `docs/engineering/ARCHITECTURE.md` §Backend, ADR 0014                                                                                       |
+| Testing                                   | `docs/engineering/TESTING.md`                                                                                                                                                  |
+| Architecture decision review              | `docs/decisions/`                                                                                                                                                              |
+| Product scope question                    | `docs/product/PRD.md`, `docs/product/ROADMAP.md`                                                                                                                               |
 
 ## Hard architecture constraints
 

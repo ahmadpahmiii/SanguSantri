@@ -7,10 +7,12 @@ process.
 
 ## Current state
 
-No crash/ANR monitoring is wired yet. No backend structured logging exists
-(no backend exists). No named incident contact is documented anywhere. None
-of this blocks current Android-only engineering work; all of it blocks
-public release — see `docs/operations/PRODUCTION_READINESS.md`.
+No crash/ANR monitoring is wired yet. No server-side structured logging
+exists or is planned — there is no backend (ADR 0014); Firebase Hosting is
+static file serving with only basic CDN access logs, not application
+logging. No named incident contact is documented anywhere. None of this
+blocks current Android-only engineering work; all of it blocks public
+release — see `docs/operations/PRODUCTION_READINESS.md`.
 
 ## Crash and stability monitoring
 
@@ -23,9 +25,13 @@ do not assume default SDK behavior is safe here.
 ## Content-version adoption monitoring
 
 The Android sync client (FR-010, ADR 0012) exists; server-side adoption
-tracking does not yet, since it requires the backend (not yet deployed).
-Once the backend exists, track what fraction of active installs have
-adopted the latest published content version per amaliyah. This is the
+tracking does not, and static file hosting (ADR 0014) has no natural way
+to add it later without introducing exactly the dynamic backend that
+decision rejected — Firebase Hosting's CDN access logs are not
+per-content-version adoption data. If this signal is ever genuinely
+needed, track what fraction of active installs have adopted the latest
+published content version per amaliyah through a deliberate, minimal
+mechanism decided at that time, not assumed to already exist. This is the
 signal that tells the content-governance authority
 (`docs/operations/CONTENT_GOVERNANCE.md`) whether a revocation has actually
 propagated, not just whether the manifest says it should have — propagation
@@ -33,13 +39,17 @@ now depends entirely on each device's own 24-hour sync gate firing and
 successfully downloading the new version, since Android no longer falls
 back locally to a previous version (superseded FR-011).
 
-## Backend observability (once backend exists)
+## Server-side observability (not applicable, ADR 0014)
 
-Structured logs, request IDs, API latency, error rates, content sync
-success rate. There is no feedback feature (`docs/product/PRD.md` FR-012)
-to track a submission success rate for. Do not record Arabic reading text,
-counter values, or personal devotional history in logs or analytics
-(`docs/security/PRIVACY.md`).
+There is no backend and none is planned, so there are no request IDs, API
+latency, or server-side error rates to observe — Firebase Hosting is
+static file serving. Content sync success/failure is observable only on
+the Android side (`ContentSyncMetadata.content_last_sync`,
+`docs/engineering/ARCHITECTURE.md` §Remote content synchronisation), not
+centrally aggregated. There is no feedback feature
+(`docs/product/PRD.md` FR-012) to track a submission success rate for. Do
+not record Arabic reading text, counter values, or personal devotional
+history in logs or analytics (`docs/security/PRIVACY.md`).
 
 ## Reliability and recovery testing
 
@@ -48,8 +58,10 @@ counter values, or personal devotional history in logs or analytics
   need the same instrumented-test rigor once the reader UI exists —
   required before Serambi/reader ship, not optional polish.
 * No disaster-recovery or restore-testing story exists yet — correctly not
-  needed today (no backend, no server-side user data). Design this into
-  the first sync implementation rather than retrofitting it later.
+  needed today (no backend or server-side user data, and none planned,
+  ADR 0014). `content-hosting/`'s git history is itself the disaster
+  recovery for published content; re-deploying is `firebase deploy
+  --only hosting` from a known-good commit.
 * No handling yet for partial/interrupted downloads or full-storage
   failure during sync — build to the package-import sequence already
   specified in `docs/engineering/OFFLINE_FIRST.md` directly, rather than
@@ -61,8 +73,9 @@ See `docs/operations/CONTENT_GOVERNANCE.md` for the full revocation
 authority and severity-level process. This section covers only the
 technical detection side: Android has no on-device previous-version
 fallback (superseded FR-011, ADR 0012) — a revoked version stops being
-listed as a variant's active version in the backend's manifest, and each
-device only picks up the correction once its own 24-hour sync gate fires
+listed as a variant's active version in `manifest.json` once the update is
+deployed to Firebase Hosting (ADR 0014), and each device only picks up the
+correction once its own 24-hour sync gate fires
 and successfully downloads the newly published replacement version. There
 is no faster on-device mechanism; an urgent correction's actual propagation
 speed is bounded by the sync gate, not instantaneous.

@@ -1,10 +1,10 @@
 # Content Model
 
-Applies to any task touching Room entities, the domain content model, the
-content-package importer (bundled or remote), or the future backend content
-tables. The canonical content-package JSON format itself is documented
-separately in [`docs/content-schema.md`](../content-schema.md) — read both
-together for a content-import task.
+Applies to any task touching Room entities, the domain content model, or
+the content-package importer (bundled or remote). The canonical
+content-package JSON format itself is documented separately in
+[`docs/content-schema.md`](../content-schema.md) — read both together for
+a content-import task.
 
 ## Core hierarchy
 
@@ -85,57 +85,54 @@ Published versions are immutable. Any correction creates a new version. The
 system must never mutate an already-approved version in place — see ADR
 [0008](../decisions/0008-immutable-content-versions.md).
 
-## Server tables (backend — not yet implemented)
+## Historical content record (no server database, ADR 0014)
 
-### `amaliyah`
+ADR [0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md)
+originally planned a Postgres schema (`amaliyah`, `amaliyah_variants`,
+`amaliyah_versions`, one row per published revision) to hold this data
+server-side. That backend was never implemented and was superseded by ADR
+[0014](../decisions/0014-firebase-hosting-static-content-delivery.md): there
+is no database anywhere in this architecture. The equivalent fields live
+directly in the static package JSON (`docs/content-schema.md`) —
+`amaliyah`/`variant`/`version`/`approval` objects — the same file whether
+it is a bundled asset or a `content-hosting/` file served by Firebase
+Hosting; there is no separate DB-schema representation to keep in sync with
+it.
 
-`id`, `slug`, `title_id`, `title_ar`, `description_id`, `description_ar`,
-`category`, `status`, `created_at`, `updated_at`.
-
-### `amaliyah_variants`
-
-`id`, `amaliyah_id`, `slug`, `name_id`, `name_ar`, `owner_type`,
-`pondok_id`, `visibility`, `is_default`, `created_at`. Initial values:
-`owner_type = PUBLIC`, `pondok_id = null`, `visibility = PUBLIC`.
-
-### `amaliyah_versions`
-
-`id`, `variant_id`, `version_number`, `schema_version`, `status`,
-`source_name`, `source_reference`, `approval_id`, `checksum_sha256`,
-`minimum_app_version_code`, `published_at`, `revoked_at`, `created_at`.
-Statuses: `DRAFT`, `IN_REVIEW`, `APPROVED`, `PUBLISHED`, `REVOKED`.
-
-`status` (readability/publication) and the linked `approvals.status`
-(user-facing `Approved by` display, PRD §6.5) are deliberately independent
-fields, not coupled into one enum: `status` controls whether the app can
-display a version at all (`ContentRepositoryImpl.getDefaultVersionDetail`,
-which always resolves `getLatestPublishedForVariant` — `docs/content-schema.md`),
-while `approvals.status` controls only what the compact `Approved by`
-status shows. A version can be, and as of Milestone 6 genuinely is,
-`PUBLISHED` (readable in every build) while its `approvals.status` stays
-`PENDING` (no religious-authority sign-off) — this is the mechanism behind
-the risk-based publication model (`docs/product/PRD.md` §3.1,
+The package JSON's `version.status` (readability/publication) and its
+`approval` object (user-facing `Approved by` display, PRD §6.5) are
+deliberately independent, not coupled into one enum: `status` controls
+whether the app can display a version at all
+(`ContentRepositoryImpl.getDefaultVersionDetail`, which always resolves
+`getLatestPublishedForVariant` — `docs/content-schema.md`), while the
+`approval` object controls only what the compact `Approved by` status
+shows. A version can be, and as of Milestone 6 genuinely is, `PUBLISHED`
+(readable in every build) while its approval stays unsigned-off (no
+religious-authority sign-off) — this is the mechanism behind the
+risk-based publication model (`docs/product/PRD.md` §3.1,
 `docs/operations/CONTENT_GOVERNANCE.md`): standard public amaliyah publish
-on `status = PUBLISHED` alone, while `approvals.status = APPROVED` remains
-reserved for genuine kyai/sesepuh sign-off, mandatory only for higher-risk
-content. The UI never conflates the two, and never infers one from the
-other.
+on `status = PUBLISHED` alone, while a genuine approval remains reserved
+for kyai/sesepuh sign-off, mandatory only for higher-risk content. The UI
+never conflates the two, and never infers one from the other.
 
-### Backend history vs. Android retention (Content Delivery Foundation, ADR 0012)
+### Content history vs. Android retention (Content Delivery Foundation, ADR 0012/0014)
 
-The backend retains **immutable revision history** per variant — every
-published `AmaliyahVersion` row is kept, correction creates a new row with
-an incremented `versionNumber`, and `REVOKED` marks a row unusable without
-deleting it (ADR 0008, unaffected by this section). Android retains **only
-the current active version per variant** — no previous-version browsing
-screen, and no previous-version fallback logic on-device. When remote sync
-or bundled bootstrap replaces a variant's active version, the previous
-version's row, its steps, its approval row, and its version-scoped reading
-progress are deleted from Room as part of the same atomic transaction that
-inserts the new version (`ContentPackageImporter`, `docs/engineering/OFFLINE_FIRST.md`) —
-they are not marked `REVOKED` and kept, because the backend already owns
-that history; Android only ever needs to render the one currently valid
-version. A previous, since-superseded description of this document stated
+Full immutable revision history per variant lives in `content-hosting/`'s
+git history (ADR 0014), not a database: every published version is a
+distinct, never-edited JSON file, a correction adds a new file with an
+incremented `versionNumber`, and a revocation simply removes an entry from
+`manifest.json` without deleting the historical file (ADR 0008, unaffected
+by this section). Android retains **only the current active version per
+variant** — no previous-version browsing screen, and no previous-version
+fallback logic on-device. When remote sync or bundled bootstrap replaces a
+variant's active version, the previous version's row, its steps, its
+approval row, and its version-scoped reading progress are deleted from
+Room as part of the same atomic transaction that inserts the new version
+(`ContentPackageImporter`, `docs/engineering/OFFLINE_FIRST.md`) — they are
+not marked `REVOKED` and kept, because `content-hosting/`'s git history
+already preserves that history; Android only ever needs to render the one
+currently valid version. A previous, since-superseded description of this
+document stated
 that Android preserves previous content versions locally and falls back to
 the newest non-revoked version when the active one is revoked (former
 PRD FR-011) — that on-device fallback was never implemented in code, and
@@ -322,18 +319,19 @@ hierarchy, versioned JSON content-package schema, checksum-verified
 transactional import shared by bundled and remote content
 (`data/content/ContentPackageImporter`), bundled bootstrap
 (`data/local/content/BundledContentBootstrapper`), remote content
-synchronisation (`data/remote/`, `data/sync/`, FR-010) against the Go
-content API contract, `reading_positions` (Full Reader reading-position
-persistence), and `guided_reading_sessions`/`step_progress` (Milestone 4
-Guided Reader step/counter/completion persistence, also used by
-Milestone 5's cross-mode progress mapping when switching between Full and
-Guided readers) — all three reset per-version on atomic version
-replacement (see above). `feedback_outbox` remains removed from `0.0.1`
-scope (Milestone 5) — not merely deferred; see
-`docs/product/PRD.md`/`docs/product/ROADMAP.md`. The actual Go backend
-service (deployment, real credentials) remains a parallel, not-yet-deployed
-workstream — the Android client against its contract is implemented and
-degrades safely to bundled-only content until it is deployed.
+synchronisation (`data/remote/`, `data/sync/`, FR-010) against the static
+Firebase Hosting content contract (ADR 0014), `reading_positions` (Full
+Reader reading-position persistence), and `guided_reading_sessions`/
+`step_progress` (Milestone 4 Guided Reader step/counter/completion
+persistence, also used by Milestone 5's cross-mode progress mapping when
+switching between Full and Guided readers) — all three reset per-version
+on atomic version replacement (see above). `feedback_outbox` remains
+removed from `0.0.1` scope (Milestone 5) — not merely deferred; see
+`docs/product/PRD.md`/`docs/product/ROADMAP.md`. Actually deploying
+`content-hosting/` to Firebase Hosting (real URL, real CI pipeline) remains
+a separate, not-yet-deployed workstream — the Android client against its
+contract is implemented and degrades safely to bundled-only content until
+it is deployed.
 `tasbih_sessions`/`tasbih_history` (`0.0.2`, Milestone 9) and
 `amaliyah_completion_events` (`0.0.3`, Milestone 10) are implemented.
 `favorites` and `recently_opened` are planned for Phase B of the `0.0.1`

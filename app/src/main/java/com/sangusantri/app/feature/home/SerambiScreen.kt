@@ -30,11 +30,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
-import com.sangusantri.app.domain.model.Amaliyah
+import com.sangusantri.app.domain.model.Content
 
 @Composable
 fun SerambiRoute(
-    onAmaliyahSelected: (String) -> Unit,
+    onContentSelected: (String) -> Unit,
     onSetelanClick: () -> Unit,
     onAboutClick: () -> Unit,
     viewModel: SerambiViewModel = hiltViewModel(),
@@ -42,7 +42,7 @@ fun SerambiRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     SerambiScreen(
         uiState = uiState,
-        onAmaliyahSelected = onAmaliyahSelected,
+        onContentSelected = onContentSelected,
         onSetelanClick = onSetelanClick,
         onAboutClick = onAboutClick,
     )
@@ -52,7 +52,7 @@ fun SerambiRoute(
 @Composable
 fun SerambiScreen(
     uiState: SerambiUiState,
-    onAmaliyahSelected: (String) -> Unit,
+    onContentSelected: (String) -> Unit,
     onSetelanClick: () -> Unit,
     onAboutClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -81,10 +81,10 @@ fun SerambiScreen(
     ) { innerPadding ->
         when (uiState) {
             is SerambiUiState.Loading -> SerambiLoading(modifier = Modifier.padding(innerPadding))
-            is SerambiUiState.Content ->
+            is SerambiUiState.Loaded ->
                 SerambiContent(
-                    amaliyah = uiState.amaliyah,
-                    onAmaliyahSelected = onAmaliyahSelected,
+                    items = uiState.items,
+                    onContentSelected = onContentSelected,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -100,11 +100,11 @@ private fun SerambiLoading(modifier: Modifier = Modifier) {
 
 @Composable
 private fun SerambiContent(
-    amaliyah: List<Amaliyah>,
-    onAmaliyahSelected: (String) -> Unit,
+    items: List<Content>,
+    onContentSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (amaliyah.isEmpty()) {
+    if (items.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 text = stringResource(R.string.serambi_empty_state),
@@ -120,32 +120,38 @@ private fun SerambiContent(
         contentPadding = PaddingValues(SanguSantriSpacing.default),
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
     ) {
-        items(items = amaliyah, key = { it.id }) { item ->
-            AmaliyahCard(amaliyah = item, onClick = onAmaliyahSelected)
+        items(items = items, key = { it.id }) { item ->
+            ContentCard(content = item, onClick = onContentSelected)
         }
     }
 }
 
 // Development-only preview fixtures — bracketed placeholders, never real amaliyah text.
-private val previewAmaliyahList =
+private val previewItems =
     listOf(
-        Amaliyah(
+        Content(
             id = "tahlil",
-            slug = "tahlil",
-            titleId = "Tahlil",
-            titleAr = "[FIXTURE-AR] Tahlil",
-            descriptionId = "Rangkaian bacaan Tahlil. FIXTURE PENGEMBANGAN.",
-            descriptionAr = null,
-            category = "AMALIYAH",
+            title = "Tahlil",
+            description = "Rangkaian bacaan Tahlil. FIXTURE PENGEMBANGAN.",
+            imageUrl = null,
+            category = "Tahlil dan Doa",
+            version = 1,
+            order = 1,
+            isActive = true,
+            sourceName = "[FIXTURE]",
+            sourceUrl = "[FIXTURE]",
         ),
-        Amaliyah(
+        Content(
             id = "istighosah",
-            slug = "istighosah",
-            titleId = "Istighosah",
-            titleAr = "[FIXTURE-AR] Istighosah",
-            descriptionId = "Rangkaian bacaan Istighosah. FIXTURE PENGEMBANGAN.",
-            descriptionAr = null,
-            category = "AMALIYAH",
+            title = "Istighosah",
+            description = "Rangkaian bacaan Istighosah. FIXTURE PENGEMBANGAN.",
+            imageUrl = null,
+            category = "Tahlil dan Doa",
+            version = 1,
+            order = 2,
+            isActive = true,
+            sourceName = "[FIXTURE]",
+            sourceUrl = "[FIXTURE]",
         ),
     )
 
@@ -154,8 +160,8 @@ private val previewAmaliyahList =
 private fun SerambiScreenContentPreview() {
     SanguSantriTheme {
         SerambiScreen(
-            uiState = SerambiUiState.Content(previewAmaliyahList),
-            onAmaliyahSelected = {},
+            uiState = SerambiUiState.Loaded(previewItems),
+            onContentSelected = {},
             onSetelanClick = {},
             onAboutClick = {},
         )
@@ -167,8 +173,8 @@ private fun SerambiScreenContentPreview() {
 private fun SerambiScreenEmptyPreview() {
     SanguSantriTheme {
         SerambiScreen(
-            uiState = SerambiUiState.Content(emptyList()),
-            onAmaliyahSelected = {},
+            uiState = SerambiUiState.Loaded(emptyList()),
+            onContentSelected = {},
             onSetelanClick = {},
             onAboutClick = {},
         )
@@ -181,7 +187,7 @@ private fun SerambiScreenLoadingPreview() {
     SanguSantriTheme {
         SerambiScreen(
             uiState = SerambiUiState.Loading,
-            onAmaliyahSelected = {},
+            onContentSelected = {},
             onSetelanClick = {},
             onAboutClick = {},
         )

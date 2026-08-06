@@ -35,9 +35,10 @@ is a real cost, not free caution.
 * Room migration safety — **done**: hand-written, schema-verified,
   `MigrationTestHelper`-tested migrations, no destructive fallback (ADR
   0003).
-* Content package integrity — **done**: SHA-256 checksum verification,
-  tested against tamper/mismatch (`ContentChecksum`), for both bundled and
-  remote packages.
+* Content integrity — version comparison only, no checksum (ADR 0015 —
+  a monotonic integer version is sufficient once content is authored and
+  deployed from the same git repository that serves it; the previous
+  SHA-256 checksum verification and `ContentChecksum` helper were removed).
 * `app/src/main/keepRules/rules.keep` is currently a stub; review real
   keep-rule needs with the `r8-analyzer` skill once feature code exists to
   shrink.
@@ -54,27 +55,35 @@ is a real cost, not free caution.
 Network code now exists (Retrofit/OkHttp, `data/remote/`, `data/sync/`) —
 this section is no longer forward-looking.
 
-* `network_security_config.xml` — **still outstanding**: this project has
-  no explicit network security config yet. Now that real network code
-  exists, this is a near-term gap, not a "not urgent" one — it must enforce
-  HTTPS-only/no cleartext before any build is used against a real,
-  non-`.invalid` Firebase Hosting host.
+* `network_security_config.xml` — **done**: `app/src/main/res/xml/
+  network_security_config.xml` (`base-config cleartextTrafficPermitted="false"`),
+  wired via `AndroidManifest.xml`'s `android:networkSecurityConfig`. A
+  `<debug-overrides>` block permits cleartext only when the APK is
+  debuggable — a platform-enforced guarantee, not a build convention — so
+  `ContentSyncManagerTest` can talk to a local MockWebServer instance;
+  release builds are HTTPS-only exactly as this bullet originally required.
 * API timeouts on every outbound call — **done**: 15s connect/read/write
   timeouts (`di/NetworkModule.kt`). There is no server to rate-limit —
   Firebase Hosting has no request-processing logic of its own to abuse
   beyond standard CDN bandwidth limits (ADR 0014).
-* Checksum verification and schema validation on downloaded packages —
-  **done**: `ContentPackageImporter`, shared with the bundled path
-  (`docs/engineering/OFFLINE_FIRST.md`).
+* Schema validation on downloaded content — **done**: `ContentValidator`/
+  `ContentImporter`, shared with the bundled path
+  (`docs/engineering/OFFLINE_FIRST.md`). No checksum verification any more
+  (ADR 0015) — version comparison is the only integrity signal, sufficient
+  for content authored and deployed from the same git repository that
+  serves it.
 * Immutable content versions, atomic transactional replacement, and
-  per-package failure isolation — **done**, same document. Revocation
-  itself remains a content-governance authority action
-  (`docs/operations/CONTENT_GOVERNANCE.md`) enacted by editing
-  `manifest.json` and redeploying, not a backend action; Android has no
-  on-device previous-version fallback to reason about (superseded FR-011,
-  ADR 0012).
-* Response-size limit on downloaded packages — **done**: 5 MiB cap,
-  streamed to a temporary file (`ContentSyncManager`).
+  per-item failure isolation — **done**, same document. Revocation itself
+  remains a content-governance authority action (`docs/operations/
+  CONTENT_GOVERNANCE.md`) enacted by publishing a corrected `version` (or
+  setting a catalog entry's `isActive` to `false`) and redeploying, not a
+  backend action; Android has no on-device previous-version fallback to
+  reason about (superseded FR-011, ADR 0012).
+* Response-size limit on downloaded content — **done**: 5 MiB cap,
+  enforced transparently by `ResponseSizeLimitInterceptor` (an OkHttp
+  interceptor, ADR 0015 — replaces the previous manual per-call streaming
+  cap in `ContentSyncManager`, since `getContent` now returns an
+  already-parsed DTO rather than a raw body to stream manually).
 * Backup and restore testing — not applicable to a static hosting target;
   `content-hosting/`'s git history is the restore mechanism (ADR 0014).
 * Structured logs and request IDs — not applicable; there is no backend

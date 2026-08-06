@@ -70,14 +70,14 @@ class SerambiScreenTest {
 
         composeRule.onNodeWithText("Tahlil").performClick()
 
-        // Milestone 4: tapping Tahlil now opens the reading-mode gate first. Tahlil's bundled
-        // fixture is still DRAFT (Milestone 1), so the gate's own content-availability check
-        // short-circuits straight to its content-unavailable state without ever offering Bacaan
-        // Lengkap/Panduan — still an unambiguous signal that navigation left Serambi and reached
-        // the gate destination (Serambi's own actions are Setelan/Tentang, never this message).
+        // Milestone 4: tapping Tahlil opens the reading-mode gate first. Tahlil's bundled content
+        // is real and available (ADR 0015 — no more DRAFT/PUBLISHED status), so the gate's
+        // availability check passes and offers the Bacaan Lengkap/Panduan chooser — an unambiguous
+        // signal that navigation left Serambi and reached the gate destination (Serambi's own
+        // actions are Setelan/Tentang, never this chooser).
         composeRule.waitUntil(timeoutMillis = SEED_IMPORT_TIMEOUT_MILLIS) {
             composeRule
-                .onAllNodesWithText(composeRule.activity.getString(R.string.reader_content_unavailable))
+                .onAllNodesWithText(composeRule.activity.getString(R.string.reader_mode_chooser_title))
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }

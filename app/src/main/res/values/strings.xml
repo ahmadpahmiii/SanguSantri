@@ -102,8 +102,6 @@
   <string name="reader_content_unavailable">Bacaan ini belum tersedia.</string>
   <string name="reader_error_message">Bacaan tidak dapat dimuat.</string>
   <string name="reader_retry_action">Coba lagi</string>
-  <string name="reader_quran_reference_range">QS. %1$d: %2$d–%3$d</string>
-  <string name="reader_quran_reference_single">QS. %1$d: %2$d</string>
 
   <!-- Reader progress header and saved-position status (Figma product-alignment pass, nodes 14:2/14:32) -->
   <string name="reader_progress_label">Langkah %1$d dari %2$d</string>
@@ -112,15 +110,6 @@
 
   <!-- Full Reader repetition shortcut (decision D, FR-018) -->
   <string name="reader_repetition_shortcut">Dibaca %1$d kali · Buka Panduan →</string>
-
-  <!-- Reader Table of Contents bottom sheet (FR-017, node 16:148) -->
-  <string name="reader_open_toc_action">Daftar isi</string>
-  <string name="reader_toc_title">Daftar isi</string>
-  <string name="reader_toc_subtitle">Lompat ke bagian tanpa mengubah progres bacaan.</string>
-  <string name="reader_toc_item_state">Langkah %1$s</string>
-  <string name="reader_toc_item_current_state">Bagian saat ini</string>
-  <string name="reader_toc_item_other_state">Bagian lain</string>
-  <string name="reader_toc_close_content_description">Tutup daftar isi</string>
 
   <!-- Reader settings sheet (node 16:89) -->
   <string name="reader_open_settings_action">Tampilan bacaan</string>
@@ -164,12 +153,10 @@
   <string name="guided_progression_mode_manual">Manual</string>
   <string name="guided_progression_mode_automatic">Otomatis</string>
 
-  <!-- Reader mode switch and compact approval status (FR-016, PRD 6.5, Milestone 5) -->
+  <!-- Reader mode switch and source attribution (FR-016, PRD 6.5, ADR 0015) -->
   <string name="reader_overflow_content_description">Menu lainnya</string>
   <string name="reader_switch_to_guided_action">Buka mode Panduan</string>
   <string name="reader_switch_to_full_action">Buka Bacaan Lengkap</string>
-  <string name="content_approval_menu_action">Sumber &amp; pentashihan</string>
+  <string name="content_source_menu_action">Sumber</string>
   <string name="content_source_label">Sumber</string>
-  <string name="content_approved_by_label">Disetujui oleh</string>
-  <string name="content_approval_pending_dev_only">Baseline rilis internal (build pengembangan).</string>
 </resources>

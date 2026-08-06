@@ -129,17 +129,24 @@ Istighosah reading via Quran NU Online) has a specific URL
 readings on that page (other Mujahadah/reading collections) remain out of
 scope — no parser exists for them.
 
-**Public content baseline (Milestone 6).** The current Tahlil (59 steps)
-and Istighosah (27 steps) packages have been reviewed for structural
-problems and explicitly accepted by the product owner as the `0.0.1`
-published release baseline — standard public amaliyah (`docs/product/PRD.md`
-§3.1, §6.7), not higher-risk content. `version.status` is `PUBLISHED`;
-`approval.status` (religious-authority approval) remains `PENDING` since no
-kyai/sesepuh has reviewed either package — that field is optional for this
-content category and does not block publication, but the app must never
-present it as if a religious authority had signed off. `tools/content-importer/`
-remains available as a developer-only tool for preparing future content
-updates; it is never invoked automatically or at application runtime.
+**Public content baseline (Milestone 6, migrated to the flat schema by ADR
+0015).** The current Tahlil (37 reading steps; originally 59 including
+section-heading markers dropped by the ADR 0015 migration — see
+`docs/content-schema.md` §Content safety) and Istighosah (25 reading
+steps; originally 27) content have been reviewed for structural problems
+and explicitly accepted by the product owner as the `0.0.1` published
+release baseline — standard public amaliyah (`docs/product/PRD.md` §3.1,
+§6.7), not higher-risk content. Neither has received kyai/sesepuh review —
+that remains optional for this content category and does not block
+publication, but the app must never present it as if a religious authority
+had signed off. ADR 0015 removed the on-device `Approval` object and its
+`PENDING`/`APPROVED`/`REJECTED` status field entirely (Android never
+rendered an "Approved by" line for either package anyway, since neither
+had one); religious-authority approval tracking is now purely a
+content-governance-process record (this document, commit history), not an
+on-device data structure. `tools/content-importer/` remains available as
+a developer-only tool for preparing future content updates; it is never
+invoked automatically or at application runtime.
 
 ## Correction workflow
 
@@ -198,11 +205,16 @@ category (§Risk-based publication model) the correction itself falls into
   whoever commits an approved seed package to the repository. This must be
   a named person, not "whoever is available" — record the name once the
   operational team exists.
-* **Revocation authority**: the same named authority as publication.
-  `AmaliyahVersionStatus.REVOKED` is implemented in the schema. Android has
-  no on-device fallback-to-previous-approved-version logic (superseded
-  FR-011, ADR 0012) — a revocation only takes effect for a given device
-  once the corrected replacement version is deployed to Firebase Hosting
+* **Revocation authority**: the same named authority as publication. There
+  is no `REVOKED` status field on-device any more (ADR 0015 removed the
+  on-device version-status/approval object entirely) — a revocation is
+  enacted by publishing a corrected replacement (`version` bumped, new
+  `content_hosting/` content file) or, if a content item must disappear
+  from Beranda entirely, by setting its catalog entry's `isActive` to
+  `false` (`docs/content-schema.md` — this hides it without deleting
+  local progress). Android has no on-device fallback-to-previous-approved-
+  version logic (superseded FR-011, ADR 0012) — either mechanism only
+  takes effect for a given device once it is deployed to Firebase Hosting
   and that device's own sync gate fetches it; the human process (who
   decides, how fast, what triggers it) is what this document defines, not
   the mechanism.
@@ -247,46 +259,35 @@ Three distinct claims, never collapsed into one:
   source's name next to the word "Approved."
 
 This distinction must be visible wherever source or approval information is
-shown to users (Sumber & Pentashihan, FR-009).
+recorded, even though only source attribution is currently rendered
+on-device (Sumber, FR-009).
 
-## User-facing source and approval display (compact)
+## User-facing source display (compact)
 
-Since Milestone 5 (source display) and Milestone 6 (risk-based approval),
-the app's normal UI shows only compact, truthful status — never the full
-pentashihan workflow, checksum, raw approval document, or internal
-reviewer identity (`docs/product/PRD.md` §6.5):
+Since Milestone 5 (source display), the app's normal UI shows only
+compact, truthful source status — never the full pentashihan workflow,
+raw approval document, or internal reviewer identity
+(`docs/product/PRD.md` §6.5):
 
 ```text
 Sumber
 NU Online
 ```
 
-* Source attribution is always shown, for every amaliyah, sourced from
-  `sourceName` — never invented.
+* Source attribution is always shown, for every content item, sourced
+  from `sourceName` — never invented.
 * It is never rendered as `Approved by NU Online` or any other phrasing
   that implies the source publisher approved or endorsed SanguSantri.
 
-```text
-Approved by
-<real reviewer name or institution>
-```
-
-* Shown only when the content version's approval metadata is genuinely
-  valid (`status = APPROVED`, real, non-blank approver name) — never
-  invented, guessed, or presented before real approval exists. This is
-  optional for standard public amaliyah and does not block publication.
-* While no religious-authority approval has been recorded, release builds
-  show nothing approval-related (only the source line above). Development
-  builds may show a neutral internal marker such as "Baseline rilis
-  internal" — never `DRAFT`, `PENDING`, or other alarming/unprofessional
-  engineering-status wording.
-* An optional future detail action may show approval evidence (a signed
-  letter, approval sheet, or other verifiable record); document upload, PDF
-  viewing, and a CMS remain out of scope.
-* A real approver identity and a real approval-evidence reference are
-  required only before the application may display an `Approved by` status
-  at all — they are not required for standard public amaliyah to be
-  published and visible in release builds.
+**There is no on-device `Approved by` display any more** (ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)
+removed the `Approval` object/status field the previous version of this
+section described — neither Tahlil nor Istighosah has ever had one
+anyway). Religious-authority approval, when it exists for a piece of
+content, is recorded as a governance-process fact (this document, commit/
+PR history) rather than an on-device field. If a future product decision
+needs to surface approval status to users again, that requires
+reintroducing the on-device data structure first — not assumed here.
 
 ## Approval document privacy
 

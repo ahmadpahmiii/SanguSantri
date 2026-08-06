@@ -40,13 +40,13 @@ import com.sangusantri.app.feature.reader.components.ReaderLoadingState
  */
 @Composable
 fun ReaderEntryRoute(
-    amaliyahSlug: String,
+    contentId: String,
     onBack: () -> Unit,
     onModeResolved: (ReaderMode) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ReaderEntryViewModel =
         hiltViewModel<ReaderEntryViewModel, ReaderEntryViewModel.Factory>(
-            creationCallback = { factory -> factory.create(amaliyahSlug) },
+            creationCallback = { factory -> factory.create(contentId) },
         ),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,7 +71,7 @@ fun ReaderEntryScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val title = (uiState as? ReaderEntryUiState.ModeChooser)?.amaliyahTitleId.orEmpty()
+    val title = (uiState as? ReaderEntryUiState.ModeChooser)?.title.orEmpty()
 
     Scaffold(
         modifier = modifier,
@@ -164,7 +164,7 @@ private fun ReaderModeOption(
 private fun ReaderEntryScreenModeChooserPreview() {
     SanguSantriTheme {
         ReaderEntryScreen(
-            uiState = ReaderEntryUiState.ModeChooser(amaliyahTitleId = "Tahlil"),
+            uiState = ReaderEntryUiState.ModeChooser(title = "Tahlil"),
             onSelectMode = {},
             onBack = {},
         )

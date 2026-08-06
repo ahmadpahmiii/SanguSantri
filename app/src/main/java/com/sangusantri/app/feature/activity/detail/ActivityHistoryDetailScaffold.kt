@@ -63,9 +63,12 @@ internal fun ActivityHistoryDetailScaffold(
             )
         },
     ) { innerPadding ->
-        Column(modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()) {
+        Column(
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
+        ) {
             TimeRangeFilterChips(
                 selected = filterState.selected,
                 onSelect = filterState.onSelect,

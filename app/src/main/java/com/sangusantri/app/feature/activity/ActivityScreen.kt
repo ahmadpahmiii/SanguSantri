@@ -65,9 +65,13 @@ fun ActivityScreen(
     ) { innerPadding ->
         when (uiState) {
             ActivityUiState.Loading ->
-                Box(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
                     CircularProgressIndicator()
                 }
 

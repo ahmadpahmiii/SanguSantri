@@ -12,21 +12,10 @@ import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
 import com.sangusantri.app.data.local.content.BundledContentBootstrapper
-import com.sangusantri.app.data.local.dao.AmaliyahDao
-import com.sangusantri.app.data.local.dao.AmaliyahStepDao
-import com.sangusantri.app.data.local.dao.AmaliyahVariantDao
-import com.sangusantri.app.data.local.dao.AmaliyahVersionDao
-import com.sangusantri.app.data.local.dao.ApprovalDao
-import com.sangusantri.app.data.local.entity.AmaliyahEntity
-import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
-import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
-import com.sangusantri.app.data.local.entity.AmaliyahVersionEntity
-import com.sangusantri.app.data.local.entity.ApprovalEntity
-import com.sangusantri.app.domain.model.AmaliyahVersionStatus
-import com.sangusantri.app.domain.model.ApprovalStatus
-import com.sangusantri.app.domain.model.OwnerType
-import com.sangusantri.app.domain.model.StepType
-import com.sangusantri.app.domain.model.Visibility
+import com.sangusantri.app.data.local.dao.ContentDao
+import com.sangusantri.app.data.local.dao.ContentStepDao
+import com.sangusantri.app.data.local.entity.ContentEntity
+import com.sangusantri.app.data.local.entity.ContentStepEntity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
@@ -40,10 +29,10 @@ import javax.inject.Inject
 /**
  * Exercises the Full Reader against the real Hilt graph, reached the same way a user does: tap an
  * amaliyah card on Serambi, then choose **Bacaan Lengkap** from the Milestone 4 reading-mode gate.
- * A dedicated, clearly-fixture-labelled PUBLISHED test amaliyah is inserted directly via the
- * injected DAOs (independent of whichever amaliyah the bundled content itself currently ships) —
- * guarded by `existsById` so reruns on the same emulator stay idempotent, mirroring
- * [com.sangusantri.app.data.content.ContentPackageImporter]'s own idempotency pattern.
+ * A dedicated, clearly-fixture-labelled content item is inserted directly via the injected DAOs
+ * (independent of whichever content the bundled catalog itself currently ships) — guarded by a
+ * `getById` check so reruns on the same emulator stay idempotent, mirroring
+ * [com.sangusantri.app.data.content.ContentImporter]'s own idempotency pattern.
  *
  * Reader preferences live in the real, shared preferences DataStore — not a fake — so every test
  * clears it in `@Before` (not just resets the one field it touches) to guarantee the mode gate
@@ -60,19 +49,10 @@ class ReaderScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Inject
-    lateinit var amaliyahDao: AmaliyahDao
+    lateinit var contentDao: ContentDao
 
     @Inject
-    lateinit var amaliyahVariantDao: AmaliyahVariantDao
-
-    @Inject
-    lateinit var approvalDao: ApprovalDao
-
-    @Inject
-    lateinit var amaliyahVersionDao: AmaliyahVersionDao
-
-    @Inject
-    lateinit var amaliyahStepDao: AmaliyahStepDao
+    lateinit var contentStepDao: ContentStepDao
 
     @Inject
     lateinit var bundledContentBootstrapper: BundledContentBootstrapper
@@ -81,30 +61,30 @@ class ReaderScreenTest {
     lateinit var preferencesDataStore: DataStore<Preferences>
 
     @Before
-    fun seedPublishedTestFixture() {
+    fun seedFixtures() {
         hiltRule.inject()
         runBlocking {
             preferencesDataStore.edit { it.clear() }
             bundledContentBootstrapper.bootstrap()
             seedFixtureIfMissing()
+            seedEmptyFixtureIfMissing()
         }
     }
 
     @Test
-    fun openingTheAmaliyahFromSerambiDisplaysOrderedContentSteps() {
-        waitForFixtureCard()
+    fun openingTheContentFromSerambiDisplaysOrderedContentSteps() {
+        waitForCard(FIXTURE_TITLE)
 
         composeRule.onNodeWithText(FIXTURE_TITLE).performClick()
         composeRule.onNodeWithText(composeRule.activity.getString(R.string.reader_mode_full_title)).performClick()
 
-        composeRule.onNodeWithText(FIXTURE_HEADING_TITLE).assertExists()
         composeRule.onNodeWithText(FIXTURE_ARABIC_TEXT).assertExists()
         composeRule.onNodeWithText(FIXTURE_TRANSLATION_TEXT).assertExists()
     }
 
     @Test
     fun hidingTranslationFromSettingsRemovesItFromTheReader() {
-        waitForFixtureCard()
+        waitForCard(FIXTURE_TITLE)
         composeRule.onNodeWithText(FIXTURE_TITLE).performClick()
         composeRule.onNodeWithText(composeRule.activity.getString(R.string.reader_mode_full_title)).performClick()
         composeRule.onNodeWithText(FIXTURE_TRANSLATION_TEXT).assertExists()
@@ -130,127 +110,81 @@ class ReaderScreenTest {
     }
 
     @Test
-    fun contentUnavailableStateRendersForAnAmaliyahWithoutAPublishedVersion() {
-        waitForFixtureCard()
+    fun contentUnavailableStateRendersForAContentItemWithNoSteps() {
+        waitForCard(EMPTY_FIXTURE_TITLE)
 
-        // The bundled seed content (Tahlil/Istighosah) is DRAFT — opening it must show the
-        // content-unavailable state, not crash or render nothing.
-        composeRule.onNodeWithText("Tahlil").performClick()
+        // A catalog item with zero content_steps rows — ADR 0015 has no DRAFT/PUBLISHED status any
+        // more, so "unavailable" now means exactly this: a content row with no readable steps.
+        composeRule.onNodeWithText(EMPTY_FIXTURE_TITLE).performClick()
 
         composeRule
             .onNodeWithText(composeRule.activity.getString(R.string.reader_content_unavailable))
             .assertExists()
     }
 
-    private fun waitForFixtureCard() {
+    private fun waitForCard(title: String) {
         composeRule.waitUntil(timeoutMillis = SEED_IMPORT_TIMEOUT_MILLIS) {
-            composeRule.onAllNodesWithText(FIXTURE_TITLE).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private suspend fun seedFixtureIfMissing() {
-        if (amaliyahDao.existsById(FIXTURE_AMALIYAH_ID)) return
+        if (contentDao.getById(FIXTURE_CONTENT_ID) != null) return
 
-        amaliyahDao.insert(
-            AmaliyahEntity(
-                id = FIXTURE_AMALIYAH_ID,
-                slug = FIXTURE_SLUG,
-                titleId = FIXTURE_TITLE,
-                titleAr = "[FIXTURE-AR] $FIXTURE_TITLE",
-                descriptionId = null,
-                descriptionAr = null,
+        contentDao.upsert(
+            ContentEntity(
+                id = FIXTURE_CONTENT_ID,
+                title = FIXTURE_TITLE,
+                description = "[FIXTURE] Reader test fixture",
+                imageUrl = null,
                 category = "AMALIYAH",
-            ),
-        )
-        amaliyahVariantDao.insert(
-            AmaliyahVariantEntity(
-                id = "$FIXTURE_AMALIYAH_ID-umum",
-                amaliyahId = FIXTURE_AMALIYAH_ID,
-                slug = "umum",
-                nameId = "Umum",
-                nameAr = "[FIXTURE-AR] Umum",
-                ownerType = OwnerType.PUBLIC,
-                pondokId = null,
-                visibility = Visibility.PUBLIC,
-                isDefault = true,
-            ),
-        )
-        approvalDao.insert(
-            ApprovalEntity(
-                id = "$FIXTURE_AMALIYAH_ID-approval",
-                approverName = "[FIXTURE]",
-                approverRole = "[FIXTURE]",
-                institutionName = null,
-                approvalDate = "2026-01-01",
-                approvalScope = "[FIXTURE]",
-                publicDocumentStorageKey = null,
-                documentReferenceNumber = null,
-                status = ApprovalStatus.APPROVED,
-            ),
-        )
-        amaliyahVersionDao.insert(
-            AmaliyahVersionEntity(
-                id = "$FIXTURE_AMALIYAH_ID-v1",
-                variantId = "$FIXTURE_AMALIYAH_ID-umum",
-                versionNumber = 1,
-                schemaVersion = 1,
-                status = AmaliyahVersionStatus.PUBLISHED,
+                version = 1,
+                order = 0,
+                isActive = true,
                 sourceName = "[FIXTURE]",
-                sourceReference = "[FIXTURE]",
-                approvalId = "$FIXTURE_AMALIYAH_ID-approval",
-                checksumSha256 = "test-fixture-checksum",
-                minimumAppVersionCode = 1,
-                publishedAt = "2026-01-01T00:00:00Z",
-                revokedAt = null,
+                sourceUrl = "https://example.invalid/fixture",
             ),
         )
-        amaliyahStepDao.insertAll(
+        contentStepDao.insertAll(
             listOf(
-                AmaliyahStepEntity(
-                    id = "$FIXTURE_AMALIYAH_ID-v1-step-1",
-                    versionId = "$FIXTURE_AMALIYAH_ID-v1",
+                ContentStepEntity(
+                    id = "$FIXTURE_CONTENT_ID-step-1",
+                    contentId = FIXTURE_CONTENT_ID,
                     position = 1,
-                    stepType = StepType.HEADING,
-                    titleId = FIXTURE_HEADING_TITLE,
-                    titleAr = null,
-                    arabicText = null,
-                    translationId = null,
-                    instructionId = null,
-                    instructionAr = null,
-                    repeatTarget = null,
-                    quranSurahNumber = null,
-                    quranAyahStart = null,
-                    quranAyahEnd = null,
-                    audioGroupId = null,
-                ),
-                AmaliyahStepEntity(
-                    id = "$FIXTURE_AMALIYAH_ID-v1-step-2",
-                    versionId = "$FIXTURE_AMALIYAH_ID-v1",
-                    position = 2,
-                    stepType = StepType.ARABIC_TEXT,
-                    titleId = null,
-                    titleAr = null,
                     arabicText = FIXTURE_ARABIC_TEXT,
-                    translationId = FIXTURE_TRANSLATION_TEXT,
-                    instructionId = null,
-                    instructionAr = null,
-                    repeatTarget = null,
-                    quranSurahNumber = null,
-                    quranAyahStart = null,
-                    quranAyahEnd = null,
-                    audioGroupId = null,
+                    translation = FIXTURE_TRANSLATION_TEXT,
+                    repeatTarget = 1,
                 ),
+            ),
+        )
+    }
+
+    private suspend fun seedEmptyFixtureIfMissing() {
+        if (contentDao.getById(EMPTY_FIXTURE_CONTENT_ID) != null) return
+
+        contentDao.upsert(
+            ContentEntity(
+                id = EMPTY_FIXTURE_CONTENT_ID,
+                title = EMPTY_FIXTURE_TITLE,
+                description = "[FIXTURE] Reader test fixture with no steps",
+                imageUrl = null,
+                category = "AMALIYAH",
+                version = 1,
+                order = 1,
+                isActive = true,
+                sourceName = "[FIXTURE]",
+                sourceUrl = "https://example.invalid/fixture",
             ),
         )
     }
 
     private companion object {
         const val SEED_IMPORT_TIMEOUT_MILLIS = 10_000L
-        const val FIXTURE_AMALIYAH_ID = "reader-test-fixture"
-        const val FIXTURE_SLUG = "reader-test-fixture"
+        const val FIXTURE_CONTENT_ID = "reader-test-fixture"
         const val FIXTURE_TITLE = "[TEST] Reader Fixture"
-        const val FIXTURE_HEADING_TITLE = "[TEST] Pembukaan"
         const val FIXTURE_ARABIC_TEXT = "[FIXTURE-AR] بِسْمِ اللَّهِ"
         const val FIXTURE_TRANSLATION_TEXT = "[FIXTURE] Terjemahan uji."
+        const val EMPTY_FIXTURE_CONTENT_ID = "reader-test-empty-fixture"
+        const val EMPTY_FIXTURE_TITLE = "[TEST] Empty Reader Fixture"
     }
 }

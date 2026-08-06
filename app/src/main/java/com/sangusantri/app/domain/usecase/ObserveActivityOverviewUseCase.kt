@@ -20,82 +20,82 @@ import javax.inject.Inject
  * (streak/weekly-window math) is exactly when `CODING_STANDARD.md` says a use case is warranted.
  */
 class ObserveActivityOverviewUseCase
-@Inject
-constructor(
-    private val activityRepository: ActivityRepository,
-    private val tasbihRepository: TasbihRepository,
-) {
-    operator fun invoke(zoneId: ZoneId = ZoneId.systemDefault()): Flow<ActivityOverview> =
-        combine(
-            activityRepository.observeCompletions(),
-            tasbihRepository.observeHistory(),
-        ) { completions, tasbihHistory ->
-            buildOverview(completions, tasbihHistory, zoneId)
+    @Inject
+    constructor(
+        private val activityRepository: ActivityRepository,
+        private val tasbihRepository: TasbihRepository,
+    ) {
+        operator fun invoke(zoneId: ZoneId = ZoneId.systemDefault()): Flow<ActivityOverview> =
+            combine(
+                activityRepository.observeCompletions(),
+                tasbihRepository.observeHistory(),
+            ) { completions, tasbihHistory ->
+                buildOverview(completions, tasbihHistory, zoneId)
+            }
+
+        private fun buildOverview(
+            completions: List<AmaliyahCompletionEvent>,
+            tasbihHistory: List<TasbihHistoryEntry>,
+            zoneId: ZoneId,
+        ): ActivityOverview {
+            val now = System.currentTimeMillis()
+            val activeDates =
+                (completions.map { it.completedAtEpochMillis } + tasbihHistory.map { it.endedAtEpochMillis })
+                    .mapTo(mutableSetOf()) { epochMillisToLocalDate(it, zoneId) }
+
+            val weekStart = now - MILLIS_PER_WEEK
+            val weeklyCompletions = completions.filter { it.completedAtEpochMillis >= weekStart }
+            val weeklyTasbih = tasbihHistory.filter { it.endedAtEpochMillis >= weekStart }
+            val weeklyDurationMillis =
+                weeklyCompletions.sumOf { it.durationMillis } +
+                    weeklyTasbih.sumOf { it.endedAtEpochMillis - it.startedAtEpochMillis }
+
+            return ActivityOverview(
+                currentStreakDays = calculateCurrentStreak(activeDates, epochMillisToLocalDate(now, zoneId)),
+                longestStreakDays = calculateLongestStreak(activeDates),
+                weeklyAmaliyahCompletedCount = weeklyCompletions.size,
+                weeklyTasbihSessionCount = weeklyTasbih.size,
+                weeklyTotalMinutes = weeklyDurationMillis / MILLIS_PER_MINUTE,
+                recentAmaliyahCompletions = completions.take(RECENT_LIMIT),
+                recentTasbihHistory = tasbihHistory.take(RECENT_LIMIT),
+            )
         }
 
-    private fun buildOverview(
-        completions: List<AmaliyahCompletionEvent>,
-        tasbihHistory: List<TasbihHistoryEntry>,
-        zoneId: ZoneId,
-    ): ActivityOverview {
-        val now = System.currentTimeMillis()
-        val activeDates =
-            (completions.map { it.completedAtEpochMillis } + tasbihHistory.map { it.endedAtEpochMillis })
-                .mapTo(mutableSetOf()) { epochMillisToLocalDate(it, zoneId) }
+        private fun epochMillisToLocalDate(
+            epochMillis: Long,
+            zoneId: ZoneId,
+        ): LocalDate = Instant.ofEpochMilli(epochMillis).atZone(zoneId).toLocalDate()
 
-        val weekStart = now - MILLIS_PER_WEEK
-        val weeklyCompletions = completions.filter { it.completedAtEpochMillis >= weekStart }
-        val weeklyTasbih = tasbihHistory.filter { it.endedAtEpochMillis >= weekStart }
-        val weeklyDurationMillis =
-            weeklyCompletions.sumOf { it.durationMillis } +
-                weeklyTasbih.sumOf { it.endedAtEpochMillis - it.startedAtEpochMillis }
-
-        return ActivityOverview(
-            currentStreakDays = calculateCurrentStreak(activeDates, epochMillisToLocalDate(now, zoneId)),
-            longestStreakDays = calculateLongestStreak(activeDates),
-            weeklyAmaliyahCompletedCount = weeklyCompletions.size,
-            weeklyTasbihSessionCount = weeklyTasbih.size,
-            weeklyTotalMinutes = weeklyDurationMillis / MILLIS_PER_MINUTE,
-            recentAmaliyahCompletions = completions.take(RECENT_LIMIT),
-            recentTasbihHistory = tasbihHistory.take(RECENT_LIMIT),
-        )
-    }
-
-    private fun epochMillisToLocalDate(
-        epochMillis: Long,
-        zoneId: ZoneId,
-    ): LocalDate = Instant.ofEpochMilli(epochMillis).atZone(zoneId).toLocalDate()
-
-    /** Counts backward from today (or yesterday, if nothing happened yet today) through consecutive active days. */
-    private fun calculateCurrentStreak(
-        activeDates: Set<LocalDate>,
-        today: LocalDate,
-    ): Int {
-        var cursor = if (activeDates.contains(today)) today else today.minusDays(1)
-        if (!activeDates.contains(cursor)) return 0
-        var streak = 0
-        while (activeDates.contains(cursor)) {
-            streak++
-            cursor = cursor.minusDays(1)
+        /** Counts backward from today (or yesterday, if nothing happened yet today) through consecutive active days. */
+        private fun calculateCurrentStreak(
+            activeDates: Set<LocalDate>,
+            today: LocalDate,
+        ): Int {
+            var cursor = if (activeDates.contains(today)) today else today.minusDays(1)
+            if (!activeDates.contains(cursor)) return 0
+            var streak = 0
+            while (activeDates.contains(cursor)) {
+                streak++
+                cursor = cursor.minusDays(1)
+            }
+            return streak
         }
-        return streak
-    }
 
-    private fun calculateLongestStreak(activeDates: Set<LocalDate>): Int {
-        if (activeDates.isEmpty()) return 0
-        val sortedDates = activeDates.sorted()
-        var longest = 1
-        var current = 1
-        for (index in 1 until sortedDates.size) {
-            current = if (sortedDates[index] == sortedDates[index - 1].plusDays(1)) current + 1 else 1
-            longest = maxOf(longest, current)
+        private fun calculateLongestStreak(activeDates: Set<LocalDate>): Int {
+            if (activeDates.isEmpty()) return 0
+            val sortedDates = activeDates.sorted()
+            var longest = 1
+            var current = 1
+            for (index in 1 until sortedDates.size) {
+                current = if (sortedDates[index] == sortedDates[index - 1].plusDays(1)) current + 1 else 1
+                longest = maxOf(longest, current)
+            }
+            return longest
         }
-        return longest
-    }
 
-    private companion object {
-        const val RECENT_LIMIT = 5
-        const val MILLIS_PER_MINUTE = 60_000L
-        const val MILLIS_PER_WEEK = 7L * 24 * 60 * 60 * 1000
+        private companion object {
+            const val RECENT_LIMIT = 5
+            const val MILLIS_PER_MINUTE = 60_000L
+            const val MILLIS_PER_WEEK = 7L * 24 * 60 * 60 * 1000
+        }
     }
-}

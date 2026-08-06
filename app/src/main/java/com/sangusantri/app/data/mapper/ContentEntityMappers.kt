@@ -1,95 +1,41 @@
 package com.sangusantri.app.data.mapper
 
-import com.sangusantri.app.data.local.entity.AmaliyahEntity
-import com.sangusantri.app.data.local.entity.AmaliyahStepEntity
-import com.sangusantri.app.data.local.entity.AmaliyahVariantEntity
-import com.sangusantri.app.data.local.entity.AmaliyahVersionEntity
-import com.sangusantri.app.data.local.entity.ApprovalEntity
+import com.sangusantri.app.data.local.entity.ContentEntity
+import com.sangusantri.app.data.local.entity.ContentStepEntity
 import com.sangusantri.app.data.local.entity.ReadingPositionEntity
-import com.sangusantri.app.domain.model.Amaliyah
-import com.sangusantri.app.domain.model.AmaliyahStep
-import com.sangusantri.app.domain.model.AmaliyahVariant
-import com.sangusantri.app.domain.model.AmaliyahVersion
-import com.sangusantri.app.domain.model.Approval
+import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.ReadingPosition
 
 /** Maps Room entities (data boundary) to plain domain models — the UI must never see entities directly. */
 
-fun AmaliyahEntity.toDomain(): Amaliyah =
-    Amaliyah(
+fun ContentEntity.toDomain(): Content =
+    Content(
         id = id,
-        slug = slug,
-        titleId = titleId,
-        titleAr = titleAr,
-        descriptionId = descriptionId,
-        descriptionAr = descriptionAr,
+        title = title,
+        description = description,
+        imageUrl = imageUrl,
         category = category,
-    )
-
-fun AmaliyahVariantEntity.toDomain(): AmaliyahVariant =
-    AmaliyahVariant(
-        id = id,
-        amaliyahId = amaliyahId,
-        slug = slug,
-        nameId = nameId,
-        nameAr = nameAr,
-        ownerType = ownerType,
-        pondokId = pondokId,
-        visibility = visibility,
-        isDefault = isDefault,
-    )
-
-fun ApprovalEntity.toDomain(): Approval =
-    Approval(
-        id = id,
-        approverName = approverName,
-        approverRole = approverRole,
-        institutionName = institutionName,
-        approvalDate = approvalDate,
-        approvalScope = approvalScope,
-        publicDocumentStorageKey = publicDocumentStorageKey,
-        documentReferenceNumber = documentReferenceNumber,
-        status = status,
-    )
-
-fun AmaliyahVersionEntity.toDomain(): AmaliyahVersion =
-    AmaliyahVersion(
-        id = id,
-        variantId = variantId,
-        versionNumber = versionNumber,
-        schemaVersion = schemaVersion,
-        status = status,
+        version = version,
+        order = order,
+        isActive = isActive,
         sourceName = sourceName,
-        sourceReference = sourceReference,
-        approvalId = approvalId,
-        checksumSha256 = checksumSha256,
-        minimumAppVersionCode = minimumAppVersionCode,
-        publishedAt = publishedAt,
-        revokedAt = revokedAt,
+        sourceUrl = sourceUrl,
     )
 
-fun AmaliyahStepEntity.toDomain(): AmaliyahStep =
-    AmaliyahStep(
+fun ContentStepEntity.toDomain(): ContentStep =
+    ContentStep(
         id = id,
-        versionId = versionId,
+        contentId = contentId,
         position = position,
-        stepType = stepType,
-        titleId = titleId,
-        titleAr = titleAr,
         arabicText = arabicText,
-        translationId = translationId,
-        instructionId = instructionId,
-        instructionAr = instructionAr,
+        translation = translation,
         repeatTarget = repeatTarget,
-        quranSurahNumber = quranSurahNumber,
-        quranAyahStart = quranAyahStart,
-        quranAyahEnd = quranAyahEnd,
-        audioGroupId = audioGroupId,
     )
 
 fun ReadingPositionEntity.toDomain(): ReadingPosition =
     ReadingPosition(
-        versionId = versionId,
+        contentId = contentId,
         itemIndex = itemIndex,
         itemOffset = itemOffset,
         lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
@@ -97,7 +43,7 @@ fun ReadingPositionEntity.toDomain(): ReadingPosition =
 
 fun ReadingPosition.toEntity(): ReadingPositionEntity =
     ReadingPositionEntity(
-        versionId = versionId,
+        contentId = contentId,
         itemIndex = itemIndex,
         itemOffset = itemOffset,
         lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,

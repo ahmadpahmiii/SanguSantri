@@ -1,6 +1,7 @@
 package com.sangusantri.app.di
 
 import com.sangusantri.app.BuildConfig
+import com.sangusantri.app.data.remote.ResponseSizeLimitInterceptor
 import com.sangusantri.app.data.remote.api.ContentApiService
 import dagger.Module
 import dagger.Provides
@@ -25,6 +26,7 @@ object NetworkModule {
             .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .addInterceptor(ResponseSizeLimitInterceptor())
             .build()
 
     @Provides

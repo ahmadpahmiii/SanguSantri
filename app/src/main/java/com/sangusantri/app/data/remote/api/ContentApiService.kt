@@ -1,23 +1,23 @@
 package com.sangusantri.app.data.remote.api
 
-import com.sangusantri.app.data.remote.dto.RemoteContentManifestDto
-import okhttp3.ResponseBody
+import com.sangusantri.app.data.content.dto.ContentCatalogDto
+import com.sangusantri.app.data.content.dto.ContentFileDto
 import retrofit2.Response
 import retrofit2.http.GET
-import retrofit2.http.Path
-import retrofit2.http.Streaming
+import retrofit2.http.Url
 
-/** Backend content API client (section 7). The manifest is checked at most once every 24 hours
- * (the sync scheduler's own gate), so no conditional-request header is needed. */
+/**
+ * Static Firebase Hosting content client (ADR 0015). The catalog is checked at most once every 24
+ * hours (the sync scheduler's own gate), so no conditional-request header is needed. Both
+ * endpoints serve static files, not a dynamic API — [getContent]'s `url` is the catalog item's own
+ * `contentUrl`, not a templated path, since a static host has no path-parameter routing.
+ */
 interface ContentApiService {
-    @GET("v1/content/manifest")
-    suspend fun getManifest(): Response<RemoteContentManifestDto>
+    @GET("content/catalog.json")
+    suspend fun getCatalog(): Response<ContentCatalogDto>
 
-    // Streamed rather than buffered whole: ContentSyncManager copies the body to a size-limited
-    // temporary file instead of assuming every package stays tiny forever.
-    @Streaming
-    @GET("v1/content/packages/{versionId}")
-    suspend fun getPackage(
-        @Path("versionId") versionId: String,
-    ): Response<ResponseBody>
+    @GET
+    suspend fun getContent(
+        @Url url: String,
+    ): Response<ContentFileDto>
 }

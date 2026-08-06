@@ -1,17 +1,18 @@
 package com.sangusantri.app.domain.repository
 
-import com.sangusantri.app.domain.model.Amaliyah
-import com.sangusantri.app.domain.model.AmaliyahVersionDetail
+import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.ContentDetail
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Read access to the local amaliyah catalogue. Room is the source of truth
+ * Read access to the local content catalogue. Room is the source of truth
  * (PRD 12.1) — implementations must never read from the network directly.
  */
 interface ContentRepository {
-    fun observeAmaliyah(): Flow<List<Amaliyah>>
+    /** Active catalog items only, ordered for Beranda display (ADR 0015). */
+    fun observeActiveContent(): Flow<List<Content>>
 
-    suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah?
+    suspend fun getContentById(contentId: String): Content?
 
-    suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail?
+    suspend fun getContentDetail(contentId: String): ContentDetail?
 }

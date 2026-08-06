@@ -11,10 +11,10 @@ advertising, subscription, or monetisation roadmap item, and none should be
 added without an explicit product decision. There is no standalone Quran
 feature, Quran Kemenag API integration, Quran Foundation API integration, or
 Quran audio planned. Tahlil and Istighosah may still contain Quran verses as
-part of their original reading text (`QURAN_AYAH` step type); those verses
-are entered as part of the approved amaliyah content itself, never fetched
-from a separate Quran API or service — see
-`docs/engineering/CONTENT_MODEL.md`.
+part of their original reading text (an ordinary reading step, ADR 0015 —
+there is no separate step type for this); those verses are entered as part
+of the approved amaliyah content itself, never fetched from a separate
+Quran API or service — see `docs/engineering/CONTENT_MODEL.md`.
 
 ## `0.0.1` — Core Reader Completion and Public Amaliyah Foundation (current)
 
@@ -30,16 +30,22 @@ still-`0.0.1`-scoped foundation:
   All/Favourite/Offline filters).
 * Continue reading, recently opened, local favourites — real persistence,
   offline-first.
-* Tahlil (59 steps), Istighosah (27 steps) — fixed local release-candidate
-  content, bundled offline in both debug and release builds.
+* Tahlil (37 reading steps), Istighosah (25 reading steps) — fixed local
+  release-candidate content, bundled offline in both debug and release
+  builds. (59/27 before ADR 0015's flat-schema migration dropped
+  section-heading markers — no reading content changed.)
 * Full reader, guided reader, with an in-reader action to switch between
   them without losing progress.
 * Contextual Full → Guided repetition shortcut (tap "Dibaca N kali · Buka
   Panduan →" to jump into Guided Reader at the same step).
 * Integrated repeated-reading counter.
-* Reader Settings and Table of Contents, both modal bottom sheets reached
-  from the reader overflow menu.
-* Source and compact `Approved by` status.
+* Reader Settings, a modal bottom sheet reached from the reader overflow
+  menu. (Table of Contents was also planned here but was removed by ADR
+  0015 — it depended on step-type/title data the flat schema no longer
+  has.)
+* Compact source attribution. (A compact `Approved by` status was also
+  planned here but was removed by ADR 0015 along with the on-device
+  approval object — see `docs/product/PRD.md` §6.5.)
 * Bundled offline content is mandatory and always shipped; optional
   24-hour-gated background remote sync against static content on Firebase
   Hosting refreshes it additively once that hosting is deployed, never

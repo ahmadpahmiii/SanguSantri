@@ -1,19 +1,14 @@
 package com.sangusantri.app.feature.reader
 
-import com.sangusantri.app.domain.model.Amaliyah
-import com.sangusantri.app.domain.model.AmaliyahStep
-import com.sangusantri.app.domain.model.AmaliyahVersion
-import com.sangusantri.app.domain.model.AmaliyahVersionDetail
-import com.sangusantri.app.domain.model.AmaliyahVersionStatus
-import com.sangusantri.app.domain.model.Approval
-import com.sangusantri.app.domain.model.ApprovalStatus
+import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.ContentDetail
+import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.model.StepProgress
-import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
@@ -60,7 +55,7 @@ class ReaderViewModelTest {
         }
 
     @Test
-    fun uiStateBecomesContentAvailableWhenPublishedVersionExists() =
+    fun uiStateBecomesContentAvailableWhenDetailExists() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = createViewModel()
             val jobs = subscribeToReaderState(viewModel)
@@ -69,7 +64,7 @@ class ReaderViewModelTest {
 
             val state = viewModel.uiState.value
             check(state is ReaderUiState.ContentAvailable)
-            assertEquals(version.id, state.versionId)
+            assertEquals(content.id, state.contentId)
             assertEquals(steps.size, state.steps.size)
             assertEquals(0, state.initialItemIndex)
             assertEquals(0, state.initialItemOffset)
@@ -77,10 +72,10 @@ class ReaderViewModelTest {
         }
 
     @Test
-    fun uiStateBecomesUnavailableWhenNoAmaliyahForSlug() =
+    fun uiStateBecomesUnavailableWhenNoDetailForId() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
-                createViewModel(contentRepository = FakeContentRepository(amaliyah = null, detail = detail))
+                createViewModel(contentRepository = FakeContentRepository(content = null, detail = null))
             val jobs = subscribeToReaderState(viewModel)
 
             advanceUntilIdle()
@@ -90,10 +85,13 @@ class ReaderViewModelTest {
         }
 
     @Test
-    fun uiStateBecomesUnavailableWhenNoPublishedVersion() =
+    fun uiStateBecomesUnavailableWhenDetailHasNoSteps() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
-                createViewModel(contentRepository = FakeContentRepository(amaliyah = tahlil, detail = null))
+                createViewModel(
+                    contentRepository =
+                        FakeContentRepository(content = content, detail = ContentDetail(content, emptyList())),
+                )
             val jobs = subscribeToReaderState(viewModel)
 
             advanceUntilIdle()
@@ -117,7 +115,7 @@ class ReaderViewModelTest {
     @Test
     fun retryReloadsContentAfterAnError() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(contentRepository = FlakyContentRepository(tahlil, detail))
+            val viewModel = createViewModel(contentRepository = FlakyContentRepository(detail))
             val jobs = subscribeToReaderState(viewModel)
 
             advanceUntilIdle()
@@ -133,7 +131,7 @@ class ReaderViewModelTest {
     @Test
     fun restoredPositionWithinBoundsIsUsed() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(version.id, 1, 120, 0))
+            val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(content.id, 1, 120, 0))
             val viewModel = createViewModel(readingPositionRepository = positionRepository)
             val jobs = subscribeToReaderState(viewModel)
 
@@ -149,7 +147,7 @@ class ReaderViewModelTest {
     @Test
     fun restoredPositionOutOfBoundsFallsBackToStart() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(version.id, 99, 500, 0))
+            val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(content.id, 99, 500, 0))
             val viewModel = createViewModel(readingPositionRepository = positionRepository)
             val jobs = subscribeToReaderState(viewModel)
 
@@ -229,12 +227,12 @@ class ReaderViewModelTest {
         }
 
     private fun createViewModel(
-        contentRepository: ContentRepository = FakeContentRepository(tahlil, detail),
+        contentRepository: ContentRepository = FakeContentRepository(content, detail),
         readingPositionRepository: ReadingPositionRepository = FakeReadingPositionRepository(),
         readerSettingsRepository: ReaderSettingsRepository = FakeReaderSettingsRepository(),
         guidedReadingRepository: GuidedReadingRepository = FakeGuidedReadingRepository(),
     ) = ReaderViewModel(
-        amaliyahSlug = "tahlil",
+        contentId = "tahlil",
         contentRepository = contentRepository,
         readingPositionRepository = readingPositionRepository,
         readerSettingsRepository = readerSettingsRepository,
@@ -242,123 +240,78 @@ class ReaderViewModelTest {
     )
 
     private companion object {
-        val tahlil =
-            Amaliyah(
+        val content =
+            Content(
                 id = "tahlil",
-                slug = "tahlil",
-                titleId = "Tahlil",
-                titleAr = "[FIXTURE-AR] Tahlil",
-                descriptionId = null,
-                descriptionAr = null,
-                category = "AMALIYAH",
-            )
-
-        val approval =
-            Approval(
-                id = "approval-1",
-                approverName = "[FIXTURE]",
-                approverRole = "[FIXTURE]",
-                institutionName = null,
-                approvalDate = "2026-01-01",
-                approvalScope = "[FIXTURE]",
-                publicDocumentStorageKey = null,
-                documentReferenceNumber = null,
-                status = ApprovalStatus.PENDING,
-            )
-
-        val version =
-            AmaliyahVersion(
-                id = "tahlil-umum-v1",
-                variantId = "tahlil-umum",
-                versionNumber = 1,
-                schemaVersion = 1,
-                status = AmaliyahVersionStatus.PUBLISHED,
+                title = "Tahlil",
+                description = "[FIXTURE] Tahlil",
+                imageUrl = null,
+                category = "Tahlil dan Doa",
+                version = 1,
+                order = 1,
+                isActive = true,
                 sourceName = "[FIXTURE]",
-                sourceReference = "[FIXTURE]",
-                approvalId = approval.id,
-                checksumSha256 = "abc",
-                minimumAppVersionCode = 1,
-                publishedAt = "2026-01-01T00:00:00Z",
-                revokedAt = null,
+                sourceUrl = "https://example.invalid/fixture",
             )
 
         val steps =
             listOf(
-                AmaliyahStep(
+                ContentStep(
                     id = "step-1",
-                    versionId = version.id,
+                    contentId = content.id,
                     position = 1,
-                    stepType = StepType.HEADING,
-                    titleId = "Pembukaan",
-                    titleAr = null,
-                    arabicText = null,
-                    translationId = null,
-                    instructionId = null,
-                    instructionAr = null,
-                    repeatTarget = null,
-                    quranSurahNumber = null,
-                    quranAyahStart = null,
-                    quranAyahEnd = null,
-                    audioGroupId = null,
-                ),
-                AmaliyahStep(
-                    id = "step-2",
-                    versionId = version.id,
-                    position = 2,
-                    stepType = StepType.ARABIC_TEXT,
-                    titleId = null,
-                    titleAr = null,
                     arabicText = "[FIXTURE-AR]",
-                    translationId = "[FIXTURE]",
-                    instructionId = null,
-                    instructionAr = null,
-                    repeatTarget = null,
-                    quranSurahNumber = null,
-                    quranAyahStart = null,
-                    quranAyahEnd = null,
-                    audioGroupId = null,
+                    translation = "[FIXTURE]",
+                    repeatTarget = 1,
+                ),
+                ContentStep(
+                    id = "step-2",
+                    contentId = content.id,
+                    position = 2,
+                    arabicText = "[FIXTURE-AR]",
+                    translation = "[FIXTURE]",
+                    repeatTarget = 1,
                 ),
             )
 
-        val detail = AmaliyahVersionDetail(version = version, approval = approval, steps = steps)
+        val detail = ContentDetail(content = content, steps = steps)
     }
 }
 
 private class FakeContentRepository(
-    private val amaliyah: Amaliyah?,
-    private val detail: AmaliyahVersionDetail?,
+    private val content: Content?,
+    private val detail: ContentDetail?,
 ) : ContentRepository {
-    override fun observeAmaliyah(): Flow<List<Amaliyah>> = flowOf(emptyList())
+    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
-    override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? = amaliyah
+    override suspend fun getContentById(contentId: String): Content? = content
 
-    override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? = detail
+    override suspend fun getContentDetail(contentId: String): ContentDetail? = detail
 }
 
 private class ThrowingContentRepository : ContentRepository {
-    override fun observeAmaliyah(): Flow<List<Amaliyah>> = flowOf(emptyList())
+    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
-    override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? = error("boom")
+    override suspend fun getContentById(contentId: String): Content? = error("boom")
 
-    override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? = error("boom")
+    override suspend fun getContentDetail(contentId: String): ContentDetail? = error("boom")
 }
 
 /** Fails the first load, then succeeds on retry — used to test [ReaderUiAction.Retry]. */
 private class FlakyContentRepository(
-    private val amaliyah: Amaliyah,
-    private val detail: AmaliyahVersionDetail,
+    private val detail: ContentDetail,
 ) : ContentRepository {
     private var attempt = 0
 
-    override fun observeAmaliyah(): Flow<List<Amaliyah>> = flowOf(emptyList())
+    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
-    override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? {
+    override suspend fun getContentById(contentId: String): Content? = detail.content
+
+    override suspend fun getContentDetail(contentId: String): ContentDetail? {
         attempt++
         if (attempt == 1) error("boom")
-        return amaliyah
+        return detail
     }
-
-    override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? = detail
 }
 
 private class FakeReadingPositionRepository(
@@ -367,7 +320,7 @@ private class FakeReadingPositionRepository(
     private var stored: ReadingPosition? = initial
     val savedPositions = mutableListOf<ReadingPosition>()
 
-    override suspend fun getPosition(versionId: String): ReadingPosition? = stored
+    override suspend fun getPosition(contentId: String): ReadingPosition? = stored
 
     override suspend fun savePosition(position: ReadingPosition) {
         stored = position
@@ -414,15 +367,15 @@ private class FakeGuidedReadingRepository : GuidedReadingRepository {
     private val sessions = mutableMapOf<String, GuidedReadingSession>()
     private val progress = mutableMapOf<String, MutableList<StepProgress>>()
 
-    override suspend fun getSession(versionId: String): GuidedReadingSession? = sessions[versionId]
+    override suspend fun getSession(contentId: String): GuidedReadingSession? = sessions[contentId]
 
     override suspend fun saveSession(session: GuidedReadingSession) {
-        sessions[session.versionId] = session
+        sessions[session.contentId] = session
     }
 
-    override suspend fun getStepProgress(versionId: String): List<StepProgress> = progress[versionId].orEmpty()
+    override suspend fun getStepProgress(contentId: String): List<StepProgress> = progress[contentId].orEmpty()
 
     override suspend fun saveStepProgress(progress: StepProgress) {
-        this.progress.getOrPut(progress.versionId) { mutableListOf() }.add(progress)
+        this.progress.getOrPut(progress.contentId) { mutableListOf() }.add(progress)
     }
 }

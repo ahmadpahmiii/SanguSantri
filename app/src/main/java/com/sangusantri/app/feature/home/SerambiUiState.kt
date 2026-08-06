@@ -1,12 +1,12 @@
 package com.sangusantri.app.feature.home
 
-import com.sangusantri.app.domain.model.Amaliyah
+import com.sangusantri.app.domain.model.Content
 
-/** Serambi screen state. [Content] with an empty list is a valid state (nothing seeded yet). */
+/** Beranda screen state. [Loaded] with an empty list is a valid state (nothing synced yet). */
 sealed interface SerambiUiState {
     data object Loading : SerambiUiState
 
-    data class Content(
-        val amaliyah: List<Amaliyah>,
+    data class Loaded(
+        val items: List<Content>,
     ) : SerambiUiState
 }

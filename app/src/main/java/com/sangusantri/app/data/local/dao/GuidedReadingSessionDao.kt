@@ -10,9 +10,17 @@ interface GuidedReadingSessionDao {
     @Upsert
     suspend fun upsert(entity: GuidedReadingSessionEntity)
 
-    @Query("SELECT * FROM guided_reading_sessions WHERE versionId = :versionId")
-    suspend fun getByVersionId(versionId: String): GuidedReadingSessionEntity?
+    @Query("SELECT * FROM guided_reading_sessions WHERE contentId = :contentId")
+    suspend fun getByContentId(contentId: String): GuidedReadingSessionEntity?
 
-    @Query("DELETE FROM guided_reading_sessions WHERE versionId = :versionId")
-    suspend fun deleteByVersionId(versionId: String)
+    @Query("DELETE FROM guided_reading_sessions WHERE contentId = :contentId")
+    suspend fun deleteByContentId(contentId: String)
+
+    @Query(
+        "DELETE FROM guided_reading_sessions WHERE contentId = :contentId AND currentStepId NOT IN (:survivingStepIds)",
+    )
+    suspend fun deleteIfCurrentStepMissing(
+        contentId: String,
+        survivingStepIds: List<String>,
+    )
 }

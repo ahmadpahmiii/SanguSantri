@@ -34,9 +34,10 @@ fun ActivityRow(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = SanguSantriSpacing.small),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = SanguSantriSpacing.small),
             horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
             verticalAlignment = Alignment.CenterVertically,
         ) {

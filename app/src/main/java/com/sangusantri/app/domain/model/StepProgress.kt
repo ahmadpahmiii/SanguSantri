@@ -1,8 +1,8 @@
 package com.sangusantri.app.domain.model
 
-/** The interactive tasbih counter's current value for one step of one content version (FR-006). */
+/** The interactive tasbih counter's current value for one step of one [Content] item (FR-006). */
 data class StepProgress(
-    val versionId: String,
+    val contentId: String,
     val stepId: String,
     val currentCount: Int,
     val updatedAtEpochMillis: Long,

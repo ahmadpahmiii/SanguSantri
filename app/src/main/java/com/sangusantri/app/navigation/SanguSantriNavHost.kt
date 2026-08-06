@@ -62,22 +62,22 @@ private data object Tasbih : NavKey
 @Serializable
 private data object TasbihHistory : NavKey
 
-/** The reading-mode gate (PRD 8.2) — stable identifier only (the amaliyah slug), per FR-002/FR-003. */
+/** The reading-mode gate (PRD 8.2) — stable identifier only (the catalog content id, ADR 0015), per FR-002/FR-003. */
 @Serializable
-private data class AmaliyahDetail(
-    val slug: String,
+private data class ReaderGate(
+    val contentId: String,
 ) : NavKey
 
 /** The Milestone 3 Full Reader (Bacaan Lengkap). */
 @Serializable
 private data class FullReader(
-    val slug: String,
+    val contentId: String,
 ) : NavKey
 
 /** The Milestone 4 Guided Reader (Panduan). */
 @Serializable
 private data class GuidedReader(
-    val slug: String,
+    val contentId: String,
 ) : NavKey
 
 @Serializable
@@ -93,7 +93,7 @@ private data object About : NavKey
  * `0.0.5`, superseding `docs/design/DESIGN_SYSTEM.md`'s previously documented adaptive-rail plan).
  * [TopLevelBackStack] gives Beranda, Aktivitas, and Tasbih each their own back stack so switching
  * tabs never duplicates a [NavKey] and neither tab's state is lost.
- * [Serambi] is the initial destination; [AmaliyahDetail] is the Milestone 4 reading-mode gate,
+ * [Serambi] is the initial destination; [ReaderGate] is the Milestone 4 reading-mode gate,
  * which resolves into either [FullReader] (Milestone 3) or [GuidedReader] (Milestone 4) — the gate
  * entry is replaced (not pushed under) by the resolved reader, so back from either reader returns
  * to Beranda, not the gate.
@@ -163,7 +163,7 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
     entryProvider {
         entry<Serambi> {
             SerambiRoute(
-                onAmaliyahSelected = { slug -> topLevelBackStack.add(AmaliyahDetail(slug)) },
+                onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
                 onSetelanClick = { topLevelBackStack.add(Setelan) },
                 onAboutClick = { topLevelBackStack.add(About) },
             )
@@ -175,25 +175,29 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
         entry<TasbihHistory> {
             TasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
         }
-        entry<AmaliyahDetail> { key ->
+        entry<ReaderGate> { key ->
             ReaderEntryRoute(
-                amaliyahSlug = key.slug,
+                contentId = key.contentId,
                 onBack = { topLevelBackStack.removeLast() },
-                onModeResolved = { mode -> replaceTopEntryWithReader(topLevelBackStack, key.slug, mode) },
+                onModeResolved = { mode -> replaceTopEntryWithReader(topLevelBackStack, key.contentId, mode) },
             )
         }
         entry<FullReader> { key ->
             ReaderRoute(
-                amaliyahSlug = key.slug,
+                contentId = key.contentId,
                 onBack = { topLevelBackStack.removeLast() },
-                onSwitchToGuided = { replaceTopEntryWithReader(topLevelBackStack, key.slug, ReaderMode.GUIDED) },
+                onSwitchToGuided = {
+                    replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.GUIDED)
+                },
             )
         }
         entry<GuidedReader> { key ->
             GuidedReaderRoute(
-                amaliyahSlug = key.slug,
+                contentId = key.contentId,
                 onBack = { topLevelBackStack.removeLast() },
-                onSwitchToFull = { replaceTopEntryWithReader(topLevelBackStack, key.slug, ReaderMode.FULL) },
+                onSwitchToFull = {
+                    replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.FULL)
+                },
             )
         }
         entry<Setelan> {
@@ -228,20 +232,20 @@ private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLev
 
 /**
  * Pops the current tab's top entry and pushes the given reader in its place — used both for the
- * Milestone 4 mode gate (resolving [AmaliyahDetail] into a reader) and the Milestone 5 in-reader
+ * Milestone 4 mode gate (resolving [ReaderGate] into a reader) and the Milestone 5 in-reader
  * mode switch (replacing [FullReader] with [GuidedReader] or vice versa, FR-016). Popping first
  * means repeated switching never accumulates duplicate backstack entries, and back navigation from
  * either reader always lands on [Serambi], never on a stale gate or the previous reader mode.
  */
 private fun replaceTopEntryWithReader(
     topLevelBackStack: TopLevelBackStack,
-    slug: String,
+    contentId: String,
     mode: ReaderMode,
 ) {
     topLevelBackStack.replaceLast(
         when (mode) {
-            ReaderMode.FULL -> FullReader(slug)
-            ReaderMode.GUIDED -> GuidedReader(slug)
+            ReaderMode.FULL -> FullReader(contentId)
+            ReaderMode.GUIDED -> GuidedReader(contentId)
         },
     )
 }

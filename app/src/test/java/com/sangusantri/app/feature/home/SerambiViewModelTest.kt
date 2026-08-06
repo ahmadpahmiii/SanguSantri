@@ -1,7 +1,7 @@
 package com.sangusantri.app.feature.home
 
-import com.sangusantri.app.domain.model.Amaliyah
-import com.sangusantri.app.domain.model.AmaliyahVersionDetail
+import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.repository.ContentRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -28,7 +28,7 @@ class SerambiViewModelTest {
         }
 
     @Test
-    fun uiStateBecomesContentWithRepositoryAmaliyah() =
+    fun uiStateBecomesLoadedWithRepositoryContent() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = SerambiViewModel(FakeContentRepository(flowOf(listOf(tahlil, istighosah))))
 
@@ -37,11 +37,11 @@ class SerambiViewModelTest {
             advanceUntilIdle()
             job.cancel()
 
-            assertEquals(SerambiUiState.Content(listOf(tahlil, istighosah)), collected.last())
+            assertEquals(SerambiUiState.Loaded(listOf(tahlil, istighosah)), collected.last())
         }
 
     @Test
-    fun emptyCatalogueIsContentWithEmptyListNotLoading() =
+    fun emptyCatalogueIsLoadedWithEmptyListNotLoading() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = SerambiViewModel(FakeContentRepository(flowOf(emptyList())))
 
@@ -50,30 +50,33 @@ class SerambiViewModelTest {
             advanceUntilIdle()
             job.cancel()
 
-            assertEquals(SerambiUiState.Content(emptyList()), collected.last())
+            assertEquals(SerambiUiState.Loaded(emptyList()), collected.last())
         }
 
     private companion object {
         val tahlil =
-            Amaliyah(
+            Content(
                 id = "tahlil",
-                slug = "tahlil",
-                titleId = "Tahlil",
-                titleAr = "[FIXTURE-AR] Tahlil",
-                descriptionId = "FIXTURE PENGEMBANGAN",
-                descriptionAr = null,
-                category = "AMALIYAH",
+                title = "Tahlil",
+                description = "[FIXTURE] Tahlil",
+                imageUrl = null,
+                category = "Tahlil dan Doa",
+                version = 1,
+                order = 1,
+                isActive = true,
+                sourceName = "[FIXTURE]",
+                sourceUrl = "https://example.invalid/fixture",
             )
-        val istighosah = tahlil.copy(id = "istighosah", slug = "istighosah", titleId = "Istighosah")
+        val istighosah = tahlil.copy(id = "istighosah", title = "Istighosah")
     }
 }
 
 private class FakeContentRepository(
-    private val amaliyah: Flow<List<Amaliyah>>,
+    private val content: Flow<List<Content>>,
 ) : ContentRepository {
-    override fun observeAmaliyah(): Flow<List<Amaliyah>> = amaliyah
+    override fun observeActiveContent(): Flow<List<Content>> = content
 
-    override suspend fun getAmaliyahBySlug(amaliyahSlug: String): Amaliyah? = null
+    override suspend fun getContentById(contentId: String): Content? = null
 
-    override suspend fun getDefaultVersionDetail(amaliyahSlug: String): AmaliyahVersionDetail? = null
+    override suspend fun getContentDetail(contentId: String): ContentDetail? = null
 }

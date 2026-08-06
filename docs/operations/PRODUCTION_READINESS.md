@@ -33,10 +33,14 @@ Release `0.0.1` is complete only when:
 * Android retains only the current active content version per variant, not
   previous versions (FR-011, ADR 0012) — `content-hosting/`'s git history
   keeps immutable history instead (ADR 0014). Remote content
-  synchronisation (FR-010) is implemented and ships in `0.0.1`; a real
-  Firebase Hosting deployment is not yet a release blocker since the app
-  runs fully functional on bundled content alone until one is configured
-  (`SANGU_CONTENT_API_BASE_URL`).
+  synchronisation (FR-010) is implemented and ships in `0.0.1`. The
+  Firebase Hosting deployment is **live** (`sangusantri-81cc6`,
+  `https://sangusantri-81cc6.web.app/`) and `SANGU_CONTENT_API_BASE_URL` is
+  configured (`gradle.properties`) — verified end-to-end on a real device:
+  a fresh install's opportunistic sync fetched the live catalog and content
+  files and recorded `content_last_sync = SUCCESS` in `app_metadata`. The
+  app still runs fully functional on bundled content alone if the network
+  or host is ever unavailable — remote sync is additive, never required.
 * Android tests pass (including the sync/importer test suite); a clean
   checkout builds successfully. No backend service exists, and none is
   planned (ADR 0014) — only static-file validation applies, not

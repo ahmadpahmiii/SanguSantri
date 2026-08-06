@@ -3325,3 +3325,67 @@ end-to-end) — or proceed directly to Release `0.0.4` (Phase E — Pengingat
 Amaliyah) per `docs/design/FIGMA_HANDOFF.md`'s implementation order, treating
 the Firebase deployment as a parallel workstream, consistent with how ADR
 0012's Android-side sync client was originally built ahead of its backend.
+
+## Firebase Hosting deployment (2026-08-06)
+
+**Status:** Complete and verified end-to-end on a real device. Not a
+numbered milestone — infrastructure/config only, no Kotlin source changed.
+
+**Scope:** The natural next step this session's own prior entry
+recommended: deploy `content-hosting/public/` to the already-provisioned
+`sangusantri-81cc6` Firebase project's default Hosting site, and repoint
+`SANGU_CONTENT_API_BASE_URL` at the real URL so the already-implemented
+Android sync client (ADR 0012/0014/0015) is observably functional, not just
+tested against MockWebServer.
+
+### What shipped
+
+* `node content-hosting/scripts/validate-content.mjs` run once more
+  immediately before deploying (still passing) as a pre-deploy gate, then
+  `firebase deploy --only hosting --project sangusantri-81cc6` from
+  `content-hosting/`. Live at `https://sangusantri-81cc6.web.app/`.
+  Verified via `curl`: `content/catalog.json` and both
+  `content/packages/*.json` return `200` with the expected
+  `Cache-Control: public, max-age=300` header from `firebase.json`, and
+  body content matches the committed files exactly.
+* `gradle.properties`: added `SANGU_CONTENT_API_BASE_URL=
+  https://sangusantri-81cc6.web.app/` — not a secret (a public static-CDN
+  URL), and exactly the mechanism `docs/engineering/ARCHITECTURE.md`
+  already documented as sufficient ("no code change" — confirmed by
+  rebuilding and inspecting the generated `BuildConfig.CONTENT_API_BASE_URL`,
+  which now reads the real URL instead of the `.invalid` placeholder).
+* `docs/operations/PRODUCTION_READINESS.md` updated: the "Firebase Hosting
+  deployment is not yet a release blocker... until one is configured" gap
+  is now closed and described as verified, not just theoretically wired.
+
+### Manual verification (Pixel_9 emulator, Android 15/API 35)
+
+Fresh install (`pm clear` + reinstall) launched; `ContentSyncScheduler.
+enqueueIfStale()` enqueued `ContentSyncWorker` immediately (no prior sync
+recorded). `logcat` showed `WM-WorkerWrapper: Worker result SUCCESS` for
+`ContentSyncWorker`, with zero `ContentSyncManager` warning/error log lines
+(every failure path in that class logs one). Pulled `sangusantri.db`
+(+ `-wal`/`-shm`, since Room's WAL journal means the plain `.db` file alone
+is stale) off the device and queried `app_metadata` directly:
+`content_last_sync = SUCCESS`, confirming `ContentSyncManager.sync()`
+actually completed a real `SyncResult.Completed` against the live
+deployment, not merely that the worker didn't crash (`Result.success()` is
+also returned on some failure paths, so the worker-result log alone would
+not have been conclusive).
+
+### Known limitations
+
+* Only the default catalog/two content packages were deployed — this
+  exercises the "no update available" and general fetch path, not a
+  genuine version-bump/replace scenario against the live host (that was
+  already covered against MockWebServer in `ContentSyncManagerTest`).
+* No CI pipeline deploys `content-hosting/` automatically on merge —
+  today's deploy was a manual, one-time `firebase deploy` from this
+  session. `docs/engineering/MCP_TOOLING.md`'s CI-tooling boundary is
+  unaffected (this was a direct Firebase CLI deploy, not a code or
+  Gradle-dependency change).
+
+### Next recommended milestone
+
+Release `0.0.4` (Phase E — Pengingat Amaliyah), per
+`docs/design/FIGMA_HANDOFF.md`'s implementation order.

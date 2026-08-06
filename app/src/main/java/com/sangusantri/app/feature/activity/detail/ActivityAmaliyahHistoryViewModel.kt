@@ -16,29 +16,29 @@ import javax.inject.Inject
 /** "Lihat semua" for Aktivitas' (0.0.3) amaliyah-completion history — full list, filterable, no cap. */
 @HiltViewModel
 class ActivityAmaliyahHistoryViewModel
-@Inject
-constructor(
-    activityRepository: ActivityRepository,
-) : ViewModel() {
-    private val filter = MutableStateFlow(TimeRangeFilter.ALL)
+    @Inject
+    constructor(
+        activityRepository: ActivityRepository,
+    ) : ViewModel() {
+        private val filter = MutableStateFlow(TimeRangeFilter.ALL)
 
-    val uiState: StateFlow<ActivityAmaliyahHistoryUiState> =
-        combine(activityRepository.observeCompletions(), filter) { events, range ->
-            ActivityAmaliyahHistoryUiState(
-                filter = range,
-                events = events.filterByTimeRange(range, System.currentTimeMillis()) { it.completedAtEpochMillis },
+        val uiState: StateFlow<ActivityAmaliyahHistoryUiState> =
+            combine(activityRepository.observeCompletions(), filter) { events, range ->
+                ActivityAmaliyahHistoryUiState(
+                    filter = range,
+                    events = events.filterByTimeRange(range, System.currentTimeMillis()) { it.completedAtEpochMillis },
+                )
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                initialValue = ActivityAmaliyahHistoryUiState(),
             )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-            initialValue = ActivityAmaliyahHistoryUiState(),
-        )
 
-    fun onFilterSelected(range: TimeRangeFilter) {
-        filter.value = range
-    }
+        fun onFilterSelected(range: TimeRangeFilter) {
+            filter.value = range
+        }
 
-    private companion object {
-        const val STOP_TIMEOUT_MILLIS = 5_000L
+        private companion object {
+            const val STOP_TIMEOUT_MILLIS = 5_000L
+        }
     }
-}

@@ -291,7 +291,9 @@ Release `0.0.1` includes:
     between Bacaan Lengkap and Panduan without losing progress (§8.4a).
 19. A Full Reader repetition shortcut into Guided Reader at the same step
     (§8.4b, FR-018).
-20. A reader Table of Contents bottom sheet (§8.4c, FR-017).
+20. ~~A reader Table of Contents bottom sheet (§8.4c, FR-017).~~ **Removed**
+    by ADR 0015: it derived sections from `HEADING` steps, and the flat
+    step schema has no step-type/title field left to derive them from.
 21. Reader appearance settings, presented as a modal bottom sheet.
 22. Local favourites and recently-opened amaliyah, with real persistence
     (FR-021).
@@ -308,8 +310,8 @@ Release `0.0.1` includes:
     replaces a variant's active content version when a newer one is
     published, and never degrades, blocks, or replaces the offline
     experience when unavailable.
-27. A compact "Approved by" status for every amaliyah, sourced from
-    structured content metadata (§6.5).
+27. ~~A compact "Approved by" status for every amaliyah~~ **Removed** by
+    ADR 0015 — see §6.5; compact source attribution (§6.5) remains.
 28. Portrait and landscape support.
 29. Phone and tablet support, with adaptive navigation (§7.1).
 30. Edge-to-edge layout.
@@ -361,12 +363,12 @@ Release `0.0.1` does not include:
   content-synchronisation client against that static contract (FR-010) —
   see §5.1 item 26. The Android app remains fully usable offline
   regardless of whether the hosted content has been deployed yet.
-* A full pentashihan (content-approval) workflow, checksum display, raw
-  approval documents, internal reviewer identity, or other detailed
-  content-governance data inside the normal app UI. Users see only compact
-  source attribution and, when it exists, a compact `Approved by` status
-  (§6.5); the underlying editorial workflow remains an internal,
-  non-user-facing operation (`docs/operations/CONTENT_GOVERNANCE.md`).
+* A full pentashihan (content-approval) workflow, raw approval documents,
+  internal reviewer identity, or other detailed content-governance data
+  inside the normal app UI. Users see only compact source attribution
+  (§6.5) — there is no on-device `Approved by` display as of ADR 0015; the
+  underlying editorial workflow remains an internal, non-user-facing
+  operation (`docs/operations/CONTENT_GOVERNANCE.md`).
 
 The data model may support future variants, but the `0.0.1` interface
 exposes only one default general variant for each amaliyah.
@@ -454,25 +456,39 @@ translation, and audio licensing must be verified separately.
 
 There is no standalone Quran feature, no Quran Kemenag API integration, no
 Quran Foundation API integration, and no Quran audio in the current or
-planned roadmap. A `QURAN_AYAH` step (§10) exists only to represent a verse
-that is already part of an amaliyah's own reading text (for example, Al-
-Fatihah inside Tahlil); its text is entered and versioned as part of that
-amaliyah's approved content package, the same as any other step, never
-fetched from a separate Quran API or service at runtime.
+planned roadmap. A Quran verse appearing inside an amaliyah's own reading
+text (for example, Al-Fatihah inside Tahlil) is entered and versioned as an
+ordinary reading step (§10) — ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)
+removed the separate `QURAN_AYAH` step type and its surah/ayah reference
+fields; the verse's Arabic text and translation are the same as any other
+step's, never fetched from a separate Quran API or service at runtime.
 
 ## 6.5 Source, publication, and approval (user-facing, compact)
 
-Five concepts stay distinct in both the data model and the UI — never
-collapsed into one another:
+Five concepts stay distinct at the process/documentation level — never
+collapsed into one another, even though (per ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)) only
+the first two have an on-device data structure any more:
 
-* **Publication status** — whether the app can display a version at all
-  (`AmaliyahVersionStatus`, `docs/engineering/CONTENT_MODEL.md`).
-* **Source verification** — the identified public source a package was
-  transcribed from (`sourceName`/`sourceReference`).
+* **Publication status** — whether the app can display a content item at
+  all. Represented on-device only by `Content.isActive` (`docs/
+  engineering/CONTENT_MODEL.md`) — there is no separate `DRAFT`/`PUBLISHED`/
+  `REVOKED` status enum; an item not yet accepted for publication simply
+  is not in the deployed catalog (or lives under `app/src/debug/assets/
+  content/`, never `main/`, until it is accepted).
+* **Source verification** — the identified public source a content item
+  was transcribed from (`sourceName`/`sourceUrl`, still on-device).
 * **Internal editorial acceptance** — the product owner's decision to
-  publish a standard public amaliyah package (§3.1).
+  publish a standard public amaliyah item (§3.1). Recorded in
+  `docs/operations/CONTENT_GOVERNANCE.md` and commit history, not on-device.
 * **Religious-authority approval** — a kyai/sesepuh/qualified reviewer's
-  sign-off, mandatory only for higher-risk content (§3.1).
+  sign-off, mandatory only for higher-risk content (§3.1). Recorded the
+  same way — in governance documentation/commit history, not as an
+  on-device object. ADR 0015 removed the on-device `Approval` entity and
+  its status field entirely, since neither published item (Tahlil,
+  Istighosah) has ever had one and the app never rendered an "Approved by"
+  line for either.
 * **Institutional endorsement** — a source publisher's (e.g. NU/PBNU)
   endorsement of SanguSantri itself, which does not exist and must never be
   implied.
@@ -487,39 +503,28 @@ NU Online
 
 It never shows `Approved by NU Online` or any other implied institutional
 endorsement — the source publisher has not approved or endorsed
-SanguSantri. Separately, the UI shows a compact `Approved by` line only
-when real religious-authority approval metadata exists:
-
-```text
-Approved by
-<real reviewer name or institution>
-```
+SanguSantri. The app does **not** show a separate `Approved by` line at
+all as of ADR 0015 — there is no on-device field to source it from, and
+showing one truthfully would require reintroducing that data structure the
+moment a real kyai/sesepuh sign-off needs to be surfaced to users (a future,
+explicitly-requested product decision, not assumed here).
 
 Rules:
 
 * Source attribution (publisher/source name) is always shown for every
-  amaliyah, sourced from structured content metadata, never invented.
-* `Approved by` is shown only when a content version's approval metadata is
-  genuinely valid (status `APPROVED` with a real approver name) — this
-  field is optional for standard public amaliyah (§3.1) and does not block
-  publication.
+  content item, sourced from structured content metadata, never invented.
 * Release builds never show `DRAFT`, `PENDING`, or other internal
-  engineering status wording. Development builds may show a neutral
-  internal marker such as "Baseline rilis internal" when no
-  religious-authority approval has been recorded yet — never an alarming
-  or unprofessional string.
-* An optional future detail action may show approval evidence (e.g. a
-  signed letter or approval sheet reference) once it exists. Not required
-  for `0.0.1`; does not include document upload, PDF viewing, or a CMS.
-* Approval, when present, verifies the accuracy of the specified content
-  version only — never institutional endorsement of the entire
-  SanguSantri application unless such endorsement exists in writing.
+  engineering status wording anywhere.
+* Religious-authority approval, editorial acceptance, and institutional
+  endorsement remain distinct concepts in governance process and
+  documentation even though only source attribution is currently rendered
+  in-app — never imply one from another in future UI work either.
 
-Full internal approval record fields (approver role, institution, approval
-date, document reference number, internal reviewer name, checksum) remain
-part of the structured content model for internal/content-operations use —
-see `docs/engineering/CONTENT_MODEL.md` — but are not required to appear in
-the normal app UI.
+Full content-governance record-keeping (approver role, institution,
+approval date, document reference number, internal reviewer name) lives in
+`docs/operations/CONTENT_GOVERNANCE.md` and commit/PR history for
+internal/content-operations use — it is not part of the on-device content
+model or the normal app UI (ADR 0015).
 
 ## 6.6 Approval document privacy
 
@@ -530,19 +535,23 @@ the reader. Full editorial, approval, and revocation process:
 
 ## 6.7 Public content baseline
 
-Release `0.0.1`'s bundled Tahlil (59 ordered steps) and Istighosah (27
-ordered steps) are the product owner's accepted, published `0.0.1` content
-baseline (§3.1, standard public amaliyah path) — loaded through the
-existing canonical content model in both debug and release builds, fully
-offline. They are not reparsed or rewritten during normal Android builds;
-the developer-only `tools/content-importer/` remains available as a
-separate tool for preparing future content updates, never invoked at
-runtime. Neither package carries kyai/sesepuh religious-authority approval
-today (that field remains optional for this content category); neither may
-ever be presented as carrying such approval or as endorsed by NU/PBNU/Quran
-NU Online unless that genuinely exists in writing — see
-`docs/operations/CONTENT_GOVERNANCE.md` for the acceptance process actually
-followed.
+Release `0.0.1`'s bundled Tahlil (37 ordered reading steps) and Istighosah
+(25 ordered reading steps) are the product owner's accepted, published
+`0.0.1` content baseline (§3.1, standard public amaliyah path) — loaded
+through the existing canonical content model in both debug and release
+builds, fully offline. (Step counts were 59 and 27 respectively before ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)'s
+migration to the flat step schema dropped section-heading-only steps — no
+reading content changed; see `docs/content-schema.md` §Content safety.)
+They are not reparsed or rewritten during normal Android builds; the
+developer-only `tools/content-importer/` remains available as a separate
+tool for preparing future content updates, never invoked at runtime.
+Neither package carries kyai/sesepuh religious-authority approval today
+(that remains optional for this content category, and is no longer an
+on-device field at all — see §6.5); neither may ever be presented as
+carrying such approval or as endorsed by NU/PBNU/Quran NU Online unless
+that genuinely exists in writing — see `docs/operations/
+CONTENT_GOVERNANCE.md` for the acceptance process actually followed.
 
 ---
 
@@ -553,11 +562,12 @@ followed.
 Release `0.0.1` uses the following destinations: Bootstrap, Beranda,
 Jelajahi Amaliyah, Reader mode selection, Amaliyah reader (Bacaan Lengkap
 or Panduan, switchable in-place — §8.4a), Reader settings (a bottom sheet
-reached from the reader's overflow menu, not a separate destination),
-Reader Table of Contents (a bottom sheet, §8.4c), About SanguSantri.
-Compact source attribution, and a compact `Approved by` status when one
-exists, are shown from within the reader itself, not as a separate
-destination (§6.5).
+reached from the reader's overflow menu, not a separate destination), About
+SanguSantri. (The Reader Table of Contents bottom sheet previously listed
+here was removed by ADR 0015 — see §5.1 item 20.) Compact source
+attribution is shown from within the reader itself, not as a separate
+destination (§6.5) — there is no on-device `Approved by` display as of
+ADR 0015.
 
 **Navigation model through `0.0.5`** (product owner/tech lead decision,
 2026-07-29, ADR
@@ -599,9 +609,8 @@ Preferred Indonesian labels:
 * Guided reading: **Panduan**
 * Full reading: **Bacaan Lengkap**
 * Counter: **Tasbih**
-* Table of contents: **Daftar Isi**
 * Reader appearance settings: **Tampilan Bacaan**
-* Content verification (compact status): **Sumber & Pentashihan**
+* Source attribution (compact status): **Sumber**
 * Activity/history: **Aktivitas**
 * Pesantren community (future): **Pesantren**
 * Account (future): **Profil**
@@ -701,30 +710,23 @@ rather than transliterated Indonesian terminology.
    entry point into the existing Full ⇄ Guided switch mechanism (§8.4a),
    not a new reading surface.
 
-## 8.4c Reader Table of Contents (FR-017)
+## 8.4c Reader Table of Contents (removed, ADR 0015)
 
-1. User opens the reader's overflow menu and selects **Daftar Isi**.
-2. A modal bottom sheet lists the amaliyah's logical reading sections and
-   their step ranges, derived from the existing ordered step content — no
-   separate section data is authored (`docs/engineering/CONTENT_MODEL.md`).
-3. The section containing the reader's current position is highlighted.
-4. Selecting a section jumps the reader there without marking any skipped
-   step complete.
-5. Existing reading progress (position, counters) is preserved exactly as
-   an ordinary scroll/navigation would preserve it.
+This flow (a modal bottom sheet of logical reading sections derived from
+`HEADING`-typed steps) existed under FR-017. ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)
+removed the step-type/title data it depended on, so the flow was removed
+rather than adapted — there is no data left to derive sections from.
 
-## 8.5 Viewing source and approval
+## 8.5 Viewing source
 
 1. User opens the overflow menu inside the reader.
-2. User selects **Sumber & Pentashihan**.
+2. User selects **Sumber**.
 3. Application always displays truthful, compact source attribution
-   (publisher/source name, §6.5).
-4. Application additionally displays the compact `Approved by` status only
-   when valid religious-authority approval metadata exists; otherwise
-   nothing approval-related is shown in release builds (a neutral
-   development-only marker may appear in debug builds — §6.5).
-5. An optional future detail action may show approval evidence; not built
-   in `0.0.1`.
+   (publisher/source name, §6.5). There is no on-device `Approved by`
+   display as of ADR
+   [0015](../decisions/0015-simplified-dynamic-catalog-content-model.md) —
+   see §6.5 for where approval tracking now lives instead.
 
 No account is required. Content correction is an internal SanguSantri-team
 operation (§6.7, `docs/operations/CONTENT_GOVERNANCE.md`) — users do not
@@ -843,23 +845,23 @@ when practical.
 
 ## FR-009: Content details (compact)
 
-Every displayed amaliyah MUST expose compact, truthful source attribution
-(§6.5), sourced from the content version's structured `sourceName`
-metadata, never invented. Every displayed amaliyah MAY additionally expose
-a compact `Approved by` status when — and only when — valid
-religious-authority approval metadata exists; this is optional for standard
-public amaliyah (§3.1) and MUST NOT block publication. The application MUST
-NOT display fake approver names, fake approval dates, fabricated approval
-evidence, or implied institutional endorsement that does not exist in
-writing. A content item's publication/readability status (whether the app
-can display it at all), its source metadata (what the source attribution
-shows), and its approval metadata (what `Approved by` shows, when present)
-are controlled independently — see `docs/engineering/CONTENT_MODEL.md`.
+Every displayed content item MUST expose compact, truthful source
+attribution (§6.5), sourced from its structured `sourceName` metadata,
+never invented. The application MUST NOT display fake approver names, fake
+approval dates, fabricated approval evidence, or implied institutional
+endorsement that does not exist in writing. As of ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md), the
+app has no on-device `Approved by` display at all — religious-authority
+approval is tracked only at the content-governance-process level
+(`docs/operations/CONTENT_GOVERNANCE.md`), not as an on-device field; a
+content item's publication status (`Content.isActive`) and its source
+metadata remain controlled independently — see
+`docs/engineering/CONTENT_MODEL.md`.
 
-Full internal approval fields (approver role, institution, approval date,
-document reference number, internal reviewer name, content checksum) remain
-part of the structured content model for content-operations use, but are
-not required in the normal app UI.
+Full content-governance record-keeping (approver role, institution,
+approval date, document reference number, internal reviewer name) lives in
+`docs/operations/CONTENT_GOVERNANCE.md` and commit/PR history for
+content-operations use — it is not part of the on-device content model.
 
 ## FR-010: Content synchronisation
 
@@ -877,41 +879,49 @@ Acceptance criteria:
   foreground entry, gated so it runs at most once per 24 hours based on the
   last *terminal* remote sync attempt (including a terminal failure) —
   never a permanently repeating periodic worker.
-* The manifest fetch has no conditional-request header — the manifest is
+* The catalog fetch has no conditional-request header — the catalog is
   small and is checked at most once every 24 hours (the next bullet's
   scheduling gate), so a plain request is fetched and read every time sync
   actually runs.
-* Only a variant whose remote `versionNumber` is greater than Room's active
-  version is downloaded and imported; a lower or equal-with-matching-checksum
-  remote version is never downloaded.
-* A downloaded package is checksum-verified, schema-validated, and identity-
-  checked (its own `version.id`/`versionNumber` must match the manifest
-  entry that named it) before any database write.
-* Package replacement is atomic: the new version, its approval, and its
-  steps are written, and the previously active version and its
-  version-scoped reading progress are removed, inside one database
-  transaction. A failure at any point leaves the previously valid content
-  exactly as it was.
+* Every catalog item's display metadata (title/description/image/category/
+  order/active state) is refreshed unconditionally on every sync, with no
+  fetch of its content file required. Only an item whose catalog `version`
+  is greater than Room's local version has its content file actually
+  fetched and imported; a lower or equal remote version is never fetched
+  (ADR 0015 — a plain integer comparison, no checksum).
+* A fetched content file is schema-validated and identity-checked (its own
+  `id`/`version` must match the catalog entry that named it) before any
+  database write.
+* Content replacement is atomic: the new steps are written, and the
+  previous version's steps are removed, inside one database transaction —
+  step-level reading/counter progress is preserved for steps that still
+  exist and pruned only for steps that no longer exist (`docs/engineering/
+  CONTENT_MODEL.md`). A failure at any point leaves the previously valid
+  content exactly as it was.
 * API failure — offline, DNS failure, timeout, HTTP error, or a malformed
-  manifest — MUST NOT remove, replace, downgrade, or hide valid content
+  catalog — MUST NOT remove, replace, downgrade, or hide valid content
   already in Room, MUST NOT show a raw error to the user, and MUST NOT
   crash the application.
-* One malformed or stale package never affects another package in the same
-  manifest (per-package failure isolation).
+* One malformed or stale content item never affects another item in the
+  same catalog (per-item failure isolation).
 
 Full design and failure/retry semantics: `docs/engineering/OFFLINE_FIRST.md`,
 ADR [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md).
 
 ## FR-011: On-device version retention
 
-Android retains only **one active content version per variant** — there is
-no previous-version retention, no previous-version browsing screen, and no
-previous-version fallback on-device. When remote sync replaces a variant's
-active version, the prior version's rows (and its version-scoped reading
-progress — position, guided-reader step/completion, repetition counters)
-are removed as part of the same atomic replacement (FR-010), not revoked
-and kept. Full immutable revision history for audit, publication, and
-rollback is retained separately, in the `content-hosting/` git history
+Android retains only **one version per content item** — there is no
+previous-version retention, no previous-version browsing screen, and no
+previous-version fallback on-device. When sync replaces a content item's
+version, its old steps are replaced as part of the same atomic replacement
+(FR-010); step-level reading/counter progress is preserved for steps whose
+id still exists in the new version and pruned only for steps that no
+longer exist (`docs/engineering/CONTENT_MODEL.md`) — a more generous rule
+than a blanket wipe, since ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)'s
+flat model makes most corrections a small edit to a few steps, not a
+wholesale rewrite. Full immutable revision history for audit, publication,
+and rollback is retained separately, in the `content-hosting/` git history
 (ADR 0014) rather than a database (ADR 0008 is unaffected by this — it
 governs the content-publication/correction workflow, not what Android
 keeps locally). A dedicated screen for browsing previous versions remains
@@ -959,14 +969,14 @@ mode-selection screen again, MUST update the saved reader-mode preference
 duplicate navigation entries or Room progress records on repeated
 switching. Back navigation after switching must remain predictable.
 
-## FR-017: Reader Table of Contents
+## FR-017: Reader Table of Contents (removed, ADR 0015)
 
-Both Full Reader and Guided Reader MUST expose a modal bottom-sheet Table
-of Contents (§8.4c) reachable from the overflow menu. It MUST show logical
-reading sections and step ranges derived from existing ordered step
-content (no separate authored section data), highlight the section
-containing the current position, allow jumping to a section without
-marking any skipped step complete, and preserve existing reading progress.
+Previously required a modal bottom-sheet Table of Contents deriving
+sections from `HEADING`-typed steps' titles. ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)
+removed the step-type/title fields it depended on — this requirement is
+removed, not carried forward in adapted form, since there is no data left
+to derive sections from. See §8.4c.
 
 ## FR-018: Full Reader repetition shortcut
 
@@ -1009,20 +1019,25 @@ event as completing it.
 
 # 10. Reader Content Model (summary)
 
-The canonical hierarchy is `Amaliyah → Variant → Immutable Version → Ordered
-Steps → Optional Assets`. Published versions are immutable — any correction
-creates a new version (ADR
-[0008](../decisions/0008-immutable-content-versions.md)).
+The canonical hierarchy is flat (ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)):
+`Content → Ordered ContentSteps`. Published versions are immutable — any
+correction creates a new version, represented as a plain incrementing
+integer on the content item (ADR
+[0008](../decisions/0008-immutable-content-versions.md), unaffected in
+spirit by ADR 0015's simplified representation).
 
-Supported step types: `HEADING`, `INSTRUCTION`, `ARABIC_TEXT`, `QURAN_AYAH`,
-`PRAYER`, `REPEATED_READING`, `DIVIDER`, `CLOSING`.
+There is no step "type" any more — every step has exactly `arabicText`,
+`translation`, and a `repeatTarget` (minimum `1`). The former `HEADING`/
+`INSTRUCTION`/`ARABIC_TEXT`/`QURAN_AYAH`/`PRAYER`/`REPEATED_READING`/
+`DIVIDER`/`CLOSING` step-type enum is removed.
 
-For Quran content, translation must map to its corresponding ayah. For
-non-Quran content, translation must map to a logical Arabic segment; long
-prayers may be split into manageable segments, but meaning must not be
-rearranged for visual convenience.
+Translation must map to a logical Arabic segment; long prayers may be
+split into multiple steps, but meaning must not be rearranged for visual
+convenience. A Quran verse embedded in an amaliyah's own text (e.g.
+Al-Fatihah inside Tahlil) is an ordinary step like any other — see §6.4.
 
-Full field-level schema (server tables, Room tables, JSON seed format):
+Full field-level schema (Room tables, catalog/content-file JSON format):
 `docs/engineering/CONTENT_MODEL.md` and `docs/content-schema.md`.
 
 ---
@@ -1070,20 +1085,24 @@ Engineering may begin immediately, but production publication is blocked
 until these assets exist:
 
 1. ~~Final Tahlil structured content.~~ **Resolved** (Milestone 6): the
-   current 59-step NU Online-sourced package is the product owner's
-   accepted standard-public-amaliyah release baseline (§3.1, §6.7).
+   current 37-step (originally 59, before ADR 0015's flat-schema migration
+   dropped section-heading markers — see §6.7) NU Online-sourced package
+   is the product owner's accepted standard-public-amaliyah release
+   baseline (§3.1, §6.7).
 2. ~~Final Istighosah structured content.~~ **Resolved** (Milestone 6): the
-   current 27-step Quran NU Online-sourced package is the product owner's
-   accepted standard-public-amaliyah release baseline (§3.1, §6.7).
-3. Verified Quran text source — still required before any `QURAN_AYAH`
-   step is entered (§6.4); neither current package uses this step type.
+   current 25-step (originally 27 — see §6.7) Quran NU Online-sourced
+   package is the product owner's accepted standard-public-amaliyah
+   release baseline (§3.1, §6.7).
+3. Verified Quran text source — still required before any Quran verse is
+   entered as a reading step (§6.4); neither current package embeds one.
 4. Verified Indonesian Quran translation source — same scope as (3).
 5. Kyai or sesepuh approval — no longer blocks publication of standard
    public amaliyah (§3.1); remains required before publishing any
    higher-risk content (private/pesantren-specific, disputed origin,
    internally modified/merged/translated, doctrinally sensitive, or tied to
-   a specific ijazah/sanad/tarekat/pesantren authority), and before the app
-   may ever display a real `Approved by` status (§6.5).
+   a specific ijazah/sanad/tarekat/pesantren authority). There is no
+   on-device `Approved by` status any more (ADR 0015, §6.5) — approval
+   remains a governance-process record regardless of this item's status.
 6. Redacted approval documents — same conditional scope as (5); not
    required for the current standard-public-amaliyah baseline.
 7. Content reproduction permission or documented legal basis.

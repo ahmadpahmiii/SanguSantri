@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Accepted. Partially superseded by ADR
+[0015](0015-simplified-dynamic-catalog-content-model.md) (2026-08-03): this ADR's decision to use
+Firebase Hosting for static delivery stands, but its claim that the existing manifest/package
+contract (`variantId`/`versionId`/`checksumSha256`, "no Android code change") would be preserved
+unchanged was itself superseded before implementation — read ADR 0015 before assuming the contract
+details below are current.
 
 ## Context
 

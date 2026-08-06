@@ -19,30 +19,30 @@ import javax.inject.Inject
  * or foreground entry only.
  */
 class ContentSyncScheduler
-@Inject
-constructor(
-    @param:ApplicationContext private val context: Context,
-    private val syncMetadata: ContentSyncMetadata,
-) {
-    suspend fun enqueueIfStale() {
-        val lastSyncAt = syncMetadata.getLastSyncAtEpochMillis()
-        val isStale = lastSyncAt == null || System.currentTimeMillis() - lastSyncAt >= STALE_THRESHOLD_MILLIS
-        if (!isStale) return
+    @Inject
+    constructor(
+        @param:ApplicationContext private val context: Context,
+        private val syncMetadata: ContentSyncMetadata,
+    ) {
+        suspend fun enqueueIfStale() {
+            val lastSyncAt = syncMetadata.getLastSyncAtEpochMillis()
+            val isStale = lastSyncAt == null || System.currentTimeMillis() - lastSyncAt >= STALE_THRESHOLD_MILLIS
+            if (!isStale) return
 
-        val request =
-            OneTimeWorkRequestBuilder<ContentSyncWorker>()
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    WorkRequest.MIN_BACKOFF_MILLIS,
-                    TimeUnit.MILLISECONDS,
-                ).build()
+            val request =
+                OneTimeWorkRequestBuilder<ContentSyncWorker>()
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        WorkRequest.MIN_BACKOFF_MILLIS,
+                        TimeUnit.MILLISECONDS,
+                    ).build()
 
-        WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+            WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+        }
+
+        companion object {
+            const val UNIQUE_WORK_NAME = "sangu-santri-content-sync"
+            private val STALE_THRESHOLD_MILLIS = TimeUnit.HOURS.toMillis(24)
+        }
     }
-
-    companion object {
-        const val UNIQUE_WORK_NAME = "sangu-santri-content-sync"
-        private val STALE_THRESHOLD_MILLIS = TimeUnit.HOURS.toMillis(24)
-    }
-}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    HTTPS-only for every real build (docs/security/SECURITY_BASELINE.md's "must enforce
+    HTTPS-only/no cleartext" requirement). `<debug-overrides>` only ever accepts `<trust-anchors>`
+    (it cannot relax `cleartextTrafficPermitted`), so the debug-only exception this same resource
+    name needs for instrumented tests (ContentSyncManagerTest, MockWebServer) lives in
+    `app/src/debug/res/xml/network_security_config.xml` instead, using Android's standard
+    source-set resource override — that file replaces this one only for debug builds; release
+    builds only ever see this strict, cleartext-disabled version.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

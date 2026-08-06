@@ -13,7 +13,7 @@ import com.sangusantri.app.domain.model.StepProgress
 
 fun GuidedReadingSessionEntity.toDomain(): GuidedReadingSession =
     GuidedReadingSession(
-        versionId = versionId,
+        contentId = contentId,
         currentStepId = currentStepId,
         lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
         completedAtEpochMillis = completedAtEpochMillis,
@@ -22,7 +22,7 @@ fun GuidedReadingSessionEntity.toDomain(): GuidedReadingSession =
 
 fun GuidedReadingSession.toEntity(): GuidedReadingSessionEntity =
     GuidedReadingSessionEntity(
-        versionId = versionId,
+        contentId = contentId,
         currentStepId = currentStepId,
         lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
         completedAtEpochMillis = completedAtEpochMillis,
@@ -31,7 +31,7 @@ fun GuidedReadingSession.toEntity(): GuidedReadingSessionEntity =
 
 fun StepProgressEntity.toDomain(): StepProgress =
     StepProgress(
-        versionId = versionId,
+        contentId = contentId,
         stepId = stepId,
         currentCount = currentCount,
         updatedAtEpochMillis = updatedAtEpochMillis,
@@ -39,7 +39,7 @@ fun StepProgressEntity.toDomain(): StepProgress =
 
 fun StepProgress.toEntity(): StepProgressEntity =
     StepProgressEntity(
-        versionId = versionId,
+        contentId = contentId,
         stepId = stepId,
         currentCount = currentCount,
         updatedAtEpochMillis = updatedAtEpochMillis,

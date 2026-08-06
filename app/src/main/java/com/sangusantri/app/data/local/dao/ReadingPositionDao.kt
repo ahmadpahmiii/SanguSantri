@@ -10,9 +10,9 @@ interface ReadingPositionDao {
     @Upsert
     suspend fun upsert(entity: ReadingPositionEntity)
 
-    @Query("SELECT * FROM reading_positions WHERE versionId = :versionId")
-    suspend fun getByVersionId(versionId: String): ReadingPositionEntity?
+    @Query("SELECT * FROM reading_positions WHERE contentId = :contentId")
+    suspend fun getByContentId(contentId: String): ReadingPositionEntity?
 
-    @Query("DELETE FROM reading_positions WHERE versionId = :versionId")
-    suspend fun deleteByVersionId(versionId: String)
+    @Query("DELETE FROM reading_positions WHERE contentId = :contentId")
+    suspend fun deleteByContentId(contentId: String)
 }

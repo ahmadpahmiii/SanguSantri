@@ -72,10 +72,11 @@ history in logs or analytics (`docs/security/PRIVACY.md`).
 See `docs/operations/CONTENT_GOVERNANCE.md` for the full revocation
 authority and severity-level process. This section covers only the
 technical detection side: Android has no on-device previous-version
-fallback (superseded FR-011, ADR 0012) — a revoked version stops being
-listed as a variant's active version in `manifest.json` once the update is
-deployed to Firebase Hosting (ADR 0014), and each device only picks up the
-correction once its own 24-hour sync gate fires
+fallback (superseded FR-011, ADR 0012) — a revoked version is corrected by
+publishing a new `version` (or hidden via a catalog entry's `isActive:
+false`, ADR 0015) once the update is deployed to Firebase Hosting (ADR
+0014), and each device only picks up the correction once its own 24-hour
+sync gate fires
 and successfully downloads the newly published replacement version. There
 is no faster on-device mechanism; an urgent correction's actual propagation
 speed is bounded by the sync gate, not instantaneous.

@@ -2,12 +2,10 @@ package com.sangusantri.app.feature.reader.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -32,17 +30,15 @@ import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
-import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
-import com.sangusantri.app.feature.reader.ApprovalDisplay
 
 /**
- * Shared reader top-bar overflow menu (Milestone 5 FR-016, Milestone 6 source/approval split,
- * Figma product-alignment pass nodes `16:2`/`16:45`): mode-switch, Table of Contents (FR-017),
- * reader appearance settings (moved here from a standalone top-bar icon — decision F), and a
- * compact "Sumber & Pentashihan" info dialog, in that order. Source attribution is always shown,
- * truthfully, for every amaliyah (PRD 6.5) — the compact `Approved by` line appears only when real
- * religious-authority approval metadata exists; neither is ever fabricated. Deliberately not
- * visually dominant — an overflow action, never a bottom navigation bar or a card.
+ * Shared reader top-bar overflow menu (Milestone 5 FR-016, Figma product-alignment pass nodes
+ * `16:2`/`16:45`): mode-switch, reader appearance settings (moved here from a standalone top-bar
+ * icon — decision F), and a compact source-attribution dialog, in that order. Source attribution
+ * is always shown, truthfully, for every content item (PRD 6.5); ADR 0015 dropped the separate
+ * religious-authority approval object from the Android model, so this menu no longer has an
+ * "Approved by" line to show — only the source name remains. Deliberately not visually dominant —
+ * an overflow action, never a bottom navigation bar or a card.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +46,6 @@ fun ReaderOverflowMenu(
     switchModeLabel: String,
     actions: ReaderOverflowActions,
     sourceName: String,
-    approvalDisplay: ApprovalDisplay,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -75,11 +70,7 @@ fun ReaderOverflowMenu(
     )
 
     if (showSourceInfo) {
-        SourceAndApprovalInfoDialog(
-            sourceName = sourceName,
-            approvalDisplay = approvalDisplay,
-            onDismiss = { showSourceInfo = false },
-        )
+        SourceInfoDialog(sourceName = sourceName, onDismiss = { showSourceInfo = false })
     }
 }
 
@@ -103,15 +94,11 @@ private fun ReaderOverflowDropdown(
             onDismiss()
             actions.onSwitchMode()
         }
-        ReaderMenuItem(stringResource(R.string.reader_open_toc_action), Icons.AutoMirrored.Filled.List) {
-            onDismiss()
-            actions.onOpenTableOfContents()
-        }
         ReaderMenuItem(stringResource(R.string.reader_open_settings_action), Icons.Default.Settings) {
             onDismiss()
             actions.onOpenSettings()
         }
-        ReaderMenuItem(stringResource(R.string.content_approval_menu_action), Icons.Default.Info, onOpenSource)
+        ReaderMenuItem(stringResource(R.string.content_source_menu_action), Icons.Default.Info, onOpenSource)
     }
 }
 
@@ -143,14 +130,13 @@ private val MENU_ITEM_HEIGHT = 52.dp
 private val MENU_ICON_SIZE = 18.dp
 
 @Composable
-private fun SourceAndApprovalInfoDialog(
+private fun SourceInfoDialog(
     sourceName: String,
-    approvalDisplay: ApprovalDisplay,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.content_approval_menu_action)) },
+        title = { Text(stringResource(R.string.content_source_menu_action)) },
         text = {
             Column {
                 Text(
@@ -160,31 +146,7 @@ private fun SourceAndApprovalInfoDialog(
                 Text(
                     text = sourceName,
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
                 )
-                when (approvalDisplay) {
-                    is ApprovalDisplay.Approved -> {
-                        Text(
-                            text = stringResource(R.string.content_approved_by_label),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = SanguSantriSpacing.small),
-                        )
-                        Text(
-                            text = approvalDisplay.approverLabel,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
-                        )
-                    }
-
-                    ApprovalDisplay.Pending ->
-                        Text(
-                            text = stringResource(R.string.content_approval_pending_dev_only),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = SanguSantriSpacing.small),
-                        )
-
-                    ApprovalDisplay.Hidden -> Unit
-                }
             }
         },
         confirmButton = {

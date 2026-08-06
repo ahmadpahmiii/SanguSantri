@@ -32,54 +32,54 @@ class ReadingPositionDaoTest {
     }
 
     @Test
-    fun insertThenGetByVersionIdReturnsTheStoredPosition() =
+    fun insertThenGetByContentIdReturnsTheStoredPosition() =
         runTest {
             val dao = database.readingPositionDao()
             val entity =
                 ReadingPositionEntity(
-                    versionId = "v1",
+                    contentId = "tahlil",
                     itemIndex = 3,
                     itemOffset = 40,
                     lastOpenedAtEpochMillis = 1_000L,
                 )
 
             dao.upsert(entity)
-            val result = dao.getByVersionId("v1")
+            val result = dao.getByContentId("tahlil")
 
             assertEquals(entity, result)
         }
 
     @Test
-    fun getByVersionIdReturnsNullWhenNoPositionStored() =
+    fun getByContentIdReturnsNullWhenNoPositionStored() =
         runTest {
             val dao = database.readingPositionDao()
 
-            val result = dao.getByVersionId("missing")
+            val result = dao.getByContentId("missing")
 
             assertNull(result)
         }
 
     @Test
-    fun upsertReplacesThePositionForTheSameVersion() =
+    fun upsertReplacesThePositionForTheSameContent() =
         runTest {
             val dao = database.readingPositionDao()
-            dao.upsert(ReadingPositionEntity("v1", 0, 0, 1_000L))
+            dao.upsert(ReadingPositionEntity("tahlil", 0, 0, 1_000L))
 
-            dao.upsert(ReadingPositionEntity("v1", 5, 200, 2_000L))
-            val result = dao.getByVersionId("v1")
+            dao.upsert(ReadingPositionEntity("tahlil", 5, 200, 2_000L))
+            val result = dao.getByContentId("tahlil")
 
             assertEquals(5, result?.itemIndex)
             assertEquals(200, result?.itemOffset)
         }
 
     @Test
-    fun separateContentVersionsKeepIndependentPositions() =
+    fun separateContentItemsKeepIndependentPositions() =
         runTest {
             val dao = database.readingPositionDao()
-            dao.upsert(ReadingPositionEntity("v1", 2, 10, 1_000L))
-            dao.upsert(ReadingPositionEntity("v2", 7, 90, 1_000L))
+            dao.upsert(ReadingPositionEntity("tahlil", 2, 10, 1_000L))
+            dao.upsert(ReadingPositionEntity("istighosah", 7, 90, 1_000L))
 
-            assertEquals(2, dao.getByVersionId("v1")?.itemIndex)
-            assertEquals(7, dao.getByVersionId("v2")?.itemIndex)
+            assertEquals(2, dao.getByContentId("tahlil")?.itemIndex)
+            assertEquals(7, dao.getByContentId("istighosah")?.itemIndex)
         }
 }

@@ -1,7 +1,6 @@
 package com.sangusantri.app.feature.guidedreader
 
-import com.sangusantri.app.domain.model.AmaliyahStep
-import com.sangusantri.app.domain.model.Approval
+import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.ReaderSettings
 
 /** Guided Reader screen state (Milestone 4, FR-005/FR-006/FR-007) — one step visible at a time. */
@@ -9,10 +8,10 @@ sealed interface GuidedReaderUiState {
     data object Loading : GuidedReaderUiState
 
     data class StepVisible(
-        val amaliyahTitleId: String,
-        val versionId: String,
-        val allSteps: List<AmaliyahStep>,
-        val step: AmaliyahStep,
+        val title: String,
+        val contentId: String,
+        val allSteps: List<ContentStep>,
+        val step: ContentStep,
         val stepIndex: Int,
         val stepCount: Int,
         val currentCount: Int,
@@ -23,10 +22,9 @@ sealed interface GuidedReaderUiState {
         val allRequiredCountersComplete: Boolean,
         val isCompleted: Boolean,
         val sourceName: String,
-        val approval: Approval,
     ) : GuidedReaderUiState
 
-    /** No amaliyah for the slug, or no published version — same handling as the Full Reader. */
+    /** No content for the id, or it has no steps — same handling as the Full Reader. */
     data object ContentUnavailable : GuidedReaderUiState
 
     /** An unexpected load failure the user can retry — never a raw exception message. */

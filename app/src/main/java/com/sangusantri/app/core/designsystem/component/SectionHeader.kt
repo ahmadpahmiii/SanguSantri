@@ -31,9 +31,10 @@ fun SectionHeader(
     onActionClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = SanguSantriSpacing.small),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = SanguSantriSpacing.small),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

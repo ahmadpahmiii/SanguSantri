@@ -26,20 +26,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
-import com.sangusantri.app.domain.model.AmaliyahStep
-import com.sangusantri.app.domain.model.Approval
-import com.sangusantri.app.domain.model.ApprovalStatus
+import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.ReaderSettings
-import com.sangusantri.app.domain.model.StepType
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepContent
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepStatusRow
 import com.sangusantri.app.feature.guidedreader.components.TasbihActions
-import com.sangusantri.app.feature.guidedreader.components.currentSectionTitle
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
 import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
@@ -49,20 +44,16 @@ import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
 import com.sangusantri.app.feature.reader.components.ReaderSavedPositionStatus
 import com.sangusantri.app.feature.reader.settings.ProgressionModeControl
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
-import com.sangusantri.app.feature.reader.toApprovalDisplay
-import com.sangusantri.app.feature.reader.toc.ReaderTableOfContentsSheet
-import com.sangusantri.app.feature.reader.toc.sectionContaining
-import com.sangusantri.app.feature.reader.toc.toTocSections
 
 @Composable
 fun GuidedReaderRoute(
-    amaliyahSlug: String,
+    contentId: String,
     onBack: () -> Unit,
     onSwitchToFull: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GuidedReaderViewModel =
         hiltViewModel<GuidedReaderViewModel, GuidedReaderViewModel.Factory>(
-            creationCallback = { factory -> factory.create(amaliyahSlug) },
+            creationCallback = { factory -> factory.create(contentId) },
         ),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -104,7 +95,7 @@ fun GuidedReaderScreen(
 ) {
     val overlays = rememberGuidedReaderOverlayVisibility()
     val showSavedPosition = rememberInitialSavedPositionFlag(uiState)
-    val title = (uiState as? GuidedReaderUiState.StepVisible)?.amaliyahTitleId ?: stringResource(R.string.app_name)
+    val title = (uiState as? GuidedReaderUiState.StepVisible)?.title ?: stringResource(R.string.app_name)
 
     Scaffold(
         modifier = modifier,
@@ -120,7 +111,7 @@ fun GuidedReaderScreen(
         )
     }
 
-    GuidedReaderOverlays(uiState = uiState, settings = settings, callbacks = callbacks, overlays = overlays)
+    GuidedReaderOverlays(settings = settings, callbacks = callbacks, overlays = overlays)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,11 +132,9 @@ private fun GuidedReaderTopBarWithOverflow(
                     actions =
                         ReaderOverflowActions(
                             onSwitchMode = { callbacks.onAction(GuidedReaderUiAction.SwitchToFull) },
-                            onOpenTableOfContents = { overlays.showTableOfContents.value = true },
                             onOpenSettings = { overlays.showSettings.value = true },
                         ),
                     sourceName = uiState.sourceName,
-                    approvalDisplay = uiState.approval.toApprovalDisplay(BuildConfig.DEBUG),
                 )
             }
         },
@@ -207,7 +196,6 @@ private fun GuidedReaderContent(
 
 @Composable
 private fun GuidedReaderOverlays(
-    uiState: GuidedReaderUiState,
     settings: ReaderSettings,
     callbacks: GuidedReaderCallbacks,
     overlays: GuidedReaderOverlayVisibility,
@@ -222,19 +210,6 @@ private fun GuidedReaderOverlays(
                     mode = settings.guidedProgressionMode,
                     onChange = callbacks.onSetProgressionMode,
                 ),
-        )
-    }
-
-    if (overlays.showTableOfContents.value && uiState is GuidedReaderUiState.StepVisible) {
-        val sections = uiState.allSteps.toTocSections()
-        ReaderTableOfContentsSheet(
-            sections = sections,
-            currentSectionStepId = sections.sectionContaining(uiState.step.position)?.stepId,
-            onSectionSelected = { stepId ->
-                overlays.showTableOfContents.value = false
-                callbacks.onAction(GuidedReaderUiAction.JumpToStep(stepId))
-            },
-            onDismiss = { overlays.showTableOfContents.value = false },
         )
     }
 
@@ -294,10 +269,7 @@ private fun GuidedReaderBody(
         ) {
             ReaderProgressHeader(currentPosition = state.stepIndex + 1, totalSteps = state.stepCount)
             Spacer(Modifier.padding(top = SanguSantriSpacing.default))
-            GuidedStepStatusRow(
-                step = state.step,
-                sectionTitle = state.allSteps.currentSectionTitle(state.stepIndex),
-            )
+            GuidedStepStatusRow(step = state.step)
             Spacer(Modifier.padding(top = SanguSantriSpacing.small))
             AnimatedContent(
                 targetState = state.step,
@@ -323,41 +295,19 @@ private fun GuidedReaderBody(
 
 // Development-only preview fixtures — bracketed placeholders, never real amaliyah text.
 private val previewCounterStep =
-    AmaliyahStep(
+    ContentStep(
         id = "step-2",
-        versionId = "preview-version",
+        contentId = "preview-content",
         position = 2,
-        stepType = StepType.REPEATED_READING,
-        titleId = "[FIXTURE] Tasbih",
-        titleAr = null,
         arabicText = "[FIXTURE-AR] سُبْحَانَ اللَّهِ",
-        translationId = "[FIXTURE] Maha Suci Allah.",
-        instructionId = null,
-        instructionAr = null,
+        translation = "[FIXTURE] Maha Suci Allah.",
         repeatTarget = 33,
-        quranSurahNumber = null,
-        quranAyahStart = null,
-        quranAyahEnd = null,
-        audioGroupId = null,
-    )
-
-private val previewApproval =
-    Approval(
-        id = "preview-approval",
-        approverName = "[FIXTURE] KH. Contoh Sesepuh",
-        approverRole = "[FIXTURE]",
-        institutionName = null,
-        approvalDate = "2026-01-01",
-        approvalScope = "[FIXTURE]",
-        publicDocumentStorageKey = null,
-        documentReferenceNumber = null,
-        status = ApprovalStatus.APPROVED,
     )
 
 private fun previewStepVisible(currentCount: Int = 12) =
     GuidedReaderUiState.StepVisible(
-        amaliyahTitleId = "Tahlil",
-        versionId = "preview-version",
+        title = "Tahlil",
+        contentId = "preview-content",
         allSteps = listOf(previewCounterStep),
         step = previewCounterStep,
         stepIndex = 4,
@@ -370,7 +320,6 @@ private fun previewStepVisible(currentCount: Int = 12) =
         allRequiredCountersComplete = false,
         isCompleted = false,
         sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
-        approval = previewApproval,
     )
 
 private val previewCallbacks =

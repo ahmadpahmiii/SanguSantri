@@ -17,76 +17,74 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Owns the reading-mode gate (PRD 8.2): checks the amaliyah has a published version, then either
- * resolves immediately to a remembered [ReaderMode] or asks the user to choose once. [selectMode]
- * both remembers the choice and resolves the gate for the current visit.
+ * Owns the reading-mode gate (PRD 8.2): checks the content item has steps, then either resolves
+ * immediately to a remembered [ReaderMode] or asks the user to choose once. [selectMode] both
+ * remembers the choice and resolves the gate for the current visit.
  */
 @HiltViewModel(assistedFactory = ReaderEntryViewModel.Factory::class)
 class ReaderEntryViewModel
-@AssistedInject
-constructor(
-    @Assisted private val amaliyahSlug: String,
-    private val contentRepository: ContentRepository,
-    private val readerSettingsRepository: ReaderSettingsRepository,
-) : ViewModel() {
-    @AssistedFactory
-    interface Factory {
-        fun create(amaliyahSlug: String): ReaderEntryViewModel
-    }
+    @AssistedInject
+    constructor(
+        @Assisted private val contentId: String,
+        private val contentRepository: ContentRepository,
+        private val readerSettingsRepository: ReaderSettingsRepository,
+    ) : ViewModel() {
+        @AssistedFactory
+        interface Factory {
+            fun create(contentId: String): ReaderEntryViewModel
+        }
 
-    private val _uiState = MutableStateFlow<ReaderEntryUiState>(ReaderEntryUiState.Loading)
-    val uiState: StateFlow<ReaderEntryUiState> = _uiState
+        private val _uiState = MutableStateFlow<ReaderEntryUiState>(ReaderEntryUiState.Loading)
+        val uiState: StateFlow<ReaderEntryUiState> = _uiState
 
-    init {
-        resolve()
-    }
+        init {
+            resolve()
+        }
 
-    fun selectMode(mode: ReaderMode) {
-        viewModelScope.launch { readerSettingsRepository.setLastReaderMode(mode) }
-        _uiState.value = ReaderEntryUiState.Resolved(mode)
-    }
+        fun selectMode(mode: ReaderMode) {
+            viewModelScope.launch { readerSettingsRepository.setLastReaderMode(mode) }
+            _uiState.value = ReaderEntryUiState.Resolved(mode)
+        }
 
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    private fun resolve() {
-        viewModelScope.launch {
-            val available =
-                try {
-                    val amaliyah = contentRepository.getAmaliyahBySlug(amaliyahSlug)
-                    val detail = contentRepository.getDefaultVersionDetail(amaliyahSlug)
-                    val isAvailable = amaliyah != null && detail != null && detail.steps.isNotEmpty()
-                    if (!isAvailable) {
-                        Log.w(
-                            TAG,
-                            "Content unavailable for slug=$amaliyahSlug: " +
-                                    "amaliyahFound=${amaliyah != null}, activeVersionFound=${detail != null}, " +
-                                    "stepCount=${detail?.steps?.size ?: 0}",
-                        )
+        @Suppress("TooGenericExceptionCaught", "SwallowedException")
+        private fun resolve() {
+            viewModelScope.launch {
+                val title =
+                    try {
+                        val detail = contentRepository.getContentDetail(contentId)
+                        if (detail == null || detail.steps.isEmpty()) {
+                            Log.w(
+                                TAG,
+                                "Content unavailable for id=$contentId: " +
+                                    "contentFound=${detail != null}, stepCount=${detail?.steps?.size ?: 0}",
+                            )
+                            null
+                        } else {
+                            detail.content.title
+                        }
+                    } catch (cancellation: CancellationException) {
+                        throw cancellation
+                    } catch (unexpected: Exception) {
+                        Log.e(TAG, "Reader entry availability check failed for id=$contentId", unexpected)
+                        null
                     }
-                    isAvailable
-                } catch (cancellation: CancellationException) {
-                    throw cancellation
-                } catch (unexpected: Exception) {
-                    Log.e(TAG, "Reader entry availability check failed for slug=$amaliyahSlug", unexpected)
-                    false
+
+                if (title == null) {
+                    _uiState.value = ReaderEntryUiState.ContentUnavailable
+                    return@launch
                 }
 
-            if (!available) {
-                _uiState.value = ReaderEntryUiState.ContentUnavailable
-                return@launch
+                val rememberedMode = readerSettingsRepository.observe().first().lastReaderMode
+                _uiState.value =
+                    if (rememberedMode != null) {
+                        ReaderEntryUiState.Resolved(rememberedMode)
+                    } else {
+                        ReaderEntryUiState.ModeChooser(title)
+                    }
             }
+        }
 
-            val amaliyahTitleId = contentRepository.getAmaliyahBySlug(amaliyahSlug)?.titleId.orEmpty()
-            val rememberedMode = readerSettingsRepository.observe().first().lastReaderMode
-            _uiState.value =
-                if (rememberedMode != null) {
-                    ReaderEntryUiState.Resolved(rememberedMode)
-                } else {
-                    ReaderEntryUiState.ModeChooser(amaliyahTitleId)
-                }
+        private companion object {
+            const val TAG = "ReaderEntryViewModel"
         }
     }
-
-    private companion object {
-        const val TAG = "ReaderEntryViewModel"
-    }
-}

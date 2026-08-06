@@ -3011,3 +3011,317 @@ script, and the Firebase project/deploy pipeline described in ADR 0014 and
 Pengingat Amaliyah) first and treat the Firebase Hosting migration as a
 parallel workstream, consistent with how ADR 0012's Android-side sync
 client was originally built ahead of its backend.
+
+## Autonomous-execution prompt consolidation (2026-08-06)
+
+**Status:** Complete. Documentation-only; no application, content, hosting, or
+Gradle implementation changed.
+
+Combined the repository-independent autonomous-execution instructions with
+SanguSantri's repository-specific engineering, architecture, content-safety,
+phase, validation, and reporting rules. `docs/CODEX_AUTONOMOUS_PROMPT.md` is
+the reusable Codex form; `docs/CLAUDE_AUTONOMOUS_PROMPT.md` is the Claude Code
+form, pre-scoped to finishing the existing ADR 0015/static-hosting worktree.
+Both make instruction precedence explicit, preserve pre-existing worktree
+changes, and prevent autonomous progression into a new roadmap milestone after
+the current objective is done.
+
+### Files created
+
+`docs/CODEX_AUTONOMOUS_PROMPT.md`,
+`docs/CLAUDE_AUTONOMOUS_PROMPT.md`.
+
+### Files modified
+
+`docs/PROGRESS.md`.
+
+### Commands executed
+
+Read-only inspection only: the attached autonomous prompt, `AGENTS.md`/
+`CLAUDE.md`, `docs/PROGRESS.md`, `docs/product/PRD.md` §Related Documents,
+`docs/product/ROADMAP.md`, ADR 0015, Git status, and staged/unstaged diff
+statistics. Also verified the locally installed Claude Code version and CLI
+permission-mode flags with `claude --version` and `claude --help`.
+
+### Test results
+
+Not run; this pass changed documentation only and did not alter executable
+code.
+
+### Known limitations
+
+The prompts intentionally do not authorize implementing the whole roadmap in
+one session. The Claude version is currently specialized for the active ADR
+0015/static-hosting worktree; edit its Current objective section before reusing
+it for a later milestone.
+
+### Next recommended milestone
+
+Use the prompt to finish and validate the existing in-progress content-model/
+static-hosting worktree before starting Release `0.0.4`.
+
+## ADR 0015 reconciliation and validation pass (2026-08-06)
+
+**Status:** Complete and verified — `ktlintFormat`, `ktlintCheck`, `detekt`,
+`lint`, `assembleDebug`, `testDebugUnitTest` (46/46), and
+`connectedDebugAndroidTest` (Pixel_9 emulator, Android 15/API 35, 40/40) all
+pass. Manually verified end-to-end on the same emulator (see Manual
+verification below).
+
+**Scope:** This worktree already contained a substantial, coherent,
+uncommitted implementation of ADR
+[0015](decisions/0015-simplified-dynamic-catalog-content-model.md) (the flat
+`Content`/`ContentStep` catalog model replacing the
+Amaliyah/Variant/Version/Approval hierarchy) and its Firebase Hosting static
+content contract — all of it pre-existing work from an earlier session, not
+authored this pass. This pass's job was narrower: finish, reconcile, and
+validate that work into a stable state. Concretely: the production Kotlin
+source (`domain/model/{Content,ContentDetail,ContentStep}.kt`,
+`data/content/{ContentImporter,ContentValidator,ContentVersionAction}.kt`,
+`data/local/database/Migrations.kt`'s `MIGRATION_1_2`, the rewritten
+Serambi/Reader/GuidedReader/Activity/Tasbih call sites, `content-hosting/`)
+already compiled cleanly and was left untouched in substance. Every existing
+unit and instrumented test file, however, still referenced the deleted
+Amaliyah/Variant/Version/Approval/StepType surface and failed to compile —
+this pass's main work was porting each test to the new model, plus fixing
+two real defects the reconciliation review surfaced (see below).
+
+### Conflict check: does the temporary Figma-phase constraint apply here?
+
+`CLAUDE.md`'s "Temporary implementation-pass constraints (Figma product
+alignment)" section (no Room migrations, no new tests) is explicitly scoped
+to "the phases implementing the Figma product-alignment work
+(`docs/design/FIGMA_HANDOFF.md`, Phases A–E)". Checked
+`FIGMA_HANDOFF.md`'s own "Implementation order" list: Phase A (Reader UX,
+`0.0.1`), Phase B (Beranda/Jelajahi, `0.0.1`), Phase C (Tasbih, `0.0.2`),
+Phase D (Aktivitas, `0.0.3`), Phase E (Pengingat, `0.0.4`, not yet started).
+ADR 0015 and the Firebase Hosting static-content-delivery work are a
+separate, later workstream (2026-08-02/2026-08-06) with no Phase A–E entry
+of their own — they are not in scope of that constraint. This matters
+concretely: ADR 0015's own text explicitly created a real, non-destructive
+`Migration(1, 2)` (`MIGRATION_1_2`) specifically to preserve real user
+reading/guided/step progress across the schema change, which the temporary
+constraint's blanket migration ban would have prohibited had it applied.
+Conclusion: the constraint does not apply to this pass; the pre-existing
+`MIGRATION_1_2` was correctly left in place, and this pass added the
+instrumented migration test and new/rewritten content-layer tests that
+constraint would otherwise have disallowed, since ordinary engineering
+standards (`docs/engineering/TESTING.md`) govern this workstream instead.
+
+### What shipped this pass
+
+* **Test suite ported to the new model** (all existing tests, not new
+  coverage beyond what each replaced): `ReaderViewModelTest.kt`,
+  `SerambiViewModelTest.kt` (test) rewritten against `Content`/
+  `ContentDetail`/`ContentStep`/the new `ContentRepository`/`SerambiUiState.
+  Loaded` shape. `ContentVersionActionTest.kt` rewritten for
+  `decideContentVersionAction(candidateVersion, localVersion)`'s new
+  checksum-free signature. `ContentPackageValidatorTest.kt` →
+  `ContentValidatorTest.kt` (test), same validation-rule test intent ported
+  to `ContentValidator`/`ContentCatalogDto`/`ContentFileDto`.
+  `ContentChecksumTest.kt` deleted outright — `ContentChecksum` itself was
+  deleted by ADR 0015 (checksums removed), not renamed, so there is nothing
+  left to port. `ReadingPositionDaoTest.kt` (androidTest) mechanically
+  renamed `versionId`/`getByVersionId` → `contentId`/`getByContentId`.
+  `ContentPackageImporterTest.kt` → `ContentImporterTest.kt` (androidTest),
+  same high-risk-behaviour coverage (fresh import, idempotency,
+  never-downgrade, identity-mismatch rejection, structural-validation
+  rejection, atomic rollback, atomic replacement) ported to
+  `ContentImporter`, plus two tests for ADR 0015's actual behaviour change
+  (progress is now preserved for step ids that survive a content update,
+  not unconditionally wiped) replacing the old checksum-conflict/
+  minimum-app-version tests, which have no equivalent in the new model.
+  `ContentSyncManagerTest.kt` (androidTest) rewritten against the new
+  catalog/content-file MockWebServer contract, dropping the two scenarios
+  ADR 0015 deliberately removed (checksum conflict, `minimumAppVersionCode`
+  gate) and keeping every other scenario. `SerambiScreenTest.kt`'s
+  navigation test updated: Tahlil is now real, available content (not a
+  `DRAFT` fixture), so tapping it now reaches the reading-mode chooser
+  instead of the unavailable state. `ReaderScreenTest.kt` rewritten to seed
+  fixtures via `ContentDao`/`ContentStepDao` instead of the deleted
+  Amaliyah DAOs, including a dedicated zero-step fixture for the
+  content-unavailable scenario (the old "Tahlil is DRAFT" premise no longer
+  holds — there is no DRAFT/PUBLISHED status in the flat model, and Tahlil
+  is now real content).
+* **New: `SanguSantriMigrationTest.kt`** (androidTest) — `MIGRATION_1_2`
+  itself had no instrumented test despite ADR 0015's own text already
+  claiming one exists ("exercised by an instrumented migration test").
+  Added one, using `MigrationTestHelper` against the exported `1.json`/
+  `2.json` schemas: seeds a published amaliyah (one `HEADING` step, two real
+  reading steps, one with a `NULL` `repeatTarget`) plus reading/guided/step
+  progress, and a second, draft-only amaliyah with no published version.
+  Verifies: the `content` row is created only for the published amaliyah;
+  its `HEADING` step is dropped and the two real steps survive renumbered
+  to a dense `1..2` with the null `repeatTarget` defaulted to `1`;
+  `reading_positions`/`guided_reading_sessions`/`step_progress` are
+  re-keyed to the content id; step-progress for the dropped `HEADING` step
+  is not carried over while progress for a surviving step is; the
+  draft-only amaliyah gets no `content` row; and all five old tables are
+  dropped. Required re-adding `androidx-room-testing` as an
+  `androidTestImplementation` dependency (already in the version catalog,
+  not wired into `app/build.gradle.kts`) and an `androidTest` `sourceSets`
+  block pointing at `app/schemas/` (both were deliberately removed in
+  Milestone 4's pre-release Room cleanup, when no real migration existed
+  yet to test).
+* **Fixed: `ContentImporter.importContentFile` never actually caught a
+  database failure**, despite `ContentImportOutcome.Rejected`'s own KDoc
+  promising "a database failure that rolled back" as one of its reasons —
+  the old `ContentPackageImporter` this class replaced did
+  (`runCatching { applyAgainstRoom(...) }`), but the rewrite dropped it.
+  `BundledContentBootstrapper.readAndImport` happens to wrap its own call in
+  `runCatching`, masking the gap there, but `ContentSyncManager.
+  downloadAndImport` calls `contentImporter.importContentFile(...)` with no
+  such wrapping — a real database exception mid-import (e.g. a primary-key
+  conflict) would have propagated uncaught out of `ContentSyncWorker.
+  doWork()`, silently losing PRD 12.4's per-item failure isolation
+  guarantee for the one path that most needs it (a background sync worker,
+  where one bad item must never abort every other item's update). Fixed by
+  adding `ContentImporter.writeContentOrReject`, a `try`/`catch` around the
+  transactional write that turns any non-cancellation exception into
+  `ContentImportOutcome.Rejected` centrally, in the one class both callers
+  share, instead of duplicating the guard in each caller. Covered by two
+  new `ContentImporterTest` cases exercising a real Room primary-key
+  conflict.
+* **Fixed: no network security config existed**, which — as
+  `docs/security/SECURITY_BASELINE.md` already flagged as an outstanding,
+  near-term gap ("must enforce HTTPS-only/no cleartext before any build is
+  used against a real...host") — meant `targetSdk 36`'s default
+  cleartext-blocked policy silently failed every `ContentSyncManagerTest`
+  case on a real device (`UnknownServiceException: CLEARTEXT communication
+  to localhost not permitted`), discovered only because this pass had an
+  emulator available to actually run `connectedDebugAndroidTest` for the
+  first time since `ContentSyncManager` was introduced (Milestone 8's own
+  known limitation: never run on-device). Fixed with
+  `app/src/main/res/xml/network_security_config.xml`
+  (`cleartextTrafficPermitted="false"`, wired via `AndroidManifest.xml`'s
+  `android:networkSecurityConfig`) plus a debug-source-set override
+  (`app/src/debug/res/xml/network_security_config.xml`,
+  `cleartextTrafficPermitted="true"`) using Android's standard
+  source-set resource override — **not** `<debug-overrides>`, which only
+  ever accepts `<trust-anchors>` and cannot relax cleartext policy (tried
+  first; confirmed non-functional on-device before switching approaches).
+  Release builds are HTTPS-only exactly as the security baseline required;
+  only debug-variant instrumented tests get the local-server exception.
+  `docs/security/SECURITY_BASELINE.md` updated from "still outstanding" to
+  "done".
+
+### Files created
+
+`app/src/test/java/com/sangusantri/app/data/content/ContentValidatorTest.kt`,
+`app/src/androidTest/java/com/sangusantri/app/data/content/
+ContentImporterTest.kt`, `app/src/androidTest/java/com/sangusantri/app/
+data/local/database/SanguSantriMigrationTest.kt`, `app/src/main/res/xml/
+network_security_config.xml`, `app/src/debug/res/xml/
+network_security_config.xml`.
+
+### Files modified
+
+`app/src/test/java/com/sangusantri/app/data/content/
+ContentVersionActionTest.kt`, `app/src/test/java/com/sangusantri/app/
+feature/home/SerambiViewModelTest.kt`, `app/src/test/java/com/sangusantri/
+app/feature/reader/ReaderViewModelTest.kt`, `app/src/androidTest/java/
+com/sangusantri/app/data/local/database/ReadingPositionDaoTest.kt`,
+`app/src/androidTest/java/com/sangusantri/app/data/sync/
+ContentSyncManagerTest.kt`, `app/src/androidTest/java/com/sangusantri/app/
+feature/home/SerambiScreenTest.kt`, `app/src/androidTest/java/
+com/sangusantri/app/feature/reader/ReaderScreenTest.kt`,
+`app/src/main/java/com/sangusantri/app/data/content/ContentImporter.kt`,
+`app/build.gradle.kts` (`androidx-room-testing` dependency, androidTest
+`sourceSets` schema wiring), `app/src/main/AndroidManifest.xml`
+(`android:networkSecurityConfig`), `docs/security/SECURITY_BASELINE.md`.
+
+### Files deleted
+
+`app/src/test/java/com/sangusantri/app/data/content/ContentChecksumTest.kt`,
+`app/src/test/java/com/sangusantri/app/data/content/
+ContentPackageValidatorTest.kt` (superseded by `ContentValidatorTest.kt`),
+`app/src/androidTest/java/com/sangusantri/app/data/content/
+ContentPackageImporterTest.kt` (superseded by `ContentImporterTest.kt`).
+
+### Commands executed
+
+`./gradlew :app:ktlintFormat`, `:app:ktlintCheck`, `:app:detekt`, `:app:lint`,
+`:app:assembleDebug`, `:app:testDebugUnitTest`, `:app:connectedDebugAndroidTest`
+— all passed. `:app:installDebug`/`:app:installDebugAndroidTest` against a
+freshly booted `Pixel_9` emulator (Android 15/API 35, headless
+`-no-window -gpu swiftshader_indirect`). `node
+content-hosting/scripts/validate-content.mjs` — passed
+("content-hosting validation passed"); also `diff`-verified
+`app/src/main/assets/content/{catalog.json,packages/*.json}` are
+byte-identical to `content-hosting/public/content/{catalog.json,
+packages/*.json}`, as ADR 0014/0015 require.
+
+### Test results
+
+`testDebugUnitTest`: 46/46 JVM unit tests passed.
+`connectedDebugAndroidTest`: 40/40 instrumented tests passed, including the
+new `SanguSantriMigrationTest` and `ContentImporterTest` and the rewritten
+`ContentSyncManagerTest`, `ReaderScreenTest`, `SerambiScreenTest`,
+`ReadingPositionDaoTest`. `ktlintCheck`/`detekt`: 0 issues.
+`lint`/`lintDebug`: `BUILD SUCCESSFUL`, 0 errors (21 pre-existing warnings,
+all unrelated to this pass — dependency-version-available notices, one
+`UnusedResources` for the launcher icon foreground, `OldTargetApi`/
+`ObsoleteSdkInt`). `assembleDebug`: `BUILD SUCCESSFUL`.
+
+### Manual verification (Pixel_9 emulator, Android 15/API 35, fresh install)
+
+Fresh install (`pm clear` + reinstall) launched with no crash; bundled
+catalog imported both real content items. Beranda renders Tahlil/Istighosah
+cards with real category/description text (previously non-production
+`[FIXTURE-AR]` placeholders under the old model — this pass's own
+Beranda/reader screenshots are the first real, non-placeholder content this
+project has rendered end-to-end). Tapping Tahlil opens the reading-mode
+chooser (content is now genuinely available, unlike the old model's
+permanently-`DRAFT` fixtures); **Bacaan Lengkap** renders "Langkah 1 dari 37"
+(matching ADR 0015's documented 59→37 step reduction) with correct
+Arabic + Indonesian translation and the "٣×" informational repetition
+indicator. Overflow menu confirmed to no longer offer "Daftar Isi" (Table of
+Contents correctly removed — no data source for it in the new model).
+**Panduan** (Guided Reader) on Istighosah step 1 (Al-Fatihah, target 3):
+interactive counter started at "0 dari 3", incremented on tap to "3 dari 3",
+turned green with a checkmark, and enabled **Lanjut** — the full interactive
+tasbih-counter flow works against real, non-fixture step data. The reader's
+"Sumber" dialog shows only `sourceName` ("NU Online — Bacaan Tahlil Singkat,
+Lengkap dengan Doa dan Terjemahannya") with no approval/approver text,
+confirming the on-device `Approval` object removal. Aktivitas tab renders
+its correct empty state ("Belum ada aktivitas" — no amaliyah was fully
+completed this session, only a single step's counter). Tasbih tab renders
+its own target-selection screen unaffected by the content-model change.
+
+### Known limitations
+
+* **No real backend is deployed.** The `content-hosting/` Firebase project
+  (`sangusantri-81cc6` per `.firebaserc`) has not been created or deployed
+  to; `BuildConfig.CONTENT_API_BASE_URL` still points at the non-routable
+  `.invalid` placeholder. `ContentSyncManagerTest` proves the sync client
+  logic is correct against a mocked server, not against the real Firebase
+  Hosting deployment.
+* **No `AmaliyahCompletionEvent`/full Guided Reader completion was
+  exercised this session** — the same practicality limitation Milestone 10
+  documented (every step's counter must reach its target before
+  completion is reachable; Tahlil is 37 steps, Istighosah's bundled content
+  includes a 30,000× istighfar repetition). Only a single step's counter
+  reaching its target was manually verified.
+* RTL-locale, dark mode, landscape, tablet-width, and font-scale-1.5× were
+  not separately exercised for the migrated screens this pass — only
+  light-mode portrait was captured, consistent with how prior milestones in
+  this project have scoped manual verification.
+* This pass did not review or re-verify the substance of the pre-existing
+  production Kotlin implementation, `docs/` updates (`content-schema.md`,
+  `ARCHITECTURE.md`, `CONTENT_MODEL.md`, `MCP_TOOLING.md`,
+  `OFFLINE_FIRST.md`, `CONTENT_GOVERNANCE.md`, `PRD.md`, `ROADMAP.md`), or
+  `content-hosting/` beyond what was needed to make it compile, pass tests,
+  and behave correctly on-device — that work was authored in an earlier
+  session, already matched ADR 0015's own description in every place this
+  pass inspected it, and is treated as reviewed-by-outcome (passing tests,
+  correct on-device behaviour) rather than re-read line by line.
+
+### Next recommended milestone
+
+Deploy the `content-hosting/` Firebase project and repoint
+`SANGU_CONTENT_API_BASE_URL` at the real deployed URL (the natural next step
+to make the already-implemented Android sync client observably functional
+end-to-end) — or proceed directly to Release `0.0.4` (Phase E — Pengingat
+Amaliyah) per `docs/design/FIGMA_HANDOFF.md`'s implementation order, treating
+the Firebase deployment as a parallel workstream, consistent with how ADR
+0012's Android-side sync client was originally built ahead of its backend.

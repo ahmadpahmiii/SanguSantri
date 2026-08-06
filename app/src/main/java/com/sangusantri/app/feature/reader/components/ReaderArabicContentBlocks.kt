@@ -54,26 +54,6 @@ internal fun ReaderTranslationBlock(
     }
 }
 
-/** Visually distinct but subordinate to the Arabic text it precedes (Milestone 3 §5). */
-@Composable
-internal fun ReaderQuranReference(
-    surah: Int,
-    ayahStart: Int,
-    ayahEnd: Int?,
-) {
-    val text =
-        if (ayahEnd != null && ayahEnd != ayahStart) {
-            stringResource(R.string.reader_quran_reference_range, surah, ayahStart, ayahEnd)
-        } else {
-            stringResource(R.string.reader_quran_reference_single, surah, ayahStart)
-        }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-    )
-}
-
 /**
  * Full Reader's repetition shortcut (decision D, `docs/design/FIGMA_HANDOFF.md` node `14:2`):
  * "Dibaca N kali · Buka Panduan →" — tapping opens Guided Reader at this exact step immediately,

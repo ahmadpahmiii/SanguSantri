@@ -68,8 +68,7 @@ fun TasbihCounter(
                 .sizeIn(
                     minWidth = SanguSantriDimensions.tasbihCounterMinSize,
                     minHeight = SanguSantriDimensions.tasbihCounterMinSize,
-                )
-                .semantics {
+                ).semantics {
                     contentDescription = tapLabel
                     this.stateDescription = stateDescription
                 },

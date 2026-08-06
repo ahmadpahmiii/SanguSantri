@@ -16,41 +16,41 @@ import dagger.assisted.AssistedInject
  */
 @HiltWorker
 class ContentSyncWorker
-@AssistedInject
-constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
-    private val contentSyncManager: ContentSyncManager,
-    private val syncMetadata: ContentSyncMetadata,
-) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result =
-        when (val result = contentSyncManager.sync()) {
-            is SyncResult.Completed -> {
-                syncMetadata.recordTerminalSync(
-                    if (result.rejectedVersionIds.isEmpty()) {
-                        ContentSyncStatus.SUCCESS
-                    } else {
-                        ContentSyncStatus.PARTIAL
-                    },
-                )
-                Result.success()
-            }
-
-            is SyncResult.RetryableFailure ->
-                if (runAttemptCount < MAX_ATTEMPTS - 1) {
-                    Result.retry()
-                } else {
-                    syncMetadata.recordTerminalSync(ContentSyncStatus.FAILED)
+    @AssistedInject
+    constructor(
+        @Assisted context: Context,
+        @Assisted params: WorkerParameters,
+        private val contentSyncManager: ContentSyncManager,
+        private val syncMetadata: ContentSyncMetadata,
+    ) : CoroutineWorker(context, params) {
+        override suspend fun doWork(): Result =
+            when (val result = contentSyncManager.sync()) {
+                is SyncResult.Completed -> {
+                    syncMetadata.recordTerminalSync(
+                        if (result.rejectedVersionIds.isEmpty()) {
+                            ContentSyncStatus.SUCCESS
+                        } else {
+                            ContentSyncStatus.PARTIAL
+                        },
+                    )
                     Result.success()
                 }
 
-            is SyncResult.PermanentFailure -> {
-                syncMetadata.recordTerminalSync(ContentSyncStatus.FAILED)
-                Result.success()
-            }
-        }
+                is SyncResult.RetryableFailure ->
+                    if (runAttemptCount < MAX_ATTEMPTS - 1) {
+                        Result.retry()
+                    } else {
+                        syncMetadata.recordTerminalSync(ContentSyncStatus.FAILED)
+                        Result.success()
+                    }
 
-    private companion object {
-        const val MAX_ATTEMPTS = 3
+                is SyncResult.PermanentFailure -> {
+                    syncMetadata.recordTerminalSync(ContentSyncStatus.FAILED)
+                    Result.success()
+                }
+            }
+
+        private companion object {
+            const val MAX_ATTEMPTS = 3
+        }
     }
-}

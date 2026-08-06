@@ -4,6 +4,10 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.sangusantri.app.data.content.ContentImportOutcome
 import com.sangusantri.app.data.local.content.BundledContentBootstrapper
 import com.sangusantri.app.data.sync.ContentSyncScheduler
@@ -17,7 +21,8 @@ import javax.inject.Inject
 @HiltAndroidApp
 class SanguSantriApplication :
     Application(),
-    Configuration.Provider {
+    Configuration.Provider,
+    SingletonImageLoader.Factory {
     @Inject
     lateinit var bundledContentBootstrapper: BundledContentBootstrapper
 
@@ -48,23 +53,36 @@ class SanguSantriApplication :
         }
     }
 
+    /** Catalog item images (ADR 0015 — `Content.imageUrl`): a network-capable Coil `ImageLoader`
+     * is opt-in per Coil 3 — without this, [coil3.compose.AsyncImage] can only load local models. */
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader
+            .Builder(context)
+            .components { add(OkHttpNetworkFetcherFactory()) }
+            .build()
+
     private fun logBootstrapOutcome(outcome: ContentImportOutcome) {
         when (outcome) {
-            is ContentImportOutcome.Imported -> Log.d(TAG, "Bundled content: imported ${outcome.versionId}")
+            is ContentImportOutcome.Imported -> Log.d(TAG, "Bundled content: imported ${outcome.contentId}")
             is ContentImportOutcome.Replaced ->
-                Log.d(TAG, "Bundled content: replaced ${outcome.oldVersionId} with ${outcome.newVersionId}")
+                Log.d(
+                    TAG,
+                    "Bundled content: replaced ${outcome.contentId} v${outcome.oldVersion} " +
+                        "with v${outcome.newVersion}",
+                )
 
-            is ContentImportOutcome.AlreadyUpToDate ->
-                Log.d(TAG, "Bundled content: already up to date ${outcome.versionId}")
+            is ContentImportOutcome.SkippedUpToDate ->
+                Log.d(TAG, "Bundled content: already up to date ${outcome.contentId}")
 
             is ContentImportOutcome.SkippedOlderVersion ->
-                Log.d(TAG, "Bundled content: skipped older ${outcome.versionId}, active is ${outcome.activeVersionId}")
-
-            is ContentImportOutcome.ChecksumConflict ->
-                Log.w(TAG, "Bundled content: checksum conflict for already-active version ${outcome.versionId}")
+                Log.d(
+                    TAG,
+                    "Bundled content: skipped older catalog entry for ${outcome.contentId}, " +
+                        "local is v${outcome.localVersion}",
+                )
 
             is ContentImportOutcome.Rejected ->
-                Log.w(TAG, "Bundled content import failed for ${outcome.versionId}: ${outcome.reason}")
+                Log.w(TAG, "Bundled content import failed for ${outcome.contentId}: ${outcome.reason}")
         }
     }
 

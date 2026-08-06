@@ -4,8 +4,9 @@ Applies to any task involving `content-hosting/`, Firebase Hosting
 deployment, or an MCP (Model Context Protocol) server configured against
 this project's Firebase project. Read alongside
 `docs/engineering/ARCHITECTURE.md` §Backend and ADR
-[0014](../decisions/0014-firebase-hosting-static-content-delivery.md),
-which this document assumes.
+[0014](../decisions/0014-firebase-hosting-static-content-delivery.md)/ADR
+[0015](../decisions/0015-simplified-dynamic-catalog-content-model.md), which
+this document assumes.
 
 ## What this is, in one sentence
 
@@ -16,16 +17,16 @@ application, does not replace Retrofit/OkHttp, and never ships in the APK.
 
 ## The Android/MCP boundary — read before touching either side
 
-| Area                                       | Allowed                                                          |
-|--------------------------------------------|------------------------------------------------------------------|
-| Firebase MCP server                        | Development and CI tooling only                                  |
-| Firebase Hosting (`content-hosting/`)      | Static content delivery (ADR 0014)                               |
-| Firebase SDK in `app/` (Android)           | Not part of this decision either way — see note below            |
-| Firestore                                  | Rejected (ADR 0014, Alternatives rejected)                       |
-| Cloud Functions                            | Rejected (ADR 0014, Alternatives rejected)                       |
-| Retrofit/OkHttp as the Android sync client | Unchanged — still the only way `app/` fetches content (ADR 0012) |
+| Area                                        | Allowed                                                           |
+|----------------------------------------------|--------------------------------------------------------------------|
+| Firebase MCP server                          | Development and CI tooling only                                   |
+| Firebase Hosting (`content-hosting/`)        | Static content delivery (ADR 0014/0015)                            |
+| Firebase SDK in `app/` (Android)             | Not part of this decision either way — see note below              |
+| Firestore                                    | Rejected (ADR 0014, Alternatives rejected)                         |
+| Cloud Functions                              | Rejected (ADR 0014, Alternatives rejected)                         |
+| Retrofit/OkHttp as the Android sync client   | Unchanged — still the only way `app/` fetches content (ADR 0012/0015) |
 
-Rules that follow directly from ADR 0014:
+Rules that follow directly from ADR 0014/0015:
 
 * The Firebase MCP server is never a Gradle dependency of `app/` and is
   never invoked from a ViewModel, Repository, DAO, or any other production
@@ -47,30 +48,37 @@ Rules that follow directly from ADR 0014:
 ## Repository layout
 
 `content-hosting/` is a new top-level directory, parallel to `app/` — it is
-never merged into `app/src/**` and is never bundled into the APK:
+never merged into `app/src/**` and is never bundled into the APK. A real
+Firebase project (`sangusantri-81cc6`, `.firebaserc`) is already linked to
+this directory:
 
 ```text
 content-hosting/
-├── firebase.json          # Hosting config: public dir, rewrites, ignore list
-├── .firebaserc             # Firebase project alias (not committed if it embeds a project id you don't want public — see Secrets below)
-└── public/
-    └── v1/
-        ├── config.json     # supported schema version, min app version, feature flags
-        └── content/
-            ├── manifest.json
-            └── packages/
-                ├── tahlil-umum-v1
-                └── istighosah-umum-v1
+├── firebase.json          # Hosting config: public dir, ignore list, cache headers
+├── .firebaserc             # Firebase project alias (already configured — do not commit a
+│                           # different project id over it without confirming with the team)
+├── public/
+│   ├── index.html          # Default Firebase Hosting placeholder — harmless, not app-specific
+│   ├── 404.html
+│   └── content/
+│       ├── catalog.json    # ContentCatalogDto shape (docs/content-schema.md, ADR 0015)
+│       ├── packages/
+│       │   ├── tahlil-v1.json
+│       │   └── istighosah-v1.json
+│       └── images/         # empty for now — no bundled amaliyah has an image yet
+└── scripts/
+    └── validate-content.mjs
 ```
 
-File formats (`manifest.json`, `config.json`, each package file) are
+File formats (`catalog.json`, each package file under `packages/`) are
 exactly `docs/content-schema.md`'s existing schema — there is no separate
 "MCP schema" or "hosting schema." Filenames under `packages/` must exactly
-match the `versionId` values `ContentApiService.getPackage(versionId)`
-requests, since Firebase Hosting resolves them as literal static paths, not
-templated routes.
+match the `contentUrl` each catalog item declares, since Firebase Hosting
+resolves them as literal static paths, not templated routes.
 
 ## Setting up the Firebase project (one-time, human-run)
+
+Already done for this project (`sangusantri-81cc6`). For a new environment:
 
 ```bash
 firebase login
@@ -84,70 +92,69 @@ for this project. Point the public directory at `public/`.
 
 ## Setting up the Firebase MCP server
 
-Firebase ships an official MCP server as part of `firebase-tools`. The
-exact launch command and available tool set can change between
-`firebase-tools` releases — run `firebase --help` (or check the installed
-version's own docs) rather than assuming a specific invocation stays
-correct over time. Register it as a project-scoped MCP server for Claude
-Code in `.mcp.json` at the repository root, e.g.:
+Firebase's official MCP server ships as part of `firebase-tools` and is
+also distributed as a Claude Code plugin. Prefer the plugin install:
 
-```json
-{
-    "mcpServers": {
-        "firebase": {
-            "command": "firebase",
-            "args": [
-                "experimental:mcp"
-            ]
-        }
-    }
-}
+```bash
+claude plugin marketplace add firebase/firebase-tools
+claude plugin install firebase@firebase
 ```
 
-Verify the exact `args` against your installed `firebase-tools` version
-before relying on it — do not copy this verbatim into a CI script without
-confirming it still launches an MCP server, not something else.
+Or configure it manually as a project-scoped MCP server:
 
-Scope the server's usefulness to `content-hosting/`: when directing an
-agent to use it, tell it explicitly that it may read and propose changes
-only under `content-hosting/**`, per the boundary table above.
+```bash
+claude mcp add firebase npx -- -y firebase-tools@latest mcp
+```
+
+Verify it registered correctly:
+
+```bash
+claude mcp list
+```
+
+Do not hand-write a custom MCP server configuration with invented fields
+(e.g. a `contentMapping` or `syncRules` block) — those are not recognised
+by the official server and only create a maintenance burden for a config
+shape nothing reads. Scope the server's usefulness to `content-hosting/`:
+when directing an agent to use it, tell it explicitly that it may read and
+propose changes only under `content-hosting/**`, per the boundary table
+above.
 
 ## Deployment
 
 ```bash
 cd content-hosting
+node scripts/validate-content.mjs
 firebase deploy --only hosting
 ```
 
-Run only after CI validation passes (see below) — never deploy an
+Run only after `validate-content.mjs` passes (see below) — never deploy an
 unvalidated file, and never run this as an interactive step that skips
-validation "just this once."
+validation "just this once." Deploying to `sangusantri-81cc6` is a
+real, shared-system action — confirm with the team before running it, the
+same as any other production deployment.
 
 ## CI validation (replaces the never-built Go admin CLI)
 
-A CI script must validate `content-hosting/public/v1/content/` before every
+`scripts/validate-content.mjs` validates `public/content/` before every
 deploy, enforcing the same gates the previously planned Go admin CLI's
-`content validate` would have (ADR 0014, `docs/engineering/ARCHITECTURE.md`
-§Backend):
+`content validate` would have (ADR 0014/0015,
+`docs/engineering/ARCHITECTURE.md` §Backend):
 
 * `schemaVersion` matches the supported version (`docs/content-schema.md`).
-* `manifest.json` is valid JSON and every entry's `checksumSha256` matches
-  the referenced package file's actual SHA-256.
-* Every `manifest.json` entry has a corresponding file under `packages/`
-  and vice versa — no dangling references either direction.
-* No duplicate `variantId`/`versionId` pairs.
-* No `versionNumber` regression versus what is already deployed.
-* Required Arabic text and translation fields are non-empty
-  (`docs/content-schema.md` structural validation rules,
-  `ContentPackageValidator`'s existing checks are the reference
-  implementation for what "valid" means — this CI script should not
-  invent different validation criteria than the Android importer already
-  enforces).
+* `catalog.json` is valid JSON with no duplicate catalog item `id`.
+* Every catalog item's `contentUrl` resolves to an existing file, and that
+  file's `id`/`version` match the catalog entry that named it.
+* Required Arabic text and translation fields are non-empty, and every
+  step's `repeatTarget` is at least `1`.
+* No duplicate step `id` within one content file.
+* Optional version-regression check against a previously deployed
+  `catalog.json` (`node scripts/validate-content.mjs --previous <path>`).
 
-This script is intentionally simple tooling (e.g. Node or Python), not a
-second copy of `ContentPackageImporter`'s Kotlin logic — Android's importer
-remains the authoritative, final validation gate regardless of what CI
-checks, exactly as it already is for bundled content
+This script is intentionally simple tooling (plain Node, no dependencies),
+not a second copy of `ContentValidator`/`ContentImporter`'s Kotlin logic —
+Android's importer remains the authoritative, final validation gate
+regardless of what CI checks, exactly as it already is for bundled content
 (`docs/content-schema.md` Import behaviour).
 
 ## Secrets
@@ -157,13 +164,12 @@ token) is the only secret this tooling introduces. It must be stored as a
 CI secret, never committed, and never exposed in Claude/agent output —
 same handling as any other production credential
 (`docs/operations/PRODUCTION_READINESS.md` §Production credential
-ownership). Public content itself (manifest, packages, config) requires no
-secret to read — it is public and unauthenticated by design.
+ownership). Public content itself (catalog, packages) requires no secret
+to read — it is public and unauthenticated by design.
 
 ## What this document does not cover
 
-Implementing `content-hosting/`'s actual files, the CI validation script,
-and the real Firebase project deployment are separate, explicitly-requested
-tasks — this document records the setup and the boundary, not a claim that
-any of it has been built yet. See `docs/PROGRESS.md`'s Firebase Hosting
-pass entry for current status.
+The CI workflow file that runs `validate-content.mjs` and
+`firebase deploy` automatically on merge is not yet written — see
+`docs/engineering/RELEASE_ENGINEERING.md`. See `docs/PROGRESS.md`'s
+Firebase Hosting pass entries for current status.

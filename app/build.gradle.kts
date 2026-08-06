@@ -54,6 +54,13 @@ android {
             isReturnDefaultValues = true
         }
     }
+    // MIGRATION_1_2 (ADR 0015) is a real, non-destructive migration — MigrationTestHelper needs
+    // the exported schema JSON files as androidTest assets to instantiate historical versions.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDirs("$projectDir/schemas")
+        }
+    }
 }
 
 ksp {
@@ -83,6 +90,11 @@ dependencies {
     // stripped from the release APK).
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.firebase.crashlytics)
+
+    // Catalog item images (ADR 0015 — Content.imageUrl); network fetcher shares the app's own
+    // OkHttp stack rather than pulling in a second HTTP client.
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Dependency injection
     implementation(libs.hilt.android)
@@ -123,6 +135,7 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.okhttp.mockwebserver)
+    androidTestImplementation(libs.androidx.room.testing)
     kspAndroidTest(libs.hilt.android.compiler)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)

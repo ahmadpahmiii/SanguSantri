@@ -1,44 +1,39 @@
 package com.sangusantri.app.data.content
 
 /**
- * Per-package result of importing a content package, from either the bundled bootstrapper or
- * remote sync — [ContentPackageImporter] does not distinguish the two (PRD 12.4). One malformed
- * or stale package must never affect another.
+ * Per-item result of importing a catalog entry's content file, from either the bundled
+ * bootstrapper or remote sync — [ContentImporter] does not distinguish the two (ADR 0015). One
+ * malformed or stale item must never affect another.
  */
 sealed interface ContentImportOutcome {
-    /** No prior Room version existed for this variant; the package was inserted fresh. */
+    /** No prior Room row existed for this content id; it was inserted fresh. */
     data class Imported(
-        val versionId: String,
+        val contentId: String,
     ) : ContentImportOutcome
 
-    /** A newer version replaced the previously active [oldVersionId] atomically. */
+    /** A newer version replaced the previously active content atomically. */
     data class Replaced(
-        val oldVersionId: String,
-        val newVersionId: String,
+        val contentId: String,
+        val oldVersion: Int,
+        val newVersion: Int,
     ) : ContentImportOutcome
 
-    /** Same version already active with a matching checksum — safe to re-run, no write performed. */
-    data class AlreadyUpToDate(
-        val versionId: String,
+    /** Same version already active — safe to re-run, no write performed. */
+    data class SkippedUpToDate(
+        val contentId: String,
     ) : ContentImportOutcome
 
-    /** The package's version is older than what Room already has — Room is never downgraded. */
+    /** The catalog's version is older than what Room already has — Room is never downgraded. */
     data class SkippedOlderVersion(
-        val versionId: String,
-        val activeVersionId: String,
+        val contentId: String,
+        val localVersion: Int,
     ) : ContentImportOutcome
 
-    /** Same version number as Room's active version, but a different checksum — an immutable-version
-     * contract violation. Room is left unchanged. */
-    data class ChecksumConflict(
-        val versionId: String,
-    ) : ContentImportOutcome
-
-    /** Rejected before or during import (checksum mismatch, malformed JSON, structural validation
-     * failure, version-identity mismatch, unsupported minimum app version, or a database failure
-     * that rolled back). No partial write remains. */
+    /** Rejected before or during import (malformed JSON, structural validation failure,
+     * id/version identity mismatch against the catalog, or a database failure that rolled back).
+     * No partial write remains. */
     data class Rejected(
-        val versionId: String?,
+        val contentId: String?,
         val reason: String,
     ) : ContentImportOutcome
 }

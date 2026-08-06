@@ -12,7 +12,6 @@ import androidx.compose.runtime.setValue
 /** Bundles [GuidedReaderScreen]'s bottom-sheet/dialog visibility flags, under the parameter-count limit. */
 internal data class GuidedReaderOverlayVisibility(
     val showSettings: MutableState<Boolean>,
-    val showTableOfContents: MutableState<Boolean>,
     val showResetConfirm: MutableState<Boolean>,
     val showCompletionConfirm: MutableState<Boolean>,
 )
@@ -21,11 +20,10 @@ internal data class GuidedReaderOverlayVisibility(
 @Composable
 internal fun rememberGuidedReaderOverlayVisibility(): GuidedReaderOverlayVisibility {
     val showSettings = rememberSaveable { mutableStateOf(false) }
-    val showTableOfContents = rememberSaveable { mutableStateOf(false) }
     val showResetConfirm = rememberSaveable { mutableStateOf(false) }
     val showCompletionConfirm = rememberSaveable { mutableStateOf(false) }
-    return remember(showSettings, showTableOfContents, showResetConfirm, showCompletionConfirm) {
-        GuidedReaderOverlayVisibility(showSettings, showTableOfContents, showResetConfirm, showCompletionConfirm)
+    return remember(showSettings, showResetConfirm, showCompletionConfirm) {
+        GuidedReaderOverlayVisibility(showSettings, showResetConfirm, showCompletionConfirm)
     }
 }
 

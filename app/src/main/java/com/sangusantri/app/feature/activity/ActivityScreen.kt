@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +40,7 @@ import com.sangusantri.app.feature.activity.components.ActivityWeeklySection
 fun ActivityRoute(
     onAmaliyahHistoryClick: () -> Unit,
     onTasbihHistoryClick: () -> Unit,
+    onRemindersClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ActivityViewModel = hiltViewModel(),
 ) {
@@ -47,6 +49,7 @@ fun ActivityRoute(
         uiState = uiState,
         onAmaliyahHistoryClick = onAmaliyahHistoryClick,
         onTasbihHistoryClick = onTasbihHistoryClick,
+        onRemindersClick = onRemindersClick,
         modifier = modifier,
     )
 }
@@ -57,6 +60,7 @@ fun ActivityScreen(
     uiState: ActivityUiState,
     onAmaliyahHistoryClick: () -> Unit,
     onTasbihHistoryClick: () -> Unit,
+    onRemindersClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -80,6 +84,7 @@ fun ActivityScreen(
                     overview = uiState.overview,
                     onAmaliyahHistoryClick = onAmaliyahHistoryClick,
                     onTasbihHistoryClick = onTasbihHistoryClick,
+                    onRemindersClick = onRemindersClick,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -91,6 +96,7 @@ private fun ActivityContent(
     overview: ActivityOverview,
     onAmaliyahHistoryClick: () -> Unit,
     onTasbihHistoryClick: () -> Unit,
+    onRemindersClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -98,6 +104,7 @@ private fun ActivityContent(
             ActivityEmptyState(modifier = Modifier.align(Alignment.Center))
             return@Box
         }
+        val hijriMonthNames = stringArrayResource(R.array.reminder_hijri_month_names).toList()
         Column(
             modifier =
                 Modifier
@@ -124,6 +131,14 @@ private fun ActivityContent(
                     kind = ActivityRowKind.TASBIH,
                     rows = overview.recentTasbihHistory.map { it.toRowContent() },
                     onSeeAllClick = onTasbihHistoryClick,
+                )
+            }
+            if (overview.hasReminders) {
+                ActivityHistorySection(
+                    title = stringResource(R.string.activity_section_reminders),
+                    kind = ActivityRowKind.REMINDER,
+                    rows = overview.upcomingReminders.map { it.toRowContent(hijriMonthNames) },
+                    onSeeAllClick = onRemindersClick,
                 )
             }
         }
@@ -170,6 +185,7 @@ private fun ActivityScreenEmptyPreview() {
                 ),
             onAmaliyahHistoryClick = {},
             onTasbihHistoryClick = {},
+            onRemindersClick = {},
         )
     }
 }
@@ -178,6 +194,11 @@ private fun ActivityScreenEmptyPreview() {
 @Composable
 private fun ActivityScreenLoadingPreview() {
     SanguSantriTheme {
-        ActivityScreen(uiState = ActivityUiState.Loading, onAmaliyahHistoryClick = {}, onTasbihHistoryClick = {})
+        ActivityScreen(
+            uiState = ActivityUiState.Loading,
+            onAmaliyahHistoryClick = {},
+            onTasbihHistoryClick = {},
+            onRemindersClick = {},
+        )
     }
 }

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "id": "nahwu-dasar-fixture",
+      "title": "[FIXTURE] Nahwu Dasar",
+      "description": "[FIXTURE] Paket contoh pengembangan — bukan bank soal produksi. Konten produksi memerlukan tinjauan editorial sebelum menggantikan penanda ini.",
+      "order": 1,
+      "isActive": true,
+      "questions": [
+        {
+          "id": "nahwu-dasar-fixture-q1",
+          "stem": "[FIXTURE] Pertanyaan contoh nomor 1 — bukan soal Nahwu produksi.",
+          "optionA": "[FIXTURE] Pilihan A",
+          "optionB": "[FIXTURE] Pilihan B",
+          "optionC": "[FIXTURE] Pilihan C",
+          "optionD": "[FIXTURE] Pilihan D",
+          "correctOption": "B",
+          "explanation": "[FIXTURE] Penjelasan contoh — konten produksi memerlukan tinjauan editorial."
+        },
+        {
+          "id": "nahwu-dasar-fixture-q2",
+          "stem": "[FIXTURE] Pertanyaan contoh nomor 2 — bukan soal Nahwu produksi.",
+          "optionA": "[FIXTURE] Pilihan A",
+          "optionB": "[FIXTURE] Pilihan B",
+          "optionC": "[FIXTURE] Pilihan C",
+          "optionD": "[FIXTURE] Pilihan D",
+          "correctOption": "A",
+          "explanation": "[FIXTURE] Penjelasan contoh — konten produksi memerlukan tinjauan editorial."
+        },
+        {
+          "id": "nahwu-dasar-fixture-q3",
+          "stem": "[FIXTURE] Pertanyaan contoh nomor 3 — bukan soal Nahwu produksi.",
+          "optionA": "[FIXTURE] Pilihan A",
+          "optionB": "[FIXTURE] Pilihan B",
+          "optionC": "[FIXTURE] Pilihan C",
+          "optionD": "[FIXTURE] Pilihan D",
+          "correctOption": "D",
+          "explanation": null
+        },
+        {
+          "id": "nahwu-dasar-fixture-q4",
+          "stem": "[FIXTURE] Pertanyaan contoh nomor 4 — bukan soal Nahwu produksi.",
+          "optionA": "[FIXTURE] Pilihan A",
+          "optionB": "[FIXTURE] Pilihan B",
+          "optionC": "[FIXTURE] Pilihan C",
+          "optionD": "[FIXTURE] Pilihan D",
+          "correctOption": "C",
+          "explanation": "[FIXTURE] Penjelasan contoh — konten produksi memerlukan tinjauan editorial."
+        },
+        {
+          "id": "nahwu-dasar-fixture-q5",
+          "stem": "[FIXTURE] Pertanyaan contoh nomor 5 — bukan soal Nahwu produksi.",
+          "optionA": "[FIXTURE] Pilihan A",
+          "optionB": "[FIXTURE] Pilihan B",
+          "optionC": "[FIXTURE] Pilihan C",
+          "optionD": "[FIXTURE] Pilihan D",
+          "correctOption": "B",
+          "explanation": null
+        },
+        {
+          "id": "nahwu-dasar-fixture-q6",
+          "stem": "[FIXTURE] Pertanyaan contoh nomor 6 — bukan soal Nahwu produksi.",
+          "optionA": "[FIXTURE] Pilihan A",
+          "optionB": "[FIXTURE] Pilihan B",
+          "optionC": "[FIXTURE] Pilihan C",
+          "optionD": "[FIXTURE] Pilihan D",
+          "correctOption": "A",
+          "explanation": "[FIXTURE] Penjelasan contoh — konten produksi memerlukan tinjauan editorial."
+        }
+      ]
+    },
+    {
+      "id": "nahwu-lanjutan-fixture",
+      "title": "[FIXTURE] Nahwu Lanjutan",
+      "description": "[FIXTURE] Paket contoh pengembangan — belum memiliki soal. Menunjukkan status paket kosong secara nyata, bukan konten produksi.",
+      "order": 2,
+      "isActive": true,
+      "questions": []
+    }
+  ]
+}

@@ -46,6 +46,11 @@ internal fun ActivityHistoryDetailScaffold(
         when (kind) {
             ActivityRowKind.AMALIYAH -> stringResource(R.string.activity_detail_amaliyah_title)
             ActivityRowKind.TASBIH -> stringResource(R.string.activity_detail_tasbih_title)
+            // Not currently reachable — Aktivitas' "Lihat semua" for Pengingat (0.0.4) opens the
+            // Pengingat management screen directly, not this generic history scaffold. Handled
+            // here anyway so ActivityRowKind stays a genuinely exhaustive `when` everywhere it's
+            // used, rather than an `else` that would silently swallow a future real case.
+            ActivityRowKind.REMINDER -> stringResource(R.string.activity_section_reminders)
         }
     Scaffold(
         modifier = modifier,

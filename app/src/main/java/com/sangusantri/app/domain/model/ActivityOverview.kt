@@ -16,6 +16,8 @@ data class ActivityOverview(
     val recentAmaliyahCompletions: List<AmaliyahCompletionEvent>,
     /** Most recent first, capped at 5 — the root screen's preview list. */
     val recentTasbihHistory: List<TasbihHistoryEntry>,
+    /** `0.0.4`, Pengingat Amaliyah — soonest-first, capped at 5 — the root screen's preview list. */
+    val upcomingReminders: List<Reminder> = emptyList(),
 ) {
     val hasStreak: Boolean
         get() = currentStreakDays > 0 || longestStreakDays > 0
@@ -29,7 +31,10 @@ data class ActivityOverview(
     val hasTasbihHistory: Boolean
         get() = recentTasbihHistory.isNotEmpty()
 
+    val hasReminders: Boolean
+        get() = upcomingReminders.isNotEmpty()
+
     /** Screen-level empty state (state 1, "Semua Data Kosong") — the one exception to per-section hiding. */
     val isEntirelyEmpty: Boolean
-        get() = !hasStreak && !hasWeeklyActivity && !hasAmaliyahHistory && !hasTasbihHistory
+        get() = !hasStreak && !hasWeeklyActivity && !hasAmaliyahHistory && !hasTasbihHistory && !hasReminders
 }

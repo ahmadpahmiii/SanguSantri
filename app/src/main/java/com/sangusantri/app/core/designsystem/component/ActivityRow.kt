@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +52,13 @@ fun ActivityRow(
 
                 ActivityRowKind.TASBIH ->
                     TasbihIcon(filled = true, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                ActivityRowKind.REMINDER ->
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = content.primaryText, style = MaterialTheme.typography.titleMedium)

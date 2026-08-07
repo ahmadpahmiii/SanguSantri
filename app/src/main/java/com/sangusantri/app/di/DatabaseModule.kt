@@ -7,7 +7,11 @@ import com.sangusantri.app.data.local.dao.AppMetadataDao
 import com.sangusantri.app.data.local.dao.ContentDao
 import com.sangusantri.app.data.local.dao.ContentStepDao
 import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
+import com.sangusantri.app.data.local.dao.NahwuQuizAttemptDao
+import com.sangusantri.app.data.local.dao.NahwuQuizPackageDao
+import com.sangusantri.app.data.local.dao.NahwuQuizQuestionDao
 import com.sangusantri.app.data.local.dao.ReadingPositionDao
+import com.sangusantri.app.data.local.dao.ReminderDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
 import com.sangusantri.app.data.local.dao.TasbihHistoryDao
 import com.sangusantri.app.data.local.dao.TasbihSessionDao
@@ -68,4 +72,17 @@ object DatabaseModule {
     @Provides
     fun provideAmaliyahCompletionEventDao(database: SanguSantriDatabase): AmaliyahCompletionEventDao =
         database.amaliyahCompletionEventDao()
+
+    @Provides
+    fun provideReminderDao(database: SanguSantriDatabase): ReminderDao = database.reminderDao()
+
+    @Provides
+    fun provideNahwuQuizPackageDao(database: SanguSantriDatabase): NahwuQuizPackageDao = database.nahwuQuizPackageDao()
+
+    @Provides
+    fun provideNahwuQuizQuestionDao(database: SanguSantriDatabase): NahwuQuizQuestionDao =
+        database.nahwuQuizQuestionDao()
+
+    @Provides
+    fun provideNahwuQuizAttemptDao(database: SanguSantriDatabase): NahwuQuizAttemptDao = database.nahwuQuizAttemptDao()
 }

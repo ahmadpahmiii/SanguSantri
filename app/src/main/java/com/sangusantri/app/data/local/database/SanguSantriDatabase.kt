@@ -7,7 +7,11 @@ import com.sangusantri.app.data.local.dao.AppMetadataDao
 import com.sangusantri.app.data.local.dao.ContentDao
 import com.sangusantri.app.data.local.dao.ContentStepDao
 import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
+import com.sangusantri.app.data.local.dao.NahwuQuizAttemptDao
+import com.sangusantri.app.data.local.dao.NahwuQuizPackageDao
+import com.sangusantri.app.data.local.dao.NahwuQuizQuestionDao
 import com.sangusantri.app.data.local.dao.ReadingPositionDao
+import com.sangusantri.app.data.local.dao.ReminderDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
 import com.sangusantri.app.data.local.dao.TasbihHistoryDao
 import com.sangusantri.app.data.local.dao.TasbihSessionDao
@@ -16,7 +20,11 @@ import com.sangusantri.app.data.local.entity.AppMetadataEntity
 import com.sangusantri.app.data.local.entity.ContentEntity
 import com.sangusantri.app.data.local.entity.ContentStepEntity
 import com.sangusantri.app.data.local.entity.GuidedReadingSessionEntity
+import com.sangusantri.app.data.local.entity.NahwuQuizAttemptEntity
+import com.sangusantri.app.data.local.entity.NahwuQuizPackageEntity
+import com.sangusantri.app.data.local.entity.NahwuQuizQuestionEntity
 import com.sangusantri.app.data.local.entity.ReadingPositionEntity
+import com.sangusantri.app.data.local.entity.ReminderEntity
 import com.sangusantri.app.data.local.entity.StepProgressEntity
 import com.sangusantri.app.data.local.entity.TasbihHistoryEntity
 import com.sangusantri.app.data.local.entity.TasbihSessionEntity
@@ -28,8 +36,21 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * real, non-destructive data migration. Enum type converters were removed along with the enums
  * (`StepType`, `AmaliyahVersionStatus`, `ApprovalStatus`, `OwnerType`, `Visibility`) they existed
  * for; Room's built-in enum support (2.6+) is used natively where an enum column still exists
- * (`TasbihSessionEntity.targetPreset`), so no `Converters` class is needed any more. Destructive
- * migration (`fallbackToDestructiveMigration`) is deliberately NOT used.
+ * (`TasbihSessionEntity.targetPreset`, `NahwuQuizQuestionEntity.correctOption`), so no `Converters`
+ * class is needed any more. Destructive migration (`fallbackToDestructiveMigration`) is
+ * deliberately NOT used.
+ *
+ * Version 3 (`0.0.4`, Pengingat Amaliyah) adds `reminders` — purely additive, no existing table
+ * changed. `CLAUDE.md`'s temporary Figma-phase constraint (that pass's Phase E) prohibited writing
+ * a new migration class for it, so there is no `MIGRATION_2_3`.
+ *
+ * Version 4 (`0.0.5`, Nahwu Quiz) adds `nahwu_quiz_packages`/`nahwu_quiz_questions`/
+ * `nahwu_quiz_attempts` — also purely additive, and also no `MIGRATION_3_4`: `0.0.5` falls outside
+ * `docs/design/FIGMA_HANDOFF.md`'s Phase A–E window (Phase E ends at `0.0.4`), so this follows the
+ * project's general, non-temporary pre-release policy instead
+ * (`docs/engineering/CONTENT_MODEL.md` "Schema-freeze policy") — which reaches the same outcome: a
+ * clean baseline reset, not a real migration, since there are still no production installs to
+ * protect. An existing local install must clear app data or reinstall once.
  */
 @Database(
     entities = [
@@ -42,8 +63,12 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         TasbihSessionEntity::class,
         TasbihHistoryEntity::class,
         AmaliyahCompletionEventEntity::class,
+        ReminderEntity::class,
+        NahwuQuizPackageEntity::class,
+        NahwuQuizQuestionEntity::class,
+        NahwuQuizAttemptEntity::class,
     ],
-    version = 2,
+    version = 4,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.
@@ -66,6 +91,14 @@ abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun tasbihHistoryDao(): TasbihHistoryDao
 
     abstract fun amaliyahCompletionEventDao(): AmaliyahCompletionEventDao
+
+    abstract fun reminderDao(): ReminderDao
+
+    abstract fun nahwuQuizPackageDao(): NahwuQuizPackageDao
+
+    abstract fun nahwuQuizQuestionDao(): NahwuQuizQuestionDao
+
+    abstract fun nahwuQuizAttemptDao(): NahwuQuizAttemptDao
 
     companion object {
         const val DATABASE_NAME = "sangusantri.db"

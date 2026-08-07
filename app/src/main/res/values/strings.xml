@@ -159,4 +159,134 @@
   <string name="reader_switch_to_full_action">Buka Bacaan Lengkap</string>
   <string name="content_source_menu_action">Sumber</string>
   <string name="content_source_label">Sumber</string>
+
+  <!-- Pengingat Amaliyah (0.0.4) -->
+  <string name="reminder_screen_title">Pengingat</string>
+  <string name="reminder_add_action">Tambah pengingat</string>
+  <string name="reminder_delete_action">Hapus pengingat</string>
+  <string name="reminder_empty_state">Belum ada pengingat. Ketuk tombol tambah untuk membuat pengingat amaliyah.</string>
+  <string name="reminder_status_active">Aktif</string>
+  <string name="reminder_status_inactive">Nonaktif</string>
+  <string name="reminder_delete_dialog_title">Hapus pengingat?</string>
+  <string name="reminder_delete_dialog_message">Pengingat \"%1$s\" akan dihapus dan tidak dapat dikembalikan.</string>
+  <string name="reminder_delete_dialog_confirm">Hapus</string>
+  <string name="reminder_delete_dialog_cancel">Batal</string>
+  <string name="reminder_notification_channel_name">Pengingat Amaliyah</string>
+  <string name="reminder_notification_channel_description">Notifikasi pengingat jadwal membaca amaliyah pribadi Anda.</string>
+  <string name="reminder_notification_body">Saatnya membaca %1$s.</string>
+  <string name="reminder_notification_banner_title">Aktifkan notifikasi</string>
+  <string name="reminder_notification_banner_body">Izinkan notifikasi agar pengingat amaliyah dapat muncul tepat waktu.</string>
+  <string name="reminder_notification_banner_enable_action">Aktifkan</string>
+  <string name="reminder_notification_banner_open_settings_action">Buka pengaturan</string>
+
+  <!-- Pengingat creation/edit form -->
+  <string name="reminder_form_title_add">Tambah pengingat</string>
+  <string name="reminder_form_title_edit">Ubah pengingat</string>
+  <string name="reminder_form_label_field">Nama pengingat</string>
+  <string name="reminder_form_mode_weekly">Mingguan</string>
+  <string name="reminder_form_mode_hijri">Tanggal Hijriah</string>
+  <string name="reminder_form_repeats_yearly">Ulangi setiap tahun</string>
+  <string name="reminder_form_save_action">Simpan</string>
+  <string name="reminder_form_cancel_action">Batal</string>
+  <string name="reminder_preset_tahlil_thursday_night">Tahlil malam Jumat</string>
+  <string name="reminder_preset_istighosah_weekly">Istighosah mingguan</string>
+  <string name="reminder_preset_custom">Kustom</string>
+
+  <!-- Beranda "Pengingat terdekat" section (0.0.4) -->
+  <string name="serambi_nearest_reminder_title">Pengingat terdekat</string>
+  <string name="serambi_nearest_reminder_empty">Belum ada pengingat. Ketuk untuk menambahkan pengingat amaliyah.</string>
+
+  <!-- Aktivitas "Pengingat" section (0.0.4) -->
+  <string name="activity_section_reminders">Pengingat</string>
+
+  <!-- Beranda "Belajar" section (0.0.5, Nahwu Quiz) -->
+  <string name="serambi_belajar_title">Belajar</string>
+  <string name="serambi_belajar_card_title">Kuis Nahwu</string>
+  <string name="serambi_belajar_card_description">Uji pemahaman Nahwu dengan kuis pilihan ganda, offline.</string>
+
+  <!-- Nahwu Quiz (0.0.5) — shared components -->
+  <string name="nahwu_quiz_progress_row">%1$d/%2$d selesai</string>
+  <string name="nahwu_quiz_status_new">Baru</string>
+  <string name="nahwu_quiz_status_in_progress">Berlangsung</string>
+  <string name="nahwu_quiz_status_completed">Selesai</string>
+  <string name="nahwu_quiz_status_unavailable">Belum tersedia</string>
+  <string name="nahwu_quiz_resume_card_progress">%1$d/%2$d soal</string>
+  <string name="nahwu_quiz_resume_card_action">Lanjutkan</string>
+  <string name="nahwu_quiz_empty_package_heading">Belum ada soal di paket ini</string>
+  <string name="nahwu_quiz_empty_package_body">Paket ini masih menunggu konten soal.</string>
+  <string name="nahwu_quiz_content_unavailable_message">Bank soal Nahwu tidak dapat dimuat.</string>
+  <string name="nahwu_quiz_retry_action">Coba lagi</string>
+  <string name="nahwu_quiz_offline_banner">Kuis ini tersedia offline — semua soal sudah tersimpan di perangkat.</string>
+
+  <!-- Nahwu Quiz / Landing -->
+  <string name="nahwu_quiz_landing_title">Kuis Nahwu</string>
+  <string name="nahwu_quiz_landing_intro">Kuis Nahwu membantu menguji pemahaman kaidah Nahwu secara mandiri dan offline — tanpa akun, tanpa peringkat.</string>
+  <string name="nahwu_quiz_landing_view_packages_action">Lihat paket soal</string>
+
+  <!-- Nahwu Quiz / Daftar Paket -->
+  <string name="nahwu_quiz_packages_title">Paket Soal</string>
+
+  <!-- Nahwu Quiz / Detail Paket -->
+  <string name="nahwu_quiz_detail_title">Detail Paket</string>
+  <string name="nahwu_quiz_detail_question_count">%1$d soal</string>
+  <string name="nahwu_quiz_detail_start_action">Mulai</string>
+  <string name="nahwu_quiz_detail_resume_action">Lanjutkan</string>
+
+  <!-- Nahwu Quiz / Instruksi -->
+  <string name="nahwu_quiz_instruction_title">Instruksi</string>
+  <string name="nahwu_quiz_instruction_question_count">%1$d pertanyaan pilihan ganda</string>
+  <string name="nahwu_quiz_instruction_format">Setiap soal memiliki empat pilihan jawaban.</string>
+  <string name="nahwu_quiz_instruction_autosave_note">Progres kuis tersimpan otomatis — kamu bisa berhenti kapan saja dan melanjutkan nanti.</string>
+  <string name="nahwu_quiz_instruction_start_action">Mulai kuis</string>
+
+  <!-- Nahwu Quiz / Pertanyaan, Feedback -->
+  <string name="nahwu_quiz_session_progress">Soal %1$d dari %2$d</string>
+  <string name="nahwu_quiz_session_feedback_correct">Benar!</string>
+  <string name="nahwu_quiz_session_feedback_incorrect">Kurang tepat</string>
+  <string name="nahwu_quiz_session_action_continue">Lanjut</string>
+  <string name="nahwu_quiz_session_action_submit">Kumpulkan jawaban</string>
+  <string name="nahwu_quiz_session_action_next_question">Lanjut ke soal berikutnya</string>
+
+  <!-- Nahwu Quiz / Hasil Kuis -->
+  <string name="nahwu_quiz_result_title">Hasil Kuis</string>
+  <string name="nahwu_quiz_result_score_percent">%1$d%%</string>
+  <string name="nahwu_quiz_result_correct_total">%1$d benar dari %2$d soal</string>
+  <string name="nahwu_quiz_result_delta_up">Naik %1$d%% dari percobaan sebelumnya</string>
+  <string name="nahwu_quiz_result_delta_down">Turun %1$d%% dari percobaan sebelumnya</string>
+  <string name="nahwu_quiz_result_delta_same">Sama dengan percobaan sebelumnya</string>
+  <string name="nahwu_quiz_result_retake_action">Ulangi kuis</string>
+  <string name="nahwu_quiz_result_view_history_action">Lihat riwayat skor</string>
+
+  <!-- Nahwu Quiz / Riwayat Skor Individual -->
+  <string name="nahwu_quiz_history_title">Riwayat Skor</string>
+  <string name="nahwu_quiz_history_empty">Belum ada riwayat skor untuk paket ini.</string>
+  <string name="nahwu_quiz_history_row_score">%1$d%%</string>
+  <string name="nahwu_quiz_history_row_correct_total">%1$d/%2$d benar</string>
+  <string name="nahwu_quiz_history_row_duration_less_than_minute">Kurang dari 1 menit</string>
+  <string name="nahwu_quiz_history_row_duration_minutes">%1$d menit</string>
+
+  <string-array name="reminder_day_names">
+    <item>Senin</item>
+    <item>Selasa</item>
+    <item>Rabu</item>
+    <item>Kamis</item>
+    <item>Jumat</item>
+    <item>Sabtu</item>
+    <item>Minggu</item>
+  </string-array>
+
+  <string-array name="reminder_hijri_month_names">
+    <item>Muharram</item>
+    <item>Safar</item>
+    <item>Rabiul Awal</item>
+    <item>Rabiul Akhir</item>
+    <item>Jumadil Awal</item>
+    <item>Jumadil Akhir</item>
+    <item>Rajab</item>
+    <item>Syaban</item>
+    <item>Ramadan</item>
+    <item>Syawal</item>
+    <item>Dzulkaidah</item>
+    <item>Dzulhijjah</item>
+  </string-array>
 </resources>

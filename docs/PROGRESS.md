@@ -3389,3 +3389,168 @@ not have been conclusive).
 
 Release `0.0.4` (Phase E — Pengingat Amaliyah), per
 `docs/design/FIGMA_HANDOFF.md`'s implementation order.
+
+## Milestone 11 — Release 0.0.4, Phase E: Pengingat Amaliyah
+
+**Status:** Implemented and manually verified on-device
+(Pixel_9 emulator, Android 15/API 35). `docs/product/ROADMAP.md`'s entire
+`0.0.4` spec — personal Tahlil/Istighosah reminder schedules with
+Tahlil-malam-Jumat and Istighosah-weekly presets, Gregorian and Hijri-date
+scheduling, notification permission flow, reboot rescheduling, no
+"remind me later" — is complete. This phase falls under `FIGMA_HANDOFF.md`'s
+"Phase E" and therefore under `CLAUDE.md`'s temporary implementation-pass
+constraints: no Room migration class (`SanguSantriDatabase` version bumped
+2→3 on the clean baseline, no `MIGRATION_2_3` — developers must clear app
+data/reinstall once) and no new automated tests were added; validation is
+static analysis + build + install + manual on-device verification only.
+
+### What shipped
+
+* **Domain**: `domain/model/{Reminder,ReminderSchedule,ReminderPreset,
+  ReminderScheduleCalculator}.kt` — a sealed `ReminderSchedule`
+  (`Weekly(dayOfWeek, hour, minute)` / `HijriDate(hijriMonth, hijriDay,
+  hour, minute, repeatsYearly)`), two presets (Tahlil→Thursday 19:00,
+  Istighosah→Friday 05:00) that only pre-fill the form, and a pure
+  `ReminderScheduleCalculator` (`java.time.chrono.HijrahDate`, no new
+  dependency) computing next-trigger for both schedule kinds including
+  Hijri year-rollover.
+* **Data**: `data/local/entity/ReminderEntity.kt` (FK to `content`,
+  `ON DELETE CASCADE`) + `ReminderDao` (`observeAll`,
+  `observeNearestEnabled`), `data/repository/ReminderRepositoryImpl.kt`,
+  `data/mapper/ReminderEntityMappers.kt`. `SanguSantriDatabase` → version 3.
+* **Use cases**: `ScheduleReminderUseCase`, `CancelReminderUseCase`,
+  `RescheduleAllRemindersUseCase` (repository + alarm scheduler, each with
+  2–3 real call sites).
+* **Background scheduling** (`data/reminder/`, parallel to `data/sync/`):
+  `ReminderAlarmScheduler` (`AlarmManager.setAndAllowWhileIdle`, inexact —
+  no `SCHEDULE_EXACT_ALARM`), `ReminderAlarmReceiver` (`@AndroidEntryPoint`
+  `BroadcastReceiver`, `goAsync()`, explicit `POST_NOTIFICATIONS`
+  permission check before `notify()`, rearms next occurrence or disables a
+  one-off Hijri reminder after firing), `ReminderNotificationChannel`,
+  `ReminderBootReceiver` (`BOOT_COMPLETED` → `RescheduleAllRemindersUseCase`).
+  `AndroidManifest.xml`: `POST_NOTIFICATIONS`/`RECEIVE_BOOT_COMPLETED`
+  permissions, both receivers `exported="false"`.
+* **UI** (`feature/reminder/`): `ReminderScreen`/`ReminderList`/
+  `ReminderOverlays`/`ReminderViewModel`, a bottom-sheet
+  `ReminderFormSheet` (presets, amaliyah picker, label, Weekly/Hijri mode
+  switch, day-of-week or month/day+yearly-repeat picker, `TimeInput`),
+  `NotificationPermissionBanner` (inline, `ActivityResultContracts.
+  RequestPermission()`, settings fallback when permanently denied),
+  `ReminderScheduleFormatter` (Indonesian Gregorian + Hijri text).
+* **Entry points**: Beranda's "Pengingat terdekat" section (always
+  rendered, unlike other Beranda sections' hide-if-empty rule — see below)
+  and Aktivitas's "Pengingat" section (hide-if-empty; shows only enabled
+  reminders), both wired through `ObserveActivityOverviewUseCase`/
+  `SerambiViewModel` combining `ReminderRepository` into their existing
+  flows. `navigation/SanguSantriNavHost.kt`: new `Pengingat` `NavKey`
+  (no bottom-nav destination, per PRD §7.1), plus `MainActivity`'s
+  `EXTRA_REMINDER_CONTENT_ID`/`onNewIntent` deep-link handling so tapping a
+  reminder notification opens that amaliyah's reading-mode gate directly.
+* `app/build.gradle.kts`: `versionCode = 5`, `versionName = "0.0.4"`.
+
+### Bugs found and fixed via manual on-device testing (not caught by static analysis)
+
+* **Unreachable feature**: Beranda's "Pengingat terdekat" section was
+  originally hidden whenever there were zero reminders — with Aktivitas's
+  own section *also* hide-if-empty, a first-time user had no way to ever
+  reach the Pengingat creation screen. Fixed by always rendering Beranda's
+  section, showing an empty-state CTA ("Belum ada pengingat. Ketuk untuk
+  menambahkan pengingat amaliyah.") that still navigates to Pengingat when
+  tapped.
+* **Unreachable Save button in Hijri mode**: `ReminderFormContent`'s outer
+  `Column` (`feature/reminder/components/ReminderFormSheet.kt`) had no
+  `verticalScroll` modifier. Weekly mode's shorter content happened to fit
+  within the fully-expanded `ModalBottomSheet`, but Hijri mode (12 month
+  chips + up to 5 rows of day chips + yearly-repeat switch + `TimeInput`)
+  does not — the sheet clipped the content with the Time input and Simpan
+  button completely unreachable and no way to scroll to them. Fixed by
+  adding `.verticalScroll(rememberScrollState())` to the form's `Column`.
+
+### Manual verification (Pixel_9 emulator, Android 15/API 35)
+
+Fresh install (`pm clear` + reinstall). Confirmed, in order: Beranda's
+always-shown "Pengingat terdekat" empty state navigates to Pengingat;
+created a Weekly Istighosah-preset reminder (Setiap Jumat, 05:00 / 24 Safar
+1448 H shown correctly); notification permission banner shown, system
+permission dialog granted, banner correctly disappeared; created a
+Hijri-date Tahlil reminder (23 Safar, yearly) — correctly computed next
+occurrence as **23 Safar 1449 H** (next Hijri year, since this year's date
+had passed), confirming the calculator's year-rollover path; toggled the
+Istighosah reminder off — Beranda's nearest-reminder and Aktivitas's
+Pengingat section both reacted live (Aktivitas showing only the still-
+enabled Tahlil reminder, status "Aktif"); "Lihat semua" correctly opens the
+full Pengingat list; delete-confirmation dialog ("Hapus pengingat?" /
+Batal/Hapus) shown and a reminder actually deleted. Verified the
+notification tap-to-deep-link path directly (`am start` with
+`FLAG_ACTIVITY_SINGLE_TOP` and the same `reminder_content_id` extra
+`ReminderAlarmReceiver`'s `PendingIntent` sets) — confirmed via temporary
+logging that `onNewIntent` → `deepLinkContentId` → `LaunchedEffect` →
+`ReaderGate` push all fire correctly for both a cold start and a
+warm/already-running start, then removed the logging and re-ran the full
+`ktlintFormat`/`ktlintCheck`/`detekt`/`lint`/`assembleDebug`/`installDebug`
+sequence clean.
+
+### Known limitations
+
+* **Live alarm firing was not observed end-to-end.** This emulator image
+  is a locked-down "production build": `adb root` is refused, `adb shell
+  am broadcast -a android.intent.action.BOOT_COMPLETED` is rejected with a
+  `SecurityException` (shell lacks the permission for that protected
+  broadcast), and explicit broadcasts to the non-exported
+  `ReminderAlarmReceiver` are silently dropped by the system rather than
+  delivered. None of this reflects an app defect — `ReminderAlarmReceiver`
+  and `ReminderBootReceiver` are correctly `exported="false"` (system/
+  `PendingIntent`-only, never invoked by another app), and the receiver's
+  own logic (permission-checked `notify()`, rearm-or-disable) was verified
+  by code review plus the isolated deep-link test above, which exercises
+  everything the receiver does *except* the actual `AlarmManager`
+  wake/fire, which is a platform-guaranteed contract, not app-specific
+  logic. A real device or a rootable/eng emulator image would let a future
+  session set the reminder time a minute out and observe the notification
+  and reboot-reschedule firing directly.
+* No new unit/instrumented tests, per this phase's temporary constraint —
+  `ReminderScheduleCalculator`'s Hijri year-rollover was verified manually
+  (see above) rather than with a test file.
+
+### Next recommended milestone
+
+`0.0.5` — Nahwu Quiz (moved from `0.4.0` per ADR 0013), the next item in
+`docs/product/ROADMAP.md`.
+
+## Standalone Quran discovery — LPMQ Kemenag API evidence (2026-08-07)
+
+**Status:** Discovery note only; no Quran product scope, roadmap change,
+architecture decision, data model, credentials, or feature code approved or
+implemented yet.
+
+The product owner supplied redacted live-contract examples for the LPMQ
+Kemenag Quran API: paged list-surah, list-ayat-by-surah, and tafsir-by-ayat-ID.
+They are preserved in
+`docs/engineering/QURAN_API_CONTRACT_DRAFT.md` for the upcoming standalone
+Quran PRD/data-layer design. The examples confirm that ayat data includes
+`juz`, `halaman`, MSI Usmani Arabic, unvowelled Arabic, API-supplied Latin
+transliteration, Indonesian translation, and footnote fields; tafsir exposes
+a concise `teks` and longer `tahlili` value.
+
+The supplied Surah 114 array arrived out of canonical order (ayat 2 before
+ayat 1). The draft therefore records an explicit future validation rule:
+never trust response-array order; validate missing/duplicate ayat and sort by
+the numeric `ayat` field. No content was changed, corrected, or published.
+
+### Next discovery step
+
+Complete the product owner's Quran PRD questionnaire, then resolve API
+credential placement, licensing/redistribution, offline baseline, dataset
+versioning/corrections, release placement, and dark-only reader scope before
+approving an implementation milestone.
+
+### Quran font candidate intake (2026-08-08)
+
+The product owner supplied `LPMQ Isep Misbah` and `Amiri Quran Regular` font
+files for the planned Quran reader. They are preserved as non-packaged design
+inputs under `docs/design/assets/quran-fonts/`, with hashes, provenance,
+licensing status, and a mandatory Kemenag-text glyph-compatibility gate in the
+directory README. They have not been added to Android resources and do not
+ship in the APK. Amiri's supplied OFL 1.1 is preserved; LPMQ font embedding
+permission remains to be matched against the product owner's written access
+documents before release packaging.

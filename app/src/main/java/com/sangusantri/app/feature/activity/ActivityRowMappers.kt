@@ -5,7 +5,9 @@ import androidx.compose.ui.res.stringResource
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.component.ActivityRowContent
 import com.sangusantri.app.domain.model.AmaliyahCompletionEvent
+import com.sangusantri.app.domain.model.Reminder
 import com.sangusantri.app.domain.model.TasbihHistoryEntry
+import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
 
 @Composable
 fun AmaliyahCompletionEvent.toRowContent(): ActivityRowContent =
@@ -36,3 +38,15 @@ fun TasbihHistoryEntry.toRowContent(): ActivityRowContent {
             ),
     )
 }
+
+/** `0.0.4`, Pengingat Amaliyah. [Reminder.label] is pre-filled by the create form whenever a
+ * preset is chosen, so a blank label here means a genuinely un-named custom reminder — falls back
+ * to the raw content id rather than needing a `ContentRepository` lookup just for this row. */
+@Composable
+fun Reminder.toRowContent(hijriMonthNames: List<String>): ActivityRowContent =
+    ActivityRowContent(
+        primaryText = label.ifBlank { contentId },
+        secondaryText = ReminderScheduleFormatter.formatScheduleSummary(schedule, hijriMonthNames),
+        trailingText =
+            stringResource(if (isEnabled) R.string.reminder_status_active else R.string.reminder_status_inactive),
+    )

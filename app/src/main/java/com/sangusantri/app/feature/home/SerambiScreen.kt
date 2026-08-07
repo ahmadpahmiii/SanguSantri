@@ -2,14 +2,19 @@ package com.sangusantri.app.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,29 +27,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.component.SectionHeader
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.Reminder
+import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
 
 @Composable
 fun SerambiRoute(
     onContentSelected: (String) -> Unit,
-    onSetelanClick: () -> Unit,
-    onAboutClick: () -> Unit,
+    actions: SerambiActions,
     viewModel: SerambiViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     SerambiScreen(
         uiState = uiState,
         onContentSelected = onContentSelected,
-        onSetelanClick = onSetelanClick,
-        onAboutClick = onAboutClick,
+        actions = actions,
     )
 }
 
@@ -53,8 +60,7 @@ fun SerambiRoute(
 fun SerambiScreen(
     uiState: SerambiUiState,
     onContentSelected: (String) -> Unit,
-    onSetelanClick: () -> Unit,
-    onAboutClick: () -> Unit,
+    actions: SerambiActions,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -63,13 +69,13 @@ fun SerambiScreen(
             TopAppBar(
                 title = { Text(text = stringResource(R.string.app_name)) },
                 actions = {
-                    IconButton(onClick = onSetelanClick) {
+                    IconButton(onClick = actions.onSetelanClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = stringResource(R.string.serambi_setelan_content_description),
                         )
                     }
-                    IconButton(onClick = onAboutClick) {
+                    IconButton(onClick = actions.onAboutClick) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = stringResource(R.string.serambi_about_content_description),
@@ -83,8 +89,10 @@ fun SerambiScreen(
             is SerambiUiState.Loading -> SerambiLoading(modifier = Modifier.padding(innerPadding))
             is SerambiUiState.Loaded ->
                 SerambiContent(
-                    items = uiState.items,
+                    uiState = uiState,
                     onContentSelected = onContentSelected,
+                    onPengingatClick = actions.onPengingatClick,
+                    onBelajarClick = actions.onBelajarClick,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -100,11 +108,13 @@ private fun SerambiLoading(modifier: Modifier = Modifier) {
 
 @Composable
 private fun SerambiContent(
-    items: List<Content>,
+    uiState: SerambiUiState.Loaded,
     onContentSelected: (String) -> Unit,
+    onPengingatClick: () -> Unit,
+    onBelajarClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (items.isEmpty()) {
+    if (uiState.items.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 text = stringResource(R.string.serambi_empty_state),
@@ -120,8 +130,97 @@ private fun SerambiContent(
         contentPadding = PaddingValues(SanguSantriSpacing.default),
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
     ) {
-        items(items = items, key = { it.id }) { item ->
+        item(key = "nearest_reminder") {
+            NearestReminderSection(
+                reminder = uiState.nearestReminder,
+                contentTitle = uiState.nearestReminderContentTitle(),
+                onClick = onPengingatClick,
+            )
+        }
+        if (uiState.hasNahwuQuizContent) {
+            item(key = "belajar") { BelajarSection(onClick = onBelajarClick) }
+        }
+        items(items = uiState.items, key = { it.id }) { item ->
             ContentCard(content = item, onClick = onContentSelected)
+        }
+    }
+}
+
+/** `0.0.5`, Nahwu Quiz — a static entry-point tile to the Landing screen, not a specific package's
+ * own summary card (design spec: "'Kuis Nahwu', short description, chevron_right"). Hidden until
+ * [SerambiUiState.Loaded.hasNahwuQuizContent] is true, unlike [NearestReminderSection]'s always-
+ * shown rule — Nahwu Quiz has its own separate creation entry point (`Daftar Paket`), so there is
+ * no equivalent "nowhere else to start" problem to guard against here. */
+@Composable
+private fun BelajarSection(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        SectionHeader(title = stringResource(R.string.serambi_belajar_title))
+        Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+            Row(
+                modifier = Modifier.padding(SanguSantriSpacing.default),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.serambi_belajar_card_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.serambi_belajar_card_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+            }
+        }
+    }
+}
+
+/**
+ * `0.0.4`, Pengingat Amaliyah. Always shown (unlike other Beranda sections' hide-if-empty rule) —
+ * with zero reminders this is the app's *only* entry point into the Pengingat screen, since
+ * Aktivitas's own "Pengingat" section only appears once a reminder already exists. Hiding this one
+ * too whenever [reminder] is null would make the feature permanently undiscoverable for a user who
+ * has never created a reminder.
+ */
+@Composable
+private fun NearestReminderSection(
+    reminder: Reminder?,
+    contentTitle: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val hijriMonthNames = stringArrayResource(R.array.reminder_hijri_month_names).toList()
+    Column(modifier = modifier) {
+        SectionHeader(title = stringResource(R.string.serambi_nearest_reminder_title))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onClick,
+        ) {
+            Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
+                if (reminder == null) {
+                    Text(
+                        text = stringResource(R.string.serambi_nearest_reminder_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text(
+                        text = reminder.label.ifBlank { contentTitle ?: reminder.contentId },
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = ReminderScheduleFormatter.formatScheduleSummary(reminder.schedule, hijriMonthNames),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }
@@ -155,6 +254,9 @@ private val previewItems =
         ),
     )
 
+private val previewActions =
+    SerambiActions(onSetelanClick = {}, onAboutClick = {}, onPengingatClick = {}, onBelajarClick = {})
+
 @PreviewLightDark
 @Composable
 private fun SerambiScreenContentPreview() {
@@ -162,8 +264,7 @@ private fun SerambiScreenContentPreview() {
         SerambiScreen(
             uiState = SerambiUiState.Loaded(previewItems),
             onContentSelected = {},
-            onSetelanClick = {},
-            onAboutClick = {},
+            actions = previewActions,
         )
     }
 }
@@ -175,8 +276,7 @@ private fun SerambiScreenEmptyPreview() {
         SerambiScreen(
             uiState = SerambiUiState.Loaded(emptyList()),
             onContentSelected = {},
-            onSetelanClick = {},
-            onAboutClick = {},
+            actions = previewActions,
         )
     }
 }
@@ -188,8 +288,7 @@ private fun SerambiScreenLoadingPreview() {
         SerambiScreen(
             uiState = SerambiUiState.Loading,
             onContentSelected = {},
-            onSetelanClick = {},
-            onAboutClick = {},
+            actions = previewActions,
         )
     }
 }

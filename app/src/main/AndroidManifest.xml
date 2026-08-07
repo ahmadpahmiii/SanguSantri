@@ -4,6 +4,12 @@
 
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <!-- Pengingat Amaliyah (0.0.4): runtime-requested on API 33+ (data/reminder/, feature/reminder/'s
+       notification permission flow); a no-op declaration below that version. -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- Pengingat Amaliyah (0.0.4): lets ReminderBootReceiver re-arm alarms after reboot — AlarmManager
+       alarms do not otherwise survive a device restart (ROADMAP.md's "Rescheduling after reboot"). -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
   <application
         android:name=".SanguSantriApplication"
@@ -27,6 +33,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+    <!-- Pengingat Amaliyah (0.0.4): both system-only broadcasts, never sent by another app, so
+         neither needs to be exported. -->
+    <receiver
+      android:name=".data.reminder.ReminderAlarmReceiver"
+      android:exported="false" />
+    <receiver
+      android:name=".data.reminder.ReminderBootReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+      </intent-filter>
+    </receiver>
 
     <!--
          SanguSantriApplication implements Configuration.Provider (custom HiltWorkerFactory),

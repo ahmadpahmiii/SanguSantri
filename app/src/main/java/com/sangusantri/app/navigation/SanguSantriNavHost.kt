@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,9 +35,18 @@ import com.sangusantri.app.feature.activity.ActivityRoute
 import com.sangusantri.app.feature.activity.detail.ActivityAmaliyahHistoryRoute
 import com.sangusantri.app.feature.activity.detail.ActivityTasbihHistoryRoute
 import com.sangusantri.app.feature.guidedreader.GuidedReaderRoute
+import com.sangusantri.app.feature.home.SerambiActions
 import com.sangusantri.app.feature.home.SerambiRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizHistoryRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizInstructionRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizLandingRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackageDetailRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackagesRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizResultRoute
+import com.sangusantri.app.feature.nahwuquiz.NahwuQuizSessionRoute
 import com.sangusantri.app.feature.reader.ReaderEntryRoute
 import com.sangusantri.app.feature.reader.ReaderRoute
+import com.sangusantri.app.feature.reminder.ReminderRoute
 import com.sangusantri.app.feature.tasbih.TasbihRoute
 import com.sangusantri.app.feature.tasbih.history.TasbihHistoryRoute
 import kotlinx.serialization.Serializable
@@ -86,6 +96,47 @@ private data object Setelan : NavKey
 @Serializable
 private data object About : NavKey
 
+/** `0.0.4`, Pengingat Amaliyah — never a bottom-nav destination (PRD §7.1), reached only from a
+ * Beranda or Aktivitas section entry point. */
+@Serializable
+private data object Pengingat : NavKey
+
+/** `0.0.5`, Nahwu Quiz — also never a bottom-nav destination (ADR 0013), reached only from
+ * Beranda's "Belajar" entry point. */
+@Serializable
+private data object NahwuQuizLanding : NavKey
+
+@Serializable
+private data object NahwuQuizPackages : NavKey
+
+@Serializable
+private data class NahwuQuizPackageDetail(
+    val packageId: String,
+) : NavKey
+
+/** A gate, same pattern as [ReaderGate]: replaced (not left underneath) by [NahwuQuizSession]
+ * once "Mulai kuis" is tapped, so back from the session returns to [NahwuQuizPackageDetail], not
+ * a stale instruction screen. */
+@Serializable
+private data class NahwuQuizInstruction(
+    val packageId: String,
+) : NavKey
+
+@Serializable
+private data class NahwuQuizSession(
+    val packageId: String,
+) : NavKey
+
+@Serializable
+private data class NahwuQuizResult(
+    val attemptId: String,
+) : NavKey
+
+@Serializable
+private data class NahwuQuizHistory(
+    val packageId: String,
+) : NavKey
+
 /**
  * Navigation 3 host and bottom-navigation shell in one composable — the one navigation system this
  * project uses, wrapped by a [Scaffold]/[BottomNavigationBar] that never becomes a Navigation Rail
@@ -99,8 +150,22 @@ private data object About : NavKey
  * to Beranda, not the gate.
  */
 @Composable
-fun SanguSantriNavHost(modifier: Modifier = Modifier) {
+fun SanguSantriNavHost(
+    modifier: Modifier = Modifier,
+    deepLinkContentId: String? = null,
+    onDeepLinkConsumed: () -> Unit = {},
+) {
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
+
+    // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
+    // reading-mode gate directly, on top of whatever the user was already doing — never replaces
+    // the current tab's own back stack, matching how every other content selection navigates.
+    LaunchedEffect(deepLinkContentId) {
+        if (deepLinkContentId != null) {
+            topLevelBackStack.add(ReaderGate(deepLinkContentId))
+            onDeepLinkConsumed()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -164,42 +229,27 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
         entry<Serambi> {
             SerambiRoute(
                 onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
-                onSetelanClick = { topLevelBackStack.add(Setelan) },
-                onAboutClick = { topLevelBackStack.add(About) },
+                actions =
+                    SerambiActions(
+                        onSetelanClick = { topLevelBackStack.add(Setelan) },
+                        onAboutClick = { topLevelBackStack.add(About) },
+                        onPengingatClick = { topLevelBackStack.add(Pengingat) },
+                        onBelajarClick = { topLevelBackStack.add(NahwuQuizLanding) },
+                    ),
             )
         }
         activityEntries(topLevelBackStack)
+        entry<Pengingat> {
+            ReminderRoute(onBack = { topLevelBackStack.removeLast() })
+        }
+        nahwuQuizEntries(topLevelBackStack)
         entry<Tasbih> {
             TasbihRoute(onHistoryClick = { topLevelBackStack.add(TasbihHistory) })
         }
         entry<TasbihHistory> {
             TasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
         }
-        entry<ReaderGate> { key ->
-            ReaderEntryRoute(
-                contentId = key.contentId,
-                onBack = { topLevelBackStack.removeLast() },
-                onModeResolved = { mode -> replaceTopEntryWithReader(topLevelBackStack, key.contentId, mode) },
-            )
-        }
-        entry<FullReader> { key ->
-            ReaderRoute(
-                contentId = key.contentId,
-                onBack = { topLevelBackStack.removeLast() },
-                onSwitchToGuided = {
-                    replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.GUIDED)
-                },
-            )
-        }
-        entry<GuidedReader> { key ->
-            GuidedReaderRoute(
-                contentId = key.contentId,
-                onBack = { topLevelBackStack.removeLast() },
-                onSwitchToFull = {
-                    replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.FULL)
-                },
-            )
-        }
+        readerEntries(topLevelBackStack)
         entry<Setelan> {
             PlaceholderScreen(
                 message = stringResource(R.string.setelan_placeholder_message),
@@ -214,12 +264,96 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
         }
     }
 
+/** The mode gate + both readers — split out to keep [sanguSantriEntryProvider] short. */
+private fun EntryProviderScope<NavKey>.readerEntries(topLevelBackStack: TopLevelBackStack) {
+    entry<ReaderGate> { key ->
+        ReaderEntryRoute(
+            contentId = key.contentId,
+            onBack = { topLevelBackStack.removeLast() },
+            onModeResolved = { mode -> replaceTopEntryWithReader(topLevelBackStack, key.contentId, mode) },
+        )
+    }
+    entry<FullReader> { key ->
+        ReaderRoute(
+            contentId = key.contentId,
+            onBack = { topLevelBackStack.removeLast() },
+            onSwitchToGuided = {
+                replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.GUIDED)
+            },
+        )
+    }
+    entry<GuidedReader> { key ->
+        GuidedReaderRoute(
+            contentId = key.contentId,
+            onBack = { topLevelBackStack.removeLast() },
+            onSwitchToFull = {
+                replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.FULL)
+            },
+        )
+    }
+}
+
+/**
+ * `0.0.5`, Nahwu Quiz — split out to keep [sanguSantriEntryProvider] short. [NahwuQuizInstruction]
+ * is resolved with [TopLevelBackStack.replaceLast] once "Mulai kuis" is tapped (same gate pattern
+ * as [readerEntries]'s [ReaderGate]), and [NahwuQuizSession] is likewise replaced by
+ * [NahwuQuizResult] on completion — so back navigation never re-enters a stale instruction screen
+ * or a completed quiz session.
+ */
+private fun EntryProviderScope<NavKey>.nahwuQuizEntries(topLevelBackStack: TopLevelBackStack) {
+    entry<NahwuQuizLanding> {
+        NahwuQuizLandingRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onViewPackages = { topLevelBackStack.add(NahwuQuizPackages) },
+            onResumeAttempt = { packageId -> topLevelBackStack.add(NahwuQuizInstruction(packageId)) },
+        )
+    }
+    entry<NahwuQuizPackages> {
+        NahwuQuizPackagesRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onPackageSelected = { packageId -> topLevelBackStack.add(NahwuQuizPackageDetail(packageId)) },
+        )
+    }
+    entry<NahwuQuizPackageDetail> { key ->
+        NahwuQuizPackageDetailRoute(
+            packageId = key.packageId,
+            onBack = { topLevelBackStack.removeLast() },
+            onStart = { packageId -> topLevelBackStack.add(NahwuQuizInstruction(packageId)) },
+        )
+    }
+    entry<NahwuQuizInstruction> { key ->
+        NahwuQuizInstructionRoute(
+            packageId = key.packageId,
+            onBack = { topLevelBackStack.removeLast() },
+            onStartQuiz = { packageId -> topLevelBackStack.replaceLast(NahwuQuizSession(packageId)) },
+        )
+    }
+    entry<NahwuQuizSession> { key ->
+        NahwuQuizSessionRoute(
+            packageId = key.packageId,
+            onBack = { topLevelBackStack.removeLast() },
+            onCompleted = { attemptId -> topLevelBackStack.replaceLast(NahwuQuizResult(attemptId)) },
+        )
+    }
+    entry<NahwuQuizResult> { key ->
+        NahwuQuizResultRoute(
+            attemptId = key.attemptId,
+            onViewHistory = { packageId -> topLevelBackStack.add(NahwuQuizHistory(packageId)) },
+            onRetakeQuiz = { packageId -> topLevelBackStack.add(NahwuQuizInstruction(packageId)) },
+        )
+    }
+    entry<NahwuQuizHistory> { key ->
+        NahwuQuizHistoryRoute(packageId = key.packageId, onBack = { topLevelBackStack.removeLast() })
+    }
+}
+
 /** Aktivitas' own root + "Lihat semua" entries — split out to keep [sanguSantriEntryProvider] short. */
 private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLevelBackStack) {
     entry<Aktivitas> {
         ActivityRoute(
             onAmaliyahHistoryClick = { topLevelBackStack.add(ActivityAmaliyahHistory) },
             onTasbihHistoryClick = { topLevelBackStack.add(ActivityTasbihHistory) },
+            onRemindersClick = { topLevelBackStack.add(Pengingat) },
         )
     }
     entry<ActivityAmaliyahHistory> {

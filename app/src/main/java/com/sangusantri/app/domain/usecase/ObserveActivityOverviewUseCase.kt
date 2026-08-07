@@ -2,8 +2,10 @@ package com.sangusantri.app.domain.usecase
 
 import com.sangusantri.app.domain.model.ActivityOverview
 import com.sangusantri.app.domain.model.AmaliyahCompletionEvent
+import com.sangusantri.app.domain.model.Reminder
 import com.sangusantri.app.domain.model.TasbihHistoryEntry
 import com.sangusantri.app.domain.repository.ActivityRepository
+import com.sangusantri.app.domain.repository.ReminderRepository
 import com.sangusantri.app.domain.repository.TasbihRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -13,29 +15,33 @@ import java.time.ZoneId
 import javax.inject.Inject
 
 /**
- * Combines [ActivityRepository] (amaliyah completions) and [TasbihRepository] (tasbih history,
- * reused directly rather than duplicated — `docs/engineering/ARCHITECTURE.md`'s per-concern-
- * repository convention) into the read model Aktivitas (`0.0.3`) needs: streak, this-week summary,
- * and the recent-5 preview lists. Combining two repositories with genuine aggregation logic
- * (streak/weekly-window math) is exactly when `CODING_STANDARD.md` says a use case is warranted.
+ * Combines [ActivityRepository] (amaliyah completions), [TasbihRepository] (tasbih history), and
+ * [ReminderRepository] (`0.0.4`, upcoming reminders — reused directly rather than duplicated,
+ * `docs/engineering/ARCHITECTURE.md`'s per-concern-repository convention) into the read model
+ * Aktivitas needs: streak, this-week summary, and the recent-5 preview lists. Combining multiple
+ * repositories with genuine aggregation logic (streak/weekly-window math) is exactly when
+ * `CODING_STANDARD.md` says a use case is warranted.
  */
 class ObserveActivityOverviewUseCase
     @Inject
     constructor(
         private val activityRepository: ActivityRepository,
         private val tasbihRepository: TasbihRepository,
+        private val reminderRepository: ReminderRepository,
     ) {
         operator fun invoke(zoneId: ZoneId = ZoneId.systemDefault()): Flow<ActivityOverview> =
             combine(
                 activityRepository.observeCompletions(),
                 tasbihRepository.observeHistory(),
-            ) { completions, tasbihHistory ->
-                buildOverview(completions, tasbihHistory, zoneId)
+                reminderRepository.observeAll(),
+            ) { completions, tasbihHistory, reminders ->
+                buildOverview(completions, tasbihHistory, reminders, zoneId)
             }
 
         private fun buildOverview(
             completions: List<AmaliyahCompletionEvent>,
             tasbihHistory: List<TasbihHistoryEntry>,
+            reminders: List<Reminder>,
             zoneId: ZoneId,
         ): ActivityOverview {
             val now = System.currentTimeMillis()
@@ -58,6 +64,8 @@ class ObserveActivityOverviewUseCase
                 weeklyTotalMinutes = weeklyDurationMillis / MILLIS_PER_MINUTE,
                 recentAmaliyahCompletions = completions.take(RECENT_LIMIT),
                 recentTasbihHistory = tasbihHistory.take(RECENT_LIMIT),
+                // ReminderRepository.observeAll() is already ordered soonest-first.
+                upcomingReminders = reminders.filter { it.isEnabled }.take(RECENT_LIMIT),
             )
         }
 

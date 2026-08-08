@@ -193,10 +193,42 @@ these tables are designed or created by this documentation pass — see
 `docs/engineering/CONTENT_MODEL.md` for their planned shape and owning
 phase.
 
+## Standalone Al-Qur'an Kemenag (`0.0.6`, planned)
+
+The Quran source is not bundled. A fresh installation therefore requires one
+successful connected initialisation before Quran content can be read. This is
+still offline-first after acquisition because Room is the only UI source:
+
+```text
+Kemenag API → validate complete candidate → one Room transaction → Repository → UI
+```
+
+Initialisation fetches the surah catalog and all 114 surahs' ayat, sorts by
+numeric ayat because the observed response order is not guaranteed, verifies
+surah/ayat identity, uniqueness, and expected counts, then publishes the full
+candidate atomically. A failure publishes nothing and shows a concise error
+with Retry; Retry simply starts initialisation again. Do not add resumable
+chunks, a download manager, or partial-reader states.
+
+After initialisation, Room renders immediately with no network dependency. A
+connected-network refresh becomes eligible seven days after the last
+successful complete refresh. It builds and validates a new complete candidate;
+success atomically replaces the Quran source tables, while any HTTP, parsing,
+or validation failure leaves the old snapshot readable. Store timestamps and
+terminal status in namespaced `app_metadata` keys.
+
+Tafsir is fetched on demand by Kemenag ayat id. A cached result renders
+offline; when at least seven days old it renders immediately and revalidates in
+the background. No cache plus no connection shows the tafsir-specific error
+state. Bookmarks, last-read position, reading settings, and reading sessions
+never depend on the network.
+
 ## Reliability requirements
 
-* Core reading must work when the API is unavailable, unreachable, or has
-  never been deployed.
+* Bundled amaliyah reading must work when Firebase Hosting is unavailable,
+  unreachable, or has never been deployed. Quran reading must work when
+  Kemenag is unavailable after one successful initialisation; a fresh install
+  with no Quran snapshot shows the defined error/retry state.
 * Failed synchronisation must not remove, replace, downgrade, or hide local
   content already in Room.
 * Any Room schema change must follow the current schema-freeze policy

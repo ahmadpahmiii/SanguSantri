@@ -64,6 +64,15 @@ for `content-hosting/` → verify the deployed content manifest is reachable
 Production signing credentials must never be exposed to Claude output or
 committed.
 
+For `0.0.6`, the Kemenag `username`/`token` are also protected release
+inputs. CI/local release builds inject them from a secret store into generated
+native build input that is excluded from version control; no real value appears
+in Gradle configuration cache output, build scans, artifacts other than the
+necessarily obfuscated APK/AAB client, test reports, or logs. Release assembly
+must fail with a clear non-secret message when either value or the expected
+release signing-certificate digest is absent. Debug/test builds use fake
+fixtures and must remain buildable without production access.
+
 ## Versioning
 
 Application versions use pre-1.0 semantic progression (`0.0.1`, `0.0.2`,
@@ -85,6 +94,10 @@ require an APK release unless the schema or reader capability changes (PRD
   code exists to shrink.
 * No signing config exists yet — tracked as a Blocking Production Input
   (PRD §13), governance-owned, not an engineering defect.
+* `0.0.6` adds an NDK/CMake boundary solely for Kemenag credential hardening.
+  Keep the C++ surface minimal, strip release symbols, scan the built APK/AAB
+  for accidental plain-text credentials, and follow
+  `docs/security/SECURITY_BASELINE.md`; never describe this as secret storage.
 
 ## Definition of Done
 

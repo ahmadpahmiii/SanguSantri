@@ -49,6 +49,37 @@ Release `0.0.1` is complete only when:
   icon exist.
 * No critical or high-severity known defect remains.
 
+## Additional Definition of Done for release `0.0.6`
+
+Al-Qur'an Kemenag is releasable only when all acceptance criteria in
+`docs/product/QURAN_PRD.md` pass, including:
+
+* Production Kemenag access is confirmed for the SanguSantri application;
+  username/token are injected from untracked local/CI secrets, never committed
+  or logged, and the APK/native-string scan finds no accidental plain-text
+  credential. Missing secrets or signing-certificate digest fail release
+  assembly; signature mismatch fails closed at runtime.
+* A fresh connected install successfully validates and atomically imports all
+  114 surahs; an interrupted/invalid import exposes no partial Quran; Retry
+  starts cleanly from the beginning.
+* Previously initialised content, bookmarks, last-read state, and settings work
+  offline. A failed seven-day refresh preserves the previous Room snapshot;
+  cached tafsir remains available while stale refresh fails.
+* No Kemenag Latin transliteration is persisted, rendered, logged, or exposed
+  through accessibility semantics. No copy/share or audio surface exists.
+* Both Quran reader modes, translation switch, long-press actions, tafsir,
+  dark-theme entry/exit, hidden bottom bar, portrait-primary responsive layout,
+  large font, TalkBack semantic long-click, and Activity/streak event rules are
+  manually verified on a representative API 26 device and current Android.
+* Every shipped Arabic font has recorded redistribution permission and passes
+  exact-source glyph/harakat/Quranic-mark comparison. Candidate font files in
+  `docs/design/assets/quran-fonts/` are not sufficient evidence by themselves.
+* The privacy policy/Data Safety assessment covers direct Kemenag requests and
+  local Quran state; backup rules for devotional state are verified.
+* Source attribution is displayed exactly as approved without implying that
+  SanguSantri is an official Kemenag application or that Kemenag endorsed
+  unrelated app content.
+
 ## Current release-readiness gaps (engineering)
 
 * **No CI pipeline.** The single largest concrete gap — see
@@ -101,13 +132,17 @@ exists (see `docs/product/ROADMAP.md`). Revisit the audio part of this
 section only if a future, explicit product decision reintroduces
 downloadable audio.
 
+Before `0.0.6`, record any Kemenag request quota/rate-limit guidance supplied
+with the private access approval. The client performs a full 114-surah initial
+fetch and at most one eligible full refresh per seven days per installation,
+plus user-requested tafsir calls; test this request budget and implement polite
+bounded retry without inventing an undocumented quota.
+
 ## Production credential ownership
 
-Not yet applicable — no production credentials exist yet (no Firebase
-deploy credentials, no signing key, no third-party SDK keys). The Firebase
-project itself and its Hosting deploy token/service account will be the
-first production credential this section needs to track once ADR 0014's
-`content-hosting/` migration is actually deployed. When they are created:
-record who owns each credential, where it is stored (never in the
-repository), and a rotation cadence, in a location this document will link
-to once it exists.
+Production credential ownership applies to Firebase deployment, Android
+signing, and from `0.0.6` the Kemenag username/token. Record the human owner,
+authorised application/environment, storage location (never the repository),
+rotation/revocation contact, and last rotation without writing the credential
+itself here. Kemenag token compromise requires coordination with LPMQ and a
+new hardened app release under the direct-client decision in ADR 0016.

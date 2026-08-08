@@ -1,6 +1,11 @@
 # SanguSantri Product Requirements Document
 
-**Document version:** 1.6 — Firebase Hosting static content delivery:
+**Document version:** 1.7 — standalone Al-Qur'an Kemenag `0.0.6` is an
+approved future milestone with its own bounded PRD, design system, API
+contract, and ADR. This supersedes version 1.6's statement that no
+standalone Quran feature or Kemenag integration was planned; it does not
+authorise implementation before that milestone is explicitly requested.
+Document version 1.6 — Firebase Hosting static content delivery:
 approved product/tech-lead decision (ADR
 [0014](../decisions/0014-firebase-hosting-static-content-delivery.md)) to
 drop the Go + Supabase backend (ADR 0011, never implemented) entirely and
@@ -41,7 +46,7 @@ contract (manifest/package fetch, WorkManager sync) is implemented and
 ships in `0.0.1` regardless of whether static hosting has been deployed:
 the app must remain fully functional offline, with hosting unreachable, or
 before it has ever been deployed (§3.2, FR-010).
-**Date:** 2 August 2026
+**Date:** 8 August 2026
 
 ---
 
@@ -90,6 +95,7 @@ SanguSantri will become a **pesantren super-app** containing:
 * Pesantren membership verification.
 * Pesantren schedules and announcements.
 * Daily devotional tools.
+* Official Kemenag-sourced Al-Qur'an reading.
 * Nahwu quizzes.
 * Gamification.
 * Inter-pesantren rankings.
@@ -447,16 +453,35 @@ fixtures used purely to exercise a feature (bracketed placeholder text,
 never a real source) must be clearly marked and must never enter the
 release build.
 
-## 6.4 Quran content
+## 6.4 Standalone Al-Qur'an Kemenag
+
+A standalone Al-Qur'an feature is approved for Android `0.0.6`. It uses the
+official LPMQ Kemenag API under the access granted specifically to
+SanguSantri, persists validated source content in Room for offline-first
+reading, and provides dark-only Surah/Juz/Bookmark/Terakhir Dibaca browsing,
+page and ayat reading modes, optional Indonesian translation, cached tafsir,
+font and spacing controls, and local reading activity. It has no audio, Latin
+transliteration, copy/share action, account dependency, or download manager.
+
+The complete normative scope is owned by
+[`QURAN_PRD.md`](QURAN_PRD.md), its visual rules by
+[`QURAN_DESIGN_SYSTEM.md`](../design/QURAN_DESIGN_SYSTEM.md), its observed
+wire contract by
+[`QURAN_API_CONTRACT_DRAFT.md`](../engineering/QURAN_API_CONTRACT_DRAFT.md),
+and the accepted architecture/security trade-off by ADR
+[0016](../decisions/0016-standalone-quran-kemenag-direct-api.md). Those
+documents do not change how Quran verses embedded inside amaliyah content are
+modelled.
+
+## 6.4a Quran content embedded in an amaliyah
 
 Any Quran ayah appearing inside an amaliyah must contain surah number, ayah
 number or range, approved Arabic text, approved Indonesian translation,
 source identifier, and an optional future audio identifier. Quran text,
 translation, and audio licensing must be verified separately.
 
-There is no standalone Quran feature, no Quran Kemenag API integration, no
-Quran Foundation API integration, and no Quran audio in the current or
-planned roadmap. A Quran verse appearing inside an amaliyah's own reading
+Quran Foundation API integration and Quran audio are not planned. A Quran
+verse appearing inside an amaliyah's own reading
 text (for example, Al-Fatihah inside Tahlil) is entered and versioned as an
 ordinary reading step (§10) — ADR
 [0015](../decisions/0015-simplified-dynamic-catalog-content-model.md)
@@ -569,11 +594,12 @@ attribution is shown from within the reader itself, not as a separate
 destination (§6.5) — there is no on-device `Approved by` display as of
 ADR 0015.
 
-**Navigation model through `0.0.5`** (product owner/tech lead decision,
-2026-07-29, ADR
+**Navigation model through `0.0.6`**: the shell decision made for `0.0.5`
+(product owner/tech lead, 2026-07-29, ADR
 [0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md) —
 supersedes this section's earlier five-destination bottom-bar/rail
-description): a **bottom navigation bar only**, on every window-size
+description) is extended unchanged through `0.0.6` by ADR 0016: a **bottom
+navigation bar only**, on every window-size
 class including expanded/tablet — no Navigation Rail is built in this
 window. Destinations are added incrementally as their own release ships,
 never speculatively:
@@ -588,11 +614,17 @@ never speculatively:
   Beranda/Aktivitas (quick actions, sections), per their own release
   specs.
 * **Profil** — `0.1.0`+ (implies an authenticated identity, §3.4) and
-  **Pesantren** — `0.2.0`+ are out of scope entirely through `0.0.5` — no
+  **Pesantren** — `0.2.0`+ are out of scope entirely through `0.0.6` — no
   nav item is built for either, not even disabled/inert. Whether either
   becomes a sixth/seventh bottom-nav destination, and whether a
-  Navigation Rail is ever introduced for a release beyond `0.0.5`, is a
+  Navigation Rail is ever introduced for a release beyond `0.0.6`, is a
   future product decision not made by this document.
+
+From `0.0.6`, **Al-Qur'an Kemenag** is reached from a real Beranda entry and
+is not a bottom-navigation destination. The existing Beranda | Aktivitas |
+Tasbih shell remains unchanged; its bar is hidden throughout the immersive
+Quran flow and the user's prior app theme is restored on exit. Quran uses the
+same navigation system and activity as the rest of the app.
 
 Jelajahi Amaliyah, the reading-mode gate, both readers, and About remain
 reachable from Beranda, not as bottom-nav destinations themselves — the
@@ -1015,6 +1047,14 @@ state). Recently opened MUST be tracked independently from completion
 history (`0.0.3` Aktivitas scope) — opening an amaliyah is not the same
 event as completing it.
 
+## FR-022: Standalone Al-Qur'an Kemenag (`0.0.6`)
+
+When the `0.0.6` milestone is explicitly requested, the application MUST
+implement all requirements and acceptance criteria in
+`docs/product/QURAN_PRD.md`. The general architecture, privacy, testing, and
+release documents remain binding. No partial "MVP" may be presented as the
+completed `0.0.6` feature, and Quran audio remains a later product decision.
+
 ---
 
 # 10. Reader Content Model (summary)
@@ -1035,7 +1075,7 @@ There is no step "type" any more — every step has exactly `arabicText`,
 Translation must map to a logical Arabic segment; long prayers may be
 split into multiple steps, but meaning must not be rearranged for visual
 convenience. A Quran verse embedded in an amaliyah's own text (e.g.
-Al-Fatihah inside Tahlil) is an ordinary step like any other — see §6.4.
+Al-Fatihah inside Tahlil) is an ordinary step like any other — see §6.4a.
 
 Full field-level schema (Room tables, catalog/content-file JSON format):
 `docs/engineering/CONTENT_MODEL.md` and `docs/content-schema.md`.
@@ -1070,8 +1110,8 @@ scenarios: `docs/engineering/TESTING.md`.
 CI quality gates, release workflow, and versioning mechanics:
 `docs/engineering/RELEASE_ENGINEERING.md`.
 
-Crash/ANR monitoring, structured logs, and sync/feedback success-rate
-tracking: `docs/operations/INCIDENT_RESPONSE.md`. Telemetry MUST NOT record
+Crash/ANR monitoring, structured logs, and sync outcome tracking:
+`docs/operations/INCIDENT_RESPONSE.md`. Telemetry MUST NOT record
 Arabic reading text, counter values, or personal devotional history.
 
 Claude must not claim that a build or test passes unless the command was
@@ -1093,9 +1133,13 @@ until these assets exist:
    current 25-step (originally 27 — see §6.7) Quran NU Online-sourced
    package is the product owner's accepted standard-public-amaliyah
    release baseline (§3.1, §6.7).
-3. Verified Quran text source — still required before any Quran verse is
-   entered as a reading step (§6.4); neither current package embeds one.
-4. Verified Indonesian Quran translation source — same scope as (3).
+3. Verified source for a Quran verse embedded in an amaliyah reading step —
+   still required for that separate content pipeline (§6.4a); neither current
+   package embeds one. The standalone `0.0.6` source is resolved as the
+   official LPMQ Kemenag API and does not automatically authorise copying its
+   data into amaliyah packages.
+4. Verified Indonesian Quran translation for embedded amaliyah verses — same
+   scope as (3). The standalone Kemenag translation source is resolved.
 5. Kyai or sesepuh approval — no longer blocks publication of standard
    public amaliyah (§3.1); remains required before publishing any
    higher-risk content (private/pesantren-specific, disputed origin,
@@ -1110,13 +1154,21 @@ until these assets exist:
 9. Final application icon.
 10. Privacy policy.
 11. Google Play developer configuration.
-12. Production Firebase Hosting deployment and its base URL (real
-    `SANGU_CONTENT_API_BASE_URL`) — the Android sync client is implemented
-    and ships in `0.0.1`, but activates real remote refresh only once
-    `content-hosting/` is actually deployed and its base URL is configured;
-    until then the app runs on bundled content alone, which is by design,
-    not a defect (FR-010, ADR 0014).
+12. ~~Production Firebase Hosting deployment and its base URL.~~ **Resolved**:
+    Hosting is live and `SANGU_CONTENT_API_BASE_URL` is configured; bundled
+    content remains the mandatory offline baseline (FR-010, ADR 0014,
+    `docs/operations/PRODUCTION_READINESS.md`).
 13. Android signing key.
+14. Production Kemenag username/token injected from local/CI release secrets;
+    no real credential may be committed. Direct-APK residual extraction risk
+    is explicitly accepted by ADR 0016, with required NDK/R8/signature-check
+    hardening.
+15. Final redistribution/licence confirmation and glyph-compatibility results
+    for every selectable Quran font. LPMQ Isep Misbah and Amiri Quran are
+    design candidates only until those gates pass; King Fahd's font asset is
+    not yet supplied.
+16. Final privacy-policy wording covering Kemenag requests, local Quran state,
+    and the lack of analytics/account sync.
 
 Claude must use development-safe substitutes where possible, but must never
 disguise missing production inputs as completed work, and must never claim
@@ -1133,6 +1185,11 @@ this one is product/legal/governance-owned.
 # Related Documents
 
 * Architecture rules, Android/backend stack: `docs/engineering/ARCHITECTURE.md`
+* Standalone Quran `0.0.6` scope and acceptance criteria: `docs/product/QURAN_PRD.md`
+* Standalone Quran visual system and Figma frame contract: `docs/design/QURAN_DESIGN_SYSTEM.md`
+* Observed Kemenag endpoint/data contract: `docs/engineering/QURAN_API_CONTRACT_DRAFT.md`
+* Standalone Quran architecture/security decision:
+  `docs/decisions/0016-standalone-quran-kemenag-direct-api.md`
 * Compose and Kotlin coding standard, prohibited patterns: `docs/engineering/CODING_STANDARD.md`
 * Content model field reference: `docs/engineering/CONTENT_MODEL.md`, `docs/content-schema.md`
 * Offline-first and synchronisation design: `docs/engineering/OFFLINE_FIRST.md`

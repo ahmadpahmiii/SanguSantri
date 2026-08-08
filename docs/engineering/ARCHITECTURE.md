@@ -51,7 +51,8 @@ not preemptively:
 * A strong visibility-boundary requirement appears (e.g. a package must be
   hidden from another team's code).
 * Dynamic feature delivery is required.
-* A roadmap item (`0.2.0` pesantren membership, `0.0.5` Nahwu quiz)
+* A roadmap item (`0.2.0` pesantren membership, `0.0.5` Nahwu quiz,
+  `0.0.6` standalone Quran)
   introduces a genuinely separable feature surface with its own release
   cadence.
 
@@ -75,7 +76,9 @@ com.sangusantri.app
 │   ├── local (dao, database, entity)
 │   │   └── content          BundledContentBootstrapper (reads AssetManager)
 │   ├── remote (api, dto)     ContentApiService (Retrofit) + DTOs only
+│   │   └── quran             planned Kemenag-only API client + DTOs (`0.0.6`)
 │   ├── sync                  ContentSyncManager/Scheduler/Worker/Metadata
+│   │   └── quran             planned initial/weekly Quran refresh (`0.0.6`)
 │   ├── mapper
 │   └── repository
 ├── domain
@@ -89,6 +92,7 @@ com.sangusantri.app
 │   ├── guidedreader
 │   ├── tasbih
 │   ├── activity
+│   ├── quran                 planned standalone Quran feature (`0.0.6`)
 │   ├── contentdetail
 │   ├── settings
 │   └── about
@@ -110,7 +114,9 @@ Reader + the reading-mode gate), `feature/guidedreader` (Guided Reader),
 Milestone 9), and `feature/activity` (Aktivitas, `0.0.3`, Milestone 10)
 are implemented; `feature/explore` (Jelajahi Amaliyah, `0.0.1`) is
 scheduled but not yet implemented — do not create its package before the
-milestone that needs it. `feature/feedback`
+milestone that needs it. `feature/quran` and its data packages are likewise
+planned, not implemented; create them only when `0.0.6` is explicitly
+requested. `feature/feedback`
 was removed from this diagram: public content-correction feedback was
 removed from `0.0.1` scope at Milestone 5 (`docs/product/PRD.md` FR-012)
 and no feedback code exists or is planned. `feature/contentdetail` and
@@ -138,6 +144,13 @@ source for content reads (ADR
 [0003](../decisions/0003-room-as-local-source-of-truth.md)) — screens and
 ViewModels must never render directly from network responses.
 
+Standalone Quran follows the same boundary rule with its own repository:
+Kemenag DTO → validation/mapping → dedicated Quran Room tables → repository
+Flow → UI. A composable or ViewModel never calls the Kemenag service or DAO
+directly. The existing amaliyah content importer and Quran importer/sync must
+not be merged into a generic abstraction: their wire contracts, update rules,
+and failure semantics are materially different.
+
 ## Model duplication rules
 
 Separate models are required when boundaries differ: network DTO, Room
@@ -156,6 +169,8 @@ skill during implementation.
 
 * Serambi must render local content without waiting for network.
 * Reader scrolling must remain smooth on a typical API 26 device.
+* Quran page/ayat readers must lazily render Room-backed records and must not
+  parse or hold all 6,236 ayat in a composable or on the main thread.
 * Long content must use lazy rendering; no full-document parsing on every
   recomposition.
 * Content package parsing must run outside the main thread.
@@ -165,7 +180,7 @@ skill during implementation.
   `android.r8.gradual.support=true` in `gradle.properties` under AGP 9.2.1 —
   re-verify this flag is still required on every AGP upgrade).
 
-## Navigation destinations (bottom-navigation-only through 0.0.5)
+## Navigation destinations (bottom-navigation-only shell through 0.0.6)
 
 **Implemented, Milestone 9.** Target IA through `0.0.5` (`docs/product/
 PRD.md` §7.1, ADR
@@ -195,6 +210,12 @@ whenever the current tab's own back stack is deeper than its root
 don't push" backstack pattern (`replaceTopEntryWithReader`) is unaffected,
 now implemented via `TopLevelBackStack.replaceLast`.
 
+At `0.0.6`, the same navigation owner adds Al-Qur'an Kemenag beneath a
+Beranda entry. It does not add a top-level tab, Activity, NavHost, or second
+theme system. The shared bottom bar is hidden throughout the Quran back stack;
+the feature applies its dark-only Quran color scheme and restores the prior app
+theme when popped. Layout is portrait-primary but orientation is not forced.
+
 ## Local user-state persistence ownership
 
 Favourites, recently-opened, and (from `0.0.2`/`0.0.3`) Standalone Tasbih
@@ -205,6 +226,26 @@ per-concern-repository convention (`GuidedReadingRepository` already
 combines two Room tables behind one repository, not two) rather than one
 repository per table. Field-level detail:
 `docs/engineering/CONTENT_MODEL.md`.
+
+Quran bookmarks, one global last-read position, reading settings, cached
+tafsir, and reading-session events join this local ownership model at `0.0.6`.
+Only the public Kemenag content/tafsir fetch crosses the network boundary; no
+personal Quran state is uploaded.
+
+## Kemenag Quran data path (planned — `0.0.6`, ADR 0016)
+
+Use a dedicated Retrofit/OkHttp client scoped to
+`https://quran-api.lpmqkemenag.id/api-alquran/`. Its `username` and `token`
+headers MUST only be attached to this host/client, never to Firebase content
+requests. Initialisation fetches the complete 114-surah dataset, validates
+identity/count/order/uniqueness, and commits the candidate in one Room
+transaction. Retry restarts initialisation; no resumable staging protocol is
+needed. A seven-day connected-network refresh follows the same complete,
+atomic replacement rule and retains the prior Room snapshot on failure.
+Tafsir is fetched by remote ayat id, cached independently, and refreshed after
+seven days without blocking an available cached result. Full security and
+credential rules live in `docs/security/SECURITY_BASELINE.md`; full product
+semantics live in `docs/product/QURAN_PRD.md`.
 
 ---
 

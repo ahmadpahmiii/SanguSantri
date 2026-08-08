@@ -41,3 +41,18 @@ val SantriError40 = Color(0xFFBA1A1A)
 val SantriError80 = Color(0xFFFFB4AB)
 val SantriError90 = Color(0xFFFFDAD6)
 val SantriError10 = Color(0xFF410002)
+
+// Standalone Al-Qur'an reading-room roles (`0.0.6`). These extend the one canonical
+// SanguSantri token source; they are not a second application theme.
+val QuranBackground = Color(0xFF050806)
+val QuranSurface = Color(0xFF101713)
+val QuranSurfaceHigh = Color(0xFF1A1C19)
+val QuranPrimary = SantriGreen80
+val QuranOnPrimary = SantriGreen20
+val QuranPrimaryContainer = SantriGreen20
+val QuranOnPrimaryContainer = SantriGreen90
+val QuranArabicText = SantriNeutral95
+val QuranTranslationText = Color(0xFFC3C8C0)
+val QuranMutedText = Color(0xFF95A099)
+val QuranOutline = Color(0xFF2D3933)
+val QuranError = SantriError80

@@ -41,9 +41,33 @@ audio group), are gone. Every `ContentStep` has exactly `arabicText`,
 `docs/content-schema.md`. A Quran verse embedded inside an amaliyah's own
 reading text (e.g. Al-Fatihah inside Tahlil) is still just an ordinary step
 with its Arabic text and translation; there is no separate `QURAN_AYAH`
-reference tag any more, and there is still no standalone Quran feature and
-no Quran API (Kemenag, Quran Foundation, or otherwise) — see
-`docs/product/ROADMAP.md` and `docs/product/PRD.md` §6.4.
+reference tag any more. The standalone Al-Qur'an Kemenag feature approved for
+`0.0.6` is a separate bounded data model and does not restore the removed
+amaliyah step type — see `docs/product/QURAN_PRD.md` and ADR 0016.
+
+## Standalone Quran bounded model (`0.0.6`, planned)
+
+The standalone feature owns dedicated Room tables rather than forcing
+official Kemenag records into the versioned amaliyah catalog:
+
+* `quran_surahs` — official surah identity/name/category/verse-count fields.
+* `quran_verses` — stable local key `(surah, ayat)`, unique remote ayat `id`,
+  Juz/page metadata, official Usmani/gundul text, translation, and footnote
+  fields. The API's Latin `teks` field MUST NOT be persisted or displayed.
+* `quran_tafsir` — remote ayat id plus concise and tahlili text and fetch time.
+* `quran_bookmarks` — local ayat-only bookmarks.
+* `quran_reading_state` — one global last-read position and reading mode.
+* `quran_reading_sessions` — local reading activity emitted only after the
+  position advances by at least one ayat.
+
+Quran settings that are simple scalar preferences belong in DataStore. Sync
+timestamps/status reuse namespaced keys in `app_metadata`; do not create a
+table solely for a timestamp. Network DTOs, Room entities, and domain models
+remain separate boundary types. Official Arabic, translation, footnote, and
+tafsir fields are preserved exactly as received; only numeric ordering,
+structural validation, and UI presentation may transform them. Full field and
+sync rules: `docs/product/QURAN_PRD.md` and
+`docs/engineering/QURAN_API_CONTRACT_DRAFT.md`.
 
 Section-heading text that previously existed only as a `HEADING` step's
 Indonesian title (no Arabic body) has no home in the new schema. Where real

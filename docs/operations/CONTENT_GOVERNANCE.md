@@ -19,6 +19,18 @@ following an explicit product-owner instruction, is apply the risk-based
 publication model below — that is a publication-governance decision the
 product owner makes, not a religious judgement Claude makes.
 
+## Official standalone Quran source (`0.0.6`)
+
+The read-only LPMQ Kemenag API is a separate official-source ingestion path,
+not an amaliyah package and not an AI/editorial publication workflow. The app
+must preserve official Arabic, translation, footnote, and tafsir fields as
+received; it may validate structure and ordering but may not silently correct,
+merge, translate, or "improve" them. Suspected source errors are escalated to
+the product owner/LPMQ and never patched from AI judgement. Access is granted
+for SanguSantri only: do not redistribute the API/token or expose copy/share
+features. Source attribution does not imply Kemenag endorsement of the app or
+of Tahlil/Istighosah content. Details: `docs/product/QURAN_PRD.md`, ADR 0016.
+
 ## Risk-based publication model (Milestone 6, product-owner decision)
 
 Supersedes the previous universal "every version needs kyai/sesepuh

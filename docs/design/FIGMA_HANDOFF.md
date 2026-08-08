@@ -27,6 +27,27 @@ phase's visual detail from this document alone; re-open the file first.
 * Figma file: `https://www.figma.com/design/cSjOfVGxBo6N0lX5lqsGEi`
 * File key: `cSjOfVGxBo6N0lX5lqsGEi`
 
+## Planned Quran design page (`0.0.6`)
+
+Create one page named **`03 Al-Qur'an Kemenag`** in this same Figma file when
+the design pass is explicitly requested. No node IDs exist yet, so this entry
+is a frame contract rather than a claim that the page was already written.
+The page must cover the hub/list tabs, first-use/loading/error/empty/offline
+states, flowing Arab-only page reader, Arab+translation ayat-row reader,
+long-press action sheet, tafsir bottom sheet, full-screen display settings with
+live font preview, source attribution, and Aktivitas integration. Exact frames,
+states, tokens, and annotation requirements are owned by
+[`QURAN_DESIGN_SYSTEM.md`](QURAN_DESIGN_SYSTEM.md).
+
+Until those Figma nodes exist, durable PNG/HTML/JSON visual references live in
+[`figma-export/quran/`](figma-export/quran/README.md). The canonical Arab-only
+baseline is `09-flowing-reader-arab-only-page`: a 360×800 full Kemenag-page
+reader rendered to a 720×1600 PNG using the supplied Al-Fajr response. Its
+selected and modal continuations are `09b-flowing-reader-arab-only-selected`
+and `10-ayat-action-sheet`. The removed `07-flowing-reader-arab-only` short-page
+composition is superseded and must not be reconstructed from screenshots or
+memory.
+
 ## Node reference (as supplied, unverified)
 
 | Node ID  | Name (as given)                       | Status                                               |
@@ -71,7 +92,7 @@ and record any additional legacy frame IDs found.
 | `17:32` Custom Tasbih dialog     | Phase C, `0.0.2` | **Implemented, Milestone 9** — `feature/tasbih/components/CustomTasbihTargetDialog.kt`                       | None — small numeric-input dialog, not a full-screen form (decision J), as built                                                                                                                                                                        |
 | Aktivitas (no frame supplied)    | Phase D, `0.0.3` | Does not exist                                                                                               | **Known incomplete Figma area** — no revised frame was provided for Aktivitas; do not guess its layout. Confirm a frame exists before starting Phase D, or proceed from the written decision (K) alone if the product owner confirms no frame is coming |
 
-## Navigation map (resolved — bottom-navigation-only through 0.0.5)
+## Navigation map (resolved shell through `0.0.6`)
 
 ```text
 Beranda | Aktivitas | Tasbih
@@ -92,6 +113,10 @@ the public Amaliyah entry point are not a separate bottom-nav destination;
 "Serambi" persists as the internal class-name/route identifier
 (`SerambiRoute`/`SerambiScreen`/`SerambiViewModel`), unchanged by this
 pass, while "Beranda" is the user-facing label only.
+
+At `0.0.6`, the bar remains Beranda | Aktivitas | Tasbih. Al-Qur'an Kemenag
+is reached from Beranda, never becomes a fourth tab, and hides the shell bar
+while its back stack is active.
 
 ## Reader interaction map
 

@@ -3554,3 +3554,405 @@ directory README. They have not been added to Android resources and do not
 ship in the APK. Amiri's supplied OFL 1.1 is preserved; LPMQ font embedding
 permission remains to be matched against the product owner's written access
 documents before release packaging.
+
+## Standalone Al-Qur'an Kemenag `0.0.6` — PRD and architecture baseline (2026-08-08)
+
+**Status:** Product/design/architecture documentation approved; no Android,
+Room, NDK, Figma, credential, or production feature implementation completed.
+
+The product owner resolved the discovery questionnaire and approved a complete
+standalone Quran milestone after Nahwu Quiz `0.0.5`. The baseline now defines:
+
+* official LPMQ Kemenag as the sole Quran/translation/tafsir source;
+* dark-only Surah/Juz/Bookmark/Terakhir Dibaca experience from Beranda;
+* flowing Arab-only pages or Arab+translation rows, no Latin/audio/share;
+* Room-first reading after one complete atomic 114-surah initialisation;
+* simple retry-from-start on initial failure and full atomic seven-day refresh;
+* on-demand, cached, stale-while-revalidate tafsir;
+* local bookmark, global last read, and Aktivitas/combined-streak integration;
+* dedicated Clean Architecture boundary and accepted direct-APK Kemenag
+  credential risk with mandatory C++/NDK/R8/signature-check hardening;
+* Quran-specific dark tokens, portrait-primary non-locked layout, font preview
+  cards, and release/licence/glyph gates.
+
+Created: `docs/product/QURAN_PRD.md`,
+`docs/design/QURAN_DESIGN_SYSTEM.md`, ADR 0016, and the non-packaged Quran font
+candidate directory. Updated the main PRD/roadmap and canonical architecture,
+offline-first, security, privacy, testing, release, design, governance, and
+operations documentation so the old "no standalone Quran" rule no longer
+drives future work. Historical progress entries above remain unchanged as a
+record of what was true when they were written.
+
+### Remaining blockers before implementation/release
+
+* Real Kemenag credentials must be supplied only through untracked local/CI
+  secret injection; no real value is stored in this documentation baseline.
+* Confirm formal API failure/rate-limit behaviour and SanguSantri public-traffic
+  permission with LPMQ.
+* Confirm LPMQ Isep Misbah APK redistribution permission, supply King Fahd font
+  and licence if desired, and complete exact-Kemenag-corpus glyph testing.
+* Create the Figma page `03 Al-Qur'an Kemenag` from the approved frame contract.
+
+### Documentation validation
+
+`git diff HEAD --check` completed with no whitespace errors. A local Markdown
+link scan over every changed document returned `LOCAL_MARKDOWN_LINKS_OK`.
+SHA-256 verification matched both recorded candidate hashes: LPMQ Isep Misbah
+`b0927593…e21` and Amiri Quran `6814dda5…d3a6`. No Gradle build or Android test
+was run because this pass changes documentation and non-packaged design font
+inputs only, not application source or resources.
+
+### Next recommended milestone
+
+Finish and release `0.0.5` Nahwu Quiz first. Then create the `0.0.6` Figma page
+and implement the Quran data/security foundation as delivery slice 1 in
+`docs/product/QURAN_PRD.md` §14.
+
+## Standalone Quran flowing-reader interaction spike (2026-08-08)
+
+**Status:** Prototype component implemented; not connected to navigation,
+Room, Kemenag networking, credentials, or the release APK's user flow.
+
+The product owner refined the reader contract: `Arab saja` now automatically
+uses one responsive flowing Arabic surface grouped by Kemenag `halaman`, while
+`Arab + terjemahan` automatically uses one stable lazy row per ayat. The former
+independent Halaman/Ayat selector was removed from the product and design
+contracts.
+
+The isolated Compose prototype adds:
+
+* an annotated flowing-page builder that preserves each supplied Arabic string
+  and maps its character range to the stable remote ayat ID;
+* coordinate-based long-press hit-testing through `TextLayoutResult`, haptic
+  feedback, and selected-range highlighting with Quran semantic colour roles;
+* one-per-ayat translated rows with stable lazy keys and semantic long-click;
+* a scoped Material action sheet for Bookmark, Tafsir Kemenag, last-read, and
+  Juz/page information—no copy, share, Latin, or audio action;
+* debug-only phone/tablet fixtures that are explicitly non-production and are
+  not wired into application navigation.
+
+The API evidence remains sufficient for metadata-page grouping but cannot
+reproduce official printed line breaks because the supplied contract has no
+line/word/glyph-position fields.
+
+### Validation and known limitations
+
+* `./gradlew detekt assembleDebug` passed after compiling the new main and
+  debug source sets.
+* `./gradlew lint` passed.
+* `ktlintFormat` and `ktlintCheck` were executed. The final project-wide
+  `ktlintCheck` remains blocked by pre-existing indentation violations in the
+  in-progress Nahwu Quiz/Reminder source set; the report contains no Quran
+  prototype path. Unrelated formatter changes were reverted after detection.
+* `git diff --check` passed.
+* No emulator/device was connected, so `installDebug`, touch-coordinate
+  long-press, haptic feedback, font rendering, and TalkBack were not manually
+  exercised.
+* The production component accepts an injectable `TextStyle` and currently
+  defaults to platform serif. LPMQ remains a non-packaged candidate pending its
+  release gate.
+* The flowing text exposes one accessibility node with per-ayat custom actions.
+  Exact per-range TalkBack focus geometry remains a deliberate validation item
+  for the real Room-backed reader.
+
+### Next recommended milestone
+
+Implement Quran delivery slice 1 from `QURAN_PRD.md`: Room entities/DAO,
+validated Kemenag DTO ingestion, atomic initial preparation, and repository
+observations. Reuse this prototype only after real Room-backed UI models exist.
+
+## Standalone Quran visual-reference baseline (2026-08-08)
+
+**Status:** First approved-format local design artefact created; no production
+Quran navigation or data integration added.
+
+Added `docs/design/figma-export/quran/` as the persistent visual-reference
+directory for the future `03 Al-Qur'an Kemenag` Figma page. Its first screen is
+the revised `Arab saja` flowing reader at 360×800 logical pixels and 720×1600
+PNG output. The reference follows the approved dark semantic tokens, removes
+audio/light-mode/global-navigation chrome, groups the screen by Kemenag page
+metadata, and keeps the Arabic as one responsive RTL reading surface.
+
+The editable HTML renders the exact Surah An-Nas ayat 1–6 strings supplied by
+the product owner from the LPMQ API, sorted numerically. No generated Arabic is
+used. The revised baseline now includes a compact start-of-surah header with
+the Kemenag category, centred surah name, and ayat count, followed by a
+basmalah placement. The active basmalah is now a simple, self-contained SVG
+path asset shaped with the OFL-licensed Amiri Quran font from the exact
+unvocalised phrase published by LPMQ. The earlier screenshot crop remains only
+as provenance for placement and is no longer rendered. A JSON sidecar records
+tokens, source constraints, intended interactions, and intentional omissions
+so future sessions can reproduce the design without guessing.
+
+### Validation and known limitations
+
+* Chromium rendered the HTML at device scale 2 into a 720×1600 PNG.
+* The PNG was inspected visually against the source screenshots and Quran
+  design-system contract.
+* This is a local reference, not a Figma node export; its Figma node ID remains
+  empty until the page is manually recreated.
+* The candidate LPMQ reader font remains a design input and is not approved for
+  APK packaging until its provenance, licence, and glyph gates pass. The Amiri
+  basmalah SVG has known OFL provenance but still requires explicit product
+  acceptance of its intentionally unvocalised treatment before production use.
+
+### Next recommended milestone
+
+Create the matching Arab-only long-press selected-range state, then continue
+the Quran visual set with the Arab+translation reader, action sheet, hub tabs,
+bookmarks, tafsir states, and display settings before wiring production UI.
+
+## Standalone Quran selected-range visual milestone (2026-08-08)
+
+**Status:** Arab-only long-press selected-range reference completed; still a
+design artefact and not wired into the production app.
+
+The product owner supplied a complete Kemenag response for Surah 89. The raw
+JSON is preserved unchanged at
+`docs/design/figma-export/quran/data/al-fajr-89-kemenag-response.json` with its
+SHA-256 and validation notes. It contains 30 unique ayat in non-canonical
+transport order across pages 593 and 594, reinforcing the existing numeric
+sorting requirement.
+
+The reference now named `09b-flowing-reader-arab-only-selected` renders page 593 from
+the sorted `teks_msi_usmani` values and selects ayat 15 (`id = 6008`). Ayat 15
+was chosen because its wrapping demonstrates that selection uses cloned inline
+line fragments instead of colouring the full reader width or treating the
+whole page as one rectangle. The selection uses
+`quranPrimaryContainer`/`quranOnPrimaryContainer`; it does not use error red.
+No Latin transliteration or translation is copied into this Arab-only frame.
+
+### Validation and known limitations
+
+* The raw response validates as 30 unique ayat, numerically complete 1–30, with
+  page 593 containing ayat 1–23 and page 594 containing ayat 24–30.
+* The HTML Arabic spans are compared programmatically with the sorted page-593
+  response before acceptance.
+* Chromium renders the 360×800 HTML at device scale 2 into a 720×1600 PNG.
+* Haptic feedback, semantic long-click, focus transfer, and action-sheet
+  dismissal remain implementation behaviours; this frame records only the
+  visible selected-range state.
+
+### Next recommended milestone
+
+Create the ayat action-sheet frame over this same selected ayat, then use the
+same preserved response for the Arab+translation reader and footnote states.
+
+## Standalone Quran ayat-action-sheet visual milestone (2026-08-08)
+
+**Status:** Ayat action-sheet reference completed; production interaction is
+still represented only by the isolated Compose spike.
+
+Added `10-ayat-action-sheet` over the preserved selected state for Al-Fajr ayat
+15 (`id = 6008`). The background remains visibly selected beneath a modal
+scrim, while the sheet provides exactly the four approved actions in the same
+order and wording as the Compose prototype: Tambahkan bookmark, Tafsir Kemenag,
+Tandai terakhir dibaca, and Informasi Juz dan halaman. A visible 48dp close
+action and system-Back dismissal are part of the recorded contract. Copy,
+share, audio, and Latin transliteration are absent.
+
+The frame represents a realistic scrolled position: the non-sticky surah-start
+header and basmalah are above the viewport when ayat 15 is long-pressed. The
+selected line fragments remain visible immediately above the sheet instead of
+being hidden by the modal surface.
+
+### Validation and known limitations
+
+* The action labels are compared with the existing Android string resources.
+* The HTML still contains page 593 Arabic copied exactly from the preserved raw
+  response; no source text is regenerated for the modal frame.
+* Chromium renders the 360×800 HTML at device scale 2 into a 720×1600 PNG.
+* Focus transfer, TalkBack announcements, haptic feedback, Back dismissal, and
+  action results require real-device validation when the production feature is
+  wired.
+
+### Next recommended milestone
+
+Create the Arab+translation reader from the same Al-Fajr response, including a
+footnote presentation example without displaying the prohibited Latin field.
+
+## Standalone Quran approved-reader component promotion (2026-08-08)
+
+**Status:** Approved visual components promoted into the Android project; not
+yet connected to Quran navigation, Room, Kemenag networking, or credentials.
+
+The approved Arab-only start state, selected-range state, and ayat action sheet
+now have production-source Compose/resource counterparts. Added a reusable
+surah-start header that renders Room-supplied category, display name, and ayat
+count, and enforces the separate-basmalah exception for Al-Fatihah and
+At-Taubah by numeric surah identity. The approved Amiri path source was
+mechanically converted into an Android VectorDrawable; only unused viewBox
+whitespace was cropped, and the Amiri OFL notice is included in `res/raw`.
+
+The flowing reader now changes both background and foreground semantic colours
+for the selected ayat range. The action-sheet drag handle and action icons use
+the approved Quran muted/primary roles. The debug-only fixture preview composes
+the new start header with the existing flowing-reader interaction without
+shipping fixture Quran content in release sources.
+
+The preserved HTML/PNG/JSON files remain the visual and source-data regression
+baseline. The Al-Fajr JSON is not copied into Android assets or runtime data;
+production content must still enter through validated Kemenag DTO ingestion
+and Room.
+
+### Validation and known limitations
+
+* `./gradlew detekt` passed.
+* `./gradlew lint assembleDebug` passed; Android resource processing therefore
+  validates the generated VectorDrawable and packaged OFL text resource.
+* `./gradlew ktlintFormat` and `./gradlew ktlintCheck` were executed. Both remain
+  blocked by the pre-existing Nahwu Quiz/Reminder formatting set; neither
+  report contains a Quran source path. Formatter changes outside the Quran
+  scope were reverted immediately.
+* `git diff --check` passed.
+* No emulator/device was connected, so `installDebug`, long-press geometry,
+  TalkBack, and the VectorDrawable's device rendering remain unverified.
+* These components are deliberately not navigable yet. Wiring them before the
+  validated API-to-Room data slice would violate Room-as-source-of-truth and
+  risk promoting fixture data into the release flow.
+
+### Next recommended milestone
+
+Implement Quran delivery slice 1: credential hardening, validated Kemenag DTO
+ingestion, Room entities/DAO, atomic initial preparation, and repository
+observations. Then wire these approved reader components to real Room-backed UI
+models.
+
+## Standalone Quran complete presentation-reference catalog (2026-08-08)
+
+**Status:** Complete local HTML/JSON/PNG reference catalog; no Figma MCP or
+production navigation/data wiring performed.
+
+Expanded `docs/design/figma-export/quran/` from the three approved reader
+frames into 26 presentation references. The set now covers populated and empty
+Surah/Juz/Bookmark/Terakhir Dibaca hub states, initial checking/preparation and
+errors, background refresh outcomes, both reader displays, long-press and
+action-sheet states, all required tafsir cache/loading/error outcomes, display
+settings, source attribution, Aktivitas integration, and Room loading/invalid
+target recovery.
+
+Every generated state has editable HTML, a JSON implementation contract, and a
+720×1600 PNG. `00-quran-state-catalog.html` provides a local state selector,
+`00-quran-state-catalog.json` inventories the full set, and
+`generate-quran-catalog.rb` makes the generated portion reproducible.
+
+Religious content remains source-bound: Arab+translation and its footnote are
+read directly from the preserved Al-Fajr response; tafsir success/cache states
+read directly from the preserved An-Nas ayat-6232 response; no Latin API field
+is rendered. Missing Juz mappings are deliberately described generically
+instead of being invented.
+
+### Validation and known limitations
+
+* Ruby syntax validation and catalog generation completed successfully.
+* All JSON files parse successfully; the catalog reports 23 generated plus 3
+  retained approved frames.
+* All 26 frame PNGs were rendered by headless Chromium at exactly 720×1600.
+* Representative hub, reader, tafsir, settings, source, activity, loading, and
+  error PNGs were visually inspected.
+* These are local design references, not real Figma nodes; node IDs remain
+  empty until manual recreation.
+* No Gradle task was run because this milestone modifies design documentation
+  and generated visual artefacts only.
+
+### Next recommended milestone
+
+Implement Quran delivery slice 1, then build presentation ViewModels and
+Navigation 3 destinations directly against these state contracts and
+Room-backed models.
+
+## Standalone Quran Arab-only full-page baseline revision (2026-08-08)
+
+**Status:** Approved revision complete; design references are ready for the
+presentation-layer milestone.
+
+The product owner rejected the former short, centred An-Nas Arab-only frame.
+Removed `07-flowing-reader-arab-only.{html,json,png}` and replaced it with one
+canonical full-page sequence built from the supplied, numerically sorted
+Al-Fajr page-593 response:
+
+1. `09-flowing-reader-arab-only-page.*` — normal full page, ayat 1–23;
+2. `09b-flowing-reader-arab-only-selected.*` — the same page and geometry with
+   ayat 15 selected;
+3. `10-ayat-action-sheet.*` — the same selected reading composition behind the
+   approved action sheet.
+
+The catalog generator, catalog HTML/JSON, handoff, design-system checklist,
+README, and action-sheet sidecar now reference this sequence. The discarded 07
+files are absent, so future presentation work cannot accidentally select the
+superseded short-page layout.
+
+### Validation and known limitations
+
+* All three full-page states were visually compared after rendering.
+* The normal and selected frame PNGs are exactly 720×1600.
+* The catalog remains complete at 26 frame triplets after replacing, rather
+  than merely removing, the superseded baseline.
+* This revision changes visual contracts only; presentation/navigation/data
+  implementation remains the next milestone.
+
+### Next recommended milestone
+
+Implement the Quran presentation layer against the final catalog, using
+`09-flowing-reader-arab-only-page` as the sole normal Arab-only page baseline
+and deriving its selected/modal states without recomposing the underlying page.
+
+## Standalone Quran autonomous implementation prompt (2026-08-08)
+
+**Status:** Complete. Documentation-only; no Android implementation or Gradle
+configuration changed.
+
+Created `docs/CLAUDE_QURAN_AUTONOMOUS_PROMPT.md` as the Claude Code execution
+contract for the product-owner-authorized complete Al-Qur'an Kemenag `0.0.6`
+scope. It supersedes the old ADR-0015-specific autonomous prompt only when
+explicitly supplied to Claude; the older prompt remains preserved for its
+historical objective.
+
+The Quran prompt authorizes continuous execution across all five delivery
+slices in `QURAN_PRD.md` section 14 without routine approval checkpoints. It
+locks the reader to the canonical `09` normal → `09b` selected → `10` action
+sheet sequence, preserves the dirty user-owned worktree, requires per-slice
+validation and progress updates, and defines continuation/handoff behavior for
+context limits.
+
+Permission bypass is explicitly bounded: it does not authorize destructive
+operations, secret exposure, Git history rewriting, remote pushes,
+deployments, releases, or external submissions. Missing production
+credentials, font permissions, hardware, or formal API evidence block only
+their dependent release checks while independent implementation continues.
+
+### Files created
+
+`docs/CLAUDE_QURAN_AUTONOMOUS_PROMPT.md`.
+
+### Files modified
+
+`docs/PROGRESS.md`.
+
+### Commands executed
+
+Read-only inspection of `CLAUDE.md`, `docs/PROGRESS.md`, the Related Documents
+section of `docs/product/PRD.md`, `docs/product/QURAN_PRD.md`,
+`docs/design/QURAN_DESIGN_SYSTEM.md`,
+`docs/engineering/QURAN_API_CONTRACT_DRAFT.md`, ADR 0016, the existing Claude
+autonomous prompt, Git status, and `claude --help`.
+
+### Test results
+
+No Android tests or Gradle tasks were run because this pass changes only
+documentation. The prompt invocation uses flags confirmed by the locally
+installed Claude CLI help.
+
+### Known limitations
+
+No prompt can restart a terminated CLI process or supply absent external
+production inputs. The handoff protocol preserves resumability, and the
+permission-bypass flag suppresses routine permission prompts; external
+product/legal/release blockers remain real.
+
+### Next recommended milestone
+
+Run the Quran autonomous prompt and begin Slice 1: API/credential boundary,
+Room baseline, validator, atomic initial/full synchronization, and repository
+foundation, then let the same session proceed automatically through Slices
+2–5.

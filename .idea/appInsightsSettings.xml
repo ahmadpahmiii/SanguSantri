@@ -22,10 +22,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.sangusantri.app" />
+                  <option name="mobileSdkAppId" value="1:920716796161:android:6854114b0a814811b63b00" />
+                  <option name="projectId" value="sangusantri-81cc6" />
+                  <option name="projectNumber" value="920716796161" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

@@ -104,6 +104,14 @@ reading. Sourcing/licensing the typeface is a Blocking Production Input
 (`docs/product/PRD.md` §13) as much as a design-system dependency — do not
 ship a substitute Arabic font as if it were final.
 
+Standalone Quran `0.0.6` has an intentionally dark-only reading environment,
+dedicated high-contrast tokens, Quran-font preview cards, and page/ayat reader
+components. Those feature-specific tokens extend this system; they do not
+replace or duplicate the global app theme. The canonical specification is
+[`QURAN_DESIGN_SYSTEM.md`](QURAN_DESIGN_SYSTEM.md). Entering Quran from the
+global light theme applies that feature scheme only, then restores the prior
+theme on exit.
+
 ## Layout
 
 * Reader text uses a constrained readable width on large displays rather
@@ -118,7 +126,7 @@ ship a substitute Arabic font as if it were final.
   content stays correctly aligned and readable regardless of the selected
   interface language (FR-013).
 
-## Adaptive navigation (bottom-navigation-only through 0.0.5)
+## Adaptive navigation (bottom-navigation-only shell through 0.0.6)
 
 **Implemented, Milestone 9.** Product owner/tech lead decision (ADR
 [0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md),
@@ -134,6 +142,11 @@ adaptive-layout APIs and installed `adaptive` skill remain the correct
 tool for adaptive *content* layout (a constrained, centred max-width
 column on large screens, same rule as reader layout) and for whichever
 future release, if any, revisits a rail.
+
+Al-Qur'an Kemenag `0.0.6` does not change the shell destinations: it opens
+from Beranda and hides the bar throughout its immersive flow. Its design is
+portrait-primary but must not force device orientation or break larger-window
+accessibility.
 
 ## Component rules
 

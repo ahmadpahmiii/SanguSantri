@@ -18,12 +18,21 @@ data class ActivityOverview(
     val recentTasbihHistory: List<TasbihHistoryEntry>,
     /** `0.0.4`, Pengingat Amaliyah — soonest-first, capped at 5 — the root screen's preview list. */
     val upcomingReminders: List<Reminder> = emptyList(),
+    /** `0.0.6`, standalone Al-Qur'an Kemenag — most recent first, capped at 5 (QUR-FR-017). Quran
+     * reading contributes to [currentStreakDays]/[longestStreakDays] above; it has no separate
+     * Quran-only streak. */
+    val weeklyQuranSessionCount: Int = 0,
+    val recentQuranSessions: List<QuranActivityEntry> = emptyList(),
 ) {
     val hasStreak: Boolean
         get() = currentStreakDays > 0 || longestStreakDays > 0
 
     val hasWeeklyActivity: Boolean
-        get() = weeklyAmaliyahCompletedCount > 0 || weeklyTasbihSessionCount > 0 || weeklyTotalMinutes > 0
+        get() =
+            weeklyAmaliyahCompletedCount > 0 ||
+                weeklyTasbihSessionCount > 0 ||
+                weeklyTotalMinutes > 0 ||
+                weeklyQuranSessionCount > 0
 
     val hasAmaliyahHistory: Boolean
         get() = recentAmaliyahCompletions.isNotEmpty()
@@ -34,7 +43,16 @@ data class ActivityOverview(
     val hasReminders: Boolean
         get() = upcomingReminders.isNotEmpty()
 
+    val hasQuranHistory: Boolean
+        get() = recentQuranSessions.isNotEmpty()
+
     /** Screen-level empty state (state 1, "Semua Data Kosong") — the one exception to per-section hiding. */
     val isEntirelyEmpty: Boolean
-        get() = !hasStreak && !hasWeeklyActivity && !hasAmaliyahHistory && !hasTasbihHistory && !hasReminders
+        get() =
+            !hasStreak &&
+                !hasWeeklyActivity &&
+                !hasAmaliyahHistory &&
+                !hasTasbihHistory &&
+                !hasReminders &&
+                !hasQuranHistory
 }

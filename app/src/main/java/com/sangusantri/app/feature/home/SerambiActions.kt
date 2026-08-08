@@ -7,4 +7,5 @@ data class SerambiActions(
     val onAboutClick: () -> Unit,
     val onPengingatClick: () -> Unit,
     val onBelajarClick: () -> Unit,
+    val onQuranClick: () -> Unit,
 )

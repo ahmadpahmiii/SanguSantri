@@ -51,6 +51,7 @@ internal fun ActivityHistoryDetailScaffold(
             // here anyway so ActivityRowKind stays a genuinely exhaustive `when` everywhere it's
             // used, rather than an `else` that would silently swallow a future real case.
             ActivityRowKind.REMINDER -> stringResource(R.string.activity_section_reminders)
+            ActivityRowKind.QURAN -> stringResource(R.string.activity_detail_quran_title)
         }
     Scaffold(
         modifier = modifier,

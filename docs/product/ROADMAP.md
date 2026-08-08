@@ -158,6 +158,28 @@ architecture and accepted credential trade-off.
 * Official Kemenag source attribution, no account sync, analytics, audio,
   download manager, or Quran Foundation fallback.
 
+## `0.0.7` — Kalender Hijriah (approved product/design scope)
+
+Approved PRD: [`HIJRI_CALENDAR_PRD.md`](HIJRI_CALENDAR_PRD.md). Android
+implementation has not started and still requires an explicit milestone start.
+
+* Beranda entry; not a bottom-navigation destination.
+* Compact Sunday-first Gregorian month grid with full weekday names, calculated
+  Umm al-Qura dates, Arabic-Indic small Hijri numerals, and pasaran names only
+  (Legi, Pahing, Pon, Wage, Kliwon; no weton/neptu/primbon).
+* Fully local and offline using the same Android `HijrahDate` policy as
+  Pengingat; no MyQuran runtime dependency.
+* Sundays and sourced official holidays use red Gregorian numbers. Amber and
+  coral dots distinguish fasting from religious observances/official holidays.
+* A versioned, sourced local allowlist covers calendar-suitable non-weekly
+  fasting guidance, fasting-prohibition dates, religious observances, and
+  official annual holidays. Puasa Senin–Kamis is intentionally excluded from
+  list rows and dots; multi-day items are grouped.
+* Explicit calculation/authority notice: Umm al-Qura results can differ from
+  Kalender Hijriah Indonesia Kemenag or an official sidang-isbat decision.
+* No haul/pesantren events, reminders, event creation, sharing, manual Hijri
+  adjustment, Maghrib rollover, or selectable calculation method.
+
 ## `0.1.0` — Accounts
 
 * Google login, phone-number login, minimal profile.
@@ -176,7 +198,7 @@ architecture and accepted credential trade-off.
 
 ---
 
-## Navigation model through `0.0.6` (product owner/tech lead decision)
+## Navigation model through `0.0.7` (product owner/tech lead decision)
 
 Bottom-navigation-only through `0.0.5` (ADR
 [0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md),
@@ -187,15 +209,17 @@ incrementally, never speculatively:
 
 * **Beranda** (`0.0.1`) — initial destination throughout.
 * **Beranda | Tasbih** (`0.0.2`).
-* **Beranda | Aktivitas | Tasbih** (`0.0.3` onward through `0.0.6`).
+* **Beranda | Aktivitas | Tasbih** (`0.0.3` onward through approved `0.0.7`).
 * Pengingat Amaliyah (`0.0.4`) and Nahwu Quiz (`0.0.5`) are never bottom-
   nav destinations.
 * Al-Qur'an Kemenag (`0.0.6`) is reached from Beranda, is never a bottom-nav
   destination, and hides the bar throughout its immersive feature flow.
+* Kalender Hijriah (`0.0.7`) is reached from Beranda and is never a
+  bottom-nav destination. It does not change the three-item top-level shell.
 * **Profil** (`0.1.0`+) and **Pesantren** (`0.2.0`+) remain entirely out of
-  scope through `0.0.6` — no nav item, not even disabled/inert. Whether
-  either becomes a further bottom-nav destination, and whether a
-  Navigation Rail is ever introduced beyond `0.0.6`, is a future product
+  scope through `0.0.7` — no nav item, not even disabled/inert.
+  Whether either becomes a further bottom-nav destination, and whether a
+  Navigation Rail is ever introduced beyond `0.0.7`, is a future product
   decision not made by this roadmap.
 
 ---

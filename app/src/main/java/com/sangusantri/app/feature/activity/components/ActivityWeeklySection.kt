@@ -37,6 +37,10 @@ fun ActivityWeeklySection(
                 value = overview.weeklyTotalMinutes.toString(),
                 label = stringResource(R.string.activity_weekly_minutes_label),
             )
+            SummaryMetric(
+                value = overview.weeklyQuranSessionCount.toString(),
+                label = stringResource(R.string.activity_weekly_quran_label),
+            )
         }
     }
 }

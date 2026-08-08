@@ -33,6 +33,7 @@ import com.sangusantri.app.core.designsystem.icon.TasbihIcon
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.activity.ActivityRoute
 import com.sangusantri.app.feature.activity.detail.ActivityAmaliyahHistoryRoute
+import com.sangusantri.app.feature.activity.detail.ActivityQuranHistoryRoute
 import com.sangusantri.app.feature.activity.detail.ActivityTasbihHistoryRoute
 import com.sangusantri.app.feature.guidedreader.GuidedReaderRoute
 import com.sangusantri.app.feature.home.SerambiActions
@@ -44,6 +45,11 @@ import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackageDetailRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackagesRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizResultRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizSessionRoute
+import com.sangusantri.app.feature.quran.QuranEntryRoute
+import com.sangusantri.app.feature.quran.hub.QuranHubRoute
+import com.sangusantri.app.feature.quran.reader.QuranReaderRoute
+import com.sangusantri.app.feature.quran.settings.QuranSettingsRoute
+import com.sangusantri.app.feature.quran.source.QuranSourceRoute
 import com.sangusantri.app.feature.reader.ReaderEntryRoute
 import com.sangusantri.app.feature.reader.ReaderRoute
 import com.sangusantri.app.feature.reminder.ReminderRoute
@@ -64,6 +70,11 @@ private data object ActivityAmaliyahHistory : NavKey
 
 @Serializable
 private data object ActivityTasbihHistory : NavKey
+
+/** `0.0.6`, standalone Al-Qur'an Kemenag — Aktivitas' "Lihat semua" for the Quran-reading-history
+ * section (QUR-FR-017). */
+@Serializable
+private data object ActivityQuranHistory : NavKey
 
 /** Root destination — Tasbih (0.0.2+). */
 @Serializable
@@ -136,6 +147,27 @@ private data class NahwuQuizResult(
 private data class NahwuQuizHistory(
     val packageId: String,
 ) : NavKey
+
+/** `0.0.6`, standalone Al-Qur'an Kemenag — reached only from a Beranda entry point, never a
+ * bottom-nav destination (QUR-FR-001). [QuranEntry] is the same "gate, replaced once resolved"
+ * pattern as [ReaderGate]/[NahwuQuizInstruction]. */
+@Serializable
+private data object QuranEntry : NavKey
+
+@Serializable
+private data object QuranHub : NavKey
+
+@Serializable
+private data class QuranReader(
+    val surahNumber: Int,
+    val targetAyat: Int?,
+) : NavKey
+
+@Serializable
+private data object QuranSettings : NavKey
+
+@Serializable
+private data object QuranSource : NavKey
 
 /**
  * Navigation 3 host and bottom-navigation shell in one composable — the one navigation system this
@@ -235,6 +267,7 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
                         onAboutClick = { topLevelBackStack.add(About) },
                         onPengingatClick = { topLevelBackStack.add(Pengingat) },
                         onBelajarClick = { topLevelBackStack.add(NahwuQuizLanding) },
+                        onQuranClick = { topLevelBackStack.add(QuranEntry) },
                     ),
             )
         }
@@ -243,6 +276,7 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
             ReminderRoute(onBack = { topLevelBackStack.removeLast() })
         }
         nahwuQuizEntries(topLevelBackStack)
+        quranEntries(topLevelBackStack)
         entry<Tasbih> {
             TasbihRoute(onHistoryClick = { topLevelBackStack.add(TasbihHistory) })
         }
@@ -347,6 +381,47 @@ private fun EntryProviderScope<NavKey>.nahwuQuizEntries(topLevelBackStack: TopLe
     }
 }
 
+/**
+ * `0.0.6`, standalone Al-Qur'an Kemenag — split out to keep [sanguSantriEntryProvider] short.
+ * [QuranEntry] is replaced (not left underneath) by [QuranHub] once ready, same gate pattern as
+ * [readerEntries]'s [ReaderGate].
+ */
+private fun EntryProviderScope<NavKey>.quranEntries(topLevelBackStack: TopLevelBackStack) {
+    entry<QuranEntry> {
+        QuranEntryRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onReady = { topLevelBackStack.replaceLast(QuranHub) },
+        )
+    }
+    entry<QuranHub> {
+        QuranHubRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onSurahSelected = { surahNumber -> topLevelBackStack.add(QuranReader(surahNumber, targetAyat = null)) },
+            onAyatSelected = { surahNumber, ayatNumber ->
+                topLevelBackStack.add(QuranReader(surahNumber, targetAyat = ayatNumber))
+            },
+            onOpenSource = { topLevelBackStack.add(QuranSource) },
+        )
+    }
+    entry<QuranReader> { key ->
+        QuranReaderRoute(
+            surahNumber = key.surahNumber,
+            targetAyat = key.targetAyat,
+            onBack = { topLevelBackStack.removeLast() },
+            onOpenSettings = { topLevelBackStack.add(QuranSettings) },
+        )
+    }
+    entry<QuranSource> {
+        QuranSourceRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+    entry<QuranSettings> {
+        QuranSettingsRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onOpenSource = { topLevelBackStack.add(QuranSource) },
+        )
+    }
+}
+
 /** Aktivitas' own root + "Lihat semua" entries — split out to keep [sanguSantriEntryProvider] short. */
 private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLevelBackStack) {
     entry<Aktivitas> {
@@ -354,6 +429,7 @@ private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLev
             onAmaliyahHistoryClick = { topLevelBackStack.add(ActivityAmaliyahHistory) },
             onTasbihHistoryClick = { topLevelBackStack.add(ActivityTasbihHistory) },
             onRemindersClick = { topLevelBackStack.add(Pengingat) },
+            onQuranHistoryClick = { topLevelBackStack.add(ActivityQuranHistory) },
         )
     }
     entry<ActivityAmaliyahHistory> {
@@ -361,6 +437,9 @@ private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLev
     }
     entry<ActivityTasbihHistory> {
         ActivityTasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+    entry<ActivityQuranHistory> {
+        ActivityQuranHistoryRoute(onBack = { topLevelBackStack.removeLast() })
     }
 }
 

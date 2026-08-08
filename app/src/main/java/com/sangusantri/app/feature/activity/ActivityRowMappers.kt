@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.component.ActivityRowContent
 import com.sangusantri.app.domain.model.AmaliyahCompletionEvent
+import com.sangusantri.app.domain.model.QuranActivityEntry
 import com.sangusantri.app.domain.model.Reminder
 import com.sangusantri.app.domain.model.TasbihHistoryEntry
 import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
@@ -38,6 +39,17 @@ fun TasbihHistoryEntry.toRowContent(): ActivityRowContent {
             ),
     )
 }
+
+/** `0.0.6`, standalone Al-Qur'an Kemenag — the title is fixed per
+ * `docs/design/QURAN_DESIGN_SYSTEM.md` §5.9 ("Membaca Al-Qur'an"), never the surah name, so surah
+ * and ayat range live in the secondary line instead. */
+@Composable
+fun QuranActivityEntry.toRowContent(): ActivityRowContent =
+    ActivityRowContent(
+        primaryText = stringResource(R.string.activity_quran_row_primary),
+        secondaryText = stringResource(R.string.activity_quran_row_secondary, surahName, startAyat, endAyat),
+        trailingText = formatActivityTime(readAtEpochMillis),
+    )
 
 /** `0.0.4`, Pengingat Amaliyah. [Reminder.label] is pre-filled by the create form whenever a
  * preset is chosen, so a blank label here means a genuinely un-named custom reminder — falls back

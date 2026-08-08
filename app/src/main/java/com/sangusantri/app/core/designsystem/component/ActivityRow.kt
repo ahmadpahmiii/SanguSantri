@@ -59,6 +59,15 @@ fun ActivityRow(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+
+                // `0.0.6` — reuses the same book icon style as AMALIYAH (design doc §5.9: "non-colour
+                // Quran/book marker only if an existing icon style supports it"), not a new asset.
+                ActivityRowKind.QURAN ->
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = content.primaryText, style = MaterialTheme.typography.titleMedium)

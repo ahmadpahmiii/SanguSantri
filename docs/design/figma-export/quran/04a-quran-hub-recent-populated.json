@@ -1,0 +1,41 @@
+{
+  "artifactType": "local-design-reference",
+  "screen": "Beranda Al-Qur'an — Terakhir Dibaca",
+  "release": "0.0.6",
+  "logicalFrame": {
+    "width": 360,
+    "height": 800,
+    "renderScale": 2
+  },
+  "state": {
+    "tab": "Terakhir Dibaca",
+    "content": "populated"
+  },
+  "sourceData": "Positions use supplied Al-Fajr and An-Nas API metadata; timestamps are presentation fixtures",
+  "tokens": {
+    "quranBackground": "#050806",
+    "quranSurface": "#101713",
+    "quranSurfaceHigh": "#1A1C19",
+    "quranPrimary": "#7FDB9C",
+    "quranPrimaryContainer": "#00391C",
+    "quranOnPrimaryContainer": "#A1F5B9",
+    "quranArabicText": "#F1F1EB",
+    "quranTranslationText": "#C3C8C0",
+    "quranMutedText": "#95A099",
+    "quranOutline": "#2D3933",
+    "quranError": "#FFB4AB"
+  },
+  "constraints": [
+    "Dark-only Quran surface",
+    "No audio, Latin transliteration, copy, or share controls",
+    "Runtime content renders from validated Kemenag data in Room, never this reference file"
+  ],
+  "figma": {
+    "page": "03 Al-Qur'an Kemenag",
+    "nodeId": null
+  },
+  "sourceFiles": {
+    "editable": "04a-quran-hub-recent-populated.html",
+    "preview": "04a-quran-hub-recent-populated.png"
+  }
+}

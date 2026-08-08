@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width,initial-scale=1" name="viewport"/>
+    <title>Katalog state Al-Qur'an</title>
+    <style>
+        *{box-sizing:border-box}body{margin:0;padding:24px;display:grid;place-items:center;gap:18px;color:#f1f1eb;background:#151716;font-family:Inter,Roboto,Arial,sans-serif}label{width:360px;color:#c3c8c0;font-size:14px}select{width:100%;height:48px;margin-top:8px;padding:0 14px;border:1px solid #4b6658;border-radius:14px;color:#f1f1eb;background:#101713;font:inherit}iframe{width:360px;height:800px;border:0;border-radius:28px;box-shadow:0 22px 70px rgba(0,0,0,.45)}
+    </style>
+</head>
+<body><label>Layar atau state<select id="screen">
+    <option value="01-quran-hub-surah.html">Beranda Al-Qur'an — Surah</option>
+    <option value="02-quran-hub-juz.html">Beranda Al-Qur'an — Juz</option>
+    <option value="03a-quran-hub-bookmark-populated.html">Beranda Al-Qur'an — Bookmark terisi
+    </option>
+    <option value="03b-quran-hub-bookmark-empty.html">Beranda Al-Qur'an — Bookmark kosong</option>
+    <option value="04a-quran-hub-recent-populated.html">Beranda Al-Qur'an — Terakhir Dibaca</option>
+    <option value="04b-quran-hub-recent-empty.html">Beranda Al-Qur'an — Riwayat kosong</option>
+    <option value="05a-initial-checking.html">Penyiapan awal — Memeriksa data</option>
+    <option value="05b-initial-preparation.html">Penyiapan awal — Berlangsung</option>
+    <option value="06a-initial-offline-error.html">Penyiapan awal — Offline</option>
+    <option value="06b-initial-preparation-error.html">Penyiapan awal — Gagal</option>
+    <option value="06c-hub-background-refresh.html">Beranda Al-Qur'an — Memperbarui</option>
+    <option value="06d-hub-refresh-failed-cache-kept.html">Beranda Al-Qur'an — Pembaruan gagal
+    </option>
+    <option value="08-reader-arab-translation.html">Reader — Arab + terjemahan</option>
+    <option value="11-tafsir-loading.html">Tafsir Kemenag — Memuat</option>
+    <option value="12-tafsir-success.html">Tafsir Kemenag — Berhasil</option>
+    <option value="13a-tafsir-cached-refreshing.html">Tafsir Kemenag — Cache diperbarui</option>
+    <option value="13b-tafsir-offline-no-cache.html">Tafsir Kemenag — Tidak tersedia offline
+    </option>
+    <option value="13c-tafsir-error-retry.html">Tafsir Kemenag — Gagal</option>
+    <option value="14-quran-display-settings.html">Tampilan Al-Qur'an</option>
+    <option value="15-quran-source.html">Sumber Al-Qur'an</option>
+    <option value="16-activity-quran-session.html">Aktivitas — Sesi Al-Qur'an</option>
+    <option value="17-reader-loading.html">Reader — Memuat dari Room</option>
+    <option value="18-reader-invalid-target.html">Reader — Target tidak ditemukan</option>
+    <option value="09-flowing-reader-arab-only-page.html">Flowing reader — Arab saja — full page
+    </option>
+    <option value="09b-flowing-reader-arab-only-selected.html">Arab-only long-press selected range
+    </option>
+    <option value="10-ayat-action-sheet.html">Ayat action sheet</option>
+</select></label>
+<iframe id="preview" src="01-quran-hub-surah.html"></iframe>
+<script>
+    const picker=document.getElementById('screen');const preview=document.getElementById('preview');picker.addEventListener('change',()=>{preview.src=picker.value});
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Al-Qur'an — Beranda Al-Qur'an — Bookmark terisi</title>
+    <style>@font-face{font-family:"LPMQ Isep Misbah";src:url("../../assets/quran-fonts/LPMQ-Isep-Misbah.ttf") format("truetype");font-display:block}
+@font-face{font-family:"Amiri Quran";src:url("../../assets/quran-fonts/AmiriQuran-Regular.ttf") format("truetype");font-display:block}
+:root{--bg:#050806;--surface:#101713;--surface-high:#1a1c19;--primary:#7fdb9c;--primary-container:#00391c;--on-primary:#a1f5b9;--text:#f1f1eb;--translation:#c3c8c0;--muted:#95a099;--outline:#2d3933;--error:#ffb4ab}
+*{box-sizing:border-box}html,body{width:360px;height:800px;margin:0;overflow:hidden;background:transparent;font-family:Inter,Roboto,Arial,sans-serif}.screen{position:relative;width:360px;height:800px;overflow:hidden;border-radius:28px;color:var(--text);background:var(--bg)}
+.status{height:30px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;color:#e8ece8;font-size:12px;font-weight:650}.status-right{display:flex;gap:8px;align-items:center}.top{min-height:82px;padding:10px 16px 12px;display:flex;align-items:center;gap:12px;background:var(--surface);border-bottom:1px solid var(--outline)}.top.plain{background:var(--bg);border:0}.back,.icon{width:48px;height:48px;display:grid;place-items:center;border:0;border-radius:24px;color:var(--text);background:transparent;font-size:27px}.icon{font-size:20px}.top-copy{min-width:0;flex:1}.top h1{margin:0;font-size:23px;line-height:28px;letter-spacing:-.4px}.top p{margin:3px 0 0;color:var(--muted);font-size:13px}.actions{display:flex;margin-left:auto}.body{height:688px;padding:18px 16px 28px;overflow:hidden}.hub-body{height:688px;padding:14px 16px 24px;overflow:hidden}
+.continue{margin-bottom:16px;padding:16px;border:1px solid var(--outline);border-radius:20px;background:linear-gradient(135deg,#07351f,#101713)}.continue-head{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px}.continue-head strong{color:var(--text);font-size:15px}.continue-name{margin-top:14px;font-size:18px}.continue-meta{margin-top:5px;color:var(--muted);font-size:14px}.progress{height:4px;margin-top:14px;overflow:hidden;border-radius:4px;background:#34423b}.progress span{display:block;height:100%;border-radius:4px;background:var(--primary)}
+.tabs-viewport{height:52px;overflow:hidden;border-bottom:1px solid var(--outline)}.tabs{width:490px;height:52px;display:flex}.tabs.last{transform:translateX(-130px)}.tab{min-width:110px;height:52px;display:grid;place-items:center;border-bottom:2px solid transparent;color:var(--muted);font-size:14px}.tab.wide{min-width:150px}.tab.active{color:var(--primary);border-color:var(--primary)}
+.search{height:48px;margin:16px 0 8px;padding:0 16px;display:flex;align-items:center;gap:11px;border:1px solid var(--outline);border-radius:18px;color:var(--muted);background:var(--surface);font-size:14px}.search-mark{font-size:19px}.list{overflow:hidden}.row{min-height:72px;padding:12px 8px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--outline)}.number{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:1px solid var(--outline);border-radius:15px;color:var(--on-primary);background:var(--surface);font-size:15px}.row-copy{min-width:0;flex:1;overflow:hidden}.row-title{font-size:16px;font-weight:650}.row-sub{margin-top:5px;overflow:hidden;color:var(--muted);font-size:13px;text-overflow:ellipsis;white-space:nowrap}.arabic-name{width:105px;flex:0 0 105px;overflow:hidden;color:var(--primary);font-family:"LPMQ Isep Misbah",serif;font-size:19px;text-align:end;direction:rtl}.chevron{color:var(--muted);font-size:22px}.empty{height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.empty-mark{width:58px;height:58px;display:grid;place-items:center;border:1px solid var(--outline);border-radius:20px;color:var(--primary);background:var(--surface);font-size:25px}.empty h2{margin:18px 0 7px;font-size:18px}.empty p{max-width:270px;margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.center-state{height:688px;padding:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.state-mark{width:76px;height:76px;display:grid;place-items:center;border:1px solid var(--outline);border-radius:25px;color:var(--primary);background:var(--surface);font-size:32px}.state-mark.error{color:var(--error)}.center-state h2{margin:24px 0 9px;font-size:21px}.center-state p{max-width:290px;margin:0;color:var(--muted);font-size:14px;line-height:1.55}.big-progress{width:270px;height:7px;margin-top:24px;overflow:hidden;border-radius:7px;background:#26312b}.big-progress span{display:block;height:100%;border-radius:7px;background:var(--primary)}.state-count{margin-top:11px;color:var(--muted);font-size:13px}.button{min-width:132px;height:48px;margin-top:24px;padding:0 22px;border:0;border-radius:24px;color:#00391c;background:var(--primary);font-weight:750;font-size:14px}.secondary-button{color:var(--primary);background:var(--surface);border:1px solid var(--outline)}
+.notice{margin:10px 0;padding:10px 12px;border:1px solid var(--outline);border-radius:13px;color:var(--muted);background:var(--surface);font-size:12px;line-height:1.45}.notice strong{color:var(--text)}.notice.error{color:var(--error)}
+.reader-body{height:688px;padding:16px 18px 28px;overflow:hidden}.reader-row{padding:18px 4px;border-bottom:1px solid var(--outline)}.reader-arabic{margin:0;color:var(--text);font-family:"LPMQ Isep Misbah",serif;font-size:29px;line-height:1.7;text-align:right;direction:rtl}.reader-translation{margin:12px 0 0;color:var(--translation);font-size:14px;line-height:1.55}.reader-meta{margin-top:9px;color:var(--primary);font-size:12px}.footnote{margin-top:12px;padding:11px 12px;border-left:2px solid var(--primary);color:var(--muted);background:var(--surface);font-size:12px;line-height:1.5}.loading-row{height:120px;margin-bottom:10px;border-radius:16px;background:linear-gradient(90deg,var(--surface) 25%,#18221d 50%,var(--surface) 75%);background-size:220% 100%}.selected-row{background:var(--primary-container);margin:0 -18px;padding-left:22px;padding-right:22px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.62)}.sheet{position:absolute;left:0;right:0;bottom:0;max-height:610px;padding:9px 20px 28px;border-radius:26px 26px 0 0;background:var(--surface-high);box-shadow:0 -18px 54px rgba(0,0,0,.45)}.handle{width:38px;height:4px;margin:0 auto 18px;border-radius:4px;background:var(--muted)}.sheet-head{display:flex;align-items:flex-start;gap:12px}.sheet-head-copy{flex:1}.sheet h2{margin:0;font-size:20px}.sheet-source{margin-top:5px;color:var(--muted);font-size:12px}.close{width:48px;height:48px;margin-top:-8px;display:grid;place-items:center;border:0;border-radius:24px;color:var(--text);background:transparent;font-size:23px}.sheet-section{margin-top:20px}.sheet-label{margin-bottom:7px;color:var(--primary);font-size:13px;font-weight:750}.sheet-copy{margin:0;color:var(--translation);font-size:14px;line-height:1.55}.sheet-state{padding:35px 4px 50px;text-align:center}.sheet-state .spinner{width:36px;height:36px;margin:0 auto 17px;border:3px solid var(--outline);border-top-color:var(--primary);border-radius:50%}.sheet-state p{margin:0;color:var(--muted);font-size:14px}.cache-chip{display:inline-flex;margin-top:10px;padding:6px 10px;border-radius:12px;color:var(--on-primary);background:var(--primary-container);font-size:11px}
+.settings{height:688px;padding:18px 16px 30px;overflow:hidden}.preview{padding:16px;border:1px solid var(--outline);border-radius:18px;background:var(--surface)}.preview-arabic{font-family:"LPMQ Isep Misbah",serif;font-size:28px;line-height:1.75;text-align:center;direction:rtl}.section-title{margin:20px 0 10px;font-size:15px}.font-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.font-card{min-height:76px;padding:11px;border:1px solid var(--outline);border-radius:15px;background:var(--surface)}.font-card.selected{border-color:var(--primary);background:var(--primary-container)}.font-card.disabled{opacity:.48}.font-name{font-size:12px;font-weight:700}.font-sample{margin-top:8px;color:var(--text);font-family:"Amiri Quran",serif;font-size:19px;text-align:right;direction:rtl}.control{margin-top:16px}.control-head{display:flex;justify-content:space-between;color:var(--translation);font-size:13px}.slider{height:5px;margin-top:11px;border-radius:5px;background:#34423b}.slider span{display:block;position:relative;height:100%;border-radius:5px;background:var(--primary)}.slider span:after{content:"";position:absolute;right:-7px;top:-5px;width:15px;height:15px;border-radius:50%;background:var(--primary)}.segmented{margin-top:11px;padding:3px;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--outline);border-radius:15px;background:var(--surface)}.segment{height:38px;display:grid;place-items:center;border-radius:12px;color:var(--muted);font-size:12px}.segment.active{color:var(--on-primary);background:var(--primary-container)}
+.source-body{height:688px;padding:22px 20px;overflow:hidden}.source-brand{width:58px;height:58px;display:grid;place-items:center;border:1px solid var(--outline);border-radius:20px;color:var(--primary);background:var(--surface);font-size:25px}.source-body h2{margin:20px 0 8px;font-size:20px}.source-body p{margin:0 0 17px;color:var(--translation);font-size:14px;line-height:1.58}.source-box{padding:15px;border:1px solid var(--outline);border-radius:16px;background:var(--surface)}.source-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px}.source-value{margin-top:6px;color:var(--text);font-size:13px;line-height:1.5}.source-rule{margin:18px 0;border:0;border-top:1px solid var(--outline)}
+.activity-body{height:688px;padding:18px 16px 28px;overflow:hidden}.streak{padding:17px;border:1px solid var(--outline);border-radius:19px;background:var(--surface)}.streak-top{display:flex;justify-content:space-between}.streak strong{font-size:22px}.streak p{margin:4px 0 0;color:var(--muted);font-size:13px}.days{margin-top:14px;display:flex;justify-content:space-between}.day{width:34px;text-align:center;color:var(--muted);font-size:10px}.day i{width:28px;height:28px;margin:6px auto 0;display:grid;place-items:center;border-radius:50%;font-style:normal;background:#223029}.day.done i{color:#00391c;background:var(--primary)}.filter{display:flex;gap:8px;margin:18px 0 10px}.chip{padding:8px 12px;border:1px solid var(--outline);border-radius:16px;color:var(--muted);background:var(--surface);font-size:12px}.chip.active{color:var(--on-primary);background:var(--primary-container)}.activity-row{padding:15px 6px;display:flex;gap:12px;border-bottom:1px solid var(--outline)}.activity-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:14px;color:var(--primary);background:var(--surface)}.activity-time{color:var(--muted);font-size:12px}
+    </style>
+</head>
+<body>
+<main class="screen">
+    <div class="status"><span>20:26</span><span class="status-right"><span>▂▄▆█</span><span>⌁</span><span>82%</span></span>
+    </div>
+    <header class="top plain">
+
+        <div class="top-copy"><h1>Al-Qur'an</h1>
+            <p>Al-Qur'an Kemenag</p></div>
+        <div class="actions">
+            <button aria-label="Tampilan" class="icon">⚙</button>
+            <button aria-label="Sumber" class="icon">ⓘ</button>
+        </div>
+    </header>
+    <div class="hub-body">
+        <section class="continue">
+            <div class="continue-head"><strong>▣ &nbsp;Terakhir dibaca</strong><span>Hari ini</span>
+            </div>
+            <div class="continue-name">An-Nās</div>
+            <div class="continue-meta">Halaman 604 • Ayat 2</div>
+            <div class="progress"><span style="width:62%"></span></div>
+        </section>
+
+        <div class="tabs-viewport">
+            <div class="tabs">
+                <div class="tab  ">Surah</div>
+                <div class="tab  ">Juz</div>
+                <div class="tab  active">Bookmark</div>
+                <div class="tab wide ">Terakhir Dibaca</div>
+            </div>
+        </div>
+        <div class="list">
+            <div class="row">
+                <div class="number">15</div>
+                <div class="row-copy">
+                    <div class="row-title">Al-Fajr • Ayat 15</div>
+                    <div class="row-sub">Juz 30 · Halaman 593</div>
+                </div>
+                <span class="chevron">›</span></div>
+            <div class="row">
+                <div class="number">2</div>
+                <div class="row-copy">
+                    <div class="row-title">An-Nās • Ayat 2</div>
+                    <div class="row-sub">Juz 30 · Halaman 604</div>
+                </div>
+                <span class="chevron">›</span></div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

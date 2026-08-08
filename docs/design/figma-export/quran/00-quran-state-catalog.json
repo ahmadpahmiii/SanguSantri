@@ -1,0 +1,212 @@
+{
+  "artifactType": "quran-visual-catalog",
+  "release": "0.0.6",
+  "generatedBy": "generate-quran-catalog.rb",
+  "frameCount": 26,
+  "generatedFrames": [
+    {
+      "slug": "01-quran-hub-surah",
+      "screen": "Beranda Al-Qur'an — Surah",
+      "state": {
+        "tab": "Surah",
+        "content": "populated"
+      }
+    },
+    {
+      "slug": "02-quran-hub-juz",
+      "screen": "Beranda Al-Qur'an — Juz",
+      "state": {
+        "tab": "Juz",
+        "content": "populated"
+      }
+    },
+    {
+      "slug": "03a-quran-hub-bookmark-populated",
+      "screen": "Beranda Al-Qur'an — Bookmark terisi",
+      "state": {
+        "tab": "Bookmark",
+        "content": "populated"
+      }
+    },
+    {
+      "slug": "03b-quran-hub-bookmark-empty",
+      "screen": "Beranda Al-Qur'an — Bookmark kosong",
+      "state": {
+        "tab": "Bookmark",
+        "content": "empty"
+      }
+    },
+    {
+      "slug": "04a-quran-hub-recent-populated",
+      "screen": "Beranda Al-Qur'an — Terakhir Dibaca",
+      "state": {
+        "tab": "Terakhir Dibaca",
+        "content": "populated"
+      }
+    },
+    {
+      "slug": "04b-quran-hub-recent-empty",
+      "screen": "Beranda Al-Qur'an — Riwayat kosong",
+      "state": {
+        "tab": "Terakhir Dibaca",
+        "content": "empty"
+      }
+    },
+    {
+      "slug": "05a-initial-checking",
+      "screen": "Penyiapan awal — Memeriksa data",
+      "state": {
+        "phase": "checking"
+      }
+    },
+    {
+      "slug": "05b-initial-preparation",
+      "screen": "Penyiapan awal — Berlangsung",
+      "state": {
+        "phase": "preparing",
+        "completedSurah": 72,
+        "totalSurah": 114
+      }
+    },
+    {
+      "slug": "06a-initial-offline-error",
+      "screen": "Penyiapan awal — Offline",
+      "state": {
+        "phase": "error",
+        "reason": "offline-no-local-data"
+      }
+    },
+    {
+      "slug": "06b-initial-preparation-error",
+      "screen": "Penyiapan awal — Gagal",
+      "state": {
+        "phase": "error",
+        "reason": "network-http-parse-or-validation"
+      }
+    },
+    {
+      "slug": "06c-hub-background-refresh",
+      "screen": "Beranda Al-Qur'an — Memperbarui",
+      "state": {
+        "tab": "Surah",
+        "refresh": "background-running",
+        "contentRemainsAvailable": true
+      }
+    },
+    {
+      "slug": "06d-hub-refresh-failed-cache-kept",
+      "screen": "Beranda Al-Qur'an — Pembaruan gagal",
+      "state": {
+        "tab": "Surah",
+        "refresh": "failed-existing-cache-kept",
+        "contentRemainsAvailable": true
+      }
+    },
+    {
+      "slug": "08-reader-arab-translation",
+      "screen": "Reader — Arab + terjemahan",
+      "state": {
+        "displayChoice": "Arab + terjemahan",
+        "surah": "Al-Fajr",
+        "page": 593,
+        "juz": 30
+      }
+    },
+    {
+      "slug": "11-tafsir-loading",
+      "screen": "Tafsir Kemenag — Memuat",
+      "state": {
+        "tafsir": "loading",
+        "ayatId": 6232
+      }
+    },
+    {
+      "slug": "12-tafsir-success",
+      "screen": "Tafsir Kemenag — Berhasil",
+      "state": {
+        "tafsir": "success",
+        "ayatId": 6232
+      }
+    },
+    {
+      "slug": "13a-tafsir-cached-refreshing",
+      "screen": "Tafsir Kemenag — Cache diperbarui",
+      "state": {
+        "tafsir": "cached-stale-while-refreshing",
+        "ayatId": 6232
+      }
+    },
+    {
+      "slug": "13b-tafsir-offline-no-cache",
+      "screen": "Tafsir Kemenag — Tidak tersedia offline",
+      "state": {
+        "tafsir": "offline-no-cache",
+        "ayatId": 6232
+      }
+    },
+    {
+      "slug": "13c-tafsir-error-retry",
+      "screen": "Tafsir Kemenag — Gagal",
+      "state": {
+        "tafsir": "retryable-error",
+        "ayatId": 6232
+      }
+    },
+    {
+      "slug": "14-quran-display-settings",
+      "screen": "Tampilan Al-Qur'an",
+      "state": {
+        "destination": "display-settings",
+        "selectedFont": "LPMQ Isep Misbah",
+        "kingFahd": "placeholder-unavailable"
+      }
+    },
+    {
+      "slug": "15-quran-source",
+      "screen": "Sumber Al-Qur'an",
+      "state": {
+        "destination": "source",
+        "access": "read-only"
+      }
+    },
+    {
+      "slug": "16-activity-quran-session",
+      "screen": "Aktivitas — Sesi Al-Qur'an",
+      "state": {
+        "destination": "activity",
+        "filter": "all",
+        "quranSessionVisible": true
+      }
+    },
+    {
+      "slug": "17-reader-loading",
+      "screen": "Reader — Memuat dari Room",
+      "state": {
+        "reader": "loading-from-room",
+        "target": "Al-Fajr page 593"
+      }
+    },
+    {
+      "slug": "18-reader-invalid-target",
+      "screen": "Reader — Target tidak ditemukan",
+      "state": {
+        "reader": "invalid-or-deleted-target"
+      }
+    }
+  ],
+  "retainedApprovedFrames": [
+    {
+      "slug": "09-flowing-reader-arab-only-page",
+      "screen": "Flowing reader — Arab saja — full page"
+    },
+    {
+      "slug": "09b-flowing-reader-arab-only-selected",
+      "screen": "Arab-only long-press selected range"
+    },
+    {
+      "slug": "10-ayat-action-sheet",
+      "screen": "Ayat action sheet"
+    }
+  ],
+  "runtimeRule": "HTML/JSON files are design references only. Production Quran content flows from validated Kemenag responses into Room."
+}

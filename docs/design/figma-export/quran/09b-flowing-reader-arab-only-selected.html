@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Al-Qur'an — Arab saja, ayat terpilih</title>
+    <style>
+        @font-face {
+          font-family: "LPMQ Isep Misbah";
+          src: url("../../assets/quran-fonts/LPMQ-Isep-Misbah.ttf") format("truetype");
+          font-display: block;
+        }
+
+        :root {
+          --quran-background: #050806;
+          --quran-surface: #101713;
+          --quran-surface-high: #1a1c19;
+          --quran-primary: #7fdb9c;
+          --quran-primary-container: #00391c;
+          --quran-on-primary-container: #a1f5b9;
+          --quran-arabic-text: #f1f1eb;
+          --quran-muted-text: #95a099;
+          --quran-outline: #2d3933;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
+          width: 360px;
+          height: 800px;
+          margin: 0;
+          overflow: hidden;
+          background: transparent;
+          font-family: Inter, Roboto, Arial, sans-serif;
+        }
+
+        button {
+          color: inherit;
+          font: inherit;
+        }
+
+        .screen {
+          position: relative;
+          width: 360px;
+          height: 800px;
+          overflow: hidden;
+          border-radius: 28px;
+          color: var(--quran-arabic-text);
+          background: var(--quran-background);
+        }
+
+        .status-bar {
+          height: 30px;
+          padding: 0 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          color: #e8ece8;
+          background: var(--quran-background);
+          font-size: 12px;
+          font-weight: 650;
+          letter-spacing: 0.1px;
+        }
+
+        .status-icons {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10px;
+        }
+
+        .signal {
+          width: 14px;
+          height: 10px;
+          display: flex;
+          align-items: flex-end;
+          gap: 1px;
+        }
+
+        .signal span {
+          width: 2px;
+          border-radius: 2px;
+          background: #e8ece8;
+        }
+
+        .signal span:nth-child(1) { height: 3px; }
+        .signal span:nth-child(2) { height: 5px; }
+        .signal span:nth-child(3) { height: 7px; }
+        .signal span:nth-child(4) { height: 10px; }
+
+        .battery {
+          width: 18px;
+          height: 9px;
+          padding: 1px;
+          border: 1px solid #e8ece8;
+          border-radius: 2px;
+        }
+
+        .battery::after {
+          content: "";
+          display: block;
+          width: 100%;
+          height: 100%;
+          border-radius: 1px;
+          background: #e8ece8;
+        }
+
+        .app-bar {
+          height: 82px;
+          padding: 8px 12px 12px 8px;
+          display: grid;
+          grid-template-columns: 48px 1fr 48px 48px;
+          align-items: center;
+          border-bottom: 1px solid var(--quran-outline);
+          background: var(--quran-surface);
+        }
+
+        .icon-button {
+          width: 48px;
+          height: 48px;
+          padding: 0;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 24px;
+          background: transparent;
+        }
+
+        .icon-button svg {
+          width: 25px;
+          height: 25px;
+          fill: none;
+          stroke: var(--quran-arabic-text);
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-width: 2;
+        }
+
+        .mode-label {
+          color: var(--quran-arabic-text);
+          font-size: 17px;
+          font-weight: 650;
+          letter-spacing: -0.4px;
+        }
+
+        .title-block {
+          min-width: 0;
+          padding-inline-start: 5px;
+        }
+
+        .title {
+          overflow: hidden;
+          color: var(--quran-arabic-text);
+          font-size: 20px;
+          font-weight: 700;
+          letter-spacing: -0.25px;
+          line-height: 25px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .subtitle {
+          margin-top: 2px;
+          color: var(--quran-muted-text);
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 17px;
+        }
+
+        .reader {
+          height: calc(800px - 112px);
+          padding: 16px 18px 26px;
+          display: flex;
+          flex-direction: column;
+          background: var(--quran-background);
+        }
+
+        .surah-header {
+          min-height: 42px;
+          padding: 4px 8px;
+          display: grid;
+          grid-template-columns: 1fr 1.2fr 1fr;
+          align-items: center;
+          border: 1px solid color-mix(in srgb, var(--quran-primary) 42%, transparent);
+          border-radius: 10px;
+          color: var(--quran-on-primary-container);
+          background: var(--quran-primary-container);
+          font-size: 11px;
+          font-weight: 650;
+          letter-spacing: 0.1px;
+        }
+
+        .surah-header > :last-child {
+          text-align: end;
+        }
+
+        .surah-name {
+          min-height: 30px;
+          padding: 5px 10px;
+          display: grid;
+          place-items: center;
+          border-radius: 15px;
+          color: var(--quran-arabic-text);
+          background: var(--quran-surface);
+          font-size: 12px;
+          font-weight: 750;
+        }
+
+        .basmalah {
+          height: 66px;
+          display: grid;
+          place-items: center;
+        }
+
+        .basmalah img {
+          width: 210px;
+          height: auto;
+          display: block;
+        }
+
+        .arabic-wrap {
+          flex: 1;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          overflow: hidden;
+          padding-top: 4px;
+        }
+
+        .arabic-flow {
+          width: 100%;
+          margin: 0;
+          color: var(--quran-arabic-text);
+          direction: rtl;
+          font-family: "LPMQ Isep Misbah", "Amiri Quran", serif;
+          font-size: 21px;
+          font-weight: 400;
+          line-height: 1.78;
+          text-align: justify;
+          text-align-last: center;
+          unicode-bidi: plaintext;
+        }
+
+        .ayat {
+          white-space: normal;
+        }
+
+        .ayat.selected {
+          padding: 1px 3px 2px;
+          border-radius: 4px;
+          color: var(--quran-on-primary-container);
+          background: var(--quran-primary-container);
+          box-decoration-break: clone;
+          -webkit-box-decoration-break: clone;
+        }
+
+        .ayat-marker {
+          box-sizing: border-box;
+          width: 22px;
+          height: 22px;
+          margin: 0 2px 0 4px;
+          display: inline-grid;
+          place-items: center;
+          transform: translateY(-2px);
+          border: 1.25px solid var(--quran-primary);
+          border-radius: 50%;
+          color: var(--quran-on-primary-container);
+          background: var(--quran-primary-container);
+          font-family: Inter, Roboto, Arial, sans-serif;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1;
+        }
+
+        .page-footer {
+          height: 36px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          color: var(--quran-muted-text);
+          font-size: 11px;
+          font-weight: 550;
+        }
+
+        .page-number {
+          color: var(--quran-primary);
+        }
+    </style>
+</head>
+<body>
+<main aria-label="Prototype Al-Qur'an Arab saja dengan ayat 15 terpilih" class="screen">
+    <div aria-hidden="true" class="status-bar">
+        <span>10:30</span>
+        <div class="status-icons">
+            <span>4G+</span>
+            <span class="signal"><span></span><span></span><span></span><span></span></span>
+            <span>100%</span>
+            <span class="battery"></span>
+        </div>
+    </div>
+
+    <header class="app-bar">
+        <button aria-label="Kembali" class="icon-button">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M19 12H5"></path>
+                <path d="m11 18-6-6 6-6"></path>
+            </svg>
+        </button>
+        <div class="title-block">
+            <div class="title">Al-Fajr</div>
+            <div class="subtitle">Halaman 593 · Juz 30</div>
+        </div>
+        <button aria-label="Daftar surah dan halaman" class="icon-button">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M8 6h13"></path>
+                <path d="M8 12h13"></path>
+                <path d="M8 18h13"></path>
+                <path d="M3 6h.01"></path>
+                <path d="M3 12h.01"></path>
+                <path d="M3 18h.01"></path>
+            </svg>
+        </button>
+        <button aria-label="Tampilan Al-Qur'an" class="icon-button mode-label">aA</button>
+    </header>
+
+    <section class="reader">
+        <div aria-label="Al-Fajr, Makkiyah, 30 ayat" class="surah-header">
+            <span>Makkiyah</span>
+            <span class="surah-name">Al-Fajr</span>
+            <span>30 Ayat</span>
+        </div>
+        <div class="basmalah">
+            <img
+                alt="Basmalah"
+                src="assets/basmalah-simple-amiri.svg"
+            />
+        </div>
+        <div class="arabic-wrap">
+            <p class="arabic-flow" dir="rtl" lang="ar">
+                <span class="ayat">وَالْفَجْرِۙ <span class="ayat-marker">١</span></span>
+                <span class="ayat">وَلَيَالٍ عَشْرٍۙ <span class="ayat-marker">٢</span></span>
+                <span class="ayat">وَّالشَّفْعِ وَالْوَتْرِۙ <span
+                    class="ayat-marker">٣</span></span>
+                <span class="ayat">وَالَّيْلِ اِذَا يَسْرِۚ <span
+                    class="ayat-marker">٤</span></span>
+                <span class="ayat">هَلْ فِيْ ذٰلِكَ قَسَمٌ لِّذِيْ حِجْرٍۗ <span
+                    class="ayat-marker">٥</span></span>
+                <span class="ayat">اَلَمْ تَرَ كَيْفَ فَعَلَ رَبُّكَ بِعَادٍۖ <span
+                    class="ayat-marker">٦</span></span>
+                <span class="ayat">اِرَمَ ذَاتِ الْعِمَادِۖ <span
+                    class="ayat-marker">٧</span></span>
+                <span class="ayat">الَّتِيْ لَمْ يُخْلَقْ مِثْلُهَا فِى الْبِلَادِۖ <span
+                    class="ayat-marker">٨</span></span>
+                <span class="ayat">وَثَمُوْدَ الَّذِيْنَ جَابُوا الصَّخْرَ بِالْوَادِۖ <span
+                    class="ayat-marker">٩</span></span>
+                <span class="ayat">وَفِرْعَوْنَ ذِى الْاَوْتَادِۖ <span
+                    class="ayat-marker">١٠</span></span>
+                <span class="ayat">الَّذِيْنَ طَغَوْا فِى الْبِلَادِۖ <span
+                    class="ayat-marker">١١</span></span>
+                <span class="ayat">فَاَكْثَرُوْا فِيْهَا الْفَسَادَۖ <span
+                    class="ayat-marker">١٢</span></span>
+                <span class="ayat">فَصَبَّ عَلَيْهِمْ رَبُّكَ سَوْطَ عَذَابٍۖ <span
+                    class="ayat-marker">١٣</span></span>
+                <span class="ayat">اِنَّ رَبَّكَ لَبِالْمِرْصَادِۗ <span
+                    class="ayat-marker">١٤</span></span>
+                <span class="ayat selected">فَاَمَّا الْاِنْسَانُ اِذَا مَا ابْتَلٰىهُ رَبُّهٗ فَاَكْرَمَهٗ وَنَعَّمَهٗۙ فَيَقُوْلُ رَبِّيْٓ اَكْرَمَنِۗ <span
+                    class="ayat-marker">١٥</span></span>
+                <span class="ayat">وَاَمَّآ اِذَا مَا ابْتَلٰىهُ فَقَدَرَ عَلَيْهِ رِزْقَهٗ ەۙ فَيَقُوْلُ رَبِّيْٓ اَهَانَنِۚ <span
+                    class="ayat-marker">١٦</span></span>
+                <span class="ayat">كَلَّا بَلْ لَّا تُكْرِمُوْنَ الْيَتِيْمَۙ <span
+                    class="ayat-marker">١٧</span></span>
+                <span class="ayat">وَلَا تَحٰۤضُّوْنَ عَلٰى طَعَامِ الْمِسْكِيْنِۙ <span
+                    class="ayat-marker">١٨</span></span>
+                <span class="ayat">وَتَأْكُلُوْنَ التُّرَاثَ اَكْلًا لَّمًّاۙ <span
+                    class="ayat-marker">١٩</span></span>
+                <span class="ayat">وَّتُحِبُّوْنَ الْمَالَ حُبًّا جَمًّاۗ <span class="ayat-marker">٢٠</span></span>
+                <span class="ayat">كَلَّآ اِذَا دُكَّتِ الْاَرْضُ دَكًّا دَكًّاۙ <span
+                    class="ayat-marker">٢١</span></span>
+                <span class="ayat">وَّجَاۤءَ رَبُّكَ وَالْمَلَكُ صَفًّا صَفًّاۚ <span
+                    class="ayat-marker">٢٢</span></span>
+                <span class="ayat">وَجِايْۤءَ يَوْمَىِٕذٍۢ بِجَهَنَّمَۙ يَوْمَىِٕذٍ يَّتَذَكَّرُ الْاِنْسَانُ وَاَنّٰى لَهُ الذِّكْرٰىۗ <span
+                    class="ayat-marker">٢٣</span></span>
+            </p>
+        </div>
+        <footer class="page-footer">
+            <span>Juz 30</span>
+            <span class="page-number">593</span>
+        </footer>
+    </section>
+</main>
+</body>
+</html>

@@ -91,8 +91,7 @@ fun SerambiScreen(
                 SerambiContent(
                     uiState = uiState,
                     onContentSelected = onContentSelected,
-                    onPengingatClick = actions.onPengingatClick,
-                    onBelajarClick = actions.onBelajarClick,
+                    actions = actions,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -110,8 +109,7 @@ private fun SerambiLoading(modifier: Modifier = Modifier) {
 private fun SerambiContent(
     uiState: SerambiUiState.Loaded,
     onContentSelected: (String) -> Unit,
-    onPengingatClick: () -> Unit,
-    onBelajarClick: () -> Unit,
+    actions: SerambiActions,
     modifier: Modifier = Modifier,
 ) {
     if (uiState.items.isEmpty()) {
@@ -130,18 +128,52 @@ private fun SerambiContent(
         contentPadding = PaddingValues(SanguSantriSpacing.default),
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
     ) {
+        item(key = "quran") { QuranEntrySection(onClick = actions.onQuranClick) }
         item(key = "nearest_reminder") {
             NearestReminderSection(
                 reminder = uiState.nearestReminder,
                 contentTitle = uiState.nearestReminderContentTitle(),
-                onClick = onPengingatClick,
+                onClick = actions.onPengingatClick,
             )
         }
         if (uiState.hasNahwuQuizContent) {
-            item(key = "belajar") { BelajarSection(onClick = onBelajarClick) }
+            item(key = "belajar") { BelajarSection(onClick = actions.onBelajarClick) }
         }
         items(items = uiState.items, key = { it.id }) { item ->
             ContentCard(content = item, onClick = onContentSelected)
+        }
+    }
+}
+
+/**
+ * `0.0.6`, standalone Al-Qur'an Kemenag — a real, accessible entry point (QUR-FR-001), always
+ * shown like [NearestReminderSection] rather than hidden behind any data condition: the feature
+ * always exists once shipped, and its own entry gate (not this card) is what decides whether local
+ * Quran data still needs preparing.
+ */
+@Composable
+private fun QuranEntrySection(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier.fillMaxWidth(), onClick = onClick) {
+        Row(
+            modifier = Modifier.padding(SanguSantriSpacing.default),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.serambi_quran_card_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.serambi_quran_card_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         }
     }
 }
@@ -255,7 +287,13 @@ private val previewItems =
     )
 
 private val previewActions =
-    SerambiActions(onSetelanClick = {}, onAboutClick = {}, onPengingatClick = {}, onBelajarClick = {})
+    SerambiActions(
+        onSetelanClick = {},
+        onAboutClick = {},
+        onPengingatClick = {},
+        onBelajarClick = {},
+        onQuranClick = {},
+    )
 
 @PreviewLightDark
 @Composable

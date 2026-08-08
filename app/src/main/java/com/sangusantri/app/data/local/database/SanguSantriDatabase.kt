@@ -10,6 +10,12 @@ import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
 import com.sangusantri.app.data.local.dao.NahwuQuizAttemptDao
 import com.sangusantri.app.data.local.dao.NahwuQuizPackageDao
 import com.sangusantri.app.data.local.dao.NahwuQuizQuestionDao
+import com.sangusantri.app.data.local.dao.QuranBookmarkDao
+import com.sangusantri.app.data.local.dao.QuranReadingSessionDao
+import com.sangusantri.app.data.local.dao.QuranReadingStateDao
+import com.sangusantri.app.data.local.dao.QuranSurahDao
+import com.sangusantri.app.data.local.dao.QuranTafsirDao
+import com.sangusantri.app.data.local.dao.QuranVerseDao
 import com.sangusantri.app.data.local.dao.ReadingPositionDao
 import com.sangusantri.app.data.local.dao.ReminderDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
@@ -23,6 +29,12 @@ import com.sangusantri.app.data.local.entity.GuidedReadingSessionEntity
 import com.sangusantri.app.data.local.entity.NahwuQuizAttemptEntity
 import com.sangusantri.app.data.local.entity.NahwuQuizPackageEntity
 import com.sangusantri.app.data.local.entity.NahwuQuizQuestionEntity
+import com.sangusantri.app.data.local.entity.QuranBookmarkEntity
+import com.sangusantri.app.data.local.entity.QuranReadingSessionEntity
+import com.sangusantri.app.data.local.entity.QuranReadingStateEntity
+import com.sangusantri.app.data.local.entity.QuranSurahEntity
+import com.sangusantri.app.data.local.entity.QuranTafsirEntity
+import com.sangusantri.app.data.local.entity.QuranVerseEntity
 import com.sangusantri.app.data.local.entity.ReadingPositionEntity
 import com.sangusantri.app.data.local.entity.ReminderEntity
 import com.sangusantri.app.data.local.entity.StepProgressEntity
@@ -51,6 +63,11 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * (`docs/engineering/CONTENT_MODEL.md` "Schema-freeze policy") — which reaches the same outcome: a
  * clean baseline reset, not a real migration, since there are still no production installs to
  * protect. An existing local install must clear app data or reinstall once.
+ *
+ * Version 5 (`0.0.6`, standalone Al-Qur'an Kemenag) adds `quran_surahs`/`quran_verses`/
+ * `quran_tafsir`/`quran_bookmarks`/`quran_reading_state`/`quran_reading_sessions` — a separate
+ * bounded context from the amaliyah content model (ADR 0016), purely additive, no `MIGRATION_4_5`
+ * for the same pre-release schema-freeze reason as version 4.
  */
 @Database(
     entities = [
@@ -67,8 +84,14 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         NahwuQuizPackageEntity::class,
         NahwuQuizQuestionEntity::class,
         NahwuQuizAttemptEntity::class,
+        QuranSurahEntity::class,
+        QuranVerseEntity::class,
+        QuranTafsirEntity::class,
+        QuranBookmarkEntity::class,
+        QuranReadingStateEntity::class,
+        QuranReadingSessionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.
@@ -99,6 +122,18 @@ abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun nahwuQuizQuestionDao(): NahwuQuizQuestionDao
 
     abstract fun nahwuQuizAttemptDao(): NahwuQuizAttemptDao
+
+    abstract fun quranSurahDao(): QuranSurahDao
+
+    abstract fun quranVerseDao(): QuranVerseDao
+
+    abstract fun quranTafsirDao(): QuranTafsirDao
+
+    abstract fun quranBookmarkDao(): QuranBookmarkDao
+
+    abstract fun quranReadingStateDao(): QuranReadingStateDao
+
+    abstract fun quranReadingSessionDao(): QuranReadingSessionDao
 
     companion object {
         const val DATABASE_NAME = "sangusantri.db"

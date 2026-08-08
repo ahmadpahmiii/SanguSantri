@@ -212,3 +212,30 @@ phases:
   even once (Figma MCP rate limit, Starter plan). Re-run the discovery
   workflow (`figma-use` skill, §9 "Discover Conventions Before Creating")
   before Phase A begins.
+
+## Kalender Hijriah `0.0.7` local visual baseline (2026-08-08)
+
+The product owner approved a compact Kalender Hijriah concept after the
+original Figma-alignment phases. Its durable local design package is:
+
+`docs/design/figma-export/hijri-calendar/`
+
+The package contains editable `360x800` HTML frames, `720x1600` PNG previews,
+JSON state/semantic sidecars, and a local state catalog. It is not a Figma MCP
+export and does not imply that remote nodes exist.
+
+| Local frame                  | Contract                                                            | Figma page/node |
+|------------------------------|---------------------------------------------------------------------|-----------------|
+| `01-calendar-overview-light` | Full weekday names, ordinary selected date, complete compact agenda | `null`          |
+| `02-calendar-overview-dark`  | Dark theme and selected official religious holiday                  | `null`          |
+| `03-calendar-fasting-filter` | Non-weekly fasting only; multi-day range grouped                    | `null`          |
+| `04-calendar-source-sheet`   | Umm al-Qura/Kemenag authority boundary and local-source explanation | `null`          |
+
+Locked details include Arabic-Indic numerals only for the smaller in-cell
+Hijri day, Latin Gregorian numerals, pasaran without weton/neptu/primbon,
+Sunday/official-holiday red dates, amber fasting dots, coral
+observance/holiday dots, and no Puasa Senin–Kamis agenda density.
+
+If these references are recreated or imported in Figma, use a dedicated
+**Kalender Hijriah** page, preserve the local frame names, and replace each
+`null` with the resulting node ID before Android implementation begins.

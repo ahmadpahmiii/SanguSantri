@@ -1186,6 +1186,9 @@ this one is product/legal/governance-owned.
 
 * Architecture rules, Android/backend stack: `docs/engineering/ARCHITECTURE.md`
 * Standalone Quran `0.0.6` scope and acceptance criteria: `docs/product/QURAN_PRD.md`
+* Approved standalone Kalender Hijriah `0.0.7` scope, source evaluation,
+  local-bundle policy, and acceptance criteria:
+  `docs/product/HIJRI_CALENDAR_PRD.md`
 * Standalone Quran visual system and Figma frame contract: `docs/design/QURAN_DESIGN_SYSTEM.md`
 * Observed Kemenag endpoint/data contract: `docs/engineering/QURAN_API_CONTRACT_DRAFT.md`
 * Standalone Quran architecture/security decision:
@@ -1198,6 +1201,8 @@ this one is product/legal/governance-owned.
 * Visual identity and anti-patterns: `docs/design/DESIGN_SYSTEM.md`
 * Accessibility and adaptive layout: `docs/design/ACCESSIBILITY.md`
 * Figma frame mapping and implementation order: `docs/design/FIGMA_HANDOFF.md`
+* Kalender Hijriah local Figma-export design baseline:
+  `docs/design/figma-export/hijri-calendar/README.md`
 * Figma-vs-implementation gap analysis: `docs/reviews/figma-product-alignment.md`
 * Security controls by release phase: `docs/security/SECURITY_BASELINE.md`
 * Privacy commitments: `docs/security/PRIVACY.md`

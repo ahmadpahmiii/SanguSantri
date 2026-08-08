@@ -10,6 +10,12 @@ import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
 import com.sangusantri.app.data.local.dao.NahwuQuizAttemptDao
 import com.sangusantri.app.data.local.dao.NahwuQuizPackageDao
 import com.sangusantri.app.data.local.dao.NahwuQuizQuestionDao
+import com.sangusantri.app.data.local.dao.QuranBookmarkDao
+import com.sangusantri.app.data.local.dao.QuranReadingSessionDao
+import com.sangusantri.app.data.local.dao.QuranReadingStateDao
+import com.sangusantri.app.data.local.dao.QuranSurahDao
+import com.sangusantri.app.data.local.dao.QuranTafsirDao
+import com.sangusantri.app.data.local.dao.QuranVerseDao
 import com.sangusantri.app.data.local.dao.ReadingPositionDao
 import com.sangusantri.app.data.local.dao.ReminderDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
@@ -85,4 +91,24 @@ object DatabaseModule {
 
     @Provides
     fun provideNahwuQuizAttemptDao(database: SanguSantriDatabase): NahwuQuizAttemptDao = database.nahwuQuizAttemptDao()
+
+    @Provides
+    fun provideQuranSurahDao(database: SanguSantriDatabase): QuranSurahDao = database.quranSurahDao()
+
+    @Provides
+    fun provideQuranVerseDao(database: SanguSantriDatabase): QuranVerseDao = database.quranVerseDao()
+
+    @Provides
+    fun provideQuranTafsirDao(database: SanguSantriDatabase): QuranTafsirDao = database.quranTafsirDao()
+
+    @Provides
+    fun provideQuranBookmarkDao(database: SanguSantriDatabase): QuranBookmarkDao = database.quranBookmarkDao()
+
+    @Provides
+    fun provideQuranReadingStateDao(database: SanguSantriDatabase): QuranReadingStateDao =
+        database.quranReadingStateDao()
+
+    @Provides
+    fun provideQuranReadingSessionDao(database: SanguSantriDatabase): QuranReadingSessionDao =
+        database.quranReadingSessionDao()
 }

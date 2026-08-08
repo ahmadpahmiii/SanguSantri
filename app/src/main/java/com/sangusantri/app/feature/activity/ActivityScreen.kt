@@ -36,11 +36,13 @@ import com.sangusantri.app.feature.activity.components.ActivityHistorySection
 import com.sangusantri.app.feature.activity.components.ActivityStreakSection
 import com.sangusantri.app.feature.activity.components.ActivityWeeklySection
 
+@Suppress("LongParameterList")
 @Composable
 fun ActivityRoute(
     onAmaliyahHistoryClick: () -> Unit,
     onTasbihHistoryClick: () -> Unit,
     onRemindersClick: () -> Unit,
+    onQuranHistoryClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ActivityViewModel = hiltViewModel(),
 ) {
@@ -50,10 +52,12 @@ fun ActivityRoute(
         onAmaliyahHistoryClick = onAmaliyahHistoryClick,
         onTasbihHistoryClick = onTasbihHistoryClick,
         onRemindersClick = onRemindersClick,
+        onQuranHistoryClick = onQuranHistoryClick,
         modifier = modifier,
     )
 }
 
+@Suppress("LongParameterList")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivityScreen(
@@ -61,6 +65,7 @@ fun ActivityScreen(
     onAmaliyahHistoryClick: () -> Unit,
     onTasbihHistoryClick: () -> Unit,
     onRemindersClick: () -> Unit,
+    onQuranHistoryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -85,18 +90,21 @@ fun ActivityScreen(
                     onAmaliyahHistoryClick = onAmaliyahHistoryClick,
                     onTasbihHistoryClick = onTasbihHistoryClick,
                     onRemindersClick = onRemindersClick,
+                    onQuranHistoryClick = onQuranHistoryClick,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun ActivityContent(
     overview: ActivityOverview,
     onAmaliyahHistoryClick: () -> Unit,
     onTasbihHistoryClick: () -> Unit,
     onRemindersClick: () -> Unit,
+    onQuranHistoryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -139,6 +147,14 @@ private fun ActivityContent(
                     kind = ActivityRowKind.REMINDER,
                     rows = overview.upcomingReminders.map { it.toRowContent(hijriMonthNames) },
                     onSeeAllClick = onRemindersClick,
+                )
+            }
+            if (overview.hasQuranHistory) {
+                ActivityHistorySection(
+                    title = stringResource(R.string.activity_section_quran_history),
+                    kind = ActivityRowKind.QURAN,
+                    rows = overview.recentQuranSessions.map { it.toRowContent() },
+                    onSeeAllClick = onQuranHistoryClick,
                 )
             }
         }
@@ -186,6 +202,7 @@ private fun ActivityScreenEmptyPreview() {
             onAmaliyahHistoryClick = {},
             onTasbihHistoryClick = {},
             onRemindersClick = {},
+            onQuranHistoryClick = {},
         )
     }
 }
@@ -199,6 +216,7 @@ private fun ActivityScreenLoadingPreview() {
             onAmaliyahHistoryClick = {},
             onTasbihHistoryClick = {},
             onRemindersClick = {},
+            onQuranHistoryClick = {},
         )
     }
 }

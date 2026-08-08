@@ -265,6 +265,21 @@
   <string name="nahwu_quiz_history_row_duration_less_than_minute">Kurang dari 1 menit</string>
   <string name="nahwu_quiz_history_row_duration_minutes">%1$d menit</string>
 
+  <!-- Al-Qur'an Kemenag reader components (`0.0.6`) -->
+  <string name="quran_open_ayat_action_number">Buka tindakan ayat %1$d</string>
+  <string name="quran_action_sheet_title">%1$s • Ayat %2$d</string>
+  <string name="quran_action_sheet_context">Juz %1$d • Halaman %2$d</string>
+  <string name="quran_action_add_bookmark">Tambahkan bookmark</string>
+  <string name="quran_action_remove_bookmark">Hapus bookmark</string>
+  <string name="quran_action_open_tafsir">Tafsir Kemenag</string>
+  <string name="quran_action_mark_last_read">Tandai terakhir dibaca</string>
+  <string name="quran_action_show_position">Informasi Juz dan halaman</string>
+  <string name="quran_action_close">Tutup tindakan ayat</string>
+  <string name="quran_fixture_prototype_label">[FIXTURE] Prototype interaksi nonproduksi</string>
+  <string name="quran_surah_ayat_count">%1$d Ayat</string>
+  <string name="quran_surah_header_description">%1$s, %2$s, %3$d ayat</string>
+  <string name="quran_basmalah_content_description">Basmalah</string>
+
   <string-array name="reminder_day_names">
     <item>Senin</item>
     <item>Selasa</item>

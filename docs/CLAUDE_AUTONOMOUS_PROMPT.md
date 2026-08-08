@@ -72,9 +72,12 @@ permission bypass is not permission to cross these boundaries.
   optional and may not degrade offline operation.
 - Firebase MCP/tooling must never become an Android runtime or Gradle
   dependency.
-- Preserve the bottom-navigation-only decision through Release 0.0.5.
-- Do not add monetization, standalone Quran functionality, Quran API
-  integration, or Quran audio.
+- Preserve the existing bottom-navigation shell through Release `0.0.6`;
+  Al-Qur'an Kemenag opens from Beranda and never becomes another tab.
+- Do not add monetization, Quran Foundation integration, or Quran audio.
+  Standalone Al-Qur'an Kemenag is approved only for the explicit `0.0.6`
+  milestone and must follow `docs/product/QURAN_PRD.md` and ADR 0016; do not
+  implement it as part of another milestone.
 
 Religious-content safety is absolute: never invent, rewrite, translate,
 complete, transliterate, scrape-and-publish, or AI-correct amaliyah content.

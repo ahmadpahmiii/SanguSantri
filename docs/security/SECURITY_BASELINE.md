@@ -95,6 +95,43 @@ this section is no longer forward-looking.
   logged (`ContentSyncManager`/`ContentSyncWorker` log only ids,
   counts, HTTP status codes, and exception types).
 
+## Required before standalone Al-Qur'an Kemenag (`0.0.6`)
+
+ADR [0016](../decisions/0016-standalone-quran-kemenag-direct-api.md) accepts
+a direct Android-to-Kemenag integration because the issued access is for the
+SanguSantri application and no proxy will be built. This means the credential
+can be made harder to extract, but cannot be made secret from a determined
+attacker who controls the APK/device. The following hardening is mandatory:
+
+* Never commit the real `username` or `token`, including in Kotlin, C++, Gradle
+  files, resources, generated source, logs, tests, screenshots, or docs.
+* Release builds read the credential from an untracked local/CI secret and
+  generate native build input; the build must fail clearly when the required
+  production value is absent. Tests/debug fixtures use an unmistakably fake
+  credential.
+* Reconstruct split/encoded fragments inside a small C++/NDK boundary only at
+  request time, expose the shortest-lived value practical to Kotlin, strip
+  native symbols, and keep release R8/resource shrinking enabled. Obfuscation
+  is defence-in-depth, not a claim of secure storage.
+* Verify the release signing-certificate digest before returning the native
+  credential. A mismatch fails closed and never logs either the expected or
+  actual credential material.
+* Use a dedicated Kemenag Retrofit/OkHttp client. Its `username` and `token`
+  interceptor must be host-scoped to `quran-api.lpmqkemenag.id`; it must never
+  decorate Firebase or arbitrary redirected requests.
+* HTTPS-only network security, bounded timeouts/response sizes, structural
+  response validation, and redacted diagnostics are required. Never log
+  headers, full URLs containing secrets, bodies, Arabic, translations, tafsir,
+  bookmarks, or reading positions.
+* Credential rotation requires issuing a new app release unless Kemenag
+  provides a different authorised mechanism. A leaked/revoked credential is a
+  release incident, not something Room synchronisation can repair.
+
+Certificate pinning and root detection are not substitutes for protecting a
+static client credential and remain deferred absent a separate concrete
+threat. No code may claim the NDK makes the token safe from reverse
+engineering.
+
 ## Required before authentication and private pesantren access (`0.1.0`–`0.2.0`)
 
 * Credential Manager or an equivalent approved authentication approach —
@@ -138,8 +175,11 @@ here only if a future, explicit product decision reintroduces monetisation.
 
 ## Optional / deferred hardening
 
-Certificate pinning, root/tamper detection, screenshot/clipboard blocking,
-and enterprise secret management are **not** required at any phase reached
-by the current roadmap without a concrete triggering threat. See
+Certificate pinning, root/tamper detection, screenshot blocking, and
+enterprise Vault/HSM management are **not** required at any phase reached by
+the current roadmap without a concrete triggering threat. The `0.0.6` native
+credential hardening above is required and is not enterprise secret
+management. Clipboard actions are intentionally absent from the Quran UI, but
+the app does not block system screenshots. See
 `docs/security/THREAT_MODEL.md` for the reasoning — do not add these as
 "security theatre" defaults.

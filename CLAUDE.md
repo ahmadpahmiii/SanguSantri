@@ -5,7 +5,7 @@ pesantren-specific amaliyah.
 
 * Platform: Native Android, Jetpack Compose, package `com.sangusantri.app`.
 * Minimum SDK: 26.
-* Current release: `0.0.3`. Current content: Tahlil and Istighosah.
+* Current release: `0.0.4`. Current content: Tahlil and Istighosah.
 * Architecture: offline-first Clean Architecture, one Gradle module.
 * Current state: Milestones 0–6 (foundation; content model + content
   import; Serambi; Full Amaliyah Reader; local production content
@@ -28,7 +28,7 @@ pesantren-specific amaliyah.
   bootstrap and a new, implemented Android remote-content-synchronisation
   client (`data/remote/`, `data/sync/`) against a backend's contract — see
   ADR
-  [0012](decisions/0012-bundled-bootstrap-and-remote-sync.md) and the
+  [0012](docs/decisions/0012-bundled-bootstrap-and-remote-sync.md) and the
   rewritten `docs/product/PRD.md` FR-010/FR-011 before assuming remote
   sync "is not part of `0.0.1`" or that Android retains previous content
   versions — neither is true any more. A subsequent sync-simplification
@@ -45,7 +45,7 @@ pesantren-specific amaliyah.
   lead separately approved, in the same session, a **bottom-navigation-
   only** scope through `0.0.5` (no Navigation Rail on any window-size
   class in that window) and moved Nahwu Quiz from `0.4.0` to `0.0.5` — see
-  ADR [0013](decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)
+  ADR [0013](docs/decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md)
   before assuming `docs/design/DESIGN_SYSTEM.md`'s/`ARCHITECTURE.md`'s
   previously documented bar/rail plan, or `docs/product/ROADMAP.md`'s
   previous `0.4.0` Nahwu Quiz position, are still current. Milestone 10
@@ -60,17 +60,24 @@ pesantren-specific amaliyah.
   `content-hosting/` directory via Firebase Hosting, with a Firebase MCP
   server used only as development/CI tooling (never an Android runtime
   dependency, never a Gradle dependency of `app/`) — see ADR
-  [0014](decisions/0014-firebase-hosting-static-content-delivery.md),
+  [0014](docs/decisions/0014-firebase-hosting-static-content-delivery.md),
   ADR 0011 (now Superseded), the amended ADR 0012/0010, and
   `docs/engineering/MCP_TOOLING.md` before assuming a Go backend is still
   planned anywhere in this project. This is a documentation/architecture
   decision only — no Android code changed, and the Android sync client's
   `ContentApiService` needs no code change either, since it already only
-  issues plain `GET` requests that static files satisfy identically.
+  issues plain `GET` requests that static files satisfy identically. The
+  product owner has since approved a standalone **Al-Qur'an Kemenag** feature
+  for `0.0.6`, after Nahwu Quiz `0.0.5`: official LPMQ Kemenag API,
+  Room-backed offline-first reading, dark-only Quran surfaces, no audio and
+  no Latin transliteration. This is a documented future milestone, not an
+  implemented feature — read `docs/product/QURAN_PRD.md`,
+  `docs/design/QURAN_DESIGN_SYSTEM.md`, and ADR
+  [0016](docs/decisions/0016-standalone-quran-kemenag-direct-api.md).
 * SanguSantri is currently a **non-commercial application**: no advertising,
-  subscriptions, standalone Quran feature, Quran API integration (Kemenag or
-  Quran Foundation), or Quran audio is on the roadmap
-  (`docs/product/ROADMAP.md`).
+  subscriptions, Quran Foundation integration, or Quran audio is on the
+  roadmap (`docs/product/ROADMAP.md`). The Kemenag integration approved for
+  `0.0.6` is the sole standalone-Quran exception.
 
 Do not implement the entire PRD unless explicitly requested. Implement only
 the milestone actually asked for.
@@ -94,6 +101,7 @@ every document for every task.
 | Testing                                   | `docs/engineering/TESTING.md`                                                                                                                                                  |
 | Architecture decision review              | `docs/decisions/`                                                                                                                                                              |
 | Product scope question                    | `docs/product/PRD.md`, `docs/product/ROADMAP.md`                                                                                                                               |
+| Standalone Quran feature                  | `docs/product/QURAN_PRD.md`, `docs/design/QURAN_DESIGN_SYSTEM.md`, `docs/engineering/QURAN_API_CONTRACT_DRAFT.md`, ADR 0016                                                    |
 
 ## Hard architecture constraints
 
@@ -116,6 +124,11 @@ Claude must not:
 
 * Invent Arabic amaliyah text, translations, or missing prayers.
 * Add Latin transliteration to any amaliyah content.
+* Display or persist the Kemenag API's Latin transliteration in the standalone
+  Quran feature.
+* Invent, AI-correct, or silently normalise standalone Quran Arabic,
+  translations, footnotes, or tafsir; preserve the official Kemenag response
+  exactly apart from validated ordering and presentation formatting.
 * Automatically scrape and publish religious content.
 * Correct religious content based solely on AI judgement.
 * Claim that a kyai, sesepuh, or other religious authority approved content

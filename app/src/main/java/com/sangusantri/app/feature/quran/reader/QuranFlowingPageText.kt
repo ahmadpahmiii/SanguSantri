@@ -1,0 +1,143 @@
+package com.sangusantri.app.feature.quran.reader
+
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.sp
+import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.QuranArabicText
+import com.sangusantri.app.core.designsystem.theme.QuranOnPrimaryContainer
+import com.sangusantri.app.core.designsystem.theme.QuranPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
+import java.text.NumberFormat
+import java.util.Locale
+
+private const val AYAT_ANNOTATION_TAG = "quran-ayat-id"
+
+/**
+ * Responsive Arab-only page rendering. It preserves each official Arabic source string verbatim,
+ * adding only a presentation-space and a marker derived from the official numeric ayat metadata.
+ */
+@Composable
+fun QuranFlowingPageText(
+    ayats: List<QuranReaderAyatUiModel>,
+    selectedAyatId: Long?,
+    onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle =
+        TextStyle(
+            fontFamily = FontFamily.Serif,
+            fontSize = 34.sp,
+            lineHeight = 60.sp,
+            textAlign = TextAlign.Justify,
+        ),
+) {
+    val annotatedPage = remember(ayats, selectedAyatId) { buildPageText(ayats, selectedAyatId) }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val hapticFeedback = LocalHapticFeedback.current
+    val accessibilityActions =
+        ayats.map { ayat ->
+            val label =
+                androidx.compose.ui.res
+                    .stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
+            CustomAccessibilityAction(label) {
+                onAyatLongPress(ayat)
+                true
+            }
+        }
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        BasicText(
+            text = annotatedPage,
+            style = textStyle,
+            color = { QuranArabicText },
+            onTextLayout = { textLayoutResult = it },
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .semantics { customActions = accessibilityActions }
+                    .pointerInput(annotatedPage, ayats) {
+                        detectTapGestures(
+                            onLongPress = { position ->
+                                val layout = textLayoutResult ?: return@detectTapGestures
+                                if (annotatedPage.isEmpty()) return@detectTapGestures
+                                val offset =
+                                    layout
+                                        .getOffsetForPosition(position)
+                                        .coerceIn(0, annotatedPage.lastIndex)
+                                val remoteId =
+                                    annotatedPage
+                                        .getStringAnnotations(
+                                            tag = AYAT_ANNOTATION_TAG,
+                                            start = offset,
+                                            end = (offset + 1).coerceAtMost(annotatedPage.length),
+                                        ).firstOrNull()
+                                        ?.item
+                                        ?.toLongOrNull()
+                                val ayat = ayats.firstOrNull { it.remoteId == remoteId }
+                                if (ayat != null) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onAyatLongPress(ayat)
+                                }
+                            },
+                        )
+                    },
+        )
+    }
+}
+
+private fun buildPageText(
+    ayats: List<QuranReaderAyatUiModel>,
+    selectedAyatId: Long?,
+): AnnotatedString =
+    buildAnnotatedString {
+        val arabicNumberFormat = NumberFormat.getIntegerInstance(Locale.forLanguageTag("ar"))
+        ayats.forEachIndexed { index, ayat ->
+            if (index > 0) append(' ')
+            val rangeStart = length
+            pushStringAnnotation(AYAT_ANNOTATION_TAG, ayat.remoteId.toString())
+            append(ayat.arabicText)
+            append(" ﴿")
+            append(arabicNumberFormat.format(ayat.ayatNumber))
+            append("﴾")
+            pop()
+            val rangeEnd = length
+            addStyle(
+                SpanStyle(color = QuranPrimary),
+                rangeEnd - arabicNumberFormat.format(ayat.ayatNumber).length - 2,
+                rangeEnd,
+            )
+            if (ayat.remoteId == selectedAyatId) {
+                addStyle(
+                    SpanStyle(
+                        color = QuranOnPrimaryContainer,
+                        background = QuranPrimaryContainer,
+                    ),
+                    rangeStart,
+                    rangeEnd,
+                )
+            }
+        }
+    }

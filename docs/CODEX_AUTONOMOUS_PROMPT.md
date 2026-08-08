@@ -84,8 +84,10 @@ in the appropriate ADR or progress entry.
   navigation systems, or duplicate theme/design tokens.
 - A use case must contain meaningful or reusable business logic.
 - Keep the app non-commercial unless a new explicit product decision says
-  otherwise. Do not add ads, subscriptions, a standalone Quran feature, Quran
-  API integration, or Quran audio.
+  otherwise. Do not add ads, subscriptions, Quran Foundation integration, or
+  Quran audio. Standalone Al-Qur'an Kemenag is approved only for the explicit
+  `0.0.6` milestone and must follow `docs/product/QURAN_PRD.md` and ADR 0016;
+  do not implement it as part of another milestone.
 - Honor the bottom-navigation-only decision through release `0.0.5`; do not add
   a Navigation Rail in that release window.
 - Treat offline bundled content as mandatory. Remote delivery must remain

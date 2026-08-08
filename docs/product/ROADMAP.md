@@ -8,15 +8,15 @@ being built prematurely.
 
 SanguSantri is currently a **non-commercial application**. There is no
 advertising, subscription, or monetisation roadmap item, and none should be
-added without an explicit product decision. There is no standalone Quran
-feature, Quran Kemenag API integration, Quran Foundation API integration, or
-Quran audio planned. Tahlil and Istighosah may still contain Quran verses as
-part of their original reading text (an ordinary reading step, ADR 0015 —
-there is no separate step type for this); those verses are entered as part
-of the approved amaliyah content itself, never fetched from a separate
-Quran API or service — see `docs/engineering/CONTENT_MODEL.md`.
+added without an explicit product decision. Standalone **Al-Qur'an Kemenag**
+is approved for `0.0.6` under ADR 0016. Quran Foundation integration and Quran
+audio remain unplanned. Tahlil and Istighosah may still contain Quran verses
+as part of their original reading text (an ordinary reading step, ADR 0015 —
+there is no separate step type for this); that amaliyah content pipeline stays
+separate from the standalone Kemenag data boundary — see
+`docs/engineering/CONTENT_MODEL.md`.
 
-## `0.0.1` — Core Reader Completion and Public Amaliyah Foundation (current)
+## `0.0.1` — Core Reader Completion and Public Amaliyah Foundation
 
 Rebaselined by the Figma product-alignment pass
 (`docs/reviews/figma-product-alignment.md`) — supersedes this version's
@@ -63,18 +63,15 @@ sync remains unscheduled" wording): the Android remote content-sync
 foundation — bundled bootstrap, a shared content-package importer, a
 Retrofit/OkHttp client against the static content contract, and a
 24-hour-gated opportunistic WorkManager sync — is implemented in `0.0.1`.
-The `content-hosting/` static files and the Firebase project/CI pipeline
-that deploys them are a parallel content-operations workstream and are
-**not** deployed yet — see `docs/engineering/ARCHITECTURE.md` §Backend and
+The `content-hosting/` static files and Firebase Hosting are now deployed;
+see `docs/engineering/ARCHITECTURE.md` §Backend and
 ADR [0014](../decisions/0014-firebase-hosting-static-content-delivery.md)
 (superseding ADR
 [0011](../decisions/0011-go-and-supabase-managed-postgresql-backend.md)'s
 never-implemented Go + Supabase backend). Hosting availability must never
 block core application usage: the app ships fully functional offline on
-bundled content alone, and activating real remote refresh requires only
-supplying the real, deployed Firebase Hosting base URL via
-`SANGU_CONTENT_API_BASE_URL` — no Android code change or source-selection
-flag toggle. See ADR
+bundled content alone. The deployed base URL is supplied via
+`SANGU_CONTENT_API_BASE_URL`; no source-selection flag is needed. See ADR
 [0012](../decisions/0012-bundled-bootstrap-and-remote-sync.md) and
 `docs/engineering/OFFLINE_FIRST.md`.
 
@@ -108,7 +105,7 @@ before implementation.
 * Amaliyah name, version, completion time, duration.
 * Private local statistics only — no sharing yet.
 
-## `0.0.4` — Pengingat Amaliyah
+## `0.0.4` — Pengingat Amaliyah (current)
 
 * Personal schedules; Tahlil malam Jumat and Istighosah weekly presets.
 * Gregorian and Hijri date, notification permission flow.
@@ -132,6 +129,35 @@ and before Accounts:
   Membership (`0.2.0`) and remain future/deferred, not built at `0.0.5` —
   local score is never trusted for competitive ranking.
 
+## `0.0.6` — Al-Qur'an Kemenag
+
+Approved as one complete feature milestone, not a reduced MVP. The normative
+requirements and acceptance criteria live in
+[`QURAN_PRD.md`](QURAN_PRD.md); ADR
+[0016](../decisions/0016-standalone-quran-kemenag-direct-api.md) owns the
+architecture and accepted credential trade-off.
+
+* Beranda entry **Al-Qur'an Kemenag**; in-feature title **Al-Qur'an**. It is
+  not a bottom-nav destination and hides the existing bottom bar while open.
+* Full dark-only, portrait-primary reading experience with Surah, Juz,
+  Bookmark, and Terakhir Dibaca tabs.
+* Page mode grouped by Kemenag `halaman` metadata and Ayat mode with
+  **Arab saja / Arab + terjemahan**; no Latin transliteration.
+* Long press is the sole visible per-ayat action, opening bookmark, tafsir,
+  mark-last-read, and Juz/page information. No copy/share action.
+* Room is the source of truth. First use fetches and atomically validates all
+  114 surahs; failure shows a simple retry that restarts initialisation. A
+  seven-day full refresh keeps old local content if the network refresh fails.
+* Tafsir is online-first on first access, then cached in Room with seven-day
+  stale-while-revalidate behaviour.
+* Local bookmark, one global last-read position, and Quran reading-session
+  events integrated with Aktivitas/streak only after advancing a verse.
+* Arabic font/size/line-height settings with live preview. LPMQ Isep Misbah is
+  the preferred default candidate; Amiri Quran and King Fahd remain gated by
+  redistribution and glyph-compatibility checks.
+* Official Kemenag source attribution, no account sync, analytics, audio,
+  download manager, or Quran Foundation fallback.
+
 ## `0.1.0` — Accounts
 
 * Google login, phone-number login, minimal profile.
@@ -150,7 +176,7 @@ and before Accounts:
 
 ---
 
-## Navigation model through `0.0.5` (product owner/tech lead decision)
+## Navigation model through `0.0.6` (product owner/tech lead decision)
 
 Bottom-navigation-only through `0.0.5` (ADR
 [0013](../decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md),
@@ -161,13 +187,15 @@ incrementally, never speculatively:
 
 * **Beranda** (`0.0.1`) — initial destination throughout.
 * **Beranda | Tasbih** (`0.0.2`).
-* **Beranda | Aktivitas | Tasbih** (`0.0.3` onward through `0.0.5`).
+* **Beranda | Aktivitas | Tasbih** (`0.0.3` onward through `0.0.6`).
 * Pengingat Amaliyah (`0.0.4`) and Nahwu Quiz (`0.0.5`) are never bottom-
   nav destinations.
+* Al-Qur'an Kemenag (`0.0.6`) is reached from Beranda, is never a bottom-nav
+  destination, and hides the bar throughout its immersive feature flow.
 * **Profil** (`0.1.0`+) and **Pesantren** (`0.2.0`+) remain entirely out of
-  scope through `0.0.5` — no nav item, not even disabled/inert. Whether
+  scope through `0.0.6` — no nav item, not even disabled/inert. Whether
   either becomes a further bottom-nav destination, and whether a
-  Navigation Rail is ever introduced beyond `0.0.5`, is a future product
+  Navigation Rail is ever introduced beyond `0.0.6`, is a future product
   decision not made by this roadmap.
 
 ---

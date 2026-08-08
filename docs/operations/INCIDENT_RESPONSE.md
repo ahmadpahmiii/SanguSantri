@@ -14,6 +14,11 @@ logging. No named incident contact is documented anywhere. None of this
 blocks current Android-only engineering work; all of it blocks public
 release — see `docs/operations/PRODUCTION_READINESS.md`.
 
+`0.0.6` adds a direct third-party Kemenag API dependency, not a SanguSantri
+backend. Its availability and HTTP failures are observable only through
+redacted on-device diagnostics unless LPMQ provides a separate operational
+channel; never log credentials or response content.
+
 ## Crash and stability monitoring
 
 Play Console Vitals is free and should be default-on before any public
@@ -51,6 +56,12 @@ centrally aggregated. There is no feedback feature
 not record Arabic reading text, counter values, or personal devotional
 history in logs or analytics (`docs/security/PRIVACY.md`).
 
+For Quran sync, record only coarse event type, terminal class, HTTP status,
+surah number/count, duration, and app version where needed locally for
+diagnosis. Do not record headers, bodies, Arabic/translation/tafsir, remote
+ayat ids tied to user actions, bookmarks, or positions. Kemenag downtime does
+not erase or invalidate an existing Room snapshot.
+
 ## Reliability and recovery testing
 
 * Process-death restoration is proven only for the DB/DataStore layer so
@@ -66,6 +77,14 @@ history in logs or analytics (`docs/security/PRIVACY.md`).
   failure during sync — build to the package-import sequence already
   specified in `docs/engineering/OFFLINE_FIRST.md` directly, rather than
   discovering the failure modes iteratively in production.
+
+For `0.0.6`, initialisation failure is deliberately simple: discard the
+candidate, show error/retry, and restart. A weekly refresh failure keeps the
+old atomic snapshot. If Kemenag access is revoked or the credential is exposed,
+disable further release use as appropriate, request rotation from LPMQ, build a
+new signed version with the rotated secret, and keep already cached public
+content readable unless the licence/incident authority explicitly requires
+removal.
 
 ## Content incident runbook
 

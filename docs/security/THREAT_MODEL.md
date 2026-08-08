@@ -28,17 +28,30 @@ milestone to trigger this either.
 
 ## Enterprise secret management (Vault/HSM-backed KMS)
 
-**Deferred.** There is no backend and none is planned (ADR 0014); the only
-secret in this architecture is a Firebase Hosting deploy credential for
-CI, which environment-variable/CI-secret storage is sufficient for at this
-scale. Revisit only if a genuinely higher-stakes credential is introduced.
+**Deferred.** Firebase deployment and the `0.0.6` Kemenag release credential
+use local/CI secret injection at this scale. A backend Vault/HSM cannot protect
+a value that the authorised Android client must eventually send itself.
+Revisit only if a backend or genuinely higher-stakes server credential is
+introduced.
+
+## Direct Kemenag client credential (`0.0.6`)
+
+**Accepted residual risk, ADR 0016.** The product owner chose direct APK
+access rather than a SanguSantri proxy. C++/NDK fragment reconstruction,
+release-signature verification, symbol stripping, and R8 raise extraction
+cost; they do not create a trustworthy secret store on an attacker-controlled
+device. The relevant mitigations are least exposure, host-scoped headers, no
+logging/committing, controlled release injection, and rapid token rotation via
+an app update. Root detection and certificate pinning do not prevent static or
+runtime extraction of a credential the app itself must use.
 
 ## Screenshot/clipboard blocking
 
 **Deferred.** Only relevant once private pesantren content (`0.3.0`)
 exists. Public devotional text has no confidentiality requirement to
 protect — blocking screenshots on a public Tahlil reader is a pure UX cost
-with no corresponding benefit.
+with no corresponding benefit. `0.0.6` intentionally provides no Quran
+copy/share action, but screenshots remain allowed by product decision.
 
 ## Brute-force protection beyond basic API rate limiting
 

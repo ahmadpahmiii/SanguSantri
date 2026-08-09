@@ -28,6 +28,8 @@ firebaseCrashlytics = "20.1.0"
 googleGmsGoogleServices = "4.5.0"
 googleFirebaseCrashlytics = "3.0.7"
 coil = "3.3.0"
+firebaseConfig = "23.1.0"
+playAppUpdate = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -84,6 +86,12 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 # Catalog item images (ADR 0015 — Content.imageUrl)
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+# In-app update (ADR 0017 — Remote Config as a second explicit ADR 0014 Firebase exception, Play
+# Core for the actual update flow)
+firebase-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "firebaseConfig" }
+play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

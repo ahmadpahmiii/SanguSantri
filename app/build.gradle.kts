@@ -229,6 +229,12 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.firebase.crashlytics)
 
+    // In-app update (ADR 0017): Remote Config supplies the force/flexible policy, Play Core drives
+    // the actual update flow.
+    implementation(libs.firebase.config)
+    implementation(libs.play.app.update)
+    implementation(libs.play.app.update.ktx)
+
     // Catalog item images (ADR 0015 — Content.imageUrl); network fetcher shares the app's own
     // OkHttp stack rather than pulling in a second HTTP client.
     implementation(libs.coil.compose)

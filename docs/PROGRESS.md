@@ -5194,3 +5194,146 @@ state-shape changes, verified manually.
 Get the product-owner rulings the prior entry still needs, then work through
 the rest of `QURAN_DESIGN_SYSTEM.md` §7's on-device checklist (TalkBack/
 font-scale) now that an emulator is available.
+
+## In-app update gate — Firebase Remote Config policy + Play Core (2026-08-09)
+
+**Status:** Implemented and verified locally (no emulator/device attached
+this session — Play Core flows themselves are unverifiable on a debug
+build regardless, see Known limitations). Not a numbered milestone.
+Full detail: ADR
+[0017](decisions/0017-in-app-update-remote-config-and-play-core.md), which
+amends ADR 0014.
+
+### What shipped
+
+- **Policy source (Remote Config).** `AppUpdatePolicyDto`
+  (`data/remote/update/`) decodes the console-configured `in_app_update`
+  JSON parameter (`minimum_version_code`, `force_update_versions[]`) via
+  the app's existing `kotlinx.serialization` `Json`, mapped to the domain
+  `AppUpdatePolicy`. `AppUpdatePolicyRepositoryImpl` wraps
+  `FirebaseRemoteConfig.fetchAndActivate()` with a 5-second timeout;
+  fetch/parse failures return `null` (never throw) after a Crashlytics
+  `recordException` — fail-open, never silent.
+- **Pure decision logic.** `decideAppUpdateRequirement`
+  (`domain/model/AppUpdateRequirement.kt`) mirrors the existing
+  `ContentVersionAction` enum-plus-top-level-function shape: below the
+  minimum version, or in the explicit force-version list, forces the
+  update; otherwise offers a flexible one.
+- **Update mechanism (Play Core).** `AppUpdateViewModel`
+  (`feature/update/`) combines that decision with
+  `AppUpdateManager.requestAppUpdateInfo()` (Play Core KTX). A `FORCE`
+  policy only becomes a non-cancelable update if Play Core also reports
+  `AppUpdateType.IMMEDIATE` as allowed; a mismatch falls back to a
+  flexible offer (or nothing) and records a Crashlytics non-fatal, per
+  the product owner's explicit fail-open decision. Checked once per cold
+  start (also an explicit product decision, not once-ever).
+- **UI.** `AppUpdateForceDialog` is a dedicated, non-dismissible
+  `AlertDialog` (back-press and outside-tap both disabled, no cancel
+  action) — deliberately not a reuse of `ConfirmationDialog`, which always
+  has one. `AppUpdateGate` owns the `ActivityResultLauncher` for
+  `startUpdateFlowForResult`; if the user cancels Play's own immediate-
+  update UI, the check re-runs, which re-derives a new `AppUpdateInfo`
+  and re-invokes the flow — this is what makes the force update
+  non-cancelable, without the self-referential-launcher pattern Kotlin
+  disallows. A flexible update's "ready to install" state shows a
+  snackbar with a restart action via the host screen's own
+  `SnackbarHostState`.
+- **Wiring.** `AppUpdateGate` is mounted from `SerambiRoute` (Beranda),
+  not from `SerambiScreen` itself, so the latter stays a pure, Hilt-free,
+  previewable composable — `SerambiScreen` gained an optional
+  `snackbarHostState` parameter (defaults to a fresh one) instead of a
+  hard Hilt dependency.
+- **Docs:** ADR 0017 (new), a forward-pointing amendment note in ADR
+  0014's Status section, and one added sentence in `CLAUDE.md`'s running
+  milestone narrative.
+
+### Files created
+
+`domain/model/AppUpdatePolicy.kt`, `domain/model/AppUpdateRequirement.kt`,
+`domain/repository/AppUpdatePolicyRepository.kt`,
+`data/remote/update/AppUpdatePolicyDto.kt`,
+`data/repository/AppUpdatePolicyRepositoryImpl.kt`, `di/UpdateModule.kt`,
+`feature/update/AppUpdateUiState.kt`, `feature/update/AppUpdateViewModel.kt`,
+`feature/update/AppUpdateForceDialog.kt`, `feature/update/AppUpdateGate.kt`,
+`docs/decisions/0017-in-app-update-remote-config-and-play-core.md`,
+`domain/model/AppUpdateRequirementTest.kt`,
+`data/remote/update/AppUpdatePolicyDtoTest.kt`.
+
+### Files modified
+
+`gradle/libs.versions.toml`, `app/build.gradle.kts` (added
+`firebase-config`, `play-app-update`, `play-app-update-ktx`),
+`feature/home/SerambiScreen.kt` (mounts `AppUpdateGate`, adds
+`snackbarHostState`), `res/values/strings.xml` (5 new
+`app_update_*` strings), `docs/decisions/0014-*.md` (amendment note),
+`CLAUDE.md`.
+
+### Validation
+
+```text
+./gradlew :app:ktlintFormat  — auto-corrected this feature's own new files
+                                (indentation); also reformatted ~29
+                                pre-existing, unrelated files repo-wide
+                                under the same `standard:indent` rule —
+                                reverted those to keep this change scoped
+                                to the requested feature (see Known
+                                limitations).
+./gradlew :app:ktlintCheck   — passes for every file this change touches;
+                                fails overall only on the pre-existing,
+                                unrelated `standard:indent` drift above
+                                plus one already-known MaxLineLength
+                                violation in QuranCredentialProvider.kt
+                                (unchanged, not touched here).
+./gradlew :app:detekt        — passes for every file this change touches
+                                (3 initial TooGenericExceptionCaught
+                                findings in AppUpdateViewModel.kt fixed
+                                with `@Suppress`, matching
+                                QuranCredentialProvider.kt's existing
+                                precedent for intentional fail-open
+                                exception handling); fails overall only on
+                                the same pre-existing MaxLineLength
+                                violation above.
+./gradlew :app:lintDebug     — pass
+./gradlew :app:assembleDebug — pass
+./gradlew :app:testDebugUnitTest --tests AppUpdateRequirementTest \
+  --tests AppUpdatePolicyDtoTest — pass, 6/6 (4 + 2)
+```
+
+No emulator/device was attached this session, so `installDebug` and manual
+on-device verification were not run.
+
+### Known limitations
+
+- **Pre-existing repo-wide ktlint drift, out of scope.** A clean
+  `ktlintFormat`/`ktlintCheck` run on unmodified `master` reformats/flags
+  ~29 files across `data/`, `di/`, `domain/usecase/`, and `feature/` for a
+  `standard:indent` violation unrelated to this change (a constructor-body
+  indentation style the rest of the codebase — including this feature's
+  own new files — already follows). This was not introduced by this
+  session; it was found, then explicitly reverted out of this change to
+  keep the diff scoped to the requested feature, per project working-method
+  guidance. A separate, dedicated pass should run `ktlintFormat` across the
+  whole module and review the resulting diff on its own.
+- **Play Core flows are unverifiable on a debug build against a debug/
+  local install** — Play's actual immediate/flexible update UI only
+  appears for an app installed via Play (App Bundle track, matching
+  signing). This was verified by reading the official Play Core docs and
+  KTX API surface, not by exercising a real update on-device.
+- **Operational rollout-timing caveat** (already accepted by the product
+  owner during planning): a staged Play rollout can make Play Core report
+  no update available even when Remote Config's policy says `FORCE` for
+  the installed version — handled by the fail-open fallback above, not a
+  defect.
+- No instrumented/UI tests were added for `AppUpdateGate`/
+  `AppUpdateForceDialog`, consistent with the project's current
+  Figma-alignment-phase test-scope constraint (`CLAUDE.md`) — only the
+  pure decision logic and DTO mapping got unit tests.
+
+### Next recommended milestone
+
+Nahwu Quiz (`0.0.5`, per ADR 0013) remains the next unimplemented,
+already-approved milestone. Separately, whenever an emulator/device is
+next available, manually verify the force dialog's back-press/outside-tap
+non-dismissal and the flexible-update snackbar restart action on-device
+(Play's own update UI itself cannot be exercised outside a real Play-
+installed build).

@@ -15,8 +15,6 @@
   <string name="serambi_quran_feature_description">Baca dan tafsir</string>
   <string name="serambi_nahwu_feature_description">Belajar offline</string>
   <string name="serambi_hijri_calendar_title">Kalender Hijriah</string>
-  <string name="serambi_coming_soon_badge">Segera hadir</string>
-  <string name="serambi_hijri_calendar_placeholder_message">Kalender Hijriah sedang disiapkan untuk versi 0.0.7.</string>
   <string name="serambi_reminder_feature_title">Pengingat</string>
   <string name="serambi_reminder_feature_description">Atur jadwal</string>
   <string name="serambi_nahwu_supporting_resume">Lanjutkan kuis</string>
@@ -326,6 +324,10 @@
   <string name="serambi_quran_card_title">Al-Qur\'an Kemenag</string>
   <string name="serambi_quran_card_description">Baca Al-Qur\'an dan terjemahannya dari Kementerian Agama</string>
 
+  <!-- Kalender Hijriah entry point (0.0.7) -->
+  <string name="serambi_hijri_calendar_card_title">Kalender Hijriah</string>
+  <string name="serambi_hijri_calendar_card_description">Kalender Gregorian dan Hijriah, agenda puasa dan hari besar</string>
+
   <!-- In-app update gate (ADR 0017) -->
   <string name="app_update_force_title">Pembaruan diperlukan</string>
   <string name="app_update_force_message">Versi aplikasi ini sudah tidak didukung. Perbarui SanguSantri untuk melanjutkan.</string>
@@ -427,6 +429,46 @@
   <string name="quran_font_unavailable">Belum tersedia</string>
   <string name="quran_font_not_yet_cleared">Belum lolos pemeriksaan</string>
 
+  <!-- Kalender Hijriah (0.0.7, docs/product/HIJRI_CALENDAR_PRD.md) -->
+  <string name="hijri_calendar_title">Kalender Hijriah</string>
+  <string name="hijri_calendar_today_action">Hari ini</string>
+  <string name="hijri_calendar_source_action_content_description">Sumber dan metode</string>
+  <string name="hijri_calendar_previous_month_content_description">Bulan sebelumnya</string>
+  <string name="hijri_calendar_next_month_content_description">Bulan berikutnya</string>
+  <string name="hijri_calendar_grid_content_description">Kalender %1$s</string>
+  <string name="hijri_calendar_day_cell_description">%1$s, %2$s, %3$s, %4$s</string>
+  <string name="hijri_calendar_day_cell_today_suffix">, hari ini</string>
+  <string name="hijri_calendar_day_cell_selected_suffix">, dipilih</string>
+  <string name="hijri_calendar_day_cell_official_holiday_suffix">, hari besar atau libur</string>
+  <string name="hijri_calendar_day_cell_fasting_suffix">, agenda puasa</string>
+  <string name="hijri_calendar_agenda_title">Agenda bulan ini</string>
+  <string name="hijri_calendar_agenda_legend_fasting">Puasa</string>
+  <string name="hijri_calendar_agenda_legend_holiday">Hari besar/libur</string>
+  <string name="hijri_calendar_filter_all">Semua</string>
+  <string name="hijri_calendar_filter_fasting">Puasa</string>
+  <string name="hijri_calendar_filter_holiday">Hari besar &amp; libur</string>
+  <string name="hijri_calendar_agenda_empty">Tidak ada agenda untuk filter ini.</string>
+  <string name="hijri_calendar_agenda_row_source_content_description">Lihat sumber %1$s</string>
+  <string name="hijri_calendar_status_fasting">Puasa non-mingguan</string>
+  <string name="hijri_calendar_status_fasting_prohibited">Larangan puasa</string>
+  <string name="hijri_calendar_status_religious_observance">Hari besar &amp; libur</string>
+  <string name="hijri_calendar_status_national_holiday">Hari libur resmi</string>
+  <string name="hijri_calendar_status_collective_leave">Cuti bersama</string>
+  <string name="hijri_calendar_calculation_status_umm_al_qura">Perhitungan Umm al-Qura</string>
+  <string name="hijri_calendar_calculation_status_official_confirmed">Dikonfirmasi dari sumber resmi</string>
+  <string name="hijri_calendar_source_sheet_content_description">Sumber dan metode kalender</string>
+  <string name="hijri_calendar_source_sheet_eyebrow">TENTANG KALENDER</string>
+  <string name="hijri_calendar_source_sheet_title">Sumber &amp; metode</string>
+  <string name="hijri_calendar_source_sheet_close_content_description">Tutup</string>
+  <string name="hijri_calendar_source_hijri_title">Tanggal Hijriah</string>
+  <string name="hijri_calendar_source_hijri_body">Dihitung offline memakai kalender Umm al-Qura bawaan Android. Hasil dapat berbeda dari Kalender Hijriah Indonesia Kementerian Agama dan penetapan resmi.</string>
+  <string name="hijri_calendar_source_pasaran_agenda_title">Pasaran &amp; agenda</string>
+  <string name="hijri_calendar_source_pasaran_agenda_body">Pasaran dihitung dari siklus Pancawara. Agenda puasa dan libur berasal dari bundle lokal terkurasi dengan sumber per item.</string>
+  <string name="hijri_calendar_source_confirm_action">Mengerti</string>
+  <string name="hijri_calendar_event_detail_status_label">Status: %1$s</string>
+  <string name="hijri_calendar_event_detail_source_label">Sumber: %1$s — %2$s</string>
+  <string name="hijri_calendar_event_detail_dismiss_action">Tutup</string>
+
   <string-array name="reminder_day_names">
     <item>Senin</item>
     <item>Selasa</item>
@@ -437,7 +479,9 @@
     <item>Minggu</item>
   </string-array>
 
-  <string-array name="reminder_hijri_month_names">
+  <!-- Shared by Pengingat and Kalender Hijriah (0.0.7, CAL-FR-002) — the one canonical Hijri
+       month-name table; do not add a second one. -->
+  <string-array name="hijri_month_names">
     <item>Muharram</item>
     <item>Safar</item>
     <item>Rabiul Awal</item>
@@ -450,5 +494,25 @@
     <item>Syawal</item>
     <item>Dzulkaidah</item>
     <item>Dzulhijjah</item>
+  </string-array>
+
+  <!-- Kalender Hijriah (0.0.7) — full weekday names, Sunday-first, never abbreviated (PRD §7.1). -->
+  <string-array name="hijri_calendar_weekday_names">
+    <item>Ahad</item>
+    <item>Senin</item>
+    <item>Selasa</item>
+    <item>Rabu</item>
+    <item>Kamis</item>
+    <item>Jumat</item>
+    <item>Sabtu</item>
+  </string-array>
+
+  <!-- Kalender Hijriah (0.0.7) — order matches domain.model.Pasaran's ordinal order. -->
+  <string-array name="hijri_calendar_pasaran_names">
+    <item>Legi</item>
+    <item>Pahing</item>
+    <item>Pon</item>
+    <item>Wage</item>
+    <item>Kliwon</item>
   </string-array>
 </resources>

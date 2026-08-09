@@ -43,4 +43,12 @@ object SanguSantriDimensions {
 
     /** Standalone Tasbih counter (0.0.2) — the strongest visual element on its screen, min 220dp. */
     val tasbihCounterMinSize = 220.dp
+
+    // Kalender Hijriah (`0.0.7`) — figma-export/hijri-calendar/01-calendar-overview-light.html.
+    val hijriCalendarDayCellMinHeight = 48.dp
+    val hijriCalendarDateBadgeSize = 44.dp
+    val hijriCalendarSelectedMarkWidth = 4.dp
+    val hijriCalendarSourceIconSize = 40.dp
+    val hijriCalendarSourceSheetCornerRadius = 24.dp
+    val hijriCalendarEventDotSize = 6.dp
 }

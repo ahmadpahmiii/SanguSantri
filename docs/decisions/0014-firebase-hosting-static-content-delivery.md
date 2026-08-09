@@ -7,7 +7,11 @@ Accepted. Partially superseded by ADR
 Firebase Hosting for static delivery stands, but its claim that the existing manifest/package
 contract (`variantId`/`versionId`/`checksumSha256`, "no Android code change") would be preserved
 unchanged was itself superseded before implementation — read ADR 0015 before assuming the contract
-details below are current.
+details below are current. Amended by ADR
+[0017](0017-in-app-update-remote-config-and-play-core.md) (2026-08-09): this ADR's "no new Firebase
+backend product beyond Hosting" decision now has a second explicit exception — Firebase Remote
+Config, scoped solely to the in-app update policy — alongside the existing Crashlytics exception;
+read ADR 0017 before assuming Remote Config is still out of scope.
 
 ## Context
 

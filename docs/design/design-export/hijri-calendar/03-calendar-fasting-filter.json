@@ -1,0 +1,71 @@
+{
+  "artifactType": "local-design-reference",
+  "feature": "Kalender Hijriah",
+  "targetRelease": "0.0.7",
+  "screen": "Kalender — Filter Puasa",
+  "state": {
+    "theme": "light",
+    "visibleMonth": "2026-08",
+    "selectedGregorianDay": 26,
+    "agendaFilter": "Puasa",
+    "sourceSheetOpen": false
+  },
+  "logicalFrame": {
+    "width": 360,
+    "height": 800,
+    "unit": "px"
+  },
+  "preview": {
+    "width": 720,
+    "height": 1600,
+    "deviceScaleFactor": 2
+  },
+  "designDecisions": {
+    "weekdayLabels": [
+      "Ahad",
+      "Senin",
+      "Selasa",
+      "Rabu",
+      "Kamis",
+      "Jumat",
+      "Sabtu"
+    ],
+    "gregorianNumerals": "Latin",
+    "smallHijriCellNumerals": "Arabic-Indic",
+    "pasaranOnly": [
+      "Legi",
+      "Pahing",
+      "Pon",
+      "Wage",
+      "Kliwon"
+    ],
+    "weeklyFastAgenda": "excluded",
+    "multiDayAgenda": "grouped into one row",
+    "redGregorianDate": "Sunday or sourced official holiday only",
+    "dots": {
+      "amber": "fasting",
+      "coral": "religious observance or official holiday"
+    }
+  },
+  "sourceBoundary": {
+    "hijri": "Android java.time.chrono.HijrahDate / Umm al-Qura calculation",
+    "pasaran": "Local Pancawara cycle; Friday Legi, 8 July 1633 anchor",
+    "agenda": "Versioned curated local bundle; fixture is not runtime data",
+    "runtimeNetwork": false
+  },
+  "accessibility": {
+    "visualArabicDigitsOnly": true,
+    "semanticDateLanguage": "Indonesian full date",
+    "colourIsNotSoleIndicator": true,
+    "minimumTouchTargetDp": 48
+  },
+  "designReference": {
+    "intendedPage": "Kalender Hijriah",
+    "nodeId": null,
+    "note": "Record a node ID here if this screen is later recreated in a hosted design tool."
+  },
+  "sourceFiles": [
+    "03-calendar-fasting-filter.html",
+    "03-calendar-fasting-filter.png"
+  ]
+}

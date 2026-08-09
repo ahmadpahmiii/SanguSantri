@@ -1,0 +1,40 @@
+{
+  "artifactType": "local-design-reference-catalog",
+  "feature": "Kalender Hijriah",
+  "targetRelease": "0.0.7",
+  "generatedBy": "generate-hijri-calendar-catalog.rb",
+  "states": [
+    {
+      "id": "01-calendar-overview-light",
+      "name": "Kalender — Ringkasan",
+      "description": "Current-month light state, 8 August 2026 selected, all agenda categories.",
+      "html": "01-calendar-overview-light.html",
+      "json": "01-calendar-overview-light.json",
+      "png": "01-calendar-overview-light.png"
+    },
+    {
+      "id": "02-calendar-overview-dark",
+      "name": "Kalender — Tema gelap",
+      "description": "Dark state with an official religious holiday selected.",
+      "html": "02-calendar-overview-dark.html",
+      "json": "02-calendar-overview-dark.json",
+      "png": "02-calendar-overview-dark.png"
+    },
+    {
+      "id": "03-calendar-fasting-filter",
+      "name": "Kalender — Filter Puasa",
+      "description": "Non-weekly fasting filter with Ayyamul Bidh grouped as one date range.",
+      "html": "03-calendar-fasting-filter.html",
+      "json": "03-calendar-fasting-filter.json",
+      "png": "03-calendar-fasting-filter.png"
+    },
+    {
+      "id": "04-calendar-source-sheet",
+      "name": "Kalender — Sumber & metode",
+      "description": "Modal source boundary explaining Umm al-Qura, Pancawara, and local bundle provenance.",
+      "html": "04-calendar-source-sheet.html",
+      "json": "04-calendar-source-sheet.json",
+      "png": "04-calendar-source-sheet.png"
+    }
+  ]
+}

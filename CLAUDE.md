@@ -73,7 +73,14 @@ pesantren-specific amaliyah.
   no Latin transliteration. This is a documented future milestone, not an
   implemented feature — read `docs/product/QURAN_PRD.md`,
   `docs/design/QURAN_DESIGN_SYSTEM.md`, and ADR
-  [0016](docs/decisions/0016-standalone-quran-kemenag-direct-api.md).
+  [0016](docs/decisions/0016-standalone-quran-kemenag-direct-api.md). An
+  in-app update gate (2026-08-09) has since been implemented — Firebase
+  Remote Config's `in_app_update` parameter supplies a force/flexible
+  policy, evaluated against Google Play's In-App Updates (Play Core) API
+  once per cold start from Beranda — see ADR
+  [0017](docs/decisions/0017-in-app-update-remote-config-and-play-core.md),
+  which amends ADR 0014's "no new Firebase product beyond Hosting" rule
+  with this one narrowly-scoped exception.
 * SanguSantri is currently a **non-commercial application**: no advertising,
   subscriptions, Quran Foundation integration, or Quran audio is on the
   roadmap (`docs/product/ROADMAP.md`). The Kemenag integration approved for

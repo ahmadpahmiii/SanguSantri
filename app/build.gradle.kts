@@ -24,7 +24,7 @@ android {
         applicationId = "com.sangusantri.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
+        versionCode = 6
         versionName = "0.0.4"
 
         testInstrumentationRunner = "com.sangusantri.app.HiltTestRunner"
@@ -48,11 +48,7 @@ android {
             }
         }
         ndk {
-            // arm64-v8a covers virtually every real minSdk-26-capable device; x86_64 covers the
-            // standard Android Studio emulator. armeabi-v7a/x86 (32-bit) are deliberately excluded
-            // to keep native build time down — revisit before a real Play release if 32-bit device
-            // support is required (docs/PROGRESS.md known-limitation note).
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a", "x86")
         }
     }
 

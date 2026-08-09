@@ -4020,10 +4020,10 @@ in this slice is reachable from the running app.
       embedded credential; fails closed (returns `null`) on any mismatch or unconfigured build
       input,
       never logs either side of the comparison.
-    - `app/build.gradle.kts`: `ndkVersion`/`externalNativeBuild.cmake` wiring (`abiFilters`
-      restricted
-      to `arm64-v8a`/`x86_64` — a deliberate scope decision to keep native build time down; 32-bit
-      device support is a known limitation, see below), a `generateQuranCredentialHeader` task that
+  - `app/build.gradle.kts`: `ndkVersion`/`externalNativeBuild.cmake` wiring (`abiFilters` covers
+    all four Play-supported ABIs — `arm64-v8a`/`x86_64`/`armeabi-v7a`/`x86` — restored to full
+    coverage 2026-08-09 after Play Console warned the `arm64-v8a`/`x86_64`-only build dropped
+    5,020 previously-supported devices; see below), a `generateQuranCredentialHeader` task that
       reads `SANGU_QURAN_API_USERNAME`/`SANGU_QURAN_API_TOKEN`/`SANGU_QURAN_RELEASE_SHA256` from
       environment variables or Gradle properties (never the tracked `gradle.properties`) and writes
       a
@@ -4149,9 +4149,10 @@ exists yet) — confirmed by the absence of any `qurancredential`-tagged logcat 
   input) — `verifyQuranReleaseCredential` correctly fails `assembleRelease`/`bundleRelease` until
   real values are supplied through untracked local/CI secret storage. This is expected, not a
   defect.
-- **Native build restricted to `arm64-v8a`/`x86_64`** to bound build time — 32-bit-only real devices
-  (rare at `minSdk 26`) are not covered. Revisit before a real Play release if 32-bit support is
-  required.
+- ~~Native build restricted to `arm64-v8a`/`x86_64`~~ — resolved 2026-08-09: `abiFilters` now
+  includes `armeabi-v7a`/`x86` too, after Play Console's release warning that the 64-bit-only build
+  dropped 5,020 previously-supported devices. Native build time is correspondingly longer (four ABIs
+  instead of two).
 - **No UI, navigation, or Beranda entry point yet** — by design (Slice 2/3 scope). Nothing in this
   slice is reachable from a running app session; the manual on-device verification above therefore
   only confirms boot/schema/DI correctness, not any Quran-specific user flow.

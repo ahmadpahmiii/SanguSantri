@@ -15,7 +15,8 @@ import java.util.Locale
  * reused by the reminder list, the create/edit form's live preview, and both entry-point sections.
  * Gregorian day-of-week names come from `java.time`'s own Indonesian locale data (well-supported
  * CLDR data); Hijri month names are not reliably localised across Android OEMs, so
- * [hijriMonthNames] must be supplied by the caller from `R.array.reminder_hijri_month_names`.
+ * [hijriMonthNames] must be supplied by the caller from `R.array.hijri_month_names` — the one
+ * canonical table, shared with Kalender Hijriah (`0.0.7`, CAL-FR-002).
  */
 object ReminderScheduleFormatter {
     private val INDONESIAN = Locale.forLanguageTag("in-ID")

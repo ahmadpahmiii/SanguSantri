@@ -366,7 +366,7 @@ private fun HijriDatePicker(
     onRepeatsYearlyChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val monthNames = stringArrayResource(R.array.reminder_hijri_month_names)
+    val monthNames = stringArrayResource(R.array.hijri_month_names)
     val currentHijriYear = remember { ReminderScheduleCalculator.currentHijriDate().get(ChronoField.YEAR) }
     val monthLength = remember(month) { ReminderScheduleCalculator.hijriMonthLength(currentHijriYear, month) }
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small)) {

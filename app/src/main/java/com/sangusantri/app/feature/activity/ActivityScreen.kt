@@ -112,7 +112,7 @@ private fun ActivityContent(
             ActivityEmptyState(modifier = Modifier.align(Alignment.Center))
             return@Box
         }
-        val hijriMonthNames = stringArrayResource(R.array.reminder_hijri_month_names).toList()
+        val hijriMonthNames = stringArrayResource(R.array.hijri_month_names).toList()
         Column(
             modifier =
                 Modifier

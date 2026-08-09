@@ -68,7 +68,6 @@ fun SerambiMainFeatures(
                 MainFeatureSpec(
                     title = stringResource(R.string.serambi_hijri_calendar_title),
                     icon = Icons.Outlined.CalendarMonth,
-                    badge = stringResource(R.string.serambi_coming_soon_badge),
                     onClick = actions.onHijriCalendarClick,
                 ),
             )

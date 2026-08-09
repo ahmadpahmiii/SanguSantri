@@ -133,3 +133,36 @@ cannot make a client-shipped credential secret.
 * Font binaries remain design inputs until licence and glyph gates pass.
 * No Kotlin, Room, NDK, design tooling, or production feature implementation
   is part of this documentation decision itself.
+
+## Amendment (2026-08-09): in-memory per-surah retry
+
+Decision #7 said "retry begins again from the start; resumable staging is
+rejected as unnecessary complexity," and "Alternatives rejected" rejected
+"Partial/resumable initial activation." In practice a single transient
+per-surah failure (a dropped/incomplete connection such as `unexpected end
+of stream` on one of the 114 `ayat` requests) forced re-downloading the
+entire corpus on every "coba lagi" tap, which is wasteful and, on a weak
+connection, can make an attempt never converge. This amendment narrows
+"resumable staging" to mean *durable, persisted* staging — the thing that
+was actually rejected — and permits a lighter mechanism that does not
+reopen it:
+
+* `QuranSyncManager` transparently retries a single failed request (up to 3
+  attempts, short backoff) before ever surfacing a failure, absorbing the
+  common one-off blip without any retry-button involvement at all.
+* Successfully-fetched surahs are additionally kept in an in-memory,
+  process-lifetime cache. A subsequent `sync()` call — whether a manual
+  "coba lagi" or an automatic retry — only re-fetches surahs missing from
+  that cache instead of all 114.
+* This cache is discarded the instant the target `stableVersion` changes,
+  on a successful commit, and on any permanent (non-retryable) failure. It
+  never survives process death — an app kill still falls back to the
+  original full-restart behaviour — and it is never read by Room or any
+  other component: the commit remains the same single atomic
+  `withTransaction` replace, gated on the complete, validated 114-surah set.
+
+What decision #7 actually guarantees is unchanged: no partial Quran is ever
+written to Room or exposed to the UI, and there is no cross-process-death
+resumable staging (no new Room tables, no WorkManager-persisted progress).
+Only the in-memory fetch phase of a single sync attempt became
+retry-aware.

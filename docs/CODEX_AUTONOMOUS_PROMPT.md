@@ -114,8 +114,8 @@ Religious-content safety is absolute in every phase:
 ## 4. Phase-sensitive rules
 
 Before changing Room schema or tests, determine whether the objective is one of
-the temporary Figma product-alignment phases governed by `AGENTS.md` and
-`docs/design/FIGMA_HANDOFF.md`.
+the temporary design product-alignment phases governed by `AGENTS.md` and
+`docs/design/DESIGN_HANDOFF.md`.
 
 If those temporary constraints apply:
 
@@ -189,7 +189,7 @@ was actually executed successfully. Report exactly which device/configuration
 was manually checked; do not convert code review or compilation into a manual-
 verification claim.
 
-For Android work under the current temporary Figma constraints, the default
+For Android work under the current temporary design constraints, the default
 minimum validation is:
 
 ```text

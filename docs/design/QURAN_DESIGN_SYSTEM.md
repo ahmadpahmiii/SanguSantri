@@ -2,7 +2,7 @@
 
 **Applies to:** every standalone Quran screen, overlay, system bar, and state
 in release `0.0.6`.
-**Status:** approved design direction; Figma frames not yet created.
+**Status:** approved design direction; design-tool frames not yet created.
 
 Read with `DESIGN_SYSTEM.md`, `ACCESSIBILITY.md`, and
 `docs/product/QURAN_PRD.md`. This is a feature theme layered through the
@@ -175,7 +175,7 @@ latest values. There is no separate Save button or uncommitted draft state.
   a second time as a separate decorative header. Do not repeat the surah header
   or basmalah when scrolling through later pages of the same surah.
 * The approved simple vector source is
-  `figma-export/quran/assets/basmalah-simple-amiri.svg`: path-only,
+  `design-export/quran/assets/basmalah-simple-amiri.svg`: path-only,
   `currentColor`, no frame or ornamental flourish. It uses an exact
   unvocalised basmalah published by LPMQ and Amiri Quran outlines. Product
   review accepted this treatment on 2026-08-08. Its Android derivative is
@@ -224,7 +224,7 @@ dismissed.
 * Source line: Kementerian Agama RI.
 * Loading: `Memuat tafsir Kemenag…`.
 * Content sections: labels for concise `teks` and `tahlili`, final wording
-  verified with the source contract/Figma review.
+  verified with the source contract/design review.
 * Cached stale content remains visible while refreshing.
 * Inline retry does not close or replace the reader behind the sheet.
 * Long tafsir content scrolls independently.
@@ -286,13 +286,13 @@ Use the existing Aktivitas row vocabulary. Quran entry content:
 
 ## 8. Portrait-primary layout
 
-Primary Figma frames are 360×800 portrait. Implementation must not lock
+Primary design frames are 360×800 portrait. Implementation must not lock
 orientation. Landscape/tablet use the same dark tokens and a centred reader
 column with a maximum readable width; no navigation rail is introduced for
 Quran. Rotation preserves active tab, display choice, ayat/page, sheets when
 reasonable, and uncommitted settings state.
 
-## 9. Figma page and frame checklist
+## 9. Design page and frame checklist
 
 Create a new page named **`03 Al-Qur'an Kemenag`** in the existing product
 design file. Minimum frames:
@@ -316,7 +316,7 @@ design file. Minimum frames:
 16. Aktivitas with Quran session.
 
 All frames must use editable layers/components, shared local variables, and
-auto layout. Exact node IDs are added to `FIGMA_HANDOFF.md` after creation.
+auto layout. Exact node IDs are added to `DESIGN_HANDOFF.md` after creation.
 
 ## 10. Visual acceptance gate
 

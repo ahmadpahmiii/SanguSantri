@@ -177,7 +177,7 @@ whole sync.
   solely for one timestamp. There is no stored ETag, manifest version, or
   checksum to track any more.
 
-## Local user-state features (Figma product-alignment pass)
+## Local user-state features (design product-alignment pass)
 
 Favourites, recently-opened, Standalone Tasbih's unfinished count, and
 Aktivitas activity data (streak, completion history, tasbih history) are

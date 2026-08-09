@@ -108,7 +108,7 @@ fun QuranHubScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QuranHubTopBar(actions: QuranHubActions) {
-    // Approved local reference (figma-export/quran/01…04b/06c/06d) renders the hub's app bar as
+    // Approved local reference (design-export/quran/01…04b/06c/06d) renders the hub's app bar as
     // `.top.plain` — title/subtitle and actions only, with no leading back icon, unlike the
     // reader's `.top`. The hub still pops via system/predictive back; [QuranHubActions.onBack]
     // is retained for that path even though this bar no longer renders it.
@@ -182,7 +182,7 @@ private fun QuranContinueReadingPanel(
     continueReading: QuranContinueReading,
     onClick: () -> Unit,
 ) {
-    // figma-export/quran/01-quran-hub-surah.html `.continue{background:linear-gradient(135deg,
+    // design-export/quran/01-quran-hub-surah.html `.continue{background:linear-gradient(135deg,
     // #07351f,#101713)}` — a tinted highlight fading into the hub's own surface tone.
     val cardGradient = Brush.linearGradient(listOf(QuranContinueCardGradientStart, QuranSurface))
     Surface(

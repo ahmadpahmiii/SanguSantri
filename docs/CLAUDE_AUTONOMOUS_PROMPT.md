@@ -92,7 +92,7 @@ exactly as required by content governance.
 Resolve conflicts using instruction precedence, document ownership, ADR status,
 dates, and repository evidence. ADR 0015 is the explicit objective, but it does
 not automatically cancel unrelated standing rules. Determine and document
-whether the temporary Figma Phase A–E migration/test constraints apply to this
+whether the temporary design Phase A–E migration/test constraints apply to this
 specific pass before changing schema or tests. Do not silently choose the rule
 that makes implementation easier.
 

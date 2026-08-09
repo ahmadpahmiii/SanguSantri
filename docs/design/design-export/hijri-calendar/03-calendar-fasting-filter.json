@@ -2,12 +2,12 @@
   "artifactType": "local-design-reference",
   "feature": "Kalender Hijriah",
   "targetRelease": "0.0.7",
-  "screen": "Kalender — Tema gelap",
+  "screen": "Kalender — Filter Puasa",
   "state": {
-    "theme": "dark",
+    "theme": "light",
     "visibleMonth": "2026-08",
-    "selectedGregorianDay": 25,
-    "agendaFilter": "Semua",
+    "selectedGregorianDay": 26,
+    "agendaFilter": "Puasa",
     "sourceSheetOpen": false
   },
   "logicalFrame": {
@@ -59,13 +59,13 @@
     "colourIsNotSoleIndicator": true,
     "minimumTouchTargetDp": 48
   },
-  "figma": {
+  "designReference": {
     "intendedPage": "Kalender Hijriah",
     "nodeId": null,
-    "note": "Record node ID in docs/design/FIGMA_HANDOFF.md after recreation/import."
+    "note": "Record a node ID here if this screen is later recreated in a hosted design tool."
   },
   "sourceFiles": [
-    "02-calendar-overview-dark.html",
-    "02-calendar-overview-dark.png"
+    "03-calendar-fasting-filter.html",
+    "03-calendar-fasting-filter.png"
   ]
 }

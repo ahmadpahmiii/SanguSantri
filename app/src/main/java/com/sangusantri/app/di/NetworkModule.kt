@@ -1,5 +1,6 @@
 package com.sangusantri.app.di
 
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.data.remote.ResponseSizeLimitInterceptor
 import com.sangusantri.app.data.remote.api.ContentApiService
@@ -20,13 +21,14 @@ import javax.inject.Singleton
 object NetworkModule {
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient =
+    fun provideOkHttpClient(chuckerInterceptor: ChuckerInterceptor): OkHttpClient =
         OkHttpClient
             .Builder()
             .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .addInterceptor(ResponseSizeLimitInterceptor())
+            .addInterceptor(chuckerInterceptor)
             .build()
 
     @Provides

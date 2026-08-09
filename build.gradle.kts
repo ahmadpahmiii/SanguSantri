@@ -9,4 +9,5 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.google.gms.google.services) apply false
     alias(libs.plugins.google.firebase.crashlytics) apply false
+    alias(libs.plugins.google.firebase.appdistribution) apply false
 }

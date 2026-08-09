@@ -115,7 +115,9 @@ constructor(
                 api.getSurahs(first = 1, count = QuranValidator.EXPECTED_SURAH_COUNT)
             } catch (io: IOException) {
                 Log.w(TAG, "surah list fetch failed: ${io::class.java.simpleName}")
-                return FetchOutcome.Failure(QuranSyncResult.RetryableFailure("surah list network error"))
+                return FetchOutcome.Failure(
+                    QuranSyncResult.RetryableFailure("surah list network error: ${ioReason(io)}"),
+                )
             } catch (malformed: SerializationException) {
                 Log.w(TAG, "surah list fetch malformed: ${malformed::class.java.simpleName}")
                 return FetchOutcome.Failure(QuranSyncResult.PermanentFailure("malformed surah list body"))
@@ -156,7 +158,7 @@ constructor(
             } catch (io: IOException) {
                 Log.w(TAG, "ayat fetch failed for surah ${surah.id}: ${io::class.java.simpleName}")
                 return FetchOutcome.Failure(
-                    QuranSyncResult.RetryableFailure("ayat network error (surah ${surah.id})"),
+                    QuranSyncResult.RetryableFailure("ayat network error (surah ${surah.id}): ${ioReason(io)}"),
                 )
             } catch (malformed: SerializationException) {
                 Log.w(TAG, "ayat fetch malformed for surah ${surah.id}: ${malformed::class.java.simpleName}")
@@ -190,6 +192,12 @@ constructor(
         }
         return FetchOutcome.Success(envelope.data)
     }
+
+    // Safe to surface to the UI: OkHttp/our own IOExceptions at this layer carry only
+    // host/protocol-level detail (timeouts, DNS, TLS) or QuranAuthInterceptor's own fixed
+    // "Kemenag credential unavailable" message — never a response body, header, or credential
+    // value (docs/security/SECURITY_BASELINE.md's log-redaction rule covers those, not this).
+    private fun ioReason(io: IOException): String = io.message ?: io::class.java.simpleName
 
     private fun classifyHttpFailure(
         code: Int,

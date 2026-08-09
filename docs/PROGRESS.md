@@ -6007,3 +6007,380 @@ already-approved milestone in strict sequence order. If Kalender Hijriah
 continues instead, the next slice of work is the official national
 holiday/cuti-bersama sourced dataset (PRD §5.4/§12) plus a
 `HijriCalendarViewModelTest`.
+
+## Release-signed Quran credential mismatch diagnosis + debug override (2026-08-09)
+
+**Status:** Root cause diagnosed and confirmed against the actual uploaded artifact; production
+fix requires a value only obtainable from Play Console (not fixed by this session — see Known
+limitations). A separate, smaller improvement (opt-in debug credential override) was implemented
+and verified.
+
+**Trigger:** product owner reported the standalone Quran feature fails to load in the published
+release AAB, and asked whether debug builds' frequent failure was related
+(`QuranCredentialProvider.DEBUG_FIXTURE_CREDENTIAL`).
+
+### Diagnosis (release AAB)
+
+- Extracted the signing certificate actually embedded in the uploaded `app/release/app-release.aab`
+  (`META-INF/SANGUSAN.RSA`, no keystore password needed to read a public certificate) via
+  `keytool -printcert`: SHA-256 `64:18:FE:7F:EB:A6:CF:8D:1A:32:B6:85:AF:73:72:60:B1:D3:7D:84:4C:41:
+  AC:31:5A:A0:40:22:F3:32:76:66`. This is an exact match for the `SANGU_QURAN_RELEASE_SHA256`
+  currently set in the developer's untracked `~/.gradle/gradle.properties` — i.e. the value baked
+  into `quran_credential_secrets.h` at build time is the **upload key**'s digest.
+- Confirmed with the product owner that this app is enrolled in **Google Play App Signing**. Play
+  re-signs the distributed app with a separate "App signing key" certificate before it reaches user
+  devices — different from the upload key used to sign the AAB before upload. `QuranCredentialProvider
+  .releaseSigningCertificateSha256()` reads the *actual installed app's* certificate at runtime
+  (`PackageManager`), so on a real Play-installed device it will not match the upload-key digest
+  embedded via `SANGU_QURAN_RELEASE_SHA256`. `quran_credential.cpp`'s `SigningDigestMatches` fails
+  closed on any mismatch (by design, ADR 0016/`docs/security/SECURITY_BASELINE.md`), so
+  `nativeGetCredential` returns `null`, `QuranCredentialProvider.getCredential()` returns `null`,
+  and
+  `QuranAuthInterceptor` throws `"Kemenag credential unavailable"` — exactly the reported symptom.
+- This also explains why prior sessions' `assembleRelease`/local `installRelease` validation (Slice
+  5, this file) reported success: those builds were signed directly with the local upload keystore
+  and never went through Play's re-signing step, so the digest matched by coincidence.
+- **Fix (not yet applied — needs a value only Play Console has):** replace
+  `SANGU_QURAN_RELEASE_SHA256` in `~/.gradle/gradle.properties` with the **App signing key
+  certificate**'s SHA-256 (Play Console → app → Release → Setup → App integrity), not the upload
+  key's, then rebuild and upload a new release. No code change is required for this half of the fix
+  — `app/build.gradle.kts`/`quran_credential.cpp` already read whatever digest is configured
+  correctly; the configured *value* was wrong, not the mechanism.
+
+### What shipped (debug credential override)
+
+- `app/build.gradle.kts`: new `buildTypes { debug { ... } }` block defines
+  `BuildConfig.QURAN_DEBUG_API_USERNAME`/`QURAN_DEBUG_API_TOKEN`, sourced from the optional
+  untracked `SANGU_QURAN_DEBUG_API_USERNAME`/`SANGU_QURAN_DEBUG_API_TOKEN` (env var or Gradle
+  property, same `quranSecretProperty` helper the release path uses; never the tracked
+  `gradle.properties`). Defaults to empty strings when unset. Verified absent from the `release`
+  `BuildConfig` entirely (not merely blank) by inspecting the generated release `BuildConfig.java`.
+- `QuranCredentialProvider.kt`: `resolveCredential()` now tries a new `debugOverrideCredential()`
+  first in the `BuildConfig.DEBUG` branch — returns a real `QuranCredential` only when both
+  `BuildConfig.QURAN_DEBUG_API_USERNAME`/`QURAN_DEBUG_API_TOKEN` are non-blank, otherwise falls back
+  to the existing `DEBUG_FIXTURE_CREDENTIAL` unchanged. The release branch and its signing-digest
+  verification are untouched. Class doc comment updated to describe the opt-in override.
+- `docs/security/SECURITY_BASELINE.md`: amended the "Tests/debug fixtures use an unmistakably fake
+  credential" bullet to document the opt-in override and its constraints (untracked local file only,
+  never CI, never logged, never touches the native release path).
+- **Clarified, not fixed, since it was never a defect:** the debug build's fixture credential
+  (`"something"/"something"`) always fails against the real Kemenag API — this is deliberate
+  (ADR 0016, `docs/security/SECURITY_BASELINE.md`), not the intermittent bug the product owner
+  suspected. The override above is the sanctioned way to test the real API from a debug build.
+
+### Validation
+
+`./gradlew :app:assembleDebug` — pass; confirmed generated debug `BuildConfig.java` contains
+`QURAN_DEBUG_API_USERNAME`/`QURAN_DEBUG_API_TOKEN` (empty by default, no local override set this
+session) and the release `BuildConfig.java` contains neither field. `./gradlew :app:ktlintCheck
+:app:detekt` — both fail, but confirmed via `git stash`/re-run against unmodified `release/0.0.4`
+that the same violations (`QuranCredentialProvider.kt`, plus ~40 other pre-existing files) already
+exist before this change; this session's addition follows the file's existing (already
+non-compliant) indentation style and introduces no new violation class. Did not run
+`ktlintFormat` — an earlier attempt this session reformatted ~45 unrelated files codebase-wide
+(pre-existing indentation-style drift, out of scope) and was reverted. Did not attempt a real
+release build/upload — the Play Console App signing key certificate value is required first.
+
+### Known limitations
+
+- **Production fix is not yet applied.** The correct `SANGU_QURAN_RELEASE_SHA256` (App signing key
+  certificate SHA-256 from Play Console) has not been supplied to this session. Until
+  `~/.gradle/gradle.properties` is updated with that value and a new release (new `versionCode`) is
+  built and published, the live Play Store release will continue to fail Quran credential
+  resolution for all users.
+- Codebase-wide ktlint/detekt indentation debt (~40+ files, pre-existing before this session)
+  remains unaddressed — out of scope for this fix; flagged for a dedicated formatting pass.
+
+### Next recommended milestone
+
+Obtain the Play Console App signing key certificate SHA-256, update
+`~/.gradle/gradle.properties`'s `SANGU_QURAN_RELEASE_SHA256`, cut a new release build, and verify
+Quran loads correctly on a device that installed the app from Play (not a sideloaded
+locally-signed build). Then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice as above.
+
+## Quran entry-gate failure detail surfaced to the user (2026-08-09)
+
+**Status:** Implemented and verified on-device.
+
+**Trigger:** following the release-credential-mismatch diagnosis above, the product owner asked for
+the underlying error to actually be visible on the failure screen, so a real user (or the product
+owner reproducing a report) can see and relay what specifically went wrong instead of the previous
+generic message with no detail at all.
+
+### What shipped
+
+- `QuranSyncResult.RetryableFailure`/`PermanentFailure` already carried a `reason: String` (data
+  layer, pre-existing) but it was discarded on the way to the UI. Threaded it through the full
+  chain instead of adding a parallel mechanism:
+  `QuranPreparationResult.Failed` gained a `reason: String` field;
+  `QuranRepositoryImpl.runSync` now passes `result.reason` through instead of dropping it;
+  `QuranEntryUiState.PreparationFailed` changed from a `data object` to a `data class(reason:
+  String)`; `QuranEntryViewModel` passes `result.reason` when mapping.
+- `QuranEntryScreen.kt`'s `QuranEntryMessage` gained an optional `detail: String?` parameter,
+  rendered as a small muted `Text` below the retry button, wrapped in a `SelectionContainer` so a
+  user can select/copy the exact detail when reporting a bug. New string
+  `quran_entry_failed_detail_label` ("Detail teknis: %1$s") holds the label; the raw reason itself
+  is not translated (technical detail, consistent with how error codes are conventionally shown
+  untranslated). `@Suppress("LongParameterList")` added to `QuranEntryMessage`, matching the
+  existing convention used elsewhere in this codebase (`ActivityScreen.kt`,
+  `QuranReaderScreen.kt`, etc.) for Composables that legitimately need more than six parameters.
+- `QuranSyncManager`'s two `IOException` catch blocks (`fetchSurahs`/`fetchAyatForSurah`) now
+  append the exception's own message (or class name if absent) to the `RetryableFailure` reason via
+  a new small `ioReason()` helper, instead of only logging it. **Confirmed safe to surface**: at
+  this layer an `IOException` is either OkHttp's own (host/timeout/TLS-level detail, e.g. "Unable
+  to resolve host") or `QuranAuthInterceptor`'s own fixed `"Kemenag credential unavailable"` message
+  — never a response body, header, or credential value, so this doesn't touch
+  `docs/security/SECURITY_BASELINE.md`'s log-redaction rule. Deliberately did **not** do the same
+  for `SerializationException` catches — kotlinx.serialization exception messages can echo a
+  snippet of the actual (potentially Arabic/translation) response body being parsed, which the
+  redaction rule does cover; those reasons remain the existing generic "malformed X body" strings.
+- HTTP-status and validator-`reason` failure paths were already safe, structural strings
+  (`"$source HTTP $code"`, `QuranValidator`'s own reasons) and needed no change — they were already
+  flowing into `QuranSyncResult`, just discarded above it.
+
+### Validation
+
+`./gradlew :app:compileDebugKotlin`, `:app:assembleDebug`, `:app:lintDebug` — all pass.
+`:app:ktlintCheck`/`:app:detekt` — both still fail, but confirmed (grepping the touched files'
+findings) every violation is the same pre-existing whole-file "Unexpected indentation" style debt
+noted in the previous entry, except one genuinely new `LongParameterList` finding on
+`QuranEntryMessage`, fixed with the `@Suppress` noted above (re-ran detekt after the fix: zero new
+findings). Did not run `ktlintFormat` (would reformat ~45 unrelated files, as established
+previously — out of scope). No new tests added (no existing `QuranEntryViewModelTest`/
+`QuranSyncManagerTest` assertions depend on the changed shapes; none existed to break).
+
+### Manual validation (Pixel_9 emulator, Android 15/API 35, real network)
+
+Installed the rebuilt debug APK, `pm clear`-ed the app to force a genuine first load (a prior
+session had already left a complete local dataset on this emulator), and opened Al-Qur'an from
+Beranda. With the debug fixture credential (`"something"/"something"`, no local override
+configured this session) the real Kemenag API call failed — confirmed the failure screen now
+reads **"Detail teknis: malformed surah list body"** under the existing title/description/retry
+button, selectable, correctly styled (small, muted, centered), matching the design's error-state
+layout. This also incidentally shows the fixture credential's real-world failure mode is a
+malformed/unparseable response body rather than a clean HTTP 401 — new information the previous
+generic message could never have surfaced.
+
+### Known limitations
+
+- Only the entry-gate first-load failure path got a visible detail (`QuranEntryUiState
+  .PreparationFailed`) — this was the explicit scope ("at first load"). `QuranHubViewModel`/later
+  Remote-Config-triggered update failures were not touched and still surface no detail; a future
+  task could extend the same pattern there if useful.
+- The pre-existing codebase-wide ktlint/detekt indentation debt (~40+ files) remains unaddressed,
+  as in the previous entry.
+
+### Next recommended milestone
+
+Unchanged from the previous entry: obtain the Play Console App signing key certificate SHA-256 and
+ship a corrected release build — this session's change makes that release's actual failure reason
+(if it recurs) visible to whoever reports it, but does not by itself fix the underlying signing
+mismatch.
+
+## Production Quran credential digest corrected + debug-override compile fix (2026-08-09)
+
+**Status:** Digest corrected and rebuilt successfully; a real compile bug from the previous entry's
+debug-override change was found and fixed in the process.
+
+### Digest correction
+
+- The product owner's Play Console "App signing" page confirmed this app uses **quantum-ready
+  hybrid signing (beta)**: two certificates are shown side by side — "Classical key" and
+  "Post-quantum cryptography key" — each with its own SHA-256/SHA-1 fingerprint, install base
+  0.0% on both the current and only "previous" key entry (both first-used 2026-07-25, i.e. this
+  app has no meaningful tracked install base on Play yet — the earlier report was very likely from
+  a test install, not live production traffic).
+- Confirmed via Google's own Play Console help documentation that the **classical key** is what
+  `PackageManager`/`SigningInfo.apkContentsSigners` reports on essentially every real Android
+  device today (the post-quantum key only matters to a future OS verification scheme); the
+  **upload key certificate** (a separate section of the same page) is never what ends up on a
+  user's device and was the previous entry's root cause.
+- Updated `~/.gradle/gradle.properties`'s `SANGU_QURAN_RELEASE_SHA256` to the **Classical key →
+  SHA-256 certificate fingerprint** the product owner copied from Play Console
+  (
+  `FC:3D:85:1B:AF:1B:FC:4B:86:51:51:37:21:5D:61:B5:2D:BA:FB:C6:D8:2F:7C:0C:94:57:98:41:48:C4:9E:CC`),
+  replacing the previous (incorrect, upload-key) value. No code change was needed for this half —
+  `app/build.gradle.kts`/`quran_credential.cpp` already read whatever digest is configured; only
+  the configured value was wrong.
+- **Not yet fully closed:** this local config change only takes effect the next time a release is
+  built and published; the live Play Store release still carries the old, wrong digest until a new
+  version is shipped. A residual, documented risk also remains: `QuranCredentialProvider
+  .releaseSigningCertificateSha256()` requires `PackageManager` to report **exactly one** signing
+  certificate (`if (signatures.size != 1) null`) — if a future Android OS version's
+  `PackageManager` ever reports both the classical and post-quantum certificates together for a
+  hybrid-signed app, this check fails closed even with the correct classical digest configured.
+  This was raised with the product owner, who deferred the decision (not addressed this session).
+
+### Bug found and fixed: previous session's debug-override change did not compile in release
+
+- Running `./gradlew :app:assembleRelease` (correctly, for the first time since the previous
+  entry's debug-credential-override change) surfaced a real `compileReleaseKotlin` failure:
+  `QuranCredentialProvider.kt` referenced `BuildConfig.QURAN_DEBUG_API_USERNAME`/
+  `QURAN_DEBUG_API_TOKEN` unconditionally, but those fields were deliberately defined only in
+  `app/build.gradle.kts`'s `debug` build type — so they don't exist in the `release` variant's
+  generated `BuildConfig` at all, regardless of the `if (BuildConfig.DEBUG)` runtime guard around
+  the call site (Kotlin resolves the reference at compile time per variant, not per runtime
+  branch). The previous entry's validation ran `assembleDebug` but not `assembleRelease`, so this
+  was not caught until this session.
+- **Fix:** extracted the override into a small `internal object QuranDebugCredentialOverride` with
+  two variant-specific implementations — `app/src/debug/java/.../QuranDebugCredentialOverride.kt`
+  (reads the real `BuildConfig.QURAN_DEBUG_API_USERNAME`/`QURAN_DEBUG_API_TOKEN` fields, which exist
+  only for this variant) and `app/src/release/java/.../QuranDebugCredentialOverride.kt` (a fixed
+  `null`, never referencing those fields at all). `QuranCredentialProvider.kt` (shared `src/main`)
+  now calls `QuranDebugCredentialOverride.resolve()` instead of referencing
+  `BuildConfig.QURAN_DEBUG_*`
+  directly, so `compileReleaseKotlin` no longer needs those debug-only fields to exist. This
+  preserves the original security property (the fields, even empty, never appear in the release
+  `BuildConfig` at all) while fixing the compile break — no shortcut of moving the fields to
+  `defaultConfig` (which would have risked a real local `SANGU_QURAN_DEBUG_API_*` env var leaking
+  into a release build if ever set on a developer/CI machine at `assembleRelease` time).
+
+### Validation
+
+`./gradlew :app:verifyQuranReleaseCredential :app:assembleRelease` — pass (R8/minification,
+`lintVitalRelease`, native build for all 4 ABIs, credential header generation all succeed with the
+corrected digest). `./gradlew :app:assembleDebug :app:lintDebug` — pass.
+`./gradlew :app:ktlintCheck :app:detekt` — same pre-existing whole-codebase indentation debt noted
+in prior entries; zero findings in either new `QuranDebugCredentialOverride.kt` file.
+
+### Manual validation (Pixel_9 emulator, Android 15/API 35, real network)
+
+Reinstalled the fixed debug APK, `pm clear`-ed, reopened Al-Qur'an from Beranda: confirmed the
+debug fixture-credential path still resolves and still surfaces "Detail teknis: malformed surah
+list body" exactly as before, i.e. the `QuranDebugCredentialOverride` split did not regress the
+existing debug fallback behavior. Did **not** verify the corrected release digest against a real
+Play-signed install — that requires the product owner's own signing keystore/Play Console upload,
+outside what this session can perform (a locally-signed `assembleRelease` build would use the
+upload key's certificate, not the app signing key, and would therefore fail closed by design,
+proving nothing new).
+
+### Known limitations
+
+- Live Play Store release still has the wrong digest until the product owner ships a new version
+  built with the corrected `~/.gradle/gradle.properties`.
+- The exactly-one-signing-certificate assumption in `QuranCredentialProvider`/`quran_credential.cpp`
+  is unverified against a real hybrid-signed (classical + PQC) install; the product owner deferred
+  deciding whether to harden it now.
+
+### Next recommended milestone
+
+Ship a new release build (new `versionCode`) with the corrected digest, and once it is live,
+verify a real Play-installed device resolves the Quran credential correctly. Revisit the
+single-certificate assumption above if it does not.
+
+## Chucker HTTP inspector + multi-certificate Quran credential fix (2026-08-09)
+
+**Status:** Implemented and verified (build-level); production-reachable verification still
+pending an actual Play Store track install (see Known limitations).
+
+### Chucker (in-app HTTP inspector)
+
+- Added Chucker 4.3.1 (`debugImplementation(libs.chucker.library)` /
+  `releaseImplementation(libs.chucker.library.no.op)` — same API in both artifacts, so no call site
+  branches on build type). New `di/ChuckerModule.kt` provides one shared `ChuckerCollector`/
+  `ChuckerInterceptor`, added to **both** `NetworkModule`'s content client and
+  `QuranNetworkModule`'s Kemenag client, so all REST traffic is visible in Chucker's UI.
+  `redactHeaders("Authorization", "user")` on the interceptor per `docs/product/QURAN_PRD.md` §9's
+  explicit "redact both header names/values from all logging and test interceptors" requirement —
+  the real Kemenag credential is never shown even in this on-device-only, debug-only inspector.
+- **Removed** `QuranNetworkModule`'s existing `HttpLoggingInterceptor(Level.BODY)` (debug-only) in
+  the same change. It logged full request/response headers (including the credential) and full
+  bodies (Arabic/translation text) to Logcat — a direct violation of
+  `docs/security/SECURITY_BASELINE.md`'s "never log headers... bodies, Arabic, translations,
+  tafsir" rule that had regressed since an earlier session's audit claimed no such interceptor was
+  attached. Chucker replaces it with equivalent (better: in-app UI, not system Logcat) debugging
+  value without the leak. Removed the now-unused `okhttp-logging-interceptor` dependency.
+- **Fixed `settings.gradle.kts`**: `dependencyResolutionManagement.repositories`' `google()` entry
+  had no content filtering (unlike `pluginManagement`'s `google()` just above it, which already
+  correctly scopes to `com.android.*`/`com.google.*`/`androidx.*`). Every non-Google dependency
+  (Chucker included) was therefore needlessly probed against `google()` first. Applied the same
+  content filter to the main repository block — a real latent inefficiency, independent of any
+  environment issue.
+
+### Kemenag credential — real production failure diagnosed and fixed
+
+Product owner reported the standalone Quran feature still failing in a real deployed build with
+this session's own new error-detail UI correctly showing "Kemenag credential unavailable" — i.e.
+the signing-certificate check was still failing closed even after the previous entry's digest
+correction.
+
+- Ruled out (with evidence, not assumption): header names. A Postman capture showed a `400
+  {"code":400,"res":"error","message":"something not valid"}` from `surah/local/1/114`; replaying
+  the exact same URL/headers with `curl` and the real credential from `~/.gradle/gradle.properties`
+  returned a clean `200` with all 114 surahs (repeated 3x, no flakiness) — the `user`/
+  `Authorization`
+  header names in `QuranAuthInterceptor` were never wrong, and are not the cause of the original
+  Postman 400 (most likely a stale/different token at capture time, not reproducible now).
+- Confirmed (via a fresh local `assembleRelease`) that the corrected classical-key digest from the
+  previous entry generates correctly into `quran_credential_secrets.h` on this machine — ruling out
+  "the build never picked up the fix."
+- **Root cause found**: pulled the actual installed production APK off a real device (`adb pull`
+  the base APK reported by `pm path`) and inspected its real embedded signing certificate with
+  `apksigner verify --print-certs` (build-tools 30.0.2, which predates any hybrid/PQC awareness and
+  so can't be confused by it — a first attempt with build-tools 37.0.0 against the full APK failed
+  outright with `NoSuchAlgorithmException: ML-DSA KeyFactory not available`, and even a
+  min/max-SDK-scoped retry printed an inconsistent-looking result, so the older tool's clean,
+  independently-verified answer was trusted instead). The real on-device certificate was
+  `CN=Android, OU=Android, O=Google Inc., ...` / SHA-256
+  `FB:50:44:35:A2:A3:51:C5:51:C8:74:B6:1C:D4:B1:38:D7:A2:31:31:5E:90:DE:22:6D:A7:C3:FF:8A:07:EB:6D`
+  — **not** SanguSantri's own App Signing Key at all. Confirmed via Google's own documentation that
+  **Google Play Internal App Sharing re-signs every upload with its own dedicated, Google-generated
+  "Internal test certificate,"** completely separate from the real Play App Signing key, regardless
+  of how the developer originally signed the upload. The product owner had been testing via an
+  Internal App Sharing link, not a real Play Store track install — so the correct classical-key
+  digest from the previous entry was right for real end users, but could never match this specific
+  test path. (The product owner separately surfaced the same SHA-256 already present in an
+  externally-hosted `assetlinks.json` — not part of this repo, and currently inert since
+  `AndroidManifest.xml` has no `android:autoVerify` App Links intent-filter — which independently
+  corroborates that whoever set that file up likely captured it from the same kind of test install
+  rather than the real App Signing Key; flagged to the product owner as a separate, non-blocking
+  cleanup item outside this codebase.)
+- **Fix**: `SANGU_QURAN_RELEASE_SHA256` now accepts a **comma-separated list** of digests instead of
+  exactly one, so both the real App Signing Key and the Internal App Sharing certificate are
+  accepted — chosen over silently trusting only one, since the product owner wants to keep using
+  Internal App Sharing links for convenience. `app/build.gradle.kts`: `quranHexDigestToBytes`
+  unchanged (still validates one 64-hex-char entry); new `quranHexDigestListToBytesList` splits on
+  comma/trims/filters blanks; `quranCredentialHeaderContent()` emits
+  `kExpectedSigningDigestCount`/`kSigningDigestLength` and a 2-D
+  `kExpectedSigningSha256[count][32]` instead of a flat `[32]` array (an unconfigured build still
+  emits exactly one all-zero placeholder row, matching the existing placeholder-on-absent pattern).
+  `quran_credential.cpp`'s `SigningDigestMatches` now loops over every configured digest, matching
+  if the actual reported certificate equals **any** of them — each candidate still requires an
+  exact `memcmp`, so this only widens which of Google's own re-signing certificates count as
+  legitimate, it does not weaken the per-candidate check itself. No Kotlin/JNI signature change was
+  needed — `QuranCredentialProvider`/`QuranNativeCredentialBridge` still pass exactly one computed
+  digest per call; the widening lives entirely in the native comparison.
+  `~/.gradle/gradle.properties`'s `SANGU_QURAN_RELEASE_SHA256` now holds both the classical App
+  Signing Key digest and the confirmed Internal App Sharing digest, comma-separated.
+
+### Validation
+
+`./gradlew :app:assembleDebug :app:assembleRelease` — pass (this sandbox needed
+`-Djava.net.preferIPv4Stack=true` to reach Maven Central at all — a local IPv6-egress gap in this
+environment, not a project or dependency-declaration problem; not something to bake into the
+project's committed `gradle.properties`). Confirmed the generated header correctly emits
+`kExpectedSigningDigestCount = 2` with both real digests byte-for-byte correct, via a real Gradle
+build (not a hand check) — also sanity-checked the CSV-splitting logic structurally with a
+temporary two-digest `-P` override before wiring in the real second value.
+`./gradlew :app:ktlintCheck :app:detekt` — `ktlintCheck` fails, `detekt` passes; confirmed every
+`ktlintCheck` finding is the same pre-existing whole-codebase "Unexpected indentation" debt noted in
+prior entries (checked specifically: zero findings of any kind in `ChuckerModule.kt`,
+`QuranDebugCredentialOverride.kt`, or the `.kts` build scripts). `./gradlew :app:lintDebug` — pass.
+
+### Known limitations
+
+- **Still not verified against a real Play Store track install** (Internal Testing/Closed
+  Testing/Production via the Play Store app, not a share link) — only Internal App Sharing and a
+  local `assembleRelease` have been checked. The classical-key digest should be correct for that
+  path per Play Console's own "App signing key certificate" page, but has not been empirically
+  confirmed the way the Internal App Sharing path now has.
+- The externally-hosted `assetlinks.json` (not part of this repo) likely still has the wrong
+  certificate fingerprint for real production App Links verification, though this currently has no
+  effect since the manifest has no App Links intent-filter at all.
+- Codebase-wide ktlint indentation debt remains unaddressed (unchanged from prior entries).
+
+### Next recommended milestone
+
+Publish (or promote) a build to a real Play Store track and confirm Quran resolves correctly for an
+install that actually goes through Play's real signing pipeline, not Internal App Sharing. Then
+resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.

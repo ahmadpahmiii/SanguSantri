@@ -10,7 +10,9 @@ sealed interface QuranEntryUiState {
         val total: Int,
     ) : QuranEntryUiState
 
-    data object PreparationFailed : QuranEntryUiState
+    data class PreparationFailed(
+        val reason: String,
+    ) : QuranEntryUiState
 
     data object OfflineNoLocalData : QuranEntryUiState
 

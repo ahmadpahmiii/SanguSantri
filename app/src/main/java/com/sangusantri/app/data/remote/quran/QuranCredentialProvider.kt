@@ -14,10 +14,17 @@ import javax.inject.Singleton
  * Resolves the Kemenag `username`/`token` credential (ADR 0016,
  * `docs/security/SECURITY_BASELINE.md`).
  *
- * Debug/test builds never touch the native library or a real secret — they always get an
- * unmistakably fake fixture credential. Release builds reconstruct the credential natively, and
- * only after verifying this running app's release signing-certificate digest against the one
- * embedded at build time. Any mismatch or absent native input fails closed to `null`.
+ * Debug/test builds never touch the native library or a real secret. By default they get an
+ * unmistakably fake fixture credential; a developer may optionally set
+ * `SANGU_QURAN_DEBUG_API_USERNAME`/`SANGU_QURAN_DEBUG_API_TOKEN` in their untracked
+ * `~/.gradle/gradle.properties` (never the tracked project file) to exercise the real Kemenag API
+ * from a debug build instead — see [QuranDebugCredentialOverride], whose `debug`/`release`
+ * source-set variants read `BuildConfig.QURAN_DEBUG_API_USERNAME`/`QURAN_DEBUG_API_TOKEN` (a field
+ * that exists only in the `debug` build type) or a fixed `null`, respectively — kept out of this
+ * shared `src/main` file so `compileReleaseKotlin` never needs those debug-only fields to exist
+ * (ADR 0016 amendment, 2026-08-09). Release builds reconstruct the credential natively, and only
+ * after verifying this running app's release signing-certificate digest against the one embedded
+ * at build time. Any mismatch or absent native input fails closed to `null`.
  *
  * Resolved once and held in memory for the process lifetime, never persisted to disk.
  */
@@ -33,7 +40,7 @@ constructor(
 
     private fun resolveCredential(): QuranCredential? =
         if (BuildConfig.DEBUG) {
-            DEBUG_FIXTURE_CREDENTIAL
+            QuranDebugCredentialOverride.resolve() ?: DEBUG_FIXTURE_CREDENTIAL
         } else {
             releaseSigningCertificateSha256()?.let(QuranNativeCredentialBridge::getCredential)
         }
@@ -65,8 +72,8 @@ constructor(
     private companion object {
         val DEBUG_FIXTURE_CREDENTIAL =
             QuranCredential(
-                username = "pahmi9",
-                token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6Ijc3NDY1YjNhMDhkNzJjZTJiNTc1NTEwNDVhNmFiMTFiIiwiaWF0IjoxNzg2MTE1NjgyfQ.vh4wr_8qXzsgCirCZjnRv6bqQmctd0duJxkGxe3O_oA",
+                username = "something",
+                token = "something",
             )
     }
 }

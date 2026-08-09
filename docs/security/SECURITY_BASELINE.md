@@ -111,7 +111,12 @@ attacker who controls the APK/device. The following hardening is mandatory:
 * Release builds read the credential from an untracked local/CI secret and
   generate native build input; the build must fail clearly when the required
   production value is absent. Tests/debug fixtures use an unmistakably fake
-  credential.
+  credential by default. A developer may optionally set
+  `SANGU_QURAN_DEBUG_API_USERNAME`/`SANGU_QURAN_DEBUG_API_TOKEN` in their own
+  untracked `~/.gradle/gradle.properties` (never the tracked project file, never
+  CI) to exercise the real Kemenag API from a debug build; this never touches
+  the native release-signing path and must never be logged (amendment,
+  2026-08-09).
 * Reconstruct split/encoded fragments inside a small C++/NDK boundary only at
   request time, expose the shortest-lived value practical to Kotlin, strip
   native symbols, and keep release R8/resource shrinking enabled. Obfuscation

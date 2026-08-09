@@ -56,7 +56,7 @@ internal fun ReminderList(
         return
     }
 
-    val hijriMonthNames = stringArrayResource(R.array.reminder_hijri_month_names).toList()
+    val hijriMonthNames = stringArrayResource(R.array.hijri_month_names).toList()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

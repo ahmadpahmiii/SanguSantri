@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-08-09T06:04:58.994Z",
+  "projectRoot": "/Users/fahmi/Documents/project/SanguSantri",
+  "instincts": {
+    "instincts": [
+      {
+        "id": "compose-state-hoisting",
+        "type": "pattern",
+        "description": "State hoisting with collectAsStateWithLifecycle",
+        "context": "jetpack-compose",
+        "confidence": 1,
+        "createdAt": "2026-08-08T17:21:06.522Z",
+        "lastUsed": "2026-08-09T03:08:41.442Z",
+        "usageCount": 74
+      },
+      {
+        "id": "compose-lazy-key",
+        "type": "pattern",
+        "description": "LazyColumn/LazyRow with stable keys",
+        "context": "jetpack-compose",
+        "confidence": 1,
+        "createdAt": "2026-08-08T17:21:06.524Z",
+        "lastUsed": "2026-08-09T03:08:41.437Z",
+        "usageCount": 19
+      },
+      {
+        "id": "sealed-interface-state",
+        "type": "pattern",
+        "description": "Sealed interface for UI state",
+        "context": "mvi-architecture",
+        "confidence": 1,
+        "createdAt": "2026-08-08T17:21:06.525Z",
+        "lastUsed": "2026-08-09T03:08:41.441Z",
+        "usageCount": 51
+      },
+      {
+        "id": "coroutine-structured",
+        "type": "pattern",
+        "description": "Structured concurrency with viewModelScope",
+        "context": "coroutines-patterns",
+        "confidence": 1,
+        "createdAt": "2026-08-08T17:21:06.525Z",
+        "lastUsed": "2026-08-09T03:08:41.442Z",
+        "usageCount": 36
+      }
+    ],
+    "version": "1.0",
+    "lastUpdated": "2026-08-09T03:08:41.442Z"
+  },
+  "gitBranch": "master",
+  "lastFiles": [
+    ".idea/misc.xml",
+    "app/build.gradle.kts",
+    "app/schemas/com.sangusantri.app.data.local.database.SanguSantriDatabase/5.json",
+    "app/src/androidTest/java/com/sangusantri/app/data/remote/quran/QuranAuthInterceptorTest.kt",
+    "app/src/androidTest/java/com/sangusantri/app/data/sync/quran/QuranSyncManagerTest.kt",
+    "app/src/main/AndroidManifest.xml",
+    "app/src/main/cpp/CMakeLists.txt",
+    "app/src/main/cpp/quran_credential.cpp",
+    "app/src/main/java/com/sangusantri/app/core/designsystem/component/ActivityRow.kt",
+    "app/src/main/java/com/sangusantri/app/core/designsystem/component/ActivityRowKind.kt",
+    "app/src/main/java/com/sangusantri/app/core/designsystem/theme/Color.kt",
+    "app/src/main/java/com/sangusantri/app/core/designsystem/theme/SanguSantriDimensions.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/dao/QuranBookmarkDao.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/dao/QuranReadingSessionDao.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/dao/QuranReadingStateDao.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/dao/QuranSurahDao.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/dao/QuranTafsirDao.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/dao/QuranVerseDao.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/database/Migrations.kt",
+    "app/src/main/java/com/sangusantri/app/data/local/database/SanguSantriDatabase.kt"
+  ]
+}

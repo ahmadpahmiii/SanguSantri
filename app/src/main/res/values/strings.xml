@@ -289,6 +289,13 @@
   <string name="serambi_quran_card_title">Al-Qur\'an Kemenag</string>
   <string name="serambi_quran_card_description">Baca Al-Qur\'an dan terjemahannya dari Kementerian Agama</string>
 
+  <!-- In-app update gate (ADR 0017) -->
+  <string name="app_update_force_title">Pembaruan diperlukan</string>
+  <string name="app_update_force_message">Versi aplikasi ini sudah tidak didukung. Perbarui SanguSantri untuk melanjutkan.</string>
+  <string name="app_update_force_action">Perbarui Sekarang</string>
+  <string name="app_update_flexible_ready_message">Pembaruan siap dipasang.</string>
+  <string name="app_update_flexible_ready_action">Mulai Ulang</string>
+
   <!-- Al-Qur'an Kemenag entry gate (`0.0.6`, QUR-FR-002) -->
   <string name="quran_entry_preparing_title">Menyiapkan Al-Qur\'an Kemenag…</string>
   <string name="quran_entry_checking_title">Memeriksa data Al-Qur\'an…</string>

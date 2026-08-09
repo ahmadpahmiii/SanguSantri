@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=360,initial-scale=1" name="viewport">
+    <title>Kalender — Filter Puasa</title>
+    <style>
+        :root { color-scheme: light; --bg:#F6F6F2; --surface:#FFFFFF; --surface-soft:#EEF2ED; --text:#17201C; --muted:#68736D; --line:#DCE3DE; --teal:#176B5C; --teal-soft:#DCEFE9; --amber:#D89713; --amber-soft:#FFF1CB; --coral:#C94E4E; --coral-soft:#FBE3E1; --shadow:0 10px 30px rgba(25,45,36,.12); }
+        * { box-sizing:border-box; }
+        html, body { margin:0; width:360px; height:800px; overflow:hidden; font-family:Inter, "Noto Sans", system-ui, sans-serif; background:var(--bg); color:var(--text); }
+        body.dark { color-scheme:dark; --bg:#101512; --surface:#18201C; --surface-soft:#222C27; --text:#F4F6F4; --muted:#A8B2AC; --line:#35413B; --teal:#62D2B8; --teal-soft:#193E35; --amber:#F3BE4E; --amber-soft:#473918; --coral:#F27E78; --coral-soft:#4A2626; --shadow:0 14px 32px rgba(0,0,0,.35); }
+        button { color:inherit; font:inherit; }
+        .phone { position:relative; width:360px; height:800px; overflow:hidden; background:var(--bg); }
+        .status { height:24px; padding:7px 17px 0; display:flex; justify-content:space-between; font-size:10px; font-weight:700; }
+        .topbar { height:52px; padding:0 14px; display:flex; align-items:center; gap:10px; background:var(--surface); border-bottom:1px solid var(--line); }
+        .icon-button { width:36px; height:36px; border:0; background:transparent; border-radius:18px; display:grid; place-items:center; font-size:22px; }
+        .top-title { flex:1; min-width:0; }
+        .top-title strong { display:block; font-size:15px; letter-spacing:-.2px; }
+        .top-title small { display:block; margin-top:1px; font-size:10px; color:var(--muted); }
+        .today-button { border:1px solid var(--line); background:var(--surface-soft); border-radius:999px; padding:6px 10px; font-size:10px; font-weight:750; }
+        .month-header { height:66px; padding:9px 13px; display:grid; grid-template-columns:34px 1fr 34px; align-items:center; text-align:center; background:var(--surface); }
+        .month-header button { border:0; background:transparent; color:var(--teal); font-size:27px; }
+        .month-title h1 { margin:0; font-size:19px; line-height:1.2; letter-spacing:-.4px; }
+        .month-title p { margin:3px 0 0; color:var(--muted); font-size:11px; }
+        .weekdays { height:34px; padding:0 4px; display:grid; grid-template-columns:repeat(7,1fr); align-items:center; background:var(--surface-soft); border-block:1px solid var(--line); }
+        .weekdays span { text-align:center; font-size:9px; font-weight:700; color:var(--muted); }
+        .weekdays span:first-child { color:var(--coral); }
+        .calendar-grid { height:282px; padding:0 4px; display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(6,47px); background:var(--surface); border-bottom:1px solid var(--line); }
+        .day-cell { position:relative; min-width:0; padding:6px 2px 2px; display:flex; flex-direction:column; align-items:center; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+        .day-cell:nth-child(7n) { border-right:0; }
+        .gregorian-number { font-size:16px; line-height:18px; font-variant-numeric:tabular-nums; }
+        .hijri-number { position:absolute; top:3px; right:5px; font-family:"Noto Naskh Arabic", "Geeza Pro", serif; font-size:9px; line-height:12px; color:var(--muted); }
+        .pasaran { margin-top:1px; font-size:8px; line-height:10px; color:var(--muted); }
+        .outside { opacity:.35; }
+        .sunday .gregorian-number, .official .gregorian-number { color:var(--coral); }
+        .selected { z-index:1; margin:2px; padding-top:4px; border:2px solid var(--teal) !important; border-radius:9px; background:var(--teal-soft); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--teal) 20%, transparent); }
+        .selected:not(.sunday):not(.official) .gregorian-number { color:var(--teal); }
+        .event-dots { position:absolute; bottom:2px; left:0; right:0; display:flex; justify-content:center; gap:2px; height:4px; }
+        .dot { width:4px; height:4px; border-radius:50%; }
+        .dot.fast { background:var(--amber); } .dot.holiday { background:var(--coral); }
+        .selected-summary { height:48px; padding:7px 15px; display:flex; align-items:center; gap:9px; background:var(--surface); border-bottom:1px solid var(--line); }
+        .selected-mark { width:4px; height:28px; border-radius:4px; background:var(--teal); }
+        .selected-summary strong { display:block; font-size:12px; }
+        .selected-summary span { display:block; margin-top:2px; font-size:10px; color:var(--muted); }
+        .agenda { height:294px; padding:9px 13px 0; background:var(--bg); }
+        .agenda-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+        .agenda-header h2 { margin:0; font-size:14px; letter-spacing:-.2px; }
+        .legend { display:flex; align-items:center; gap:8px; font-size:8px; color:var(--muted); }
+        .legend span { display:flex; align-items:center; gap:3px; }
+        .filters { display:flex; gap:5px; margin-bottom:7px; overflow:hidden; }
+        .filter { flex:none; height:25px; padding:0 9px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted); font-size:9px; font-weight:700; white-space:nowrap; }
+        .filter.selected { margin:0; padding:0 9px; border:1px solid var(--teal) !important; border-radius:999px; background:var(--teal-soft); color:var(--teal); box-shadow:none; }
+        .agenda-list { overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+        .agenda-row { min-height:58px; padding:7px 8px; display:flex; gap:8px; align-items:flex-start; border-bottom:1px solid var(--line); }
+        .agenda-row:last-child { border-bottom:0; }
+        .date-badge { width:39px; min-width:39px; height:43px; display:flex; flex-direction:column; justify-content:center; align-items:center; border:1px solid var(--line); border-radius:9px; background:var(--surface-soft); }
+        .date-badge small { font-size:8px; color:var(--muted); }
+        .date-badge strong { margin-top:1px; font-size:13px; color:var(--coral); }
+        .date-badge.fast strong { color:var(--amber); font-size:11px; }
+        .agenda-copy { flex:1; min-width:0; }
+        .agenda-copy h3 { margin:0; font-size:11px; line-height:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .agenda-copy p { margin:2px 0 3px; font-size:8.5px; line-height:11px; color:var(--muted); }
+        .agenda-status { display:inline-flex; padding:2px 5px; border-radius:999px; font-size:7px; font-weight:800; }
+        .agenda-status.holiday { color:var(--coral); background:var(--coral-soft); }
+        .agenda-status.fast { color:#8C6200; background:var(--amber-soft); }
+        .dark .agenda-status.fast { color:var(--amber); }
+        .row-info { width:24px; height:24px; border:0; border-radius:12px; background:var(--surface-soft); color:var(--muted); font:700 10px Georgia,serif; }
+        .scrim { position:absolute; inset:0; z-index:20; background:rgba(6,12,9,.56); }
+        .source-sheet { position:absolute; z-index:21; left:0; right:0; bottom:0; min-height:405px; padding:8px 18px 18px; border-radius:24px 24px 0 0; background:var(--surface); box-shadow:var(--shadow); }
+        .sheet-handle { width:36px; height:4px; margin:0 auto 15px; border-radius:4px; background:var(--line); }
+        .sheet-heading { display:flex; align-items:center; gap:10px; margin-bottom:15px; }
+        .source-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:12px; background:var(--teal-soft); color:var(--teal); font:700 17px Georgia,serif; }
+        .sheet-heading div:nth-child(2) { flex:1; }
+        .sheet-heading small { display:block; color:var(--teal); font-size:8px; font-weight:850; letter-spacing:.8px; }
+        .sheet-heading h2 { margin:2px 0 0; font-size:19px; }
+        .sheet-heading button { width:32px; height:32px; border:0; border-radius:16px; background:var(--surface-soft); color:var(--muted); font-size:20px; }
+        .source-block { padding:13px; border:1px solid var(--line); border-radius:13px; background:var(--surface-soft); }
+        .source-block + .source-block { margin-top:9px; }
+        .source-block strong { font-size:12px; }
+        .source-block p { margin:5px 0 9px; font-size:10px; line-height:15px; color:var(--muted); }
+        .compact-source p { margin-bottom:0; }
+        .method-badge { display:inline-flex; padding:4px 7px; border-radius:999px; background:var(--teal-soft); color:var(--teal); font-size:8px; font-weight:800; }
+        .primary-button { width:100%; height:40px; margin-top:12px; border:0; border-radius:12px; background:var(--teal); color:white; font-weight:800; font-size:12px; }
+    </style>
+</head>
+<body class="light">
+<main class="phone">
+    <div class="status"><span>07.22</span><span>4G+ · 55%</span></div>
+    <header class="topbar">
+        <button aria-label="Kembali" class="icon-button">‹</button>
+        <div class="top-title"><strong>Kalender Hijriah</strong><small>Rabu Kliwon · 26 Agustus 2026
+            · 13 Rabiulawal 1448</small></div>
+        <button class="today-button">Hari ini</button>
+        <button aria-label="Sumber dan metode" class="icon-button">ⓘ</button>
+    </header>
+    <section class="month-header">
+        <button aria-label="Bulan sebelumnya">‹</button>
+        <div class="month-title"><h1>Agustus 2026</h1>
+            <p>Safar – Rabiulawal 1448</p></div>
+        <button aria-label="Bulan berikutnya">›</button>
+    </section>
+    <div aria-hidden="true" class="weekdays">
+        <span>Ahad</span><span>Senin</span><span>Selasa</span><span>Rabu</span><span>Kamis</span><span>Jumat</span><span>Sabtu</span>
+    </div>
+    <section aria-label="Kalender Agustus 2026" class="calendar-grid" role="grid">
+        <div aria-label="Ahad, 26 Juli 2026, 12 Safar 1448, Wage" class="day-cell outside sunday"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٢</span>
+            <strong class="gregorian-number">26</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Senin, 27 Juli 2026, 13 Safar 1448, Kliwon" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٣</span>
+            <strong class="gregorian-number">27</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Selasa, 28 Juli 2026, 14 Safar 1448, Legi" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٤</span>
+            <strong class="gregorian-number">28</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Rabu, 29 Juli 2026, 15 Safar 1448, Pahing" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٥</span>
+            <strong class="gregorian-number">29</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Kamis, 30 Juli 2026, 16 Safar 1448, Pon" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٦</span>
+            <strong class="gregorian-number">30</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Jumat, 31 Juli 2026, 17 Safar 1448, Wage" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٧</span>
+            <strong class="gregorian-number">31</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Sabtu, 1 Agustus 2026, 18 Safar 1448, Kliwon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٨</span>
+            <strong class="gregorian-number">1</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Ahad, 2 Agustus 2026, 19 Safar 1448, Legi" class="day-cell sunday"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٩</span>
+            <strong class="gregorian-number">2</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Senin, 3 Agustus 2026, 20 Safar 1448, Pahing" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٠</span>
+            <strong class="gregorian-number">3</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Selasa, 4 Agustus 2026, 21 Safar 1448, Pon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢١</span>
+            <strong class="gregorian-number">4</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Rabu, 5 Agustus 2026, 22 Safar 1448, Wage" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٢</span>
+            <strong class="gregorian-number">5</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Kamis, 6 Agustus 2026, 23 Safar 1448, Kliwon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٣</span>
+            <strong class="gregorian-number">6</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Jumat, 7 Agustus 2026, 24 Safar 1448, Legi" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٤</span>
+            <strong class="gregorian-number">7</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Sabtu, 8 Agustus 2026, 25 Safar 1448, Pahing" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٥</span>
+            <strong class="gregorian-number">8</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Ahad, 9 Agustus 2026, 26 Safar 1448, Pon" class="day-cell sunday"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٦</span>
+            <strong class="gregorian-number">9</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Senin, 10 Agustus 2026, 27 Safar 1448, Wage" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٧</span>
+            <strong class="gregorian-number">10</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Selasa, 11 Agustus 2026, 28 Safar 1448, Kliwon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٨</span>
+            <strong class="gregorian-number">11</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Rabu, 12 Agustus 2026, 29 Safar 1448, Legi" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٩</span>
+            <strong class="gregorian-number">12</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Kamis, 13 Agustus 2026, 30 Safar 1448, Pahing" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٣٠</span>
+            <strong class="gregorian-number">13</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Jumat, 14 Agustus 2026, 1 Rabiulawal 1448, Pon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١</span>
+            <strong class="gregorian-number">14</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Sabtu, 15 Agustus 2026, 2 Rabiulawal 1448, Wage" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢</span>
+            <strong class="gregorian-number">15</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Ahad, 16 Agustus 2026, 3 Rabiulawal 1448, Kliwon" class="day-cell sunday"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٣</span>
+            <strong class="gregorian-number">16</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Senin, 17 Agustus 2026, 4 Rabiulawal 1448, Legi, hari besar atau libur" class="day-cell official"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٤</span>
+            <strong class="gregorian-number">17</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"><i class="dot holiday"></i></span>
+        </div>
+        <div aria-label="Selasa, 18 Agustus 2026, 5 Rabiulawal 1448, Pahing" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٥</span>
+            <strong class="gregorian-number">18</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Rabu, 19 Agustus 2026, 6 Rabiulawal 1448, Pon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٦</span>
+            <strong class="gregorian-number">19</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Kamis, 20 Agustus 2026, 7 Rabiulawal 1448, Wage" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٧</span>
+            <strong class="gregorian-number">20</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Jumat, 21 Agustus 2026, 8 Rabiulawal 1448, Kliwon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٨</span>
+            <strong class="gregorian-number">21</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Sabtu, 22 Agustus 2026, 9 Rabiulawal 1448, Legi" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٩</span>
+            <strong class="gregorian-number">22</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Ahad, 23 Agustus 2026, 10 Rabiulawal 1448, Pahing" class="day-cell sunday"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٠</span>
+            <strong class="gregorian-number">23</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Senin, 24 Agustus 2026, 11 Rabiulawal 1448, Pon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١١</span>
+            <strong class="gregorian-number">24</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Selasa, 25 Agustus 2026, 12 Rabiulawal 1448, Wage, hari besar atau libur" class="day-cell official"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٢</span>
+            <strong class="gregorian-number">25</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"><i class="dot holiday"></i></span>
+        </div>
+        <div aria-label="Rabu, 26 Agustus 2026, 13 Rabiulawal 1448, Kliwon, agenda puasa" class="day-cell selected"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٣</span>
+            <strong class="gregorian-number">26</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"><i class="dot fast"></i></span>
+        </div>
+        <div aria-label="Kamis, 27 Agustus 2026, 14 Rabiulawal 1448, Legi, agenda puasa" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٤</span>
+            <strong class="gregorian-number">27</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"><i class="dot fast"></i></span>
+        </div>
+        <div aria-label="Jumat, 28 Agustus 2026, 15 Rabiulawal 1448, Pahing, agenda puasa" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٥</span>
+            <strong class="gregorian-number">28</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"><i class="dot fast"></i></span>
+        </div>
+        <div aria-label="Sabtu, 29 Agustus 2026, 16 Rabiulawal 1448, Pon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٦</span>
+            <strong class="gregorian-number">29</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Ahad, 30 Agustus 2026, 17 Rabiulawal 1448, Wage" class="day-cell sunday"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٧</span>
+            <strong class="gregorian-number">30</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Senin, 31 Agustus 2026, 18 Rabiulawal 1448, Kliwon" class="day-cell"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٨</span>
+            <strong class="gregorian-number">31</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Selasa, 1 September 2026, 19 Rabiulawal 1448, Legi" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">١٩</span>
+            <strong class="gregorian-number">1</strong>
+            <span class="pasaran">Legi</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Rabu, 2 September 2026, 20 Rabiulawal 1448, Pahing" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٠</span>
+            <strong class="gregorian-number">2</strong>
+            <span class="pasaran">Pahing</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Kamis, 3 September 2026, 21 Rabiulawal 1448, Pon" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢١</span>
+            <strong class="gregorian-number">3</strong>
+            <span class="pasaran">Pon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Jumat, 4 September 2026, 22 Rabiulawal 1448, Wage" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٢</span>
+            <strong class="gregorian-number">4</strong>
+            <span class="pasaran">Wage</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+        <div aria-label="Sabtu, 5 September 2026, 23 Rabiulawal 1448, Kliwon" class="day-cell outside"
+             role="gridcell">
+            <span aria-hidden="true" class="hijri-number">٢٣</span>
+            <strong class="gregorian-number">5</strong>
+            <span class="pasaran">Kliwon</span>
+            <span aria-hidden="true" class="event-dots"></span>
+        </div>
+    </section>
+    <section class="selected-summary">
+        <div class="selected-mark"></div>
+        <div><strong>Rabu Kliwon</strong><span>26 Agustus 2026 · 13 Rabiulawal 1448</span></div>
+    </section>
+    <section class="agenda">
+        <div class="agenda-header"><h2>Agenda bulan ini</h2>
+            <div class="legend"><span><i class="dot fast"></i> Puasa</span><span><i
+                class="dot holiday"></i> Hari besar/libur</span></div>
+        </div>
+        <div class="filters">
+            <button class="filter">Semua</button>
+            <button class="filter selected">Puasa</button>
+            <button class="filter">Hari besar & libur</button>
+        </div>
+        <div class="agenda-list">
+            <article class="agenda-row">
+                <div class="date-badge fast">
+                    <small>Agu</small>
+                    <strong>26–28</strong>
+                </div>
+                <div class="agenda-copy">
+                    <h3>Puasa Ayyamul Bidh</h3>
+                    <p>13–15 Rabiulawal 1448</p>
+                    <span class="agenda-status fast">Puasa non-mingguan</span>
+                </div>
+                <button aria-label="Lihat sumber Puasa Ayyamul Bidh" class="row-info">i</button>
+            </article>
+        </div>
+    </section>
+
+</main>
+</body>
+</html>

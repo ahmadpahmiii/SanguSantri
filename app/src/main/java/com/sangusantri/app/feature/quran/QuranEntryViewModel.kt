@@ -54,7 +54,7 @@ constructor(
             _uiState.value =
                 when (result) {
                     is QuranPreparationResult.Ready -> QuranEntryUiState.Ready
-                    is QuranPreparationResult.Failed -> QuranEntryUiState.PreparationFailed
+                    is QuranPreparationResult.Failed -> QuranEntryUiState.PreparationFailed(result.reason)
                 }
         }
     }

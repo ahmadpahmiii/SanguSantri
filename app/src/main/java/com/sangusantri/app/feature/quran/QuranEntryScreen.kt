@@ -90,7 +90,7 @@ fun QuranEntryScreen(
     @Suppress("UnusedParameter") onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Approved local reference (figma-export/quran/05a/05b/06a/06b) renders a `.top.plain` header
+    // Approved local reference (design-export/quran/05a/05b/06a/06b) renders a `.top.plain` header
     // — title/subtitle only, no back icon, same pattern as the hub. System/predictive back still
     // pops this destination via the NavHost's own back stack, independent of this callback; kept
     // on the signature to mirror QuranEntryRoute/QuranHubActions rather than break the call site.
@@ -195,7 +195,7 @@ private fun QuranEntryMessage(
     QuranEntryStateLayout(
         title = title,
         description = description,
-        // figma-export/quran/06a/06b `.state-mark.error{color:var(--error)}` — both failure
+        // design-export/quran/06a/06b `.state-mark.error{color:var(--error)}` — both failure
         // branches use the error tint, unlike checking/preparing which stay QuranPrimary.
         stateVisual = { QuranEntryStateVisual(imageVector = icon, tint = QuranError) },
         supportingContent = {

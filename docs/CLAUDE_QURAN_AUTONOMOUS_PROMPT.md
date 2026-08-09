@@ -30,7 +30,7 @@ Implement the complete standalone Quran feature described by:
 - `docs/design/QURAN_DESIGN_SYSTEM.md`
 - `docs/engineering/QURAN_API_CONTRACT_DRAFT.md`
 - `docs/decisions/0016-standalone-quran-kemenag-direct-api.md`
-- the Quran mappings in `docs/design/FIGMA_HANDOFF.md`
+- the Quran mappings in `docs/design/DESIGN_HANDOFF.md`
 - every applicable project-wide document selected by `CLAUDE.md`
 
 All five delivery slices in QURAN_PRD section 14 belong to this one authorized
@@ -60,7 +60,7 @@ Before editing:
 1. Read `CLAUDE.md` completely.
 2. Read `docs/PROGRESS.md` and `docs/product/PRD.md` Related Documents.
 3. Read the Quran sources above completely and the relevant parts of
-   `FIGMA_HANDOFF.md`.
+   `DESIGN_HANDOFF.md`.
 4. Read all project documents required by the `CLAUDE.md` matrix for
    data/Room/sync, UI/Compose, security/network/auth, privacy, testing, and
    release work.
@@ -79,7 +79,7 @@ Reconcile existing Quran work instead of blindly recreating it.
 
 ## Approved visual contract
 
-Treat `docs/design/figma-export/quran/` HTML/JSON/PNG triplets as the screen and
+Treat `docs/design/design-export/quran/` HTML/JSON/PNG triplets as the screen and
 state reference. Do not invent a conflicting visual system.
 
 The canonical Arab-only sequence is:
@@ -119,7 +119,7 @@ composition because the API lacks line/glyph coordinates.
 - Never log Quran payloads, tafsir, bookmarks, positions, sessions, or secrets.
 - User errors are concise Indonesian and expose no raw body, stack trace,
   header, token, or Arabic fragment.
-- Quran `0.0.6` is separate from the older Figma-alignment Phases A–E. Apply
+- Quran `0.0.6` is separate from the older design-alignment Phases A–E. Apply
   normal testing unless a newer explicit decision says otherwise; do not use
   the temporary no-new-tests rule to skip Quran data/security coverage.
 

@@ -25,7 +25,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 
 /**
- * Reader appearance settings moved into the shared overflow menu (decision F, Figma
+ * Reader appearance settings moved into the shared overflow menu (decision F, design
  * product-alignment pass) — this top bar no longer carries its own standalone settings icon,
  * only back navigation and the [overflow] slot.
  */
@@ -52,7 +52,7 @@ internal fun GuidedReaderTopBar(
 }
 
 /**
- * Both actions render as filled, stadium-shaped pills (`docs/design/FIGMA_HANDOFF.md` node
+ * Both actions render as filled, stadium-shaped pills (`docs/design/DESIGN_HANDOFF.md` node
  * `14:32`) — "Sebelumnya" tonal (`primaryContainer`), "Lanjut"/"Selesaikan" primary — rather than
  * an outlined/filled pairing. Direction is conveyed by an [Icons.AutoMirrored] arrow (RTL-correct)
  * rather than a literal arrow glyph in the label, per `docs/design/ACCESSIBILITY.md`'s RTL rule.

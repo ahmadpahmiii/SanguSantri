@@ -145,7 +145,7 @@ private fun QuranTafsirHeader(
 
 @Composable
 private fun QuranTafsirLoadedContent(state: QuranTafsirUiState.Loaded) {
-    // figma-export/quran/13a-tafsir-cached-refreshing.html `.cache-chip` — cached content stays
+    // design-export/quran/13a-tafsir-cached-refreshing.html `.cache-chip` — cached content stays
     // visible the whole time; this is a quiet status pill, not a blocking loading bar.
     if (state.isRefreshing) {
         Surface(
@@ -213,7 +213,7 @@ private fun QuranTafsirUnavailable(
             style = MaterialTheme.typography.bodyMedium,
             color = QuranMutedText,
         )
-        // figma-export/quran/13b-tafsir-offline-no-cache.html has no button at all — an offline/
+        // design-export/quran/13b-tafsir-offline-no-cache.html has no button at all — an offline/
         // no-cache state with nothing to retry against yet. Only the retryable (13c) branch offers
         // "Coba lagi".
         if (retryable) {

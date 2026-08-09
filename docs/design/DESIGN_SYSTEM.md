@@ -16,8 +16,8 @@ after.
 
 ## Visual direction
 
-**Superseded by the Figma product-alignment pass** (`docs/design/FIGMA_HANDOFF.md`,
-`docs/reviews/figma-product-alignment.md`): the product direction is now
+**Superseded by the design product-alignment pass** (`docs/design/DESIGN_HANDOFF.md`,
+`docs/reviews/design-product-alignment.md`): the product direction is now
 a **modern Islamic identity** — premium, calm, comfortable to read — not
 necessarily traditional pesantren ornament. Where this document previously
 said "traditional-modern pesantren character/tone," read that as
@@ -52,7 +52,7 @@ change-tracking convention.
 * No card-wall home screens — do not default every content block to a
   `Card`. Use a card only when a bounded, tappable, visually distinct unit
   is genuinely needed. Beranda in particular must not default to "every
-  section is a `Card`" (`docs/reviews/figma-product-alignment.md`).
+  section is a `Card`" (`docs/reviews/design-product-alignment.md`).
 * No oversized hero sections or generic marketing-style headers.
 * No decorative gradients as a default background or accent treatment.
 * No glassmorphism (blurred translucent panels).

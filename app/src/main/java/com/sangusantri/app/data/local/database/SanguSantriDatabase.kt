@@ -53,12 +53,12 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * deliberately NOT used.
  *
  * Version 3 (`0.0.4`, Pengingat Amaliyah) adds `reminders` — purely additive, no existing table
- * changed. `CLAUDE.md`'s temporary Figma-phase constraint (that pass's Phase E) prohibited writing
+ * changed. `CLAUDE.md`'s temporary design-phase constraint (that pass's Phase E) prohibited writing
  * a new migration class for it, so there is no `MIGRATION_2_3`.
  *
  * Version 4 (`0.0.5`, Nahwu Quiz) adds `nahwu_quiz_packages`/`nahwu_quiz_questions`/
  * `nahwu_quiz_attempts` — also purely additive, and also no `MIGRATION_3_4`: `0.0.5` falls outside
- * `docs/design/FIGMA_HANDOFF.md`'s Phase A–E window (Phase E ends at `0.0.4`), so this follows the
+ * `docs/design/DESIGN_HANDOFF.md`'s Phase A–E window (Phase E ends at `0.0.4`), so this follows the
  * project's general, non-temporary pre-release policy instead
  * (`docs/engineering/CONTENT_MODEL.md` "Schema-freeze policy") — which reaches the same outcome: a
  * clean baseline reset, not a real migration, since there are still no production installs to

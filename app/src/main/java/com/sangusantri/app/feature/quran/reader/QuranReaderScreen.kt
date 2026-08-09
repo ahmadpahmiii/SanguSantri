@@ -153,7 +153,7 @@ fun QuranReaderScreen(
     val currentAyat =
         readerContent?.ayats?.firstOrNull { it.ayatNumber == targetAyat }
             ?: readerContent?.ayats?.firstOrNull()
-    // figma-export/quran/18-reader-invalid-target.html keeps the back/settings chrome but replaces
+    // design-export/quran/18-reader-invalid-target.html keeps the back/settings chrome but replaces
     // the surah title/position with a generic "Al-Qur'an" / "Posisi tidak tersedia" pair — never a
     // stale surah name for a target that doesn't resolve.
     val targetUnresolved =
@@ -265,7 +265,7 @@ private fun QuranReaderBody(
 
 @Composable
 private fun QuranReaderLoadingState() {
-    // figma-export/quran/17-reader-loading.html `.loading-row` — three equal 120dp placeholders,
+    // design-export/quran/17-reader-loading.html `.loading-row` — three equal 120dp placeholders,
     // no distinct header-shaped block: the target surah/page is already known while Room loads,
     // so the design shows only content-row skeletons, not a header skeleton.
     Column(

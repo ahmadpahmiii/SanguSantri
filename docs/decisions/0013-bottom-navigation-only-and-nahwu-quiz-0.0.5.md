@@ -6,8 +6,8 @@ Accepted (2026-07-29, product owner/tech lead)
 
 ## Context
 
-The 2026-07-26 Figma product-alignment pass (`docs/reviews/
-figma-product-alignment.md`, `docs/design/FIGMA_HANDOFF.md`) documented a
+The 2026-07-26 design product-alignment pass (`docs/reviews/
+design-product-alignment.md`, `docs/design/DESIGN_HANDOFF.md`) documented a
 "final navigation model" of five destinations (Beranda/Aktivitas/Tasbih/
 Pesantren/Profil) shown as a bottom navigation bar on compact window-size
 class and a navigation rail (or other adaptive nav) on expanded/tablet
@@ -61,7 +61,7 @@ the same `0.0.2`–`0.0.5` implementation window.
   five-destination bottom-bar/rail model and `0.4.0` Nahwu Quiz scheduling
   are superseded for this window, not deleted from history (this ADR is
   the record of why).
-* `docs/design/figma-export/future-releases/` (an offline design-spec
+* `docs/design/design-export/future-releases/` (an offline design-spec
   build for this same work, written 2026-07-29) is corrected in the same
   pass: its Navigation Rail component/frame is removed from the active
   spec (the two exported baseline frames, `17:2`/`17:32`, are unaffected

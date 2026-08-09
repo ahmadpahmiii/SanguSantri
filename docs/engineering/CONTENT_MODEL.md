@@ -81,7 +81,7 @@ and there is no data left to build one from. `TocSection`,
 `toTocSections()`, `ReaderTableOfContentsSheet`, and the "Buka Daftar Isi"
 overflow-menu action were deleted along with the step-type enum.
 
-## Category taxonomy (Figma product-alignment pass — Jelajahi Amaliyah, `0.0.1`)
+## Category taxonomy (design product-alignment pass — Jelajahi Amaliyah, `0.0.1`)
 
 `Content.category` is a plain, optional string field (both bundled items
 currently use `"Tahlil dan Doa"`). Jelajahi Amaliyah (`docs/product/PRD.md`
@@ -314,7 +314,7 @@ contract is implemented and degrades safely to bundled-only content until
 a real deployment exists. `tasbih_sessions`/`tasbih_history` (`0.0.2`,
 Milestone 9) and `amaliyah_completion_events` (`0.0.3`, Milestone 10) are
 implemented and unaffected by ADR 0015. `favorites` and `recently_opened`
-are planned for Phase B of the `0.0.1` Figma product-alignment work (not
+are planned for Phase B of the `0.0.1` design product-alignment work (not
 yet implemented); the reminder model (Phase E, `0.0.4`) is
 forward-documented only. See `docs/PROGRESS.md` for the authoritative
 current state.

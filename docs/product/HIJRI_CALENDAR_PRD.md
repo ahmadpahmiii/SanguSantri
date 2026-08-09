@@ -271,8 +271,8 @@ section or as a dot.
   essential date/source meaning.
 
 The approved local visual baseline is
-`docs/design/figma-export/hijri-calendar/`. It is a Figma-ready design reference,
-not a claim that Figma nodes already exist.
+`docs/design/design-export/hijri-calendar/`. It is a local design reference,
+not a claim that a hosted design-tool file or nodes already exist for it.
 
 ## 8. Functional requirements
 

@@ -107,8 +107,8 @@ removed — bundled assets and remote packages now share one canonical
 `ContentPackageImporter` rather than a seed-specific abstraction; see
 `docs/content-schema.md`.
 
-`feature/home` (Beranda, renamed from Serambi — Figma product-alignment
-pass, `docs/reviews/figma-product-alignment.md`), `feature/reader` (Full
+`feature/home` (Beranda, renamed from Serambi — design product-alignment
+pass, `docs/reviews/design-product-alignment.md`), `feature/reader` (Full
 Reader + the reading-mode gate), `feature/guidedreader` (Guided Reader),
 `feature/tasbih` (Standalone Tasbih + Session History, `0.0.2`,
 Milestone 9), and `feature/activity` (Aktivitas, `0.0.3`, Milestone 10)

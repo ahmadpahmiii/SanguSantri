@@ -1,6 +1,6 @@
 # Quran UI state audit — 9 August 2026
 
-Scope: numbered assets in `docs/design/figma-export/quran/` compared with the
+Scope: numbered assets in `docs/design/design-export/quran/` compared with the
 Compose implementation for the standalone Al-Qur'an Kemenag feature. “Covered”
 means the state has an explicit runtime branch and matching hierarchy; it does
 not imply that every failure was forced on a device during this pass.

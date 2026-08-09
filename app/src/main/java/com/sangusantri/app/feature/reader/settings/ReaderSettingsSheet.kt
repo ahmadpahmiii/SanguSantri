@@ -42,12 +42,12 @@ private val SheetTopCornerRadius = 28.dp
 
 /**
  * Restrained reader appearance settings (FR-008 subset) — a bottom sheet, contextual to the
- * reader, reached from the reader overflow menu (decision F, Figma product-alignment pass — no
+ * reader, reached from the reader overflow menu (decision F, design product-alignment pass — no
  * longer a standalone top-bar icon). Shared by the Full Reader and the Guided Reader (Milestone 4)
  * rather than duplicated — [progressionModeControl] is non-null only when opened from the Guided
  * Reader, which adds one extra section for the automatic/manual progression preference (FR-005).
  *
- * Matches the revised Figma sheet (node `16:89`) exactly: a title + subtitle, three steppers
+ * Matches the revised design sheet (node `16:89`) exactly: a title + subtitle, three steppers
  * (Arabic font size, translation font size, Arabic line spacing — translation line spacing has no
  * dedicated control in the revised design, though the underlying preference and its DataStore
  * field remain unchanged for forward compatibility), the translation toggle, and a single primary
@@ -218,7 +218,7 @@ private fun ReaderSettingsFontSizeControls(
 }
 
 /**
- * Only Arabic line spacing has a dedicated control, matching the revised Figma sheet exactly — see
+ * Only Arabic line spacing has a dedicated control, matching the revised design sheet exactly — see
  * this file's class doc for why translation line spacing has no stepper this phase.
  */
 @Composable

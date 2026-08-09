@@ -90,7 +90,7 @@ private fun QuranSurahMetadataBand(
         Surface(
             color = QuranPrimaryContainer,
             contentColor = QuranOnPrimaryContainer,
-            // figma-export/quran/09-flowing-reader-arab-only-page.html `.surah-header{border:1px
+            // design-export/quran/09-flowing-reader-arab-only-page.html `.surah-header{border:1px
             // solid color-mix(in srgb, var(--quran-primary) 42%, transparent)}` — a translucent
             // border, the band must stay subordinate to the Arabic reading text below it.
             border = BorderStroke(1.dp, QuranPrimary.copy(alpha = 0.42f)),
@@ -126,7 +126,7 @@ private fun QuranSurahTitlePill(
     surahDisplayName: String,
     modifier: Modifier = Modifier,
 ) {
-    // figma-export/quran/09-flowing-reader-arab-only-page.html `.surah-name` has no border —
+    // design-export/quran/09-flowing-reader-arab-only-page.html `.surah-name` has no border —
     // it's a plain filled pill, distinct from the QuranNumberBadge/QuranSourceIcon border pattern
     // used elsewhere.
     Surface(

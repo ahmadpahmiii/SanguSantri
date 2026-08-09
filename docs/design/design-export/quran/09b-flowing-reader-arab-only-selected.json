@@ -1,0 +1,64 @@
+{
+  "artifactType": "local-design-reference",
+  "screen": "Flowing reader — Arab saja — selected range",
+  "release": "0.0.6",
+  "logicalFrame": {
+    "width": 360,
+    "height": 800,
+    "renderScale": 2
+  },
+  "sourceFiles": {
+    "editable": "09b-flowing-reader-arab-only-selected.html",
+    "preview": "09b-flowing-reader-arab-only-selected.png",
+    "rawResponse": "data/al-fajr-89-kemenag-response.json"
+  },
+  "validation": {
+    "envelopeCode": 200,
+    "envelopeResult": "success",
+    "recordCount": 30,
+    "uniqueAyatCount": 30,
+    "sourceArrayWasOrdered": false,
+    "presentationOrdering": "Numerically sorted by ayat",
+    "page593AyatRange": "1-23",
+    "page594AyatRange": "24-30",
+    "rawResponseSha256": "f9f0d8ac8cf4d327be0f4d06f1b76b7ddafc30b2eb047123d252da39724c0cf4"
+  },
+  "state": {
+    "surah": "Al-Fajr",
+    "surahNumber": 89,
+    "category": "Makkiyah",
+    "categoryEvidence": "https://quran.kemenag.go.id/",
+    "totalAyat": 30,
+    "page": 593,
+    "juz": 30,
+    "displayChoice": "Arab saja",
+    "selectedAyat": {
+      "remoteId": 6008,
+      "ayat": 15
+    }
+  },
+  "selectionDesign": {
+    "surface": "quranPrimaryContainer",
+    "content": "quranOnPrimaryContainer",
+    "shape": "4px line-fragment radius",
+    "behaviour": "CSS box-decoration-break clone represents one highlight fragment per wrapped visual line",
+    "nonColourCues": [
+      "Platform long-press haptic feedback in implementation",
+      "Ayat action sheet presence in the following frame",
+      "Semantic long-click action"
+    ],
+    "clearWhen": "Action sheet is dismissed"
+  },
+  "contentRules": {
+    "arabicField": "teks_msi_usmani",
+    "latinTransliteration": "Not stored or displayed",
+    "translation": "Not displayed in Arab-saja state",
+    "marker": "Derived from numeric ayat metadata",
+    "basmalah": "assets/basmalah-simple-amiri.svg"
+  },
+  "designReference": {
+    "page": "03 Al-Qur'an Kemenag",
+    "nodeId": null,
+    "note": "This sidecar is a local design reference, not a payload exported from a design tool. Add a node ID here if this screen is later recreated in one."
+  }
+}

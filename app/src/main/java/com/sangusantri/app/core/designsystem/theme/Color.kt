@@ -10,7 +10,7 @@ val SantriGreen40 = Color(0xFF0B6E3B)
 val SantriGreen80 = Color(0xFF7FDB9C)
 val SantriGreen90 = Color(0xFFA1F5B9)
 
-// Light primary-container tint — Figma product-alignment pass (docs/design/FIGMA_HANDOFF.md,
+// Light primary-container tint — design product-alignment pass (docs/design/DESIGN_HANDOFF.md,
 // exported node color variable observed as rgb(215,248,223) across every revised reader/tasbih/
 // beranda frame: repeat-shortcut pills, the saved-position status pill, the guided counter
 // background, secondary pill actions, the active bottom-nav pill, and the active TOC/category
@@ -23,16 +23,16 @@ val SantriNeutral90 = Color(0xFFE2E3DD)
 val SantriNeutral95 = Color(0xFFF1F1EB)
 val SantriNeutral99 = Color(0xFFFBFDF7)
 
-// Card/sheet surface — Figma product-alignment pass, observed as rgb(255,253,248) on every card,
+// Card/sheet surface — design product-alignment pass, observed as rgb(255,253,248) on every card,
 // bottom sheet, and dialog in the revised exports; warmer and distinct from SantriNeutral95/99.
 val SantriSurface = Color(0xFFFFFDF8)
 
-// Secondary/muted text — Figma product-alignment pass, observed as rgb(89,96,90) for every
+// Secondary/muted text — design product-alignment pass, observed as rgb(89,96,90) for every
 // secondary label (translations, captions, step counts) in the revised exports. No existing
 // token matched this tone; previously this role fell through to Material 3's unbranded default.
 val SantriNeutral40 = Color(0xFF59605A)
 
-// Hairline border / drag handle — Figma product-alignment pass, observed as rgb(195,200,192) for
+// Hairline border / drag handle — design product-alignment pass, observed as rgb(195,200,192) for
 // every card/sheet stroke and bottom-sheet drag handle in the revised exports. Previously this
 // role fell through to Material 3's unbranded default.
 val SantriOutline = Color(0xFFC3C8C0)
@@ -58,11 +58,11 @@ val QuranOutline = Color(0xFF2D3933)
 val QuranScrim = Color(0xA3000000)
 val QuranError = SantriError80
 
-// Terakhir dibaca card gradient start (figma-export/quran/01-quran-hub-surah.html
+// Terakhir dibaca card gradient start (design-export/quran/01-quran-hub-surah.html
 // `.continue{background:linear-gradient(135deg,#07351f,#101713)}`); the end stop reuses
 // QuranSurface so the card fades from a tinted highlight back into the hub's own surface tone.
 val QuranContinueCardGradientStart = Color(0xFF07351F)
 
-// Initial-preparation determinate progress track (figma-export/quran/05b-initial-preparation.html
+// Initial-preparation determinate progress track (design-export/quran/05b-initial-preparation.html
 // `.big-progress{background:#26312b}`) — distinct from the default Material surfaceVariant track.
 val QuranEntryProgressTrackColor = Color(0xFF26312B)

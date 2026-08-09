@@ -32,7 +32,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 
 /**
- * Shared reader top-bar overflow menu (Milestone 5 FR-016, Figma product-alignment pass nodes
+ * Shared reader top-bar overflow menu (Milestone 5 FR-016, design product-alignment pass nodes
  * `16:2`/`16:45`): mode-switch, reader appearance settings (moved here from a standalone top-bar
  * icon — decision F), and a compact source-attribution dialog, in that order. Source attribution
  * is always shown, truthfully, for every content item (PRD 6.5); ADR 0015 dropped the separate

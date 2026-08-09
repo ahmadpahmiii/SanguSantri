@@ -2,7 +2,7 @@ package com.sangusantri.app.core.designsystem.theme
 
 import androidx.compose.ui.unit.dp
 
-/** Shared component dimensions extracted from the approved local Figma reader exports. */
+/** Shared component dimensions extracted from the approved local design reader exports. */
 object SanguSantriDimensions {
     val minimumTouchTarget = 48.dp
     val compactTopAppBarHeight = 56.dp
@@ -19,7 +19,7 @@ object SanguSantriDimensions {
     // Standalone Al-Qur'an reader (`0.0.6`).
     val quranSurahHeaderMinHeight = 48.dp
 
-    // figma-export/quran/09-flowing-reader-arab-only-page.html `.basmalah img{width:210px}` in a
+    // design-export/quran/09-flowing-reader-arab-only-page.html `.basmalah img{width:210px}` in a
     // 360dp logical frame.
     val quranBasmalahMaxWidth = 210.dp
     val quranHubContentMaxWidth = 640.dp
@@ -29,7 +29,7 @@ object SanguSantriDimensions {
     val quranEmptyStateMarkSize = 58.dp
     val quranEmptyStateDescriptionMaxWidth = 270.dp
 
-    // Shared `.state-mark`/`.button` pattern (figma-export/quran) — entry gate and reader's
+    // Shared `.state-mark`/`.button` pattern (design-export/quran) — entry gate and reader's
     // invalid-target state both use this same centred icon-mark + action-button layout.
     val quranStateMarkSize = 76.dp
     val quranStateMarkCornerRadius = 25.dp

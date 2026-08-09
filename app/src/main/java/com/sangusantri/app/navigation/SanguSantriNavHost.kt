@@ -38,6 +38,7 @@ import com.sangusantri.app.feature.activity.detail.ActivityQuranHistoryRoute
 import com.sangusantri.app.feature.activity.detail.ActivityTasbihHistoryRoute
 import com.sangusantri.app.feature.explore.ExploreRoute
 import com.sangusantri.app.feature.guidedreader.GuidedReaderRoute
+import com.sangusantri.app.feature.hijricalendar.HijriCalendarRoute
 import com.sangusantri.app.feature.home.SerambiActions
 import com.sangusantri.app.feature.home.SerambiRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizHistoryRoute
@@ -117,6 +118,11 @@ private data object Explore : NavKey
  * Beranda or Aktivitas section entry point. */
 @Serializable
 private data object Pengingat : NavKey
+
+/** `0.0.7`, Kalender Hijriah — Beranda-only entry, never a bottom-nav destination
+ * (`docs/product/HIJRI_CALENDAR_PRD.md` §4.1's "never add a bottom-navigation item"). */
+@Serializable
+private data object KalenderHijriah : NavKey
 
 /** `0.0.5`, Nahwu Quiz — also never a bottom-nav destination (ADR 0013), reached only from
  * Beranda's "Belajar" entry point. */
@@ -296,19 +302,12 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
                             topLevelBackStack.add(QuranReader(surahNumber, ayatNumber))
                         },
                         onContinueTasbih = { topLevelBackStack.addTopLevel(Tasbih) },
+                        onHijriCalendarClick = { topLevelBackStack.add(KalenderHijriah) },
                     ),
             )
         }
-        entry<Explore> {
-            ExploreRoute(
-                onBack = { topLevelBackStack.removeLast() },
-                onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
-            )
-        }
+        standaloneEntries(topLevelBackStack)
         activityEntries(topLevelBackStack)
-        entry<Pengingat> {
-            ReminderRoute(onBack = { topLevelBackStack.removeLast() })
-        }
         nahwuQuizEntries(topLevelBackStack)
         quranEntries(topLevelBackStack)
         entry<Tasbih> {
@@ -332,13 +331,50 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
         }
     }
 
-/** The mode gate + both readers — split out to keep [sanguSantriEntryProvider] short. */
+/** Beranda-reached, non-bottom-nav destinations with no further sub-entries of their own —
+ * split out to keep [sanguSantriEntryProvider] short. */
+private fun EntryProviderScope<NavKey>.standaloneEntries(topLevelBackStack: TopLevelBackStack) {
+    entry<Explore> {
+        ExploreRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
+        )
+    }
+    entry<Pengingat> {
+        ReminderRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+    entry<KalenderHijriah> {
+        HijriCalendarRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+}
+
+/**
+ * The mode gate + both readers — split out to keep [sanguSantriEntryProvider] short.
+ * [replaceTopEntryWithReader], local to this function since it is only used here, pops the
+ * current tab's top entry and pushes the given reader in its place — used both for the mode gate
+ * (resolving [ReaderGate] into a reader) and the in-reader mode switch (replacing [FullReader]
+ * with [GuidedReader] or vice versa, FR-016). Popping first means repeated switching never
+ * accumulates duplicate backstack entries, and back navigation from either reader always lands on
+ * [Serambi], never on a stale gate or the previous reader mode.
+ */
 private fun EntryProviderScope<NavKey>.readerEntries(topLevelBackStack: TopLevelBackStack) {
+    fun replaceTopEntryWithReader(
+        contentId: String,
+        mode: ReaderMode,
+    ) {
+        topLevelBackStack.replaceLast(
+            when (mode) {
+                ReaderMode.FULL -> FullReader(contentId)
+                ReaderMode.GUIDED -> GuidedReader(contentId)
+            },
+        )
+    }
+
     entry<ReaderGate> { key ->
         ReaderEntryRoute(
             contentId = key.contentId,
             onBack = { topLevelBackStack.removeLast() },
-            onModeResolved = { mode -> replaceTopEntryWithReader(topLevelBackStack, key.contentId, mode) },
+            onModeResolved = { mode -> replaceTopEntryWithReader(key.contentId, mode) },
         )
     }
     entry<FullReader> { key ->
@@ -346,7 +382,7 @@ private fun EntryProviderScope<NavKey>.readerEntries(topLevelBackStack: TopLevel
             contentId = key.contentId,
             onBack = { topLevelBackStack.removeLast() },
             onSwitchToGuided = {
-                replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.GUIDED)
+                replaceTopEntryWithReader(key.contentId, ReaderMode.GUIDED)
             },
         )
     }
@@ -355,7 +391,7 @@ private fun EntryProviderScope<NavKey>.readerEntries(topLevelBackStack: TopLevel
             contentId = key.contentId,
             onBack = { topLevelBackStack.removeLast() },
             onSwitchToFull = {
-                replaceTopEntryWithReader(topLevelBackStack, key.contentId, ReaderMode.FULL)
+                replaceTopEntryWithReader(key.contentId, ReaderMode.FULL)
             },
         )
     }
@@ -476,26 +512,6 @@ private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLev
     entry<ActivityQuranHistory> {
         ActivityQuranHistoryRoute(onBack = { topLevelBackStack.removeLast() })
     }
-}
-
-/**
- * Pops the current tab's top entry and pushes the given reader in its place — used both for the
- * Milestone 4 mode gate (resolving [ReaderGate] into a reader) and the Milestone 5 in-reader
- * mode switch (replacing [FullReader] with [GuidedReader] or vice versa, FR-016). Popping first
- * means repeated switching never accumulates duplicate backstack entries, and back navigation from
- * either reader always lands on [Serambi], never on a stale gate or the previous reader mode.
- */
-private fun replaceTopEntryWithReader(
-    topLevelBackStack: TopLevelBackStack,
-    contentId: String,
-    mode: ReaderMode,
-) {
-    topLevelBackStack.replaceLast(
-        when (mode) {
-            ReaderMode.FULL -> FullReader(contentId)
-            ReaderMode.GUIDED -> GuidedReader(contentId)
-        },
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

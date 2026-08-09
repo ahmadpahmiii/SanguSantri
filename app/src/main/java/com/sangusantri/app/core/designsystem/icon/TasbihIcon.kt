@@ -15,7 +15,7 @@ import kotlin.math.sin
 /**
  * Standalone Tasbih nav icon (0.0.2) — a small arc of prayer beads around one larger "imam" bead.
  * Material Symbols has no dedicated tasbih glyph
- * (`docs/design/figma-export/future-releases/00-overview-and-tokens.md`), so this is a
+ * (`docs/design/design-export/future-releases/00-overview-and-tokens.md`), so this is a
  * lightweight custom vector, drawn geometrically (never a raster image or Unicode glyph), with
  * the same filled/outlined states every other nav icon uses.
  */

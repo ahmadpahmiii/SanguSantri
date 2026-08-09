@@ -2,7 +2,7 @@
 
 **Document version:** 1.0
 **Target release:** Android `0.0.6`
-**Status:** Product scope approved; ready for Figma and engineering planning
+**Status:** Product scope approved; ready for design and engineering planning
 **Product owner:** Ahmad Fahmi Aisar
 **Decision date:** 8 August 2026
 
@@ -370,7 +370,7 @@ control is included. Screenshots remain permitted; the feature must not enable
 
 ### QUR-FR-020 — Portrait-primary resilience
 
-Figma and the principal experience target portrait phones. The app must not
+The design references and the principal experience target portrait phones. The app must not
 force portrait orientation, create a Quran-only Activity, or lose state when
 rotation occurs. Landscape and larger windows must remain functional and use
 a constrained readable column, even though they do not receive separate
@@ -522,7 +522,7 @@ it in reviewable implementation slices:
 2. Hub, search, tabs, bookmarks, last-read state.
 3. Page/Ayat readers, basmalah, long-press actions, settings, font gates.
 4. Tafsir cache/sheet, Aktivitas/streak integration, source view.
-5. Figma parity, accessibility, security audit, full automated/manual release
+5. Design parity, accessibility, security audit, full automated/manual release
    validation.
 
 No slice is independently released as a reduced MVP; unfinished navigation

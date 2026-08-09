@@ -6,12 +6,12 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-// `surfaceVariant`/`onSurfaceVariant`/`outline`/`outlineVariant` are explicitly set below (Figma
+// `surfaceVariant`/`onSurfaceVariant`/`outline`/`outlineVariant` are explicitly set below (design
 // product-alignment pass) — they were previously left unset here, so every existing usage
 // (AmaliyahCard/ReaderStepItem borders, Reader/Serambi secondary text) was silently rendering
-// Material 3's unbranded default color instead of a SanguSantri token. No revised dark-mode Figma
+// Material 3's unbranded default color instead of a SanguSantri token. No revised dark-mode design
 // frame was exported, so the dark values below reuse existing green-ramp tokens as a reasonable
-// approximation rather than inventing new, unverified hex values (`docs/design/FIGMA_HANDOFF.md`).
+// approximation rather than inventing new, unverified hex values (`docs/design/DESIGN_HANDOFF.md`).
 private val DarkColorScheme =
     darkColorScheme(
         primary = SantriGreen80,

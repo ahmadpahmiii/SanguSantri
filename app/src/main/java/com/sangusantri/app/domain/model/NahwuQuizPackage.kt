@@ -22,7 +22,7 @@ enum class NahwuQuizPackageStatus {
 
 /**
  * [NahwuQuizPackage] plus its attempt-derived display state — the one model both `Daftar Paket`'s
- * list cards and `Detail Paket` render from (`docs/design/figma-export/future-releases/
+ * list cards and `Detail Paket` render from (`docs/design/design-export/future-releases/
  * 05-release-0.0.5-nahwu-quiz.md`, states 2/3). [answeredCount] is non-null exactly when
  * [status] is [NahwuQuizPackageStatus.IN_PROGRESS] or [NahwuQuizPackageStatus.COMPLETED] — the
  * progress bar/"`n`/`total` selesai" row is hidden otherwise (never opened yet, or unavailable).

@@ -24,8 +24,8 @@ the mandatory, always-shipped baseline; remote sync is an optional,
 additive refresh that must never degrade the offline experience defined in
 §3.2/ADR 0007. Everything else in version 1.4 (Beranda rename, Jelajahi
 Amaliyah, reader repetition shortcut/TOC, risk-based publication model)
-stays in effect unchanged. Full gap analysis for the Figma pass:
-`docs/reviews/figma-product-alignment.md`. A 2026-07-28 engineering
+stays in effect unchanged. Full gap analysis for the design pass:
+`docs/reviews/design-product-alignment.md`. A 2026-07-28 engineering
 simplification pass (ADR 0012 amendment) removed manifest ETag/`304`
 handling and the former six-case sync outcome model from the
 implementation without changing FR-010/FR-011's product-level requirements
@@ -124,7 +124,7 @@ containing:
 The first release is not the super-app itself. It is the reliable foundation
 upon which the super-app will be built.
 
-The application's primary home destination is named **Beranda** (Figma
+The application's primary home destination is named **Beranda** (design
 product-alignment pass — renamed from "Serambi"). "Serambi" may continue to
 be used as an internal or product-language section label, but it is not a
 separate user-facing destination from Beranda. The app opens directly to
@@ -1189,7 +1189,7 @@ this one is product/legal/governance-owned.
 * Approved standalone Kalender Hijriah `0.0.7` scope, source evaluation,
   local-bundle policy, and acceptance criteria:
   `docs/product/HIJRI_CALENDAR_PRD.md`
-* Standalone Quran visual system and Figma frame contract: `docs/design/QURAN_DESIGN_SYSTEM.md`
+* Standalone Quran visual system and design frame contract: `docs/design/QURAN_DESIGN_SYSTEM.md`
 * Observed Kemenag endpoint/data contract: `docs/engineering/QURAN_API_CONTRACT_DRAFT.md`
 * Standalone Quran architecture/security decision:
   `docs/decisions/0016-standalone-quran-kemenag-direct-api.md`
@@ -1200,10 +1200,10 @@ this one is product/legal/governance-owned.
 * CI/CD and release process: `docs/engineering/RELEASE_ENGINEERING.md`
 * Visual identity and anti-patterns: `docs/design/DESIGN_SYSTEM.md`
 * Accessibility and adaptive layout: `docs/design/ACCESSIBILITY.md`
-* Figma frame mapping and implementation order: `docs/design/FIGMA_HANDOFF.md`
-* Kalender Hijriah local Figma-export design baseline:
-  `docs/design/figma-export/hijri-calendar/README.md`
-* Figma-vs-implementation gap analysis: `docs/reviews/figma-product-alignment.md`
+* Design frame mapping and implementation order: `docs/design/DESIGN_HANDOFF.md`
+* Kalender Hijriah local design-export baseline:
+  `docs/design/design-export/hijri-calendar/README.md`
+* Design-vs-implementation gap analysis: `docs/reviews/design-product-alignment.md`
 * Security controls by release phase: `docs/security/SECURITY_BASELINE.md`
 * Privacy commitments: `docs/security/PRIVACY.md`
 * Deferred security controls and rationale: `docs/security/THREAT_MODEL.md`

@@ -66,3 +66,22 @@ val QuranContinueCardGradientStart = Color(0xFF07351F)
 // Initial-preparation determinate progress track (design-export/quran/05b-initial-preparation.html
 // `.big-progress{background:#26312b}`) — distinct from the default Material surfaceVariant track.
 val QuranEntryProgressTrackColor = Color(0xFF26312B)
+
+// Kalender Hijriah (`0.0.7`) event-semantic roles — figma-export/hijri-calendar/
+// 01-calendar-overview-light.html and 02-calendar-overview-dark.html `:root`/`body.dark` CSS
+// variables. These extend the one canonical SanguSantri token source (same rule as the Quran roles
+// above); teal marks selection, amber marks fasting, coral marks a religious observance, fasting
+// prohibition, or official holiday (PRD §7.2). Never used for anything outside Kalender Hijriah.
+val HijriTealLight = Color(0xFF176B5C)
+val HijriTealSoftLight = Color(0xFFDCEFE9)
+val HijriAmberLight = Color(0xFFD89713)
+val HijriAmberSoftLight = Color(0xFFFFF1CB)
+val HijriCoralLight = Color(0xFFC94E4E)
+val HijriCoralSoftLight = Color(0xFFFBE3E1)
+
+val HijriTealDark = Color(0xFF62D2B8)
+val HijriTealSoftDark = Color(0xFF193E35)
+val HijriAmberDark = Color(0xFFF3BE4E)
+val HijriAmberSoftDark = Color(0xFF473918)
+val HijriCoralDark = Color(0xFFF27E78)
+val HijriCoralSoftDark = Color(0xFF4A2626)

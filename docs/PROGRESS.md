@@ -5795,3 +5795,215 @@ Begin Kalender Hijriah `0.0.7` with Delivery Slice 1 from
 `docs/product/HIJRI_CALENDAR_PRD.md`: establish the reviewed local source bundle
 and domain conversion/validation rules only. Keep the Beranda placeholder until
 the separately approved Slice 2 UI and navigation work.
+
+## Kalender Hijriah `0.0.7` — Slices 1–3 (domain, UI, agenda/provenance) (2026-08-09)
+
+**Status:** Implemented and manually verified on-device. Nahwu Quiz `0.0.5`
+and standalone Quran `0.0.6` remain earlier in the milestone sequence but
+had not been re-selected as the active task; the product owner directed
+this session at `docs/design/figma-export/hijri-calendar/` and the approved
+`docs/product/HIJRI_CALENDAR_PRD.md` directly, so all three PRD delivery
+slices were implemented together in one pass rather than split, since the
+PRD itself says no slice ships independently reduced. This replaces the
+"Beranda cross-activity resume" entry's own Kalender Hijriah placeholder
+(the `Segera hadir` badge and the "Kalender Hijriah sedang disiapkan..."
+snackbar) with the real feature — `SerambiActions.onHijriCalendarClick`
+and the `SerambiMainFeatures` tile it already wired stayed as-is; only their
+placeholder implementation was replaced with real navigation.
+
+Reused, not duplicated, per CAL-FR-002: Hijri conversion is the same
+`java.time.chrono.HijrahDate` approach `ReminderScheduleCalculator`/
+`ReminderScheduleFormatter` already use in production, and the Hijri
+month-name table is the same array — renamed `R.array.reminder_hijri_month_names`
+→ `R.array.hijri_month_names` (4 call sites updated: `SerambiScreen`,
+`ActivityScreen`, `ReminderList`, `ReminderFormSheet`) since it is now a
+cross-feature resource, not a Pengingat-only one.
+
+### What shipped
+
+**Domain** (`domain/model/`, all plain Kotlin, no Room — PRD §5.3 explicitly
+says this feature does not need it): `Pasaran` + `PasaranCalculator`
+(Pancawara cycle, Friday-Legi/8 July 1633 anchor); `HijriEventKind`,
+`HijriCalculationStatus`, `HijriEventProvenance`; `HijriCalendarEvent` +
+`HijriRecurringEventRule` (Hijri-recurrence-based, not hardcoded per-year
+Gregorian dates); `HijriCalendarBundle` — the ten-rule audited allowlist
+from PRD §5.2 (Ramadan, Tasu'a/Asyura, Ayyamul Bidh general + its narrower
+Zulhijah variant excluding 13 Zulhijah/Tasyrik, Tarwiyah, Arafah, six days
+of Syawal as a flexible non-dotted window, Idul Fitri/Idul Adha/Tasyrik as
+`FASTING_PROHIBITED`, never `FASTING`), each with real Kemenag source
+citations already named in the PRD; `officialRecords` (sourced national
+holidays/cuti-bersama) is deliberately an empty list — PRD §12 is explicit
+that the design fixture dates are not a substitute for that dataset, which
+needs its own source-by-source editorial acceptance, not inference; `HijriAgendaCalculator`
+(resolves rules per Hijri (year, month), merges with `officialRecords`,
+dedupes/sorts); `HijriCalendarDay`/`HijriCalendarMonth`/`HijriYearMonth`
+(presentation-free — no baked-in localised strings) and
+`HijriMonthGridCalculator` (Sunday-first 42-cell grid, CAL-FR-003).
+
+**UI** (`feature/hijricalendar/`): `HijriCalendarScreen`/`Route`,
+`HijriCalendarUiState`/`UiAction`, `HijriCalendarViewModel` (no repository —
+pure, synchronous local calculation, so there is no loading state per
+PRD §9), `HijriCalendarFormatter` + `HijriCalendarAgendaFormatter` (split in
+two to stay under detekt's function-count threshold), `HijriCalendarAgendaFilter`;
+`components/`: month header + Sunday-first weekday row, the day grid/cell
+(Arabic-Indic in-cell Hijri numeral, Latin Gregorian numeral, pasaran,
+today/selected non-colour indicators, amber/coral event dots), selected-date
+summary strip, agenda section (legend, Semua/Puasa/Hari besar & libur
+filters, grouped range rows, empty state), the "Sumber & metode" bottom
+sheet (§3.2's exact required Umm al-Qura authority-boundary disclosure
+copy), and a per-event provenance detail dialog (CAL-FR-008).
+
+**Design tokens**: `HijriTeal/Amber/Coral` (+`Soft`, light/dark pairs) added
+to `Color.kt` from the approved local HTML export's exact hex values, plus a
+`hijriCalendarPalette()` composable accessor (`core/designsystem/theme/`),
+following the same "extends the one canonical token source" convention as
+the existing `Quran*` tokens.
+
+**Navigation/entry**: `KalenderHijriah` `NavKey`, entry in
+`SanguSantriNavHost`, wired to the existing `SerambiActions.onHijriCalendarClick`
+hook (added by the earlier Beranda cross-activity-resume pass) — Beranda-only,
+never a bottom-nav tab (PRD §4.1). `SerambiRoute`'s placeholder snackbar
+override for that click was removed so it now navigates for real, and the
+`SerambiMainFeatures` Kalender Hijriah tile's `Segera hadir` badge (and the
+now-unused `serambi_coming_soon_badge` string) was removed since the feature
+is no longer "coming soon". The extra `entry<KalenderHijriah>` line pushed
+`sanguSantriEntryProvider` over detekt's `LongMethod`/`TooManyFunctions`
+thresholds; fixed by extracting a new `standaloneEntries` split-out (Explore/
+Pengingat/KalenderHijriah, mirroring the existing `activityEntries`/
+`nahwuQuizEntries` pattern) and turning `replaceTopEntryWithReader` into a
+function local to `readerEntries` (its only caller), instead of a separate
+top-level declaration.
+
+**Strings**: ~40 new `hijri_calendar_*` strings, plus two new arrays
+(`hijri_calendar_weekday_names` — Ahad-first, `hijri_calendar_pasaran_names`),
+all in `strings.xml`. The pre-existing `serambi_hijri_calendar_title` string
+from the earlier placeholder pass is still used (tile title); the now-dead
+`serambi_coming_soon_badge` and `serambi_hijri_calendar_placeholder_message`
+strings were deleted along with their last call sites.
+
+### Files created
+
+`domain/model/{Pasaran,PasaranCalculator,HijriEventKind,HijriCalculationStatus,
+HijriEventProvenance,HijriCalendarEvent,HijriRecurringEventRule,
+HijriCalendarBundle,HijriAgendaCalculator,HijriCalendarDay,HijriCalendarMonth,
+HijriYearMonth,HijriMonthGridCalculator}.kt`;
+`core/designsystem/theme/HijriCalendarPalette.kt`;
+`feature/hijricalendar/{HijriCalendarScreen,HijriCalendarUiState,
+HijriCalendarUiAction,HijriCalendarViewModel,HijriCalendarFormatter,
+HijriCalendarAgendaFormatter,HijriCalendarAgendaFilter}.kt`;
+`feature/hijricalendar/components/{HijriCalendarGrid,HijriCalendarHeader,
+HijriCalendarMonthNavigation,HijriCalendarSelectedSummary,
+HijriCalendarAgendaSection,HijriCalendarSourceSheet,
+HijriCalendarEventDetailDialog}.kt`;
+test sources `domain/model/{PasaranCalculatorTest,HijriAgendaCalculatorTest,
+HijriMonthGridCalculatorTest}.kt`,
+`feature/hijricalendar/HijriCalendarFormatterTest.kt`.
+
+### Files modified
+
+`core/designsystem/theme/{Color,SanguSantriDimensions}.kt`;
+`navigation/SanguSantriNavHost.kt`; `feature/home/{SerambiScreen,
+SerambiMenuComponents}.kt`; `feature/reminder/{ReminderList,
+ReminderScheduleFormatter,components/ReminderFormSheet}.kt`;
+`feature/activity/ActivityScreen.kt`; `res/values/strings.xml`.
+
+### Validation
+
+```text
+./gradlew :app:ktlintCheck             — passes for every file this change
+                                           touches; fails overall only on the
+                                           same pre-existing MaxLineLength
+                                           violation in QuranCredentialProvider.kt,
+                                           unrelated and unchanged.
+./gradlew :app:detekt                  — passes for every file this change
+                                           touches after splitting
+                                           HijriCalendarFormatter,
+                                           HijriCalendarMonthHeader, and
+                                           HijriCalendarDayCell to stay under
+                                           TooManyFunctions/LongParameterList/
+                                           LongMethod thresholds; fails overall
+                                           only on the same pre-existing
+                                           QuranCredentialProvider.kt line.
+./gradlew :app:lintDebug               — pass
+./gradlew :app:assembleDebug           — pass
+./gradlew :app:testDebugUnitTest       — pass, 34/34 new tests (8 Pasaran +
+                                           9 agenda/bundle + 6 grid + 11
+                                           formatter), plus the full existing
+                                           suite unaffected by the array
+                                           rename.
+./gradlew :app:installDebug            — pass, Pixel 9 (AVD) API 15 emulator.
+```
+
+**Manual on-device verification** (light and dark theme, emulator system
+date 9 August 2026): Beranda's Kalender Hijriah tile opens the calendar;
+month grid matches the approved design (Sunday-first, Arabic-Indic in-cell
+Hijri numerals, coral Sunday numerals, amber Ayyamul Bidh dots correctly
+shown on muted adjacent-month cells belonging to a different Gregorian
+month); prev/next month navigation preserves day-of-month and recalculates
+the Hijri span/weekday/pasaran; "Hari ini" returns to today; agenda filters
+and the correctly-empty "Tidak ada agenda untuk filter ini." state render;
+the "Sumber & metode" sheet matches the approved copy and badge exactly.
+**Manual testing itself caught and fixed a real bug**: the selected-date
+summary and every day cell's accessibility description initially showed
+"Minggu" for Sunday (from `java.time`'s own Indonesian `getDisplayName`)
+instead of this app's required "Ahad" (PRD §7.1) — the month header's
+weekday row was already correct (string-array-driven), but
+`HijriCalendarFormatter`/the grid's content descriptions were not. Fixed by
+threading the same Sunday-first `hijri_calendar_weekday_names` array through
+`formatWeekdayAndPasaran`/the new `formatWeekdayFull`, with three regression
+tests added (`formatWeekdayFullUsesAhadForSundayNeverMinggu` and siblings).
+
+**Follow-up design audit (same day)**: the "Sumber & metode"
+`HijriCalendarSourceSheet` read as excessively/inconsistently rounded on
+review. Root cause: its `ModalBottomSheet` had no explicit `shape` (so it
+fell back to Material3 Expressive's default, not the design's specified
+24dp-top-corner sheet), its bottom `Button` had no explicit `shape` either —
+Material3 Expressive 1.4.0's default `Button` shape is `CornerFull`
+(`CircleShape`, a full stadium/pill), independent of the app's own
+`SanguSantriShapes` theme — and the source-block borders used a one-off
+`13.dp` literal instead of an app shape token
+(`docs/design/DESIGN_SYSTEM.md`'s "2–3 corner radii used deliberately, not
+one radius invented per component" rule). Fixed by wiring the
+already-defined-but-unused `SanguSantriDimensions.hijriCalendarSourceSheetCornerRadius`
+(24dp) into the sheet's `shape`, and switching the button/source-block
+border/heading-icon-box/badge to the existing `SanguSantriShapes.medium`
+(12dp, matching the design's `.primary-button`/`.source-block` radii exactly)
+and `SanguSantriShapes.extraLarge` (pill) tokens instead of ad hoc literals
+or the unstyled Material3 default.
+
+### Known limitations
+
+- **The official national holiday/cuti-bersama bundle is empty.**
+  `HijriCalendarBundle.officialRecords = emptyList()` is deliberate, not an
+  oversight — PRD §12 states the design fixture dates are not a substitute
+  for that release dataset, and populating real per-year dates requires its
+  own source-by-source editorial acceptance against a named government
+  publication (content-safety rule: no scraping/inferring). Sundays still
+  render red; only the sourced-official-holiday red-numeral/agenda path has
+  no data yet to activate it. A future content-curation pass should add
+  this via `docs/operations/CONTENT_GOVERNANCE.md`'s process.
+- **No `HijriCalendarViewModelTest`.** Only the pure domain
+  calculators/formatters got unit tests this pass (matching CAL-FR-004's
+  explicit pasaran-test requirement); the ViewModel's month-navigation/
+  boundary-clamping/selection logic was exercised manually on-device
+  (August → September, "Hari ini") but not with an automated fake-based
+  test the way `SerambiViewModelTest` covers `SerambiViewModel`.
+- **No Compose UI/screenshot tests** were added for the new screen or its
+  components — `docs/engineering/TESTING.md`'s Compose UI test list was not
+  extended for Kalender Hijriah this pass.
+- The ten-year browse boundary (`YearMonth.now() ± 10 years`) was verified
+  by reading the `HijriCalendarViewModel` logic and a one-month manual
+  navigation, not by manually navigating a full ten years to observe the
+  arrow-disable state on-device.
+- Arabic-Indic digit rendering was visually spot-checked in the emulator
+  screenshots (correct glyphs, correct positions) but not verified against
+  every supported device font the way the standalone Quran feature's Arabic
+  corpus QA was.
+
+### Next recommended milestone
+
+Nahwu Quiz (`0.0.5`, per ADR 0013) remains the next unimplemented,
+already-approved milestone in strict sequence order. If Kalender Hijriah
+continues instead, the next slice of work is the official national
+holiday/cuti-bersama sourced dataset (PRD §5.4/§12) plus a
+`HijriCalendarViewModelTest`.

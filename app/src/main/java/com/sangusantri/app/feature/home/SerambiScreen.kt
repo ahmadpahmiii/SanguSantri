@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -31,7 +30,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
@@ -49,7 +47,6 @@ import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
 import com.sangusantri.app.feature.update.AppUpdateGate
-import kotlinx.coroutines.launch
 
 @Composable
 fun SerambiRoute(
@@ -59,22 +56,7 @@ fun SerambiRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-    val calendarPlaceholderMessage = stringResource(R.string.serambi_hijri_calendar_placeholder_message)
-    val screenActions =
-        actions.copy(
-            onDismissResume = viewModel::dismissResume,
-            // TODO(calendar-0.0.7-slice-2): Replace this feedback with the real Navigation 3
-            // Kalender Hijriah destination when its approved UI slice is implemented.
-            onHijriCalendarClick = {
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = calendarPlaceholderMessage,
-                        duration = SnackbarDuration.Long,
-                    )
-                }
-            },
-        )
+    val screenActions = actions.copy(onDismissResume = viewModel::dismissResume)
     SerambiScreen(
         uiState = uiState,
         onContentSelected = onContentSelected,
@@ -150,7 +132,7 @@ private fun SerambiDashboard(
     actions: SerambiActions,
     modifier: Modifier = Modifier,
 ) {
-    val hijriMonthNames = stringArrayResource(R.array.reminder_hijri_month_names).toList()
+    val hijriMonthNames = stringArrayResource(R.array.hijri_month_names).toList()
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(SanguSantriDimensions.dashboardGridMinCellWidth),

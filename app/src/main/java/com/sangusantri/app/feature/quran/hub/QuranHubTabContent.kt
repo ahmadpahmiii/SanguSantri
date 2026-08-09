@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.quran.hub
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,8 +52,14 @@ fun QuranHubTabContent(
     actions: QuranHubActions,
 ) {
     when (uiState.selectedTab) {
-        QuranHubTab.SURAH -> QuranSurahList(surahs = uiState.surahs, onSurahSelected = actions.onSurahSelected)
-        QuranHubTab.JUZ -> QuranJuzList(rows = uiState.juzRows, onAyatSelected = actions.onAyatSelected)
+        QuranHubTab.SURAH ->
+            QuranSurahList(
+                surahs = uiState.surahs,
+                isLoading = uiState.isLoading,
+                onSurahSelected = actions.onSurahSelected,
+            )
+        QuranHubTab.JUZ ->
+            QuranJuzList(rows = uiState.juzRows, isLoading = uiState.isLoading, onAyatSelected = actions.onAyatSelected)
         QuranHubTab.BOOKMARK -> QuranBookmarkList(rows = uiState.bookmarkRows, onAyatSelected = actions.onAyatSelected)
     }
 }
@@ -59,13 +67,18 @@ fun QuranHubTabContent(
 @Composable
 private fun QuranSurahList(
     surahs: List<QuranSurah>,
+    isLoading: Boolean,
     onSurahSelected: (Int) -> Unit,
 ) {
     if (surahs.isEmpty()) {
-        QuranEmptyTabState(
-            icon = Icons.AutoMirrored.Outlined.MenuBook,
-            description = stringResource(R.string.quran_hub_surah_empty),
-        )
+        if (isLoading) {
+            QuranLoadingTabState()
+        } else {
+            QuranEmptyTabState(
+                icon = Icons.AutoMirrored.Outlined.MenuBook,
+                description = stringResource(R.string.quran_hub_surah_empty),
+            )
+        }
         return
     }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -121,13 +134,18 @@ private fun QuranSurahRow(
 @Composable
 private fun QuranJuzList(
     rows: List<QuranJuzRow>,
+    isLoading: Boolean,
     onAyatSelected: (Int, Int) -> Unit,
 ) {
     if (rows.isEmpty()) {
-        QuranEmptyTabState(
-            icon = Icons.AutoMirrored.Outlined.MenuBook,
-            description = stringResource(R.string.quran_hub_juz_empty),
-        )
+        if (isLoading) {
+            QuranLoadingTabState()
+        } else {
+            QuranEmptyTabState(
+                icon = Icons.AutoMirrored.Outlined.MenuBook,
+                description = stringResource(R.string.quran_hub_juz_empty),
+            )
+        }
         return
     }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -174,12 +192,7 @@ private fun QuranBookmarkList(
         items(items = rows, key = { "${it.surahNumber}:${it.ayatNumber}" }) { row ->
             QuranListRow(onClick = { onAyatSelected(row.surahNumber, row.ayatNumber) }) {
                 Icon(imageVector = Icons.Outlined.Bookmark, contentDescription = null, tint = QuranPrimary)
-                Column(
-                    modifier =
-                        Modifier
-                            .padding(start = SanguSantriSpacing.small)
-                            .weight(1f),
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = row.surahName, style = MaterialTheme.typography.titleMedium, color = QuranArabicText)
                     Text(
                         text = stringResource(R.string.quran_hub_bookmark_position, row.ayatNumber),
@@ -200,6 +213,10 @@ private fun QuranListRow(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        // figma-export/quran/01-quran-hub-surah.html `.row{gap:12px}` — every direct child (badge,
+        // title column, trailing icon/arabic name) needs this gap; previously absent, so the new
+        // number badge sat flush against the title with no breathing room.
+        horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -270,5 +287,15 @@ private fun QuranEmptyTabState(
                         .widthIn(max = SanguSantriDimensions.quranEmptyStateDescriptionMaxWidth),
             )
         }
+    }
+}
+
+/** Shown only until Room's first emission arrives — the entry gate (`QuranEntryScreen.kt`)
+ * already guarantees a non-empty local dataset by the time the hub is reachable, so an empty
+ * Surah/Juz tab before that first emission means "not loaded yet", not "no data" (QUR-FR-002). */
+@Composable
+private fun QuranLoadingTabState() {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        CircularProgressIndicator(color = QuranPrimary)
     }
 }

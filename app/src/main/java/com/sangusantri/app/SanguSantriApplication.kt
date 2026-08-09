@@ -14,6 +14,7 @@ import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapOutcome
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapper
 import com.sangusantri.app.data.reminder.ReminderNotificationChannel
 import com.sangusantri.app.data.sync.ContentSyncScheduler
+import com.sangusantri.app.data.sync.quran.QuranUpdateScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +35,9 @@ class SanguSantriApplication :
 
     @Inject
     lateinit var contentSyncScheduler: ContentSyncScheduler
+
+    @Inject
+    lateinit var quranUpdateScheduler: QuranUpdateScheduler
 
     @Inject
     lateinit var hiltWorkerFactory: HiltWorkerFactory
@@ -65,6 +69,12 @@ class SanguSantriApplication :
             // independent of whether the local baseline import succeeded this launch.
             runCatching { contentSyncScheduler.enqueueIfStale() }
                 .onFailure { Log.w(TAG, "content sync scheduling failed", it) }
+
+            // Quran differs from the daily amaliyah catalog check: this fetches only a tiny
+            // Remote Config control value and enqueues a full unmetered update when its monotonic
+            // version is newer than an already-complete local Quran dataset.
+            runCatching { quranUpdateScheduler.enqueueIfUpdateAvailable() }
+                .onFailure { Log.w(TAG, "Quran version update scheduling failed", it) }
         }
     }
 

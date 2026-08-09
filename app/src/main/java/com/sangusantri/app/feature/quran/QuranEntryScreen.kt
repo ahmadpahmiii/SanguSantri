@@ -117,9 +117,13 @@ fun QuranEntryScreen(
                 color = QuranMutedText,
             )
         }
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .weight(1f), contentAlignment = Alignment.Center) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
             when (uiState) {
                 QuranEntryUiState.Checking, QuranEntryUiState.Ready -> QuranCheckingState()
 
@@ -168,9 +172,10 @@ private fun QuranPreparingState(state: QuranEntryUiState.Preparing) {
                     progress = { state.completed / state.total.toFloat() },
                     color = QuranPrimary,
                     trackColor = QuranEntryProgressTrackColor,
-                    modifier = Modifier
-                        .widthIn(max = SanguSantriDimensions.quranEntryProgressWidth)
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .widthIn(max = SanguSantriDimensions.quranEntryProgressWidth)
+                            .fillMaxWidth(),
                 )
                 Text(
                     text = stringResource(R.string.quran_entry_preparing_progress, state.completed, state.total),

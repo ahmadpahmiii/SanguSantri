@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by ADR 0015; migration policy amended 2026-08-09
 
 ## Context
 
@@ -51,12 +51,10 @@ every launch without duplicating or corrupting local data.
   package's natural key, so re-running the importer against an
   already-imported version is a no-op (`AlreadyImported`), not a duplicate
   insert.
-- **Migration, not destructive fallback.** Per ADR 0003's commitment, the
-  content hierarchy tables are added via a hand-written `Migration(1, 2)`
-  (`data/local/database/Migrations.kt`) whose SQL is copied verbatim from the
-  Room-exported v2 schema, verified by an instrumented `MigrationTestHelper`
-  test (`SanguSantriMigrationTest`) that upgrades a real v1 database and
-  checks both the new tables and pre-existing `app_metadata` rows survive.
+- **Historical migration policy superseded.** This ADR originally required a
+  hand-written version 1→2 migration. ADR 0015 replaced the content model, and
+  the product owner's 2026-08-09 decision removed the remaining migration
+  chain/test in favour of Room's drop-all destructive fallback.
 
 ## Consequences
 

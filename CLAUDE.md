@@ -186,13 +186,11 @@ work (`docs/design/DESIGN_HANDOFF.md`, Phases A–E) and are not a permanent
 change to engineering standards. Remove this section once that
 implementation initiative concludes or the user says otherwise.
 
-* Do not create Room migration classes or a migration chain, and do not
-  add `fallbackToDestructiveMigration`. The app is pre-public-release
-  (`docs/engineering/CONTENT_MODEL.md` schema-freeze policy); when a
-  schema change is genuinely necessary, update the clean baseline schema
-  and state plainly that local developer data must be cleared or the app
-  reinstalled. Real migrations become mandatory again the moment the
-  initial public schema ships — this does not delete that long-term rule.
+* Do not create Room migration classes or a migration chain. The product
+  owner explicitly accepts `fallbackToDestructiveMigration(dropAllTables =
+  true)` for unsupported schema transitions, including after public release.
+  State plainly that all Room-backed content and user state will be lost;
+  bundled content bootstraps again, while Quran must be downloaded again.
 * Do not add new unit, instrumented, or screenshot tests; do not spend the
   phase building test infrastructure; do not delete existing tests to
   avoid maintaining them; keep existing test sources compiling when

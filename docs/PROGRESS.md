@@ -5410,3 +5410,387 @@ merging this branch onto the commit that introduced it.
 
 Nahwu Quiz `0.0.5` implementation (see the Kalender Hijriah `0.0.7` PRD
 entry above for that milestone's own next-step note).
+
+## Quran Remote-Config version gate and periodic-sync removal (2026-08-09)
+
+**Status:** Implemented and manually verified. The complete Quran corpus is
+now offline-only after initial preparation. There is no weekly, monthly, or
+other calendar-based full-corpus synchronization.
+
+### Scope and delivered behaviour
+
+- Added Firebase Remote Config key `quran_stable_version`, with a safe local
+  default/baseline of `1`. This is a monotonic operational trigger, not a
+  version supplied or guaranteed by the Kemenag API.
+- App startup performs only the small Remote Config check after confirming
+  that Room already contains the canonical 114-surah/expected-verse-count
+  dataset. A full Kemenag fetch is enqueued only when the activated remote
+  version is greater than the locally applied version.
+- Existing complete installs without version metadata adopt local version
+  `1`, preventing a needless re-download during migration to this policy.
+- A version-triggered update uses unique one-time WorkManager work with
+  `UNMETERED` network and battery-not-low constraints. It makes one full
+  attempt; a handled failure preserves the previous Room snapshot and puts
+  that target version on a 24-hour cooldown. A newly raised target bypasses
+  the old target's cooldown.
+- Successful validation replaces surahs and verses, clears remote-ID-coupled
+  tafsir cache, and advances the local version in one Room transaction. The
+  app can therefore never expose a new corpus with an old applied-version
+  marker, nor activate a partial candidate.
+- Removed the Quran Hub's old background-refresh state/banner and repository
+  `refreshIfStale()` path. Once prepared, Hub and Reader observe Room only.
+- Shared and serialized Remote Config fetch/activation between the existing
+  app-update policy and the Quran version gate, avoiding competing fetches.
+
+### Files created
+
+- `data/remote/config/RemoteConfigFetcher.kt`
+- `data/remote/quran/QuranStableVersionConfig.kt`
+- `data/local/quran/QuranLocalDataset.kt`
+- `data/sync/quran/QuranUpdateScheduler.kt`
+- `data/sync/quran/QuranUpdateWorker.kt`
+- `app/src/test/.../QuranSyncMetadataTest.kt`
+
+### Files modified
+
+- Android startup, Remote Config DI/defaults, Quran repository/domain contract,
+  sync manager/metadata/result, tafsir DAO/entity, Hub ViewModel/state/screen,
+  strings, and the existing `QuranSyncManagerTest`.
+- Quran PRD, roadmap, ADR 0016, architecture, offline-first/content-model/API
+  contract/testing docs, production readiness/incident response, and the
+  privacy/security baseline.
+
+### Validation
+
+```text
+./gradlew :app:compileDebugKotlin
+  — pass
+./gradlew :app:testDebugUnitTest --tests com.sangusantri.app.data.sync.quran.QuranSyncMetadataTest
+  — pass (baseline adoption, version eligibility, and cooldown coverage)
+./gradlew :app:lint
+  — pass
+./gradlew :app:assembleDebug
+  — pass
+./gradlew :app:installDebug
+  — pass; installed on Pixel_9 AVD / Android 15
+git diff --check
+  — pass
+./gradlew :app:ktlintCheck
+./gradlew :app:ktlintFormat
+  — blocked only by the existing `QuranCredentialProvider.kt:69` line-length
+    violation; no violation reported in the new version-gate files
+./gradlew :app:detekt
+  — new version-gate code is clean; repository-wide task remains blocked by
+    unrelated current findings in Serambi/Explore plus the same credential
+    provider line-length finding
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=\
+  com.sangusantri.app.data.sync.quran.QuranSyncManagerTest
+  — test did not start because the androidTest source set currently fails to
+    compile: `SanguSantriMigrationTest.kt:127` references removed symbol
+    `MIGRATION_1_2`
+```
+
+Manual emulator verification after force-stop/relaunch:
+
+- Beranda started with no Quran/Kemenag sync log at local/remote version `1`.
+- With the emulator reported offline, Quran Hub opened from Room, showed the
+  complete local surah list and last-read state, and showed no refresh banner.
+
+### Known limitations
+
+- The production Remote Config value was intentionally not raised to `2`, so
+  the destructive operational trigger was not exercised end-to-end against
+  the real Kemenag corpus during this pass. Unit coverage verifies the gate and
+  cooldown, while the existing sync-manager test covers atomic replacement but
+  is currently blocked by the unrelated androidTest compilation issue above.
+- Operators must raise `quran_stable_version` only after the intended Kemenag
+  corpus is available and validated. Remote Config is a public control plane,
+  not a content-integrity signal; every downloaded corpus still passes the
+  existing structural validation before activation.
+
+### Next recommended milestone
+
+Repair the stale `MIGRATION_1_2` androidTest reference, then perform a controlled
+non-production `quran_stable_version` `1` → `2` exercise with an authorized
+credential and verify exactly one WorkManager download, atomic activation, and
+offline restart. No periodic Quran sync should be reintroduced.
+
+## Destructive Room policy and Quran Hub local-load optimisation (2026-08-09)
+
+**Status:** Implemented and verified. This explicitly supersedes the prior
+`MIGRATION_1_2` preservation policy and closes the Quran Hub's multi-second
+local loading bottleneck.
+
+### Room schema-transition decision
+
+- `DatabaseModule` now states the product-owner-approved policy explicitly as
+  `fallbackToDestructiveMigration(dropAllTables = true)`.
+- Removed the obsolete `SanguSantriMigrationTest`, its androidTest schema-asset
+  wiring, and the now-unused `androidx.room:room-testing` dependency.
+- No hand-written Room migration chain is retained. On any unsupported schema
+  transition, Room drops every table and recreates the current schema.
+- This intentionally loses all Room-backed state: reading positions, guided
+  progress, activity history, tasbih history, reminders, Quran corpus,
+  bookmarks/history/state, metadata, and any other persisted Room rows.
+  Bundled amaliyah content bootstraps again; Quran is not bundled and therefore
+  requires another successful connected acquisition before offline reading is
+  restored.
+- ADR 0003/0006/0012/0015, architecture rules, coding/testing guidance,
+  `AGENTS.md`, and `CLAUDE.md` were amended so future work cannot accidentally
+  reintroduce the old migration requirement.
+
+### Quran loading diagnosis and fix
+
+The Quran Hub does not load all 6,236 verse bodies into its Surah tab. Its
+initial combined state reads only:
+
+- 114 `quran_surahs` rows;
+- 30 first-verse-of-Juz rows;
+- the user's usually-small bookmark list; and
+- one optional last-reading-state row.
+
+The delay came from how those 30 Juz rows were derived. The old
+`observeJuzStarts()` query ran a correlated `NOT EXISTS` subquery for every one
+of the 6,236 candidate verses. `EXPLAIN QUERY PLAN` confirmed a full outer scan
+plus repeated index searches and a temporary sort. Against the copied database
+snapshot from the Pixel 9 emulator, it took approximately **2.35 seconds** to
+return 30 rows.
+
+The DAO now computes the minimum numeric `(surahNumber, ayatNumber)` position
+once per Juz with a grouped subquery, then joins those 30 positions back to the
+verse table. The equivalent query on the same 114-surah/6,236-verse snapshot
+took approximately **0.01 seconds**. This is a query-only change: Quran text,
+ordering rules, Room tables, and schema version are unchanged.
+
+### Files removed
+
+- `app/src/androidTest/java/com/sangusantri/app/data/local/database/SanguSantriMigrationTest.kt`
+
+### Main files modified
+
+- `app/src/main/java/com/sangusantri/app/data/local/dao/QuranVerseDao.kt`
+- `app/src/main/java/com/sangusantri/app/data/local/database/SanguSantriDatabase.kt`
+- `app/src/main/java/com/sangusantri/app/di/DatabaseModule.kt`
+- `app/src/androidTest/java/com/sangusantri/app/data/sync/quran/QuranSyncManagerTest.kt`
+- `app/build.gradle.kts`, `gradle/libs.versions.toml`
+- `AGENTS.md`, `CLAUDE.md`, `docs/CODEX_AUTONOMOUS_PROMPT.md`
+- ADR 0003, 0006, 0012, 0015 and the content-model/offline-first/coding/testing
+  engineering documents.
+
+### Validation
+
+```text
+./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin
+  — pass; obsolete MIGRATION_1_2 compile failure is gone
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=\
+  com.sangusantri.app.data.sync.quran.QuranSyncManagerTest
+  — pass; 4 tests on Pixel_9 AVD / Android 15
+./gradlew :app:lint
+  — pass
+./gradlew :app:assembleDebug
+  — pass
+./gradlew :app:installDebug
+  — pass
+./gradlew :app:ktlintFormat
+./gradlew :app:ktlintCheck
+./gradlew :app:detekt
+  — repository-wide tasks remain blocked only by the existing
+    `QuranCredentialProvider.kt:69` max-line-length finding; no finding in this
+    pass's migration/query changes
+```
+
+Manual verification confirmed that the optimized build opens the complete
+Room-backed Surah list from the restored local snapshot. The instrumented sync
+test additionally verifies 114-surah activation, canonical ayat ordering, and
+exactly 30 ordered Juz starts.
+
+### Known limitation
+
+The destructive fallback is intentionally a reliability trade-off: an app
+upgrade with an unsupported Room schema version removes the previously
+downloaded Quran and all Room-backed user history. Until Quran is downloaded
+again, its offline reader is unavailable. This is expected product behaviour,
+not a migration defect.
+
+### Next recommended milestone
+
+Keep schema changes batched and rare because every version mismatch now has a
+large user-visible recovery cost. Separately, add a release-note/data-reset
+warning whenever a release increments the Room schema version; do not restore a
+hand-written migration chain unless the product owner reverses this decision.
+
+## Beranda scalable-dashboard revamp and Jelajahi Amaliyah (2026-08-09)
+
+**Status:** Implemented and manually verified. This is the requested Beranda
+revamp slice of design-alignment Phase B, not the full FR-020/FR-021 catalogue
+scope.
+
+### Scope and delivered behaviour
+
+- Rebuilt Beranda as a clean, data-driven dashboard with greeting and search,
+  a genuine continue-reading card, the app's available main-feature shortcuts,
+  nearest-reminder visibility, and up to four featured amaliyah entries.
+- Feature availability follows real local state: amaliyah and Nahwu Quiz are
+  not advertised without corresponding content; the continue card appears only
+  for actual reader or quiz progress and opens the matching destination.
+- Added a dedicated Jelajahi Amaliyah destination with local search, dynamic
+  category chips, result count, empty state, and an adaptive catalogue grid.
+- Added subtle state motion to the continue card and catalogue result/empty
+  transitions. The standard system animator-duration setting remains the source
+  of truth, including reduced/disabled animation preferences.
+- Kept the approved bottom-navigation-only shell and made both dashboard and
+  catalogue grids adapt to available width without adding a navigation rail.
+- Added repository queries for the most recent full-reader position and most
+  recent incomplete guided-reader session. Room remains the source of truth;
+  no database schema, migration, network path, or religious content changed.
+- Stabilized the top app bars after on-device scroll review so content remains
+  cleanly framed without a transient empty header surface.
+
+### Files created
+
+- `app/src/main/java/com/sangusantri/app/feature/home/SerambiComponents.kt`
+- `app/src/main/java/com/sangusantri/app/feature/explore/ExploreScreen.kt`
+- `app/src/main/java/com/sangusantri/app/feature/explore/ExploreUiState.kt`
+- `app/src/main/java/com/sangusantri/app/feature/explore/ExploreViewModel.kt`
+
+### Files modified
+
+- Beranda UI/state/actions/ViewModel and shared `ContentCard`.
+- App navigation host, design-system dimensions, and Indonesian strings.
+- Reading-position and guided-reading repository contracts, Room DAOs, and
+  repository implementations.
+- Existing Beranda and reader ViewModel test fakes were kept source-compatible;
+  no new tests were added during this temporary design-alignment phase.
+
+### Validation
+
+```text
+./gradlew :app:compileDebugKotlin — pass
+./gradlew :app:compileDebugUnitTestKotlin — pass; existing test sources compile
+./gradlew :app:lint               — pass
+./gradlew :app:assembleDebug      — pass
+./gradlew :app:installDebug       — pass; Pixel_9 AVD / Android 15
+./gradlew :app:ktlintFormat
+./gradlew :app:ktlintCheck
+./gradlew :app:detekt
+  — Beranda/Jelajahi findings resolved; all three repository-wide gates remain
+    blocked only by the concurrent, out-of-scope
+    `data/remote/quran/QuranCredentialProvider.kt:69` max-line-length finding
+```
+
+Per the temporary implementation-pass constraint, no unit or instrumented test
+task was run.
+
+Manual emulator verification covered the light and dark Beranda surfaces,
+phone-width adaptive card layout, scrolling and fixed header, genuine
+Istighosah progress at step 1/25, direct resume into the full reader, Jelajahi
+navigation with bottom navigation hidden, category presentation, and live
+search narrowing `Istighosah` to one result. No clipping or contrast issue was
+observed on the Pixel_9 AVD.
+
+### Known limitations
+
+- Jelajahi currently provides search and category filtering only. Favourite,
+  offline-only, and recent-content catalogue controls from the wider FR-020/
+  FR-021 design scope remain future work.
+- Tablet/foldable behaviour is implemented through adaptive grids but was not
+  manually exercised on a second large-window AVD in this pass.
+- The unrelated Quran credential-provider line-length finding must be resolved
+  by its owning change before repository-wide `ktlint` and `detekt` can pass.
+
+### Next recommended milestone
+
+Complete the remaining Phase B Jelajahi catalogue controls (favourites,
+offline-only, and recent content) before moving to the next roadmap feature.
+
+## Beranda cross-activity resume and feature hierarchy refinement (2026-08-09)
+
+**Status:** Implemented and manually verified. This refinement completes the
+approved Beranda direction without implementing the Kalender Hijriah feature
+itself.
+
+### Scope and delivered behaviour
+
+- The `Lanjutkan` card now chooses the newest locally persisted resumable
+  activity across Al-Qur'an, Amaliyah (full or guided reader), and Tasbih using
+  each feature's existing last-activity timestamp. Completed Activity-history
+  rows are not used as resume candidates.
+- Each candidate opens its exact destination: Quran resumes the saved surah and
+  ayat, Amaliyah resumes its saved reader mode, and Tasbih switches directly to
+  its top-level tab.
+- Added a 48 dp dismiss action backed by the shared Preferences DataStore. A
+  dismissed candidate stays hidden across process restarts, does not expose an
+  older fallback candidate, and automatically becomes eligible again only
+  after its progress fingerprint changes.
+- Replaced Nahwu Quiz in the main-feature row with a Kalender Hijriah
+  placeholder. Its tap currently shows a long snackbar and an explicit source
+  TODO points the future `0.0.7` UI slice to the real Navigation 3 destination.
+- Moved Pengingat and conditionally available Nahwu Quiz into a headerless,
+  data-driven supporting-feature shelf. The nearest reminder summary and active
+  Nahwu attempt are reflected when present, and the list can accept additional
+  supporting tools later without restructuring the screen.
+- Main and supporting tiles use adaptive `FlowRow` sizing. At 150% system font
+  scale, main features wrap to 2+1 and supporting features to one column so
+  labels and the `Segera hadir` badge remain readable.
+- No Room schema, migration, network path, Quran/amaliyah religious content, or
+  Kalender Hijriah calculation/source was added or modified by this refinement.
+
+### Files created
+
+- `app/src/main/java/com/sangusantri/app/domain/repository/HomePreferencesRepository.kt`
+- `app/src/main/java/com/sangusantri/app/data/repository/HomePreferencesRepositoryImpl.kt`
+- `app/src/main/java/com/sangusantri/app/di/HomeModule.kt`
+- `app/src/main/java/com/sangusantri/app/feature/home/SerambiResumeCoordinator.kt`
+- `app/src/main/java/com/sangusantri/app/feature/home/SerambiMenuComponents.kt`
+
+### Files modified
+
+- Beranda UI state, actions, ViewModel, screen, and resume-card components.
+- Navigation host, design-system dimensions, and Indonesian strings.
+- Existing `SerambiViewModelTest` fakes were kept source-compatible; no new test
+  methods were added during this temporary design-alignment phase.
+
+### Validation
+
+```text
+./gradlew :app:compileDebugKotlin                 - pass
+./gradlew :app:compileDebugUnitTestKotlin         - pass; test sources compile
+./gradlew :app:lint                               - pass
+./gradlew :app:assembleDebug                      - pass
+./gradlew :app:installDebug                       - pass; Pixel_9 AVD / Android 15
+./gradlew :app:ktlintFormat                       - pass
+./gradlew :app:ktlintCheck
+./gradlew :app:detekt
+  - repository-wide checks remain blocked only by the concurrent, out-of-scope
+    `data/remote/quran/QuranCredentialProvider.kt:69` max-line-length finding;
+    no finding belongs to this Beranda refinement
+```
+
+Per the temporary implementation-pass constraint, no unit or instrumented test
+task was run.
+
+Manual verification on Pixel_9 AVD / Android 15 covered latest-candidate
+selection for Quran and Tasbih, direct Quran ayat and Tasbih-tab resume,
+dismissal without older fallback, dismissal persistence after force-stop, and
+reappearance after Tasbih progress changed. The Kalender placeholder snackbar,
+light/dark surfaces, scrolling, and 150% system-font layout were also checked;
+no clipping or contrast issue was observed.
+
+### Known limitations
+
+- Kalender Hijriah is intentionally only a Beranda entry placeholder. Its
+  approved PRD must be delivered as a separate milestone before navigation can
+  replace the snackbar TODO.
+- Large-font adaptation was manually exercised on a phone AVD; tablet and
+  foldable window classes were not manually exercised in this refinement.
+- The unrelated Quran credential-provider line-length finding must be resolved
+  by its owning change before repository-wide `ktlintCheck` and `detekt` pass.
+
+### Next recommended milestone
+
+Begin Kalender Hijriah `0.0.7` with Delivery Slice 1 from
+`docs/product/HIJRI_CALENDAR_PRD.md`: establish the reviewed local source bundle
+and domain conversion/validation rules only. Keep the Beranda placeholder until
+the separately approved Slice 2 UI and navigation work.

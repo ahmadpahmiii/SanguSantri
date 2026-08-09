@@ -79,8 +79,10 @@ not erase or invalidate an existing Room snapshot.
   discovering the failure modes iteratively in production.
 
 For `0.0.6`, initialisation failure is deliberately simple: discard the
-candidate, show error/retry, and restart. A weekly refresh failure keeps the
-old atomic snapshot. If Kemenag access is revoked or the credential is exposed,
+candidate, show error/retry, and restart. A Remote Config version-triggered
+update failure keeps the old atomic snapshot and applied version; do not bump
+`quran_stable_version` until the intended Kemenag state is fully live and
+verified. If Kemenag access is revoked or the credential is exposed,
 disable further release use as appropriate, request rotation from LPMQ, build a
 new signed version with the rotated secret, and keep already cached public
 content readable unless the licence/incident authority explicitly requires

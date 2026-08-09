@@ -42,12 +42,13 @@ object QuranNetworkModule {
             .followRedirects(false)
             .apply {
                 if (BuildConfig.DEBUG) {
-                    addInterceptor(HttpLoggingInterceptor().apply {
-                        level = HttpLoggingInterceptor.Level.BODY
-                    })
+                    addInterceptor(
+                        HttpLoggingInterceptor().apply {
+                            level = HttpLoggingInterceptor.Level.BODY
+                        },
+                    )
                 }
-            }
-            .followSslRedirects(false)
+            }.followSslRedirects(false)
             .addInterceptor(authInterceptor)
             .addInterceptor(ResponseSizeLimitInterceptor())
             .build()

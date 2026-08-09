@@ -7,6 +7,8 @@ import com.sangusantri.app.domain.model.StepProgress
 interface GuidedReadingRepository {
     suspend fun getSession(contentId: String): GuidedReadingSession?
 
+    suspend fun getMostRecentIncompleteSession(): GuidedReadingSession?
+
     suspend fun saveSession(session: GuidedReadingSession)
 
     suspend fun getStepProgress(contentId: String): List<StepProgress>

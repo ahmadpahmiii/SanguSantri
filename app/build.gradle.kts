@@ -84,13 +84,6 @@ android {
             isReturnDefaultValues = true
         }
     }
-    // MIGRATION_1_2 (ADR 0015) is a real, non-destructive migration — MigrationTestHelper needs
-    // the exported schema JSON files as androidTest assets to instantiate historical versions.
-    sourceSets {
-        getByName("androidTest") {
-            assets.srcDirs("$projectDir/schemas")
-        }
-    }
 }
 
 // --- Quran Kemenag credential boundary (ADR 0016) ---------------------------------------------
@@ -280,7 +273,6 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.okhttp.mockwebserver)
-    androidTestImplementation(libs.androidx.room.testing)
     kspAndroidTest(libs.hilt.android.compiler)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)

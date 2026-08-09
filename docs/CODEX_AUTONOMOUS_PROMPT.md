@@ -119,9 +119,10 @@ the temporary design product-alignment phases governed by `AGENTS.md` and
 
 If those temporary constraints apply:
 
-- Do not create a Room migration chain and do not add
-  `fallbackToDestructiveMigration`; update the clean pre-release baseline and
-  document the required local clear-data/reinstall action.
+- Do not create a Room migration chain. Keep the product-owner-approved
+  `fallbackToDestructiveMigration(dropAllTables = true)` policy and document
+  that unsupported schema transitions erase all Room-backed content and user
+  state; bundled content bootstraps again and Quran requires a new download.
 - Do not add new unit, instrumented, or screenshot tests, and do not delete
   existing tests. Keep existing test sources compiling.
 - Run the phase's required validation exactly as defined in `AGENTS.md`; do not

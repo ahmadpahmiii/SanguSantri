@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — migration policy amended 2026-08-09
 
 ## Context
 
@@ -118,10 +118,11 @@ version comparison naturally resolves.
   on-device retention would duplicate it for no product benefit while
   complicating progress-reset semantics (which version's progress does a
   "restored" old version's UI show?).
-* **A destructive Room migration or `fallbackToDestructiveMigration`** to
-  simplify schema changes for this work — rejected; not needed (no schema
-  change was required — see `docs/engineering/CONTENT_MODEL.md`'s
-  schema-freeze policy) and remains prohibited regardless (ADR 0003).
+* **A feature-specific destructive migration** remains rejected. The later
+  product-owner decision instead applies one database-wide policy:
+  `fallbackToDestructiveMigration(dropAllTables = true)` for every unsupported
+  schema transition, with the accepted loss of all Room-backed content and
+  user state.
 
 ## Consequences
 

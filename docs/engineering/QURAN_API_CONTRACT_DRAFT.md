@@ -183,7 +183,8 @@ with LPMQ/Kemenag documentation.
 * Store `juz` and `halaman` as source metadata; do not infer missing values.
 * The PRD explicitly prohibits persisting or displaying the `teks` Latin
   transliteration field.
-* Direct authenticated access, seven-day complete refresh, Room caching,
-  attribution, and credential hardening are decided in the PRD/ADR. Formal
+* Direct authenticated access, Remote Config version-gated complete updates,
+  Room caching, attribution, and credential hardening are decided in the
+  PRD/ADR. Formal
   rate-limit guidance, LPMQ font redistribution permission, and final
   production credential injection remain release inputs.

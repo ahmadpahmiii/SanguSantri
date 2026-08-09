@@ -6,6 +6,7 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.sangusantri.app.BuildConfig
+import com.sangusantri.app.data.remote.quran.QuranStableVersionConfig
 import com.sangusantri.app.data.repository.AppUpdatePolicyRepositoryImpl
 import com.sangusantri.app.domain.repository.AppUpdatePolicyRepository
 import dagger.Binds
@@ -40,6 +41,11 @@ object UpdateProvidersModule {
             remoteConfigSettings {
                 minimumFetchIntervalInSeconds = if (BuildConfig.DEBUG) 0L else RELEASE_FETCH_INTERVAL_SECONDS
             },
+        )
+        remoteConfig.setDefaultsAsync(
+            mapOf(
+                QuranStableVersionConfig.REMOTE_CONFIG_KEY to QuranStableVersionConfig.BASELINE_VERSION,
+            ),
         )
         return remoteConfig
     }

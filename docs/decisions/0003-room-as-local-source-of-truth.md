@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — migration policy amended 2026-08-09
 
 ## Context
 
@@ -18,13 +18,16 @@ entity, `app_metadata` (a generic key-value table), and no content entities —
 the canonical content model (amaliyah / variant / version / step) is defined
 when content import is implemented, not invented ahead of that milestone.
 
-Room schema export is enabled (`room.schemaLocation`) from the start so
-migrations are testable and destructive migration can be avoided, per PRD
-16.1.
+Room schema export remains enabled (`room.schemaLocation`) so the current
+schema is reviewable. The product owner has since explicitly selected
+`fallbackToDestructiveMigration(dropAllTables = true)` for every unsupported
+schema transition instead of retaining a hand-written migration chain.
 
 ## Consequences
 
 - Repositories and ViewModels added in later milestones must read from Room,
   never directly from Retrofit responses.
-- The first schema migration (adding content entities) must ship an explicit,
-  tested `Migration`, not `fallbackToDestructiveMigration`.
+- An unsupported schema transition drops every Room table, including user
+  state. Bundled content bootstraps again; non-bundled Quran data must be
+  downloaded again before offline reading is restored. This accepted data-loss
+  risk supersedes the original explicit-migration requirement.

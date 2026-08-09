@@ -1,6 +1,6 @@
 # Al-Qur'an Kemenag — Product Requirements Document
 
-**Document version:** 1.0
+**Document version:** 1.1
 **Target release:** Android `0.0.6`
 **Status:** Product scope approved; ready for design and engineering planning
 **Product owner:** Ahmad Fahmi Aisar
@@ -71,8 +71,8 @@ The experience must support four common intents:
 * Long-press ayat actions: bookmark, tafsir, mark last read, Juz/page metadata.
 * Kemenag tafsir ringkas and tahlili in a bottom sheet.
 * Cached tafsir available offline after its first successful fetch.
-* Full initial Quran preparation from the Kemenag API, followed by a seven-day
-  refresh gate.
+* Full initial Quran preparation from the Kemenag API, followed only by
+  Remote Config version-gated corpus updates; no periodic full refresh.
 * Room-backed offline reading after initial preparation succeeds.
 * Local reading-session history in Aktivitas.
 * Quran reading contributes to the existing combined amalan streak.
@@ -152,12 +152,19 @@ If the device is offline and no complete local dataset exists, show:
 ### 6.2 Later entry with local Quran
 
 1. Render the hub immediately from Room.
-2. If the last successful full refresh is at least seven days old and a
-   network is available, start one unique refresh in the background.
-3. Continue rendering the current local dataset during refresh.
-4. A refresh failure keeps the current dataset unchanged and does not block
-   reading.
-5. A successful complete refresh atomically replaces the active source data.
+2. Reading remains fully offline; opening the hub never starts a network call.
+3. At an application-start opportunity, fetch the lightweight Firebase Remote
+   Config value `quran_stable_version`.
+4. When the remote target is greater than the locally applied version, enqueue
+   one unique, unmetered, battery-not-low update. Equal or lower targets do
+   nothing; there is no time-based fallback refresh.
+5. Continue rendering the current local dataset during an eligible update.
+6. A failed update keeps the current dataset unchanged and enters a 24-hour
+   cooldown for that target. A newer target may bypass the old target's
+   cooldown.
+7. A successful complete update atomically replaces the active source data,
+   clears version-coupled tafsir cache, and records the applied target version
+   in the same Room transaction.
 
 ### 6.3 Reading
 
@@ -214,13 +221,31 @@ The API array order is never trusted. Canonical reading order is numeric
 `surah`, then numeric `ayat`. Validation must not silently invent, repair, or
 merge missing religious content.
 
-### QUR-FR-004 — Atomic seven-day refresh
+### QUR-FR-004 — Remote Config version-gated atomic update
 
-A successful full sync timestamp gates refresh for seven days on all network
-types. A stale dataset triggers at most one unique refresh. All 114 surah
-responses must validate before one Room transaction replaces source rows. Any
-network, HTTP, parsing, or validation failure preserves the previous complete
-dataset. There is no partial activation.
+`quran_stable_version` is a positive, monotonically increasing SanguSantri
+operations trigger with an app default of `1`; it is not a version supplied or
+verified by the Kemenag API. After a complete local dataset exists, the app
+compares this target with `quran_applied_stable_version` in `app_metadata`.
+Only a strictly higher target may enqueue one unique full update. Equal or
+lower values are ignored, so a Remote Config decrease never downgrades data.
+There is no weekly, monthly, or other elapsed-time full refresh.
+An already-complete dataset created before this metadata existed adopts
+baseline version `1` locally without downloading the corpus again.
+
+An eligible update uses unmetered network and battery-not-low constraints. It
+makes one complete attempt; handled failures are not immediately retried by
+WorkManager and place that target under a 24-hour durable cooldown. A newly
+published higher target is eligible immediately. All 114 surah responses must
+validate before one Room transaction replaces source rows and writes the
+applied version. Any network, HTTP, parsing, validation, cancellation, or Room
+failure preserves the previous complete dataset and applied version. There is
+no partial activation.
+
+Operations must increase the Remote Config value only after the intended
+Kemenag data is fully live and manually verified. Because Kemenag exposes no
+dataset manifest or historical snapshot, this number triggers a fresh read of
+the current API; it does not prove which upstream revision was returned.
 
 ### QUR-FR-005 — Quran hub
 
@@ -440,8 +465,8 @@ Required states include:
 * populated hub;
 * empty bookmarks;
 * empty recent sessions;
-* background refresh without blocking content;
-* cached-content refresh failure;
+* version-triggered background update without blocking content;
+* failed version update retaining cached content;
 * reader loading from Room;
 * invalid/deleted navigation target;
 * tafsir loading;
@@ -456,8 +481,8 @@ stack traces, tokens, or Arabic payload fragments.
 
 * Typical API 26 phones must scroll long surahs smoothly using lazy rendering.
 * Initial parsing, validation, sorting, and Room writes run off the main thread.
-* Initial and weekly sync use bounded request concurrency; never fan out 114
-  unbounded calls.
+* Initial preparation and version-triggered updates use bounded request
+  concurrency; never fan out 114 unbounded calls.
 * Reader state survives process death and configuration change.
 * Quran screens support font scale 1.5×, TalkBack, 48dp touch targets, correct
   RTL Arabic rendering, and non-colour state cues.
@@ -481,9 +506,11 @@ Release `0.0.6` is acceptable only when:
    tafsir.
 4. The supplied out-of-order Surah 114 example renders 1–6 in numeric order.
 5. A failed initial preparation writes no active partial dataset.
-6. A failed weekly refresh leaves the previous complete dataset byte-for-byte
-   readable.
-7. A successful refresh preserves bookmark and last-read identities.
+6. Equal/lower Remote Config versions cause no Kemenag corpus request; a higher
+   version causes at most one eligible update attempt, with no periodic fallback.
+7. A failed version-triggered update leaves the previous complete dataset
+   byte-for-byte readable; a successful update preserves bookmark and last-read
+   identities and atomically advances the applied version.
 8. Arab-only and Arab+translation modes restore after process death.
 9. No Latin transliteration, copy/share, or audio affordance appears.
 10. Al-Fatihah, At-Taubah, and another surah satisfy the basmalah rules.

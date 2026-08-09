@@ -292,9 +292,9 @@ private class FakeContentRepository(
 private class ThrowingContentRepository : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
-    override suspend fun getContentById(contentId: String): Content? = error("boom")
+    override suspend fun getContentById(contentId: String): Content = error("boom")
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail? = error("boom")
+    override suspend fun getContentDetail(contentId: String): ContentDetail = error("boom")
 }
 
 /** Fails the first load, then succeeds on retry — used to test [ReaderUiAction.Retry]. */
@@ -305,9 +305,9 @@ private class FlakyContentRepository(
 
     override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
-    override suspend fun getContentById(contentId: String): Content? = detail.content
+    override suspend fun getContentById(contentId: String): Content = detail.content
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail? {
+    override suspend fun getContentDetail(contentId: String): ContentDetail {
         attempt++
         if (attempt == 1) error("boom")
         return detail
@@ -321,6 +321,8 @@ private class FakeReadingPositionRepository(
     val savedPositions = mutableListOf<ReadingPosition>()
 
     override suspend fun getPosition(contentId: String): ReadingPosition? = stored
+
+    override suspend fun getMostRecentPosition(): ReadingPosition? = stored
 
     override suspend fun savePosition(position: ReadingPosition) {
         stored = position
@@ -368,6 +370,9 @@ private class FakeGuidedReadingRepository : GuidedReadingRepository {
     private val progress = mutableMapOf<String, MutableList<StepProgress>>()
 
     override suspend fun getSession(contentId: String): GuidedReadingSession? = sessions[contentId]
+
+    override suspend fun getMostRecentIncompleteSession(): GuidedReadingSession? =
+        sessions.values.filter { it.completedAtEpochMillis == null }.maxByOrNull { it.lastOpenedAtEpochMillis }
 
     override suspend fun saveSession(session: GuidedReadingSession) {
         sessions[session.contentId] = session

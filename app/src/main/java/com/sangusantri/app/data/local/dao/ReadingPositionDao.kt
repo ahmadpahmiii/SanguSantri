@@ -13,6 +13,9 @@ interface ReadingPositionDao {
     @Query("SELECT * FROM reading_positions WHERE contentId = :contentId")
     suspend fun getByContentId(contentId: String): ReadingPositionEntity?
 
+    @Query("SELECT * FROM reading_positions ORDER BY lastOpenedAtEpochMillis DESC LIMIT 1")
+    suspend fun getMostRecent(): ReadingPositionEntity?
+
     @Query("DELETE FROM reading_positions WHERE contentId = :contentId")
     suspend fun deleteByContentId(contentId: String)
 }

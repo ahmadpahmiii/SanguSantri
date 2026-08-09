@@ -13,6 +13,12 @@ interface GuidedReadingSessionDao {
     @Query("SELECT * FROM guided_reading_sessions WHERE contentId = :contentId")
     suspend fun getByContentId(contentId: String): GuidedReadingSessionEntity?
 
+    @Query(
+        "SELECT * FROM guided_reading_sessions WHERE completedAtEpochMillis IS NULL " +
+            "ORDER BY lastOpenedAtEpochMillis DESC LIMIT 1",
+    )
+    suspend fun getMostRecentIncomplete(): GuidedReadingSessionEntity?
+
     @Query("DELETE FROM guided_reading_sessions WHERE contentId = :contentId")
     suspend fun deleteByContentId(contentId: String)
 

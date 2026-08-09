@@ -9,16 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +43,6 @@ import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.core.designsystem.theme.QuranContinueCardGradientStart
-import com.sangusantri.app.core.designsystem.theme.QuranError
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
 import com.sangusantri.app.core.designsystem.theme.QuranOnPrimaryContainer
 import com.sangusantri.app.core.designsystem.theme.QuranOutline
@@ -167,7 +162,6 @@ private fun QuranHubBody(
                     onClick = { actions.onAyatSelected(continueReading.surahNumber, continueReading.ayatNumber) },
                 )
             }
-            QuranHubRefreshStatus(uiState.refreshState)
             QuranHubTabRow(selectedTab = uiState.selectedTab, onTabSelected = actions.onTabSelected)
             if (uiState.selectedTab == QuranHubTab.SURAH) {
                 QuranSurahSearchField(query = uiState.searchQuery, onQueryChanged = actions.onSearchQueryChanged)
@@ -230,54 +224,6 @@ private fun QuranContinueReadingPanel(
                     color = QuranMutedText,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun QuranHubRefreshStatus(state: QuranHubRefreshState) {
-    if (state == QuranHubRefreshState.IDLE) return
-    val failed = state == QuranHubRefreshState.FAILED
-    val contentColor = if (failed) QuranError else QuranMutedText
-    Surface(
-        color = QuranSurface,
-        contentColor = contentColor,
-        border = BorderStroke(1.dp, QuranOutline),
-        shape = RoundedCornerShape(SanguSantriDimensions.quranNoticeCornerRadius),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = SanguSantriSpacing.extraSmall),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = SanguSantriSpacing.medium, vertical = SanguSantriSpacing.small),
-        ) {
-            if (failed) {
-                Icon(
-                    imageVector = Icons.Outlined.CloudOff,
-                    contentDescription = null,
-                    tint = contentColor,
-                )
-            } else {
-                CircularProgressIndicator(
-                    color = QuranPrimary,
-                    strokeWidth = 2.dp,
-                    modifier =
-                        Modifier
-                            .padding(2.dp)
-                            .size(20.dp),
-                )
-            }
-            Text(
-                text =
-                    stringResource(
-                        if (failed) R.string.quran_hub_refresh_failed else R.string.quran_hub_refreshing,
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor,
-                modifier = Modifier.padding(start = SanguSantriSpacing.small),
-            )
         }
     }
 }

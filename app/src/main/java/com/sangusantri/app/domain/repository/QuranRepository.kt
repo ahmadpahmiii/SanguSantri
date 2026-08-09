@@ -49,10 +49,6 @@ interface QuranRepository {
         onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
     ): QuranPreparationResult
 
-    /** Runs a full sync only when the last successful sync is seven or more days old
-     * (QUR-FR-004); a no-op [Ready] otherwise. */
-    suspend fun refreshIfStale(onRefreshStarted: () -> Unit = {}): QuranPreparationResult
-
     suspend fun toggleBookmark(
         surahNumber: Int,
         ayatNumber: Int,

@@ -36,6 +36,7 @@ import com.sangusantri.app.feature.activity.ActivityRoute
 import com.sangusantri.app.feature.activity.detail.ActivityAmaliyahHistoryRoute
 import com.sangusantri.app.feature.activity.detail.ActivityQuranHistoryRoute
 import com.sangusantri.app.feature.activity.detail.ActivityTasbihHistoryRoute
+import com.sangusantri.app.feature.explore.ExploreRoute
 import com.sangusantri.app.feature.guidedreader.GuidedReaderRoute
 import com.sangusantri.app.feature.home.SerambiActions
 import com.sangusantri.app.feature.home.SerambiRoute
@@ -107,6 +108,10 @@ private data object Setelan : NavKey
 
 @Serializable
 private data object About : NavKey
+
+/** Searchable, category-driven amaliyah catalogue reached from Beranda. */
+@Serializable
+private data object Explore : NavKey
 
 /** `0.0.4`, Pengingat Amaliyah — never a bottom-nav destination (PRD §7.1), reached only from a
  * Beranda or Aktivitas section entry point. */
@@ -275,10 +280,29 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
                     SerambiActions(
                         onSetelanClick = { topLevelBackStack.add(Setelan) },
                         onAboutClick = { topLevelBackStack.add(About) },
+                        onExploreClick = { topLevelBackStack.add(Explore) },
                         onPengingatClick = { topLevelBackStack.add(Pengingat) },
                         onBelajarClick = { topLevelBackStack.add(NahwuQuizLanding) },
                         onQuranClick = { topLevelBackStack.add(QuranEntry) },
+                        onContinueAmaliyah = { contentId, mode ->
+                            topLevelBackStack.add(
+                                when (mode) {
+                                    ReaderMode.FULL -> FullReader(contentId)
+                                    ReaderMode.GUIDED -> GuidedReader(contentId)
+                                },
+                            )
+                        },
+                        onContinueQuran = { surahNumber, ayatNumber ->
+                            topLevelBackStack.add(QuranReader(surahNumber, ayatNumber))
+                        },
+                        onContinueTasbih = { topLevelBackStack.addTopLevel(Tasbih) },
                     ),
+            )
+        }
+        entry<Explore> {
+            ExploreRoute(
+                onBack = { topLevelBackStack.removeLast() },
+                onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
             )
         }
         activityEntries(topLevelBackStack)

@@ -5,8 +5,9 @@ import androidx.room.PrimaryKey
 
 /**
  * Cached tafsir for one ayat, keyed by the remote ayat id (QUR-FR-013). Deliberately not
- * foreign-keyed to [QuranVerseEntity] — tafsir is fetched and cached independently of a Quran
- * source refresh, on demand, and must not be cascade-deleted when verses are replaced.
+ * foreign-keyed to [QuranVerseEntity] because it is fetched and cached independently on demand.
+ * A successful versioned corpus replacement explicitly clears this table: a future source update
+ * may change remote ids, so retaining those associations would be unsafe.
  */
 @Entity(tableName = "quran_tafsir")
 data class QuranTafsirEntity(

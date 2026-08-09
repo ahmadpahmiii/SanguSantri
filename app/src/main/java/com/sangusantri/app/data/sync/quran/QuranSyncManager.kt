@@ -3,6 +3,7 @@ package com.sangusantri.app.data.sync.quran
 import android.util.Log
 import androidx.room.withTransaction
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
+import com.sangusantri.app.data.local.entity.AppMetadataEntity
 import com.sangusantri.app.data.mapper.toEntity
 import com.sangusantri.app.data.remote.quran.QuranValidation
 import com.sangusantri.app.data.remote.quran.QuranValidator
@@ -31,8 +32,7 @@ import javax.inject.Inject
  * transaction. A failure at any point leaves the previous complete dataset (if any) exactly as it
  * was; there is no partial activation and no resumable staging (ADR 0016).
  *
- * The same algorithm serves both "initial preparation" (no local dataset yet) and the seven-day
- * refresh — [QuranSyncMetadata] only decides *when* [sync] is called, not what it does.
+ * The same algorithm serves both initial preparation and an explicitly version-triggered update.
  */
 class QuranSyncManager
 @Inject
@@ -49,17 +49,22 @@ constructor(
      * before the atomic Room commit and unrelated to it; a failure after some progress was
      * reported still leaves Room untouched.
      */
-    suspend fun sync(onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> }): QuranSyncResult =
+    suspend fun sync(
+        stableVersion: Int,
+        onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
+    ): QuranSyncResult =
         withContext(Dispatchers.IO) {
+            require(stableVersion > 0)
             when (val surahs = fetchSurahs()) {
                 is FetchOutcome.Failure -> surahs.result
-                is FetchOutcome.Success -> fetchAndCommit(surahs.value, onProgress)
+                is FetchOutcome.Success -> fetchAndCommit(surahs.value, stableVersion, onProgress)
             }
         }
 
     @Suppress("ReturnCount")
     private suspend fun fetchAndCommit(
         surahs: List<QuranSurahDto>,
+        stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit,
     ): QuranSyncResult {
         val ayatOutcome = fetchAllAyat(surahs, onProgress)
@@ -71,7 +76,7 @@ constructor(
             return QuranSyncResult.PermanentFailure(globalValidation.reason)
         }
 
-        commit(surahs, allAyat)
+        commit(surahs, allAyat, stableVersion)
         return QuranSyncResult.Completed
     }
 
@@ -79,16 +84,27 @@ constructor(
      * Wholesale replace inside one transaction — [surahDao.deleteAll] cascades to
      * `quran_verses` via [com.sangusantri.app.data.local.entity.QuranVerseEntity]'s foreign
      * key, so a genuinely shrinking candidate (fewer surahs/ayat than currently stored) can
-     * never leave orphaned rows behind, unlike a pure upsert.
+     * never leave orphaned rows behind, unlike a pure upsert. The same transaction clears cached
+     * tafsir whose remote ids may no longer identify the same source rows and advances the applied
+     * stable version, so a crash can never expose a new corpus with an old version marker.
      */
     private suspend fun commit(
         surahs: List<QuranSurahDto>,
         ayats: List<QuranAyatDto>,
+        stableVersion: Int,
     ) {
         database.withTransaction {
             surahDao.deleteAll()
             surahDao.insertAll(surahs.map { it.toEntity() })
             verseDao.insertAll(ayats.sortedWith(compareBy({ it.surah }, { it.ayat })).map { it.toEntity() })
+            database.quranTafsirDao().deleteAll()
+            database.appMetadataDao().upsert(
+                AppMetadataEntity(
+                    key = QuranSyncMetadata.KEY_APPLIED_STABLE_VERSION,
+                    value = stableVersion.toString(),
+                    updatedAtEpochMillis = System.currentTimeMillis(),
+                ),
+            )
         }
     }
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — migration policy amended 2026-08-09
 
 ## Context
 
@@ -85,18 +85,14 @@ No Arabic text or translation was invented, altered, or reworded anywhere in thi
 whole heading-only steps were omitted, and every remaining step's `arabicText`/`translation` is
 byte-identical to the previously published source content.
 
-**Room migration, not a destructive reset.** `SanguSantriDatabase` moves from version 1 to 2 via
-an explicit `Migration(1, 2)` (`MIGRATION_1_2`, `data/local/database/Migrations.kt`) —
-`fallbackToDestructiveMigration` is not used. For each amaliyah, the migration resolves its default
-variant's latest published version via the same joins `ContentRepositoryImpl.getDefaultVersionDetail`
-used to perform at query time, writes one `content` row (keyed by the amaliyah's `slug`) and its
-surviving `content_steps` rows (heading steps dropped, remaining steps renumbered to a dense
-`1..N` sequence), then re-keys `reading_positions`/`guided_reading_sessions`/`step_progress` from
-`versionId` to that same content id via a join against the old tables before dropping them.
-Content metadata fields with no old-schema source (`imageUrl`, `order`, `isActive`) get a
-placeholder (`NULL`/`0`/`1`) — safe because `BundledContentBootstrapper` unconditionally refreshes
-every catalog item's metadata on the very next launch regardless of version, so the placeholder
-never survives past the first post-migration bootstrap.
+**Room uses a destructive drop-all fallback.** The original version of this ADR shipped a
+hand-written version 1→2 migration. The product owner explicitly reversed that choice on
+2026-08-09: the migration implementation and `MigrationTestHelper` test are removed, and
+`SanguSantriDatabase` uses `fallbackToDestructiveMigration(dropAllTables = true)` for unsupported
+schema transitions. Every Room table is recreated from the current schema. Bundled amaliyah
+content bootstraps again, while reading progress, activity, tasbih history, reminders, Quran
+content/bookmarks/history/state, and other local Room data are intentionally lost. Quran must be
+downloaded again before its offline reader is available.
 
 **Progress preservation is more generous than before, not less.** Previously, *any* version
 replacement deleted all version-scoped reading/guided/step progress unconditionally (ADR 0012).
@@ -150,8 +146,9 @@ deleted rather than kept as dead code around an empty list.
   integrity verification for content authored and committed directly to the same git repository
   that deploys it (unlike the previous era where a package might be independently republished by
   a separate Go publication pipeline with its own byte-level output).
-* **A destructive Room migration (`fallbackToDestructiveMigration`)** to simplify the schema
-  change — rejected; not needed, and remains prohibited regardless (ADR 0003, ADR 0012).
+* **Retaining the former hand-written migration chain** — rejected by the
+  product owner on 2026-08-09 in favour of a single predictable drop-all
+  fallback, accepting loss of all Room-backed state on schema mismatch.
 
 ## Consequences
 
@@ -162,10 +159,9 @@ deleted rather than kept as dead code around an empty list.
   the manifest/package/variant/version contract — see each document's own revision.
 * ADR 0014's Firebase Hosting decision, repository layout intent, and MCP-as-tooling-only boundary
   are all unchanged by this ADR — only its contract-preservation claim is superseded.
-* Developers with an existing local install must clear app data or reinstall if the Room migration
-  is ever skipped or fails partway (it is not expected to, and is exercised by an instrumented
-  migration test) — this is the same developer-facing caveat every prior schema change in this
-  project has carried.
+* Existing installs encountering an unsupported schema version are cleared
+  automatically by Room. There is no migration test or preservation promise;
+  the app must communicate/release-note this data-loss risk when relevant.
 * Any future correction to the catalog/content-file shape must be reflected in
   `ContentCatalogDto`/`ContentFileDto` and `docs/content-schema.md` together, exactly as ADR 0012
   required for the superseded manifest/package DTOs.

@@ -6006,3 +6006,57 @@ already-approved milestone in strict sequence order. If Kalender Hijriah
 continues instead, the next slice of work is the official national
 holiday/cuti-bersama sourced dataset (PRD §5.4/§12) plus a
 `HijriCalendarViewModelTest`.
+
+## 16 KB page-size Play Console rejection fixed (2026-08-09)
+
+### Diagnosis
+
+Play Console rejected an upload with "Your app does not support 16 KB memory page sizes." The
+app's own native code — `libqurancredential.so`, the tiny C++ credential-reconstruction boundary
+added for the Quran feature (ADR 0016, `app/src/main/cpp/`) — was the cause. AGP 9.2.1's default
+APK/AAB packaging already stores native libraries uncompressed and page-aligned, so packaging was
+not the problem. The project pins `ndkVersion = "27.1.12297006"` (NDK r27) in
+`app/build.gradle.kts`; NDK r28+ defaults its linker to 16 KB (`0x4000`) ELF segment alignment, but
+r27 and earlier still default to 4 KB (`0x1000`) unless the linker flag is set explicitly, and
+`app/src/main/cpp/CMakeLists.txt` was not setting it. No third-party dependency in this project
+bundles prebuilt native libraries (Room, Retrofit/OkHttp, Coil, WorkManager, Chucker, Firebase
+Crashlytics/Remote Config, and Play Core App Update are all pure JVM/Kotlin from this app's
+perspective) — `qurancredential` is the sole native artifact this app ships.
+
+### Fix
+
+`app/src/main/cpp/CMakeLists.txt`: added
+`target_link_options(qurancredential PRIVATE "-Wl,-z,max-page-size=16384")` to the existing
+`qurancredential` target. No Gradle/AGP/NDK version change, no packaging-block change, no Kotlin
+change.
+
+### Validation
+
+`./gradlew :app:assembleDebug` — pass. Inspected the built `libqurancredential.so` program headers
+with the NDK r27 toolchain's `llvm-readelf -l` for all four ABIs
+(`app/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/<abi>/`):
+every `LOAD` segment now reports alignment `0x4000` (16384 bytes) for arm64-v8a, armeabi-v7a, x86,
+and x86_64 — confirmed `0x1000` (4 KB, the NDK r27 default) without the flag by temporarily
+stashing the change and rebuilding. `./gradlew :app:lintDebug` — pass. `./gradlew :app:detekt` —
+fails on one pre-existing, unrelated finding (`QuranEntryScreen.kt:201`, unused `detail` parameter;
+detekt does not analyze C++/CMake sources, confirmed unaffected by this change).
+`./gradlew ktlintCheck` — fails identically with or without this change (confirmed via `git stash`)
+on the same pre-existing codebase-wide indentation debt noted in prior entries; this change touches
+no Kotlin file.
+
+### Known limitations
+
+- Not yet verified with an actual Play Console upload — the fix was validated by direct ELF
+  inspection of the built `.so`, which is what Play Console's own bundletool check reads, but the
+  real upload-and-accept path has not been exercised this session.
+- `assembleRelease`/`bundleRelease` were not run (gated by `verifyQuranReleaseCredential`, which
+  needs the release Kemenag credential/signing secrets not available in this sandbox); the fix is
+  in a Gradle-independent CMake linker flag applied identically to every build type, so debug
+  verification is representative, but a release AAB build/upload should still be the final check.
+- Pre-existing, unrelated `ktlintCheck` (whole-codebase indentation debt) and `detekt`
+  (`QuranEntryScreen.kt:201` unused parameter) failures remain open, as in prior entries.
+
+### Next recommended milestone
+
+Build and upload a real signed release AAB to a Play Console testing track to confirm the 16 KB
+rejection is gone end-to-end, then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.

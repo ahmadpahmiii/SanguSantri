@@ -18,3 +18,8 @@ target_include_directories(qurancredential PRIVATE ${GENERATED_HEADER_DIR})
 
 # C++17 is available on every NDK toolchain this project targets (minSdk 26).
 target_compile_features(qurancredential PRIVATE cxx_std_17)
+
+# 16 KB ELF alignment (Play Console requirement as of Nov 2025 for new/updated apps): NDK r28+
+# defaults to this, but this project pins NDK r27 (app/build.gradle.kts ndkVersion), which still
+# defaults to 4 KB alignment and needs the linker flag set explicitly.
+target_link_options(qurancredential PRIVATE "-Wl,-z,max-page-size=16384")

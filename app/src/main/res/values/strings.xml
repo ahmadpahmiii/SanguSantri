@@ -343,6 +343,7 @@
   <string name="quran_entry_preparing_description">Penyiapan pertama membutuhkan internet. Jangan tutup aplikasi sampai selesai.</string>
   <string name="quran_entry_failed_title">Al-Qur\'an belum dapat disiapkan</string>
   <string name="quran_entry_failed_description">Terjadi kendala saat menyiapkan data. Pastikan koneksi tersedia lalu coba lagi.</string>
+  <string name="quran_entry_failed_detail_label">Detail teknis: %1$s</string>
   <string name="quran_entry_retry_action">Coba lagi</string>
   <string name="quran_entry_offline_title">Al-Qur\'an belum tersedia offline</string>
   <string name="quran_entry_offline_description">Sambungkan ke internet sekali untuk menyiapkan data Al-Qur\'an.</string>

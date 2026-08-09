@@ -18,20 +18,30 @@
 
 namespace {
 
+    // Checked against every configured digest (build/generated .../quran_credential_secrets.h) —
+    // Google re-signs the same upload differently per distribution path (real Play App Signing key
+    // for Play Store installs, a separate Internal App Sharing test certificate for share links),
+    // so more than one digest can be legitimate. Each candidate still requires an exact match; nothing
+    // here is more permissive per-candidate, only more digests are considered.
     bool SigningDigestMatches(JNIEnv *env, jbyteArray actual) {
         if (!kSigningDigestConfigured || actual == nullptr) {
             return false;
         }
         const jsize length = env->GetArrayLength(actual);
-        if (static_cast<size_t>(length) != sizeof(kExpectedSigningSha256)) {
+        if (static_cast<size_t>(length) != kSigningDigestLength) {
             return false;
         }
         jbyte *bytes = env->GetByteArrayElements(actual, nullptr);
         if (bytes == nullptr) {
             return false;
         }
-        const bool matches =
-                std::memcmp(bytes, kExpectedSigningSha256, sizeof(kExpectedSigningSha256)) == 0;
+        bool matches = false;
+        for (size_t i = 0; i < kExpectedSigningDigestCount; ++i) {
+            if (std::memcmp(bytes, kExpectedSigningSha256[i], kSigningDigestLength) == 0) {
+                matches = true;
+                break;
+            }
+        }
         env->ReleaseByteArrayElements(actual, bytes, JNI_ABORT);
         return matches;
     }

@@ -35,6 +35,11 @@ data class QuranHubUiState(
     val bookmarkRows: List<QuranBookmarkRow> = emptyList(),
     val continueReading: QuranContinueReading? = null,
     val refreshState: QuranHubRefreshState = QuranHubRefreshState.IDLE,
+    /** `true` only until Room's first emission arrives — defaulted `true` so the `stateIn` seed
+     * value (before any real data is observed) reads as loading rather than a false "empty"
+     * Surah/Juz tab (the entry gate already guarantees a non-empty local dataset by the time the
+     * hub is reachable, so this covers only that brief first-subscription window). */
+    val isLoading: Boolean = true,
 )
 
 enum class QuranHubRefreshState {

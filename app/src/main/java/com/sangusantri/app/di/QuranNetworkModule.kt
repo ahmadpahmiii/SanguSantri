@@ -1,5 +1,6 @@
 package com.sangusantri.app.di
 
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.data.remote.ResponseSizeLimitInterceptor
 import com.sangusantri.app.data.remote.quran.QuranAuthInterceptor
@@ -11,7 +12,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
@@ -33,24 +33,20 @@ object QuranNetworkModule {
     @Provides
     @Singleton
     @QuranHttpClient
-    fun provideQuranOkHttpClient(authInterceptor: QuranAuthInterceptor): OkHttpClient =
+    fun provideQuranOkHttpClient(
+        authInterceptor: QuranAuthInterceptor,
+        chuckerInterceptor: ChuckerInterceptor,
+    ): OkHttpClient =
         OkHttpClient
             .Builder()
             .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .followRedirects(false)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    addInterceptor(
-                        HttpLoggingInterceptor().apply {
-                            level = HttpLoggingInterceptor.Level.BODY
-                        },
-                    )
-                }
-            }.followSslRedirects(false)
+            .followSslRedirects(false)
             .addInterceptor(authInterceptor)
             .addInterceptor(ResponseSizeLimitInterceptor())
+            .addInterceptor(chuckerInterceptor)
             .build()
 
     @Provides

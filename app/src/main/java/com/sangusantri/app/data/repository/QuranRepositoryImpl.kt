@@ -83,10 +83,13 @@ constructor(
         stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
     ): QuranPreparationResult =
-        when (syncManager.sync(stableVersion, onProgress)) {
+        when (val result = syncManager.sync(stableVersion, onProgress)) {
             is QuranSyncResult.Completed -> QuranPreparationResult.Ready
-            is QuranSyncResult.RetryableFailure -> QuranPreparationResult.Failed(retryable = true)
-            is QuranSyncResult.PermanentFailure -> QuranPreparationResult.Failed(retryable = false)
+            is QuranSyncResult.RetryableFailure ->
+                QuranPreparationResult.Failed(retryable = true, reason = result.reason)
+
+            is QuranSyncResult.PermanentFailure ->
+                QuranPreparationResult.Failed(retryable = false, reason = result.reason)
         }
 
     override suspend fun toggleBookmark(

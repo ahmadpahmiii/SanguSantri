@@ -129,13 +129,14 @@ fun QuranEntryScreen(
 
                 is QuranEntryUiState.Preparing -> QuranPreparingState(uiState)
 
-                QuranEntryUiState.PreparationFailed ->
+                is QuranEntryUiState.PreparationFailed ->
                     QuranEntryMessage(
                         title = stringResource(R.string.quran_entry_failed_title),
                         description = stringResource(R.string.quran_entry_failed_description),
                         actionLabel = stringResource(R.string.quran_entry_retry_action),
                         icon = Icons.Outlined.ErrorOutline,
                         onAction = onRetry,
+                        detail = stringResource(R.string.quran_entry_failed_detail_label, uiState.reason),
                     )
 
                 QuranEntryUiState.OfflineNoLocalData ->
@@ -189,6 +190,7 @@ private fun QuranPreparingState(state: QuranEntryUiState.Preparing) {
     )
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun QuranEntryMessage(
     title: String,
@@ -196,6 +198,7 @@ private fun QuranEntryMessage(
     actionLabel: String,
     icon: ImageVector,
     onAction: () -> Unit,
+    detail: String? = null,
 ) {
     QuranEntryStateLayout(
         title = title,
@@ -214,6 +217,20 @@ private fun QuranEntryMessage(
             ) {
                 Text(text = actionLabel)
             }
+            // Raw, non-sensitive failure detail (never a credential, header, body, or Arabic/
+            // translation content — see QuranSyncManager's ioReason/reason strings) so a real user
+            // hitting a production failure can read and copy exactly what went wrong when
+            // reporting it, instead of only a generic message.
+            /* if (!detail.isNullOrBlank()) {
+                 SelectionContainer {
+                     Text(
+                         text = detail,
+                         style = MaterialTheme.typography.labelSmall,
+                         color = QuranMutedText,
+                         textAlign = TextAlign.Center,
+                     )
+                 }
+             }*/
         },
     )
 }
@@ -290,7 +307,11 @@ private fun QuranEntryPreparingPreview() {
 @Composable
 private fun QuranEntryFailedPreview() {
     QuranThemeBoundary {
-        QuranEntryScreen(uiState = QuranEntryUiState.PreparationFailed, onRetry = {}, onBack = {})
+        QuranEntryScreen(
+            uiState = QuranEntryUiState.PreparationFailed(reason = "surah list network error: Unable to resolve host"),
+            onRetry = {},
+            onBack = {},
+        )
     }
 }
 

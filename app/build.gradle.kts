@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.google.gms.google.services)
     alias(libs.plugins.google.firebase.crashlytics)
+    alias(libs.plugins.google.firebase.appdistribution)
 }
 
 // Generated native build input for the Quran credential boundary (ADR 0016) — written by
@@ -24,7 +25,7 @@ android {
         applicationId = "com.sangusantri.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
+        versionCode = 9
         versionName = "0.0.4"
 
         testInstrumentationRunner = "com.sangusantri.app.HiltTestRunner"
@@ -48,11 +49,7 @@ android {
             }
         }
         ndk {
-            // arm64-v8a covers virtually every real minSdk-26-capable device; x86_64 covers the
-            // standard Android Studio emulator. armeabi-v7a/x86 (32-bit) are deliberately excluded
-            // to keep native build time down — revisit before a real Play release if 32-bit device
-            // support is required (docs/PROGRESS.md known-limitation note).
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a", "x86")
         }
     }
 
@@ -65,6 +62,23 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Optional untracked local override so a developer can exercise the real Kemenag API
+            // from a debug build without touching the native release credential path (ADR 0016
+            // amendment 2026-08-09). Absent by default — QuranCredentialProvider falls back to the
+            // fake fixture credential when either value is blank. Never read from the tracked
+            // gradle.properties, never logged, never present in a release BuildConfig.
+            buildConfigField(
+                "String",
+                "QURAN_DEBUG_API_USERNAME",
+                "\"${quranSecretProperty("SANGU_QURAN_DEBUG_API_USERNAME") ?: ""}\"",
+            )
+            buildConfigField(
+                "String",
+                "QURAN_DEBUG_API_TOKEN",
+                "\"${quranSecretProperty("SANGU_QURAN_DEBUG_API_TOKEN") ?: ""}\"",
+            )
+        }
         release {
             optimization {
                 enable = true
@@ -101,10 +115,25 @@ fun quranSecretProperty(name: String): String? =
 fun quranHexDigestToBytes(hex: String): ByteArray {
     val cleaned = hex.replace(":", "").replace(" ", "")
     require(cleaned.length == 64) {
-        "SANGU_QURAN_RELEASE_SHA256 must be a 64-hex-character SHA-256 digest, got ${cleaned.length} chars"
+        "SANGU_QURAN_RELEASE_SHA256 must be a comma-separated list of 64-hex-character SHA-256 " +
+            "digests, got a ${cleaned.length}-char entry"
     }
     return ByteArray(32) { i -> cleaned.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
 }
+
+// Google re-signs the same app differently depending on distribution path — the real Play App
+// Signing key for actual Play Store installs, but a separate, Google-generated "Internal test
+// certificate" for Internal App Sharing links (confirmed 2026-08-09 in production: an app-sharing
+// install's runtime signing-certificate digest never matches the real App Signing Key). A
+// comma-separated list lets both be accepted without weakening the check itself — each candidate
+// still requires an exact match; this only widens which of Google's own re-signing certificates
+// count as legitimate.
+fun quranHexDigestListToBytesList(commaSeparatedHex: String): List<ByteArray> =
+    commaSeparatedHex
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map(::quranHexDigestToBytes)
 
 fun quranCByteArrayLiteral(bytes: ByteArray): String =
     bytes.joinToString(prefix = "{", postfix = "}", separator = ", ") { "0x%02X".format(it.toInt() and 0xFF) }
@@ -122,7 +151,8 @@ fun quranCredentialHeaderContent(): String {
     val encodedToken = if (credentialConfigured) encode(token!!) else byteArrayOf(0)
 
     val digestConfigured = digestHex != null
-    val digestBytes = if (digestConfigured) quranHexDigestToBytes(digestHex!!) else ByteArray(32)
+    val digestList: List<ByteArray> =
+        if (digestConfigured) quranHexDigestListToBytesList(digestHex!!) else listOf(ByteArray(32))
 
     return buildString {
         appendLine("// GENERATED FILE — do not edit or commit (build/ is gitignored).")
@@ -142,7 +172,13 @@ fun quranCredentialHeaderContent(): String {
         appendLine("static const unsigned char kEncodedToken[] = ${quranCByteArrayLiteral(encodedToken)};")
         appendLine("static const size_t kEncodedTokenLength = ${if (credentialConfigured) encodedToken.size else 0};")
         appendLine("static const bool kSigningDigestConfigured = $digestConfigured;")
-        appendLine("static const unsigned char kExpectedSigningSha256[32] = ${quranCByteArrayLiteral(digestBytes)};")
+        appendLine("static const size_t kSigningDigestLength = 32;")
+        appendLine("static const size_t kExpectedSigningDigestCount = ${digestList.size};")
+        appendLine(
+            "static const unsigned char kExpectedSigningSha256[${digestList.size}][32] = " +
+                digestList.joinToString(prefix = "{", postfix = "}", separator = ", ") { quranCByteArrayLiteral(it) } +
+                ";",
+        )
     }
 }
 
@@ -254,7 +290,11 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
+
+    // In-app HTTP inspector (debug only) — same API in both artifacts, so call sites never branch
+    // on build type; library-no-op is a stub with every method a no-op, keeping it out of release.
+    debugImplementation(libs.chucker.library)
+    releaseImplementation(libs.chucker.library.no.op)
 
     // Background sync
     implementation(libs.androidx.work.runtime.ktx)

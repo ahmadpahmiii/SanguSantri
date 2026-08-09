@@ -6,5 +6,6 @@ sealed interface QuranPreparationResult {
 
     data class Failed(
         val retryable: Boolean,
+        val reason: String,
     ) : QuranPreparationResult
 }

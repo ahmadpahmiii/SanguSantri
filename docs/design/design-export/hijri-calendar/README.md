@@ -1,19 +1,19 @@
 # Kalender Hijriah design references
 
-This directory is the durable, Figma-ready visual baseline for Kalender
+This directory is the durable, local visual baseline for Kalender
 Hijriah in Android release `0.0.7`. It complements
 `docs/product/HIJRI_CALENDAR_PRD.md`; it does not implement the feature.
 
 Each approved state is stored as:
 
 * an editable HTML source at `360x800` logical pixels;
-* a JSON sidecar containing state, semantics, provenance boundaries, and Figma
-  handoff metadata;
+* a JSON sidecar containing state, semantics, provenance boundaries, and
+  design-handoff metadata;
 * a `720x1600` PNG preview rendered at device scale 2.
 
-These files are local design references, not exported Figma node payloads. If
-the screens are recreated or imported into Figma, retain the frame names and
-record their page/node IDs in `docs/design/FIGMA_HANDOFF.md`.
+These files are local design references, not payloads exported from a hosted
+design tool. If the screens are later recreated in one, retain the frame names
+and record their page/node IDs in `docs/design/DESIGN_HANDOFF.md`.
 
 Open `00-hijri-calendar-state-catalog.html` for the local visual catalog. Run
 `ruby generate-hijri-calendar-catalog.rb` after editing the generator, then
@@ -55,10 +55,10 @@ The source sheet deliberately says that Android Umm al-Qura calculations may
 differ from the Kalender Hijriah Indonesia Kementerian Agama or an official
 sidang-isbat determination. The UI must never remove or weaken that boundary.
 
-## Figma mapping
+## Design-tool mapping
 
-Suggested Figma page: **Kalender Hijriah**. Frame names match the HTML base
-names. Current node IDs are `null` by design because this pass creates the
-local export package only; update `docs/design/FIGMA_HANDOFF.md` after the
-frames exist in Figma.
+Suggested page name, if a hosted design tool is ever adopted: **Kalender
+Hijriah**. Frame names match the HTML base names. Current node IDs are `null`
+by design because this pass creates the local export package only; update
+`docs/design/DESIGN_HANDOFF.md` if the frames are ever recreated there.
 

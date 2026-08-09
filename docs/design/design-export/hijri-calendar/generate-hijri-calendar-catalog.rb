@@ -351,10 +351,10 @@ def sidecar(state)
       colourIsNotSoleIndicator: true,
       minimumTouchTargetDp: 48,
     },
-    figma: {
+    designReference: {
       intendedPage: "Kalender Hijriah",
       nodeId: nil,
-      note: "Record node ID in docs/design/FIGMA_HANDOFF.md after recreation/import.",
+      note: "Record a node ID here if this screen is later recreated in a hosted design tool.",
     },
     sourceFiles: ["#{state[:id]}.html", "#{state[:id]}.png"],
   }
@@ -404,7 +404,7 @@ catalog_html = <<~HTML
     </style>
   </head>
   <body>
-    <header><small>SANGUSANTRI · FIGMA-EXPORT</small><h1>Kalender Hijriah</h1><p>Approved local visual baseline for the compact Gregorian–Hijri calendar. Open a frame to inspect it at the 360 × 800 logical size.</p></header>
+    <header><small>SANGUSANTRI · DESIGN-EXPORT</small><h1>Kalender Hijriah</h1><p>Approved local visual baseline for the compact Gregorian–Hijri calendar. Open a frame to inspect it at the 360 × 800 logical size.</p></header>
     <main>#{cards}</main>
   </body>
   </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta content="width=360,initial-scale=1" name="viewport">
-    <title>Kalender — Tema gelap</title>
+    <title>Kalender — Sumber & metode</title>
     <style>
         :root { color-scheme: light; --bg:#F6F6F2; --surface:#FFFFFF; --surface-soft:#EEF2ED; --text:#17201C; --muted:#68736D; --line:#DCE3DE; --teal:#176B5C; --teal-soft:#DCEFE9; --amber:#D89713; --amber-soft:#FFF1CB; --coral:#C94E4E; --coral-soft:#FBE3E1; --shadow:0 10px 30px rgba(25,45,36,.12); }
         * { box-sizing:border-box; }
@@ -83,13 +83,13 @@
         .primary-button { width:100%; height:40px; margin-top:12px; border:0; border-radius:12px; background:var(--teal); color:white; font-weight:800; font-size:12px; }
     </style>
 </head>
-<body class="dark">
+<body class="light">
 <main class="phone">
     <div class="status"><span>07.22</span><span>4G+ · 55%</span></div>
     <header class="topbar">
         <button aria-label="Kembali" class="icon-button">‹</button>
-        <div class="top-title"><strong>Kalender Hijriah</strong><small>Selasa Wage · 25 Agustus 2026
-            · 12 Rabiulawal 1448</small></div>
+        <div class="top-title"><strong>Kalender Hijriah</strong><small>Sabtu Pahing · 8 Agustus 2026
+            · 25 Safar 1448</small></div>
         <button class="today-button">Hari ini</button>
         <button aria-label="Sumber dan metode" class="icon-button">ⓘ</button>
     </header>
@@ -194,7 +194,7 @@
             <span class="pasaran">Legi</span>
             <span aria-hidden="true" class="event-dots"></span>
         </div>
-        <div aria-label="Sabtu, 8 Agustus 2026, 25 Safar 1448, Pahing" class="day-cell"
+        <div aria-label="Sabtu, 8 Agustus 2026, 25 Safar 1448, Pahing" class="day-cell selected"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">٢٥</span>
             <strong class="gregorian-number">8</strong>
@@ -257,7 +257,8 @@
             <span class="pasaran">Kliwon</span>
             <span aria-hidden="true" class="event-dots"></span>
         </div>
-        <div aria-label="Senin, 17 Agustus 2026, 4 Rabiulawal 1448, Legi, hari besar atau libur" class="day-cell official"
+        <div aria-label="Senin, 17 Agustus 2026, 4 Rabiulawal 1448, Legi, hari besar atau libur"
+             class="day-cell official"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">٤</span>
             <strong class="gregorian-number">17</strong>
@@ -313,28 +314,32 @@
             <span class="pasaran">Pon</span>
             <span aria-hidden="true" class="event-dots"></span>
         </div>
-        <div aria-label="Selasa, 25 Agustus 2026, 12 Rabiulawal 1448, Wage, hari besar atau libur" class="day-cell official selected"
+        <div aria-label="Selasa, 25 Agustus 2026, 12 Rabiulawal 1448, Wage, hari besar atau libur"
+             class="day-cell official"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">١٢</span>
             <strong class="gregorian-number">25</strong>
             <span class="pasaran">Wage</span>
             <span aria-hidden="true" class="event-dots"><i class="dot holiday"></i></span>
         </div>
-        <div aria-label="Rabu, 26 Agustus 2026, 13 Rabiulawal 1448, Kliwon, agenda puasa" class="day-cell"
+        <div aria-label="Rabu, 26 Agustus 2026, 13 Rabiulawal 1448, Kliwon, agenda puasa"
+             class="day-cell"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">١٣</span>
             <strong class="gregorian-number">26</strong>
             <span class="pasaran">Kliwon</span>
             <span aria-hidden="true" class="event-dots"><i class="dot fast"></i></span>
         </div>
-        <div aria-label="Kamis, 27 Agustus 2026, 14 Rabiulawal 1448, Legi, agenda puasa" class="day-cell"
+        <div aria-label="Kamis, 27 Agustus 2026, 14 Rabiulawal 1448, Legi, agenda puasa"
+             class="day-cell"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">١٤</span>
             <strong class="gregorian-number">27</strong>
             <span class="pasaran">Legi</span>
             <span aria-hidden="true" class="event-dots"><i class="dot fast"></i></span>
         </div>
-        <div aria-label="Jumat, 28 Agustus 2026, 15 Rabiulawal 1448, Pahing, agenda puasa" class="day-cell"
+        <div aria-label="Jumat, 28 Agustus 2026, 15 Rabiulawal 1448, Pahing, agenda puasa"
+             class="day-cell"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">١٥</span>
             <strong class="gregorian-number">28</strong>
@@ -362,14 +367,16 @@
             <span class="pasaran">Kliwon</span>
             <span aria-hidden="true" class="event-dots"></span>
         </div>
-        <div aria-label="Selasa, 1 September 2026, 19 Rabiulawal 1448, Legi" class="day-cell outside"
+        <div aria-label="Selasa, 1 September 2026, 19 Rabiulawal 1448, Legi"
+             class="day-cell outside"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">١٩</span>
             <strong class="gregorian-number">1</strong>
             <span class="pasaran">Legi</span>
             <span aria-hidden="true" class="event-dots"></span>
         </div>
-        <div aria-label="Rabu, 2 September 2026, 20 Rabiulawal 1448, Pahing" class="day-cell outside"
+        <div aria-label="Rabu, 2 September 2026, 20 Rabiulawal 1448, Pahing"
+             class="day-cell outside"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">٢٠</span>
             <strong class="gregorian-number">2</strong>
@@ -390,7 +397,8 @@
             <span class="pasaran">Wage</span>
             <span aria-hidden="true" class="event-dots"></span>
         </div>
-        <div aria-label="Sabtu, 5 September 2026, 23 Rabiulawal 1448, Kliwon" class="day-cell outside"
+        <div aria-label="Sabtu, 5 September 2026, 23 Rabiulawal 1448, Kliwon"
+             class="day-cell outside"
              role="gridcell">
             <span aria-hidden="true" class="hijri-number">٢٣</span>
             <strong class="gregorian-number">5</strong>
@@ -400,7 +408,7 @@
     </section>
     <section class="selected-summary">
         <div class="selected-mark"></div>
-        <div><strong>Selasa Wage</strong><span>25 Agustus 2026 · 12 Rabiulawal 1448</span></div>
+        <div><strong>Sabtu Pahing</strong><span>8 Agustus 2026 · 25 Safar 1448</span></div>
     </section>
     <section class="agenda">
         <div class="agenda-header"><h2>Agenda bulan ini</h2>
@@ -451,6 +459,29 @@
                 <button aria-label="Lihat sumber Puasa Ayyamul Bidh" class="row-info">i</button>
             </article>
         </div>
+    </section>
+    <div class="scrim"></div>
+    <section aria-label="Sumber dan metode kalender" aria-modal="true" class="source-sheet"
+             role="dialog">
+        <div class="sheet-handle"></div>
+        <div class="sheet-heading">
+            <div class="source-icon">i</div>
+            <div><small>TENTANG KALENDER</small>
+                <h2>Sumber & metode</h2></div>
+            <button aria-label="Tutup">×</button>
+        </div>
+        <div class="source-block">
+            <strong>Tanggal Hijriah</strong>
+            <p>Dihitung offline memakai kalender Umm al-Qura bawaan Android. Hasil dapat berbeda
+                dari Kalender Hijriah Indonesia Kementerian Agama dan penetapan resmi.</p>
+            <span class="method-badge">Perhitungan Umm al-Qura</span>
+        </div>
+        <div class="source-block compact-source">
+            <strong>Pasaran & agenda</strong>
+            <p>Pasaran dihitung dari siklus Pancawara. Agenda puasa dan libur berasal dari bundle
+                lokal terkurasi dengan sumber per item.</p>
+        </div>
+        <button class="primary-button">Mengerti</button>
     </section>
 
 </main>

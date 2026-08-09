@@ -73,25 +73,30 @@ fun NahwuQuizInstructionScreen(
     ) { innerPadding ->
         when (uiState) {
             NahwuQuizInstructionUiState.Loading ->
-                NahwuQuizLoadingState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizLoadingState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             NahwuQuizInstructionUiState.NotFound ->
                 NahwuQuizContentUnavailableState(
                     onRetry = onBack,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
 
             is NahwuQuizInstructionUiState.Content ->
                 InstructionContent(
                     uiState = uiState,
                     onStartQuiz = onStartQuiz,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
         }
     }

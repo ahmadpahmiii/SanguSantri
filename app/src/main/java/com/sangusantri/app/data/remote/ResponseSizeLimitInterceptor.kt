@@ -38,11 +38,13 @@ class ResponseSizeLimitInterceptor(
         private val delegate: ResponseBody,
         private val maxBytes: Long,
     ) : ResponseBody() {
+        private val limitedSource by lazy { SizeLimitedSource(delegate.source(), maxBytes).buffer() }
+
         override fun contentType(): MediaType? = delegate.contentType()
 
         override fun contentLength(): Long = delegate.contentLength()
 
-        override fun source(): BufferedSource = SizeLimitedSource(delegate.source(), maxBytes).buffer()
+        override fun source(): BufferedSource = limitedSource
     }
 
     private class SizeLimitedSource(

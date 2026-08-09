@@ -1,10 +1,10 @@
 # Quran font candidates
 
-These files are product/design inputs for the planned standalone Quran
-feature. They are intentionally stored outside `app/src/main/res/font` and
-are **not packaged in the APK yet**. Packaging requires the Quran PRD,
-licence review, glyph-compatibility checks against the exact Kemenag API
-text, and visual verification on supported Android versions.
+These files are the provenance copies for the standalone Quran font selector.
+LPMQ Isep Misbah and Amiri Quran were copied into `app/src/main/res/font` by
+explicit product-owner direction on 9 August 2026. King Fahd remains absent.
+Release still requires licence review, glyph-compatibility checks against the
+exact Kemenag API text, and visual verification on supported Android versions.
 
 ## Supplied candidates
 

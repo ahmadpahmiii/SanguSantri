@@ -38,18 +38,18 @@
     },
     {
       "slug": "04a-quran-hub-recent-populated",
-      "screen": "Beranda Al-Qur'an — Terakhir Dibaca",
+      "screen": "Beranda Al-Qur'an — Kartu terakhir dibaca",
       "state": {
-        "tab": "Terakhir Dibaca",
-        "content": "populated"
+        "tab": "Surah",
+        "lastReadCard": "present"
       }
     },
     {
       "slug": "04b-quran-hub-recent-empty",
-      "screen": "Beranda Al-Qur'an — Riwayat kosong",
+      "screen": "Beranda Al-Qur'an — Belum ada posisi terakhir",
       "state": {
-        "tab": "Terakhir Dibaca",
-        "content": "empty"
+        "tab": "Surah",
+        "lastReadCard": "absent"
       }
     },
     {

@@ -12,7 +12,9 @@ import javax.inject.Inject
  * The seven-day refresh gate (QUR-FR-004, `docs/product/QURAN_PRD.md` §6.2) is read from the last
  * *successful* full sync only — unlike the amaliyah content sync's "last terminal attempt" gate, a
  * failed Quran refresh does not push the next eligible attempt back, since a refresh is only ever
- * triggered by a user opening the hub, not a periodic background worker.
+ * triggered by a user opening the hub, not a periodic background worker. A complete local
+ * dataset without a success timestamp is treated as stale, covering interruption between
+ * the atomic Room commit and metadata write.
  */
 class QuranSyncMetadata
 @Inject
@@ -35,7 +37,7 @@ constructor(
     }
 
     suspend fun isRefreshStale(): Boolean {
-        val lastSuccess = getLastSuccessfulSyncAtEpochMillis() ?: return false
+        val lastSuccess = getLastSuccessfulSyncAtEpochMillis() ?: return true
         return System.currentTimeMillis() - lastSuccess >= REFRESH_STALE_THRESHOLD_MILLIS
     }
 

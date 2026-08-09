@@ -21,7 +21,6 @@ import com.sangusantri.app.data.local.dao.ReminderDao
 import com.sangusantri.app.data.local.dao.StepProgressDao
 import com.sangusantri.app.data.local.dao.TasbihHistoryDao
 import com.sangusantri.app.data.local.dao.TasbihSessionDao
-import com.sangusantri.app.data.local.database.MIGRATION_1_2
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import dagger.Module
 import dagger.Provides
@@ -47,7 +46,7 @@ object DatabaseModule {
                 context,
                 SanguSantriDatabase::class.java,
                 SanguSantriDatabase.DATABASE_NAME,
-            ).addMigrations(MIGRATION_1_2)
+            ).fallbackToDestructiveMigration(true)
             .build()
 
     @Provides

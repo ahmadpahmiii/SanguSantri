@@ -1,25 +1,38 @@
 package com.sangusantri.app.feature.quran.reader
 
+import android.animation.ValueAnimator
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -33,22 +46,30 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
+import com.sangusantri.app.core.designsystem.theme.QuranError
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
+import com.sangusantri.app.core.designsystem.theme.QuranOnPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranOutline
 import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
+import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.feature.quran.QuranBrightnessEffect
 import com.sangusantri.app.feature.quran.QuranThemeBoundary
+import com.sangusantri.app.feature.quran.toFontFamily
 import kotlinx.coroutines.launch
 
 /**
@@ -128,6 +149,16 @@ fun QuranReaderScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val readerContent = uiState as? QuranReaderUiState.Content
+    val currentAyat =
+        readerContent?.ayats?.firstOrNull { it.ayatNumber == targetAyat }
+            ?: readerContent?.ayats?.firstOrNull()
+    // figma-export/quran/18-reader-invalid-target.html keeps the back/settings chrome but replaces
+    // the surah title/position with a generic "Al-Qur'an" / "Posisi tidak tersedia" pair — never a
+    // stale surah name for a target that doesn't resolve.
+    val targetUnresolved =
+        uiState == QuranReaderUiState.Unavailable ||
+            (readerContent != null && targetAyat != null && readerContent.ayats.none { it.ayatNumber == targetAyat })
 
     Scaffold(
         modifier = modifier,
@@ -135,7 +166,20 @@ fun QuranReaderScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             QuranReaderTopBar(
-                title = (uiState as? QuranReaderUiState.Content)?.surahName.orEmpty(),
+                title =
+                    if (targetUnresolved) {
+                        stringResource(R.string.quran_hub_title)
+                    } else {
+                        readerContent?.surahName.orEmpty()
+                    },
+                position =
+                    if (targetUnresolved) {
+                        stringResource(R.string.quran_reader_unavailable_subtitle)
+                    } else {
+                        currentAyat
+                            ?.let { stringResource(R.string.quran_reader_position, it.page, it.juz) }
+                            .orEmpty()
+                    },
                 onBack = onBack,
                 onOpenSettings = onOpenSettings,
             )
@@ -147,9 +191,11 @@ fun QuranReaderScreen(
             targetAyat = targetAyat,
             snackbarHostState = snackbarHostState,
             actions = actions,
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
+            onBack = onBack,
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
         )
     }
 }
@@ -162,6 +208,7 @@ private fun QuranReaderBody(
     targetAyat: Int?,
     snackbarHostState: SnackbarHostState,
     actions: QuranReaderBodyActions,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -169,27 +216,22 @@ private fun QuranReaderBody(
 
     Box(modifier = modifier) {
         when (uiState) {
-            QuranReaderUiState.Loading ->
-                CircularProgressIndicator(color = QuranPrimary, modifier = Modifier.align(Alignment.Center))
+            QuranReaderUiState.Loading -> QuranReaderLoadingState()
 
-            QuranReaderUiState.Unavailable ->
-                Text(
-                    text = stringResource(R.string.quran_reader_unavailable),
-                    color = QuranMutedText,
-                    textAlign = TextAlign.Center,
-                    modifier =
-                        Modifier
-                            .align(Alignment.Center)
-                            .padding(SanguSantriDimensions.readerHorizontalPadding),
-                )
+            QuranReaderUiState.Unavailable -> QuranReaderUnavailableState(onBack = onBack)
 
-            is QuranReaderUiState.Content ->
-                QuranReaderContent(
-                    state = uiState,
-                    targetAyat = targetAyat,
-                    onAyatLongPress = actions.onAyatLongPress,
-                    onVisiblePositionChanged = actions.onVisiblePositionChanged,
-                )
+            is QuranReaderUiState.Content -> {
+                if (targetAyat != null && uiState.ayats.none { it.ayatNumber == targetAyat }) {
+                    QuranReaderUnavailableState(onBack = onBack)
+                } else {
+                    QuranReaderContent(
+                        state = uiState,
+                        targetAyat = targetAyat,
+                        onAyatLongPress = actions.onAyatLongPress,
+                        onVisiblePositionChanged = actions.onVisiblePositionChanged,
+                    )
+                }
+            }
         }
         val selected = (uiState as? QuranReaderUiState.Content)?.selectedAyat
         val tafsirOpen = (uiState as? QuranReaderUiState.Content)?.tafsirSheetOpen == true
@@ -221,15 +263,107 @@ private fun QuranReaderBody(
     }
 }
 
+@Composable
+private fun QuranReaderLoadingState() {
+    // figma-export/quran/17-reader-loading.html `.loading-row` — three equal 120dp placeholders,
+    // no distinct header-shaped block: the target surah/page is already known while Room loads,
+    // so the design shows only content-row skeletons, not a header skeleton.
+    Column(
+        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
+        modifier =
+            Modifier
+                .widthIn(max = SanguSantriDimensions.readerContentMaxWidth)
+                .fillMaxWidth()
+                .padding(SanguSantriSpacing.default),
+    ) {
+        repeat(READER_LOADING_PLACEHOLDER_COUNT) {
+            Surface(
+                color = QuranSurface,
+                shape = MaterialTheme.shapes.large,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+            ) {}
+        }
+    }
+}
+
+@Composable
+private fun QuranReaderUnavailableState(onBack: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(SanguSantriSpacing.large),
+    ) {
+        Surface(
+            color = QuranSurface,
+            border = BorderStroke(1.dp, QuranOutline),
+            shape = RoundedCornerShape(SanguSantriDimensions.quranStateMarkCornerRadius),
+            modifier =
+                Modifier
+                    .padding(top = SanguSantriSpacing.extraLarge)
+                    .size(SanguSantriDimensions.quranStateMarkSize),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Outlined.ErrorOutline,
+                    contentDescription = null,
+                    tint = QuranError,
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.quran_reader_unavailable_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = QuranArabicText,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(R.string.quran_reader_unavailable_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = QuranMutedText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 320.dp),
+        )
+        Button(
+            onClick = onBack,
+            colors = ButtonDefaults.buttonColors(containerColor = QuranPrimary, contentColor = QuranOnPrimary),
+            modifier =
+                Modifier
+                    .heightIn(min = SanguSantriDimensions.minimumTouchTarget)
+                    .widthIn(min = SanguSantriDimensions.quranStateActionButtonMinWidth),
+        ) {
+            Text(text = stringResource(R.string.quran_reader_unavailable_action))
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QuranReaderTopBar(
     title: String,
+    position: String,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
+    val settingsContentDescription = stringResource(R.string.quran_settings_action_content_description)
     TopAppBar(
-        title = { Text(text = title) },
+        title = {
+            Column {
+                Text(text = title, style = MaterialTheme.typography.titleLarge)
+                if (position.isNotBlank()) {
+                    Text(
+                        text = position,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = QuranMutedText,
+                    )
+                }
+            }
+        },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -240,9 +374,14 @@ private fun QuranReaderTopBar(
         },
         actions = {
             IconButton(onClick = onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = stringResource(R.string.quran_settings_action_content_description),
+                Text(
+                    text = "aA",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = QuranArabicText,
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription = settingsContentDescription
+                        },
                 )
             }
         },
@@ -256,6 +395,8 @@ private fun QuranReaderTopBar(
     )
 }
 
+private const val READER_LOADING_PLACEHOLDER_COUNT = 3
+
 @Composable
 private fun QuranReaderContent(
     state: QuranReaderUiState.Content,
@@ -263,10 +404,24 @@ private fun QuranReaderContent(
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     onVisiblePositionChanged: (Int) -> Unit,
 ) {
-    val listState = rememberLazyListState()
+    val arabOnlyListState = rememberLazyListState()
+    val translationListState = rememberLazyListState()
+    val activeListState =
+        when (state.displayMode) {
+            QuranDisplayMode.ARAB_ONLY -> arabOnlyListState
+            QuranDisplayMode.ARAB_TRANSLATION -> translationListState
+        }
 
-    QuranReaderScrollToTarget(listState, state, targetAyat)
-    QuranReaderTrackVisiblePosition(listState, state, onVisiblePositionChanged)
+    val positionSynchronized =
+        QuranReaderSynchronizePosition(
+            state = state,
+            targetAyat = targetAyat,
+            arabOnlyListState = arabOnlyListState,
+            translationListState = translationListState,
+        )
+    if (positionSynchronized) {
+        QuranReaderTrackVisiblePosition(activeListState, state, onVisiblePositionChanged)
+    }
 
     val header: @Composable () -> Unit = {
         QuranSurahStartHeader(
@@ -277,62 +432,43 @@ private fun QuranReaderContent(
         )
     }
 
-    when (state.displayMode) {
-        QuranDisplayMode.ARAB_TRANSLATION ->
-            QuranTranslationAyatList(
-                ayats = state.ayats,
-                selectedAyatId = state.selectedAyat?.remoteId,
-                onAyatLongPress = onAyatLongPress,
-                lazyListState = listState,
-                arabicSizeSp = state.arabicSizeSp,
-                arabicLineHeightSp = state.arabicLineHeightSp,
-                translationSizeSp = state.translationSizeSp,
-                headerContent = header,
-            )
+    Crossfade(
+        targetState = state.displayMode,
+        animationSpec = tween(durationMillis = if (ValueAnimator.areAnimatorsEnabled()) MODE_CROSSFADE_MILLIS else 0),
+        label = "Quran display mode",
+    ) { displayMode ->
+        when (displayMode) {
+            QuranDisplayMode.ARAB_TRANSLATION ->
+                QuranTranslationAyatList(
+                    ayats = state.ayats,
+                    selectedAyatId = state.selectedAyat?.remoteId,
+                    onAyatLongPress = onAyatLongPress,
+                    lazyListState = translationListState,
+                    arabicSizeSp = state.arabicSizeSp,
+                    arabicLineHeightSp = state.arabicLineHeightSp,
+                    translationSizeSp = state.translationSizeSp,
+                    arabicFont = state.arabicFont,
+                    headerContent = header,
+                )
 
-        QuranDisplayMode.ARAB_ONLY ->
-            QuranArabOnlyPages(
-                pages = state.pages,
-                selectedAyatId = state.selectedAyat?.remoteId,
-                onAyatLongPress = onAyatLongPress,
-                arabicSizeSp = state.arabicSizeSp,
-                arabicLineHeightSp = state.arabicLineHeightSp,
-                listState = listState,
-                header = header,
-            )
-    }
-}
-
-/** Scrolls once to [targetAyat]'s item (or containing page, in Arab-only mode — flowing text has
- * no per-ayat scroll anchor) when the reader first opens. */
-@Composable
-private fun QuranReaderScrollToTarget(
-    listState: LazyListState,
-    state: QuranReaderUiState.Content,
-    targetAyat: Int?,
-) {
-    LaunchedEffect(state.surahNumber, targetAyat) {
-        val targetIndex =
-            when (state.displayMode) {
-                QuranDisplayMode.ARAB_TRANSLATION ->
-                    state.ayats
-                        .indexOfFirst { it.ayatNumber == targetAyat }
-                        .takeIf { it >= 0 }
-                        ?.plus(1)
-
-                QuranDisplayMode.ARAB_ONLY ->
-                    state.pages
-                        .indexOfFirst { page -> page.any { it.ayatNumber == targetAyat } }
-                        .takeIf { it >= 0 }
-                        ?.plus(1)
-            }
-        if (targetIndex != null) listState.scrollToItem(targetIndex)
+            QuranDisplayMode.ARAB_ONLY ->
+                QuranArabOnlyPages(
+                    pages = state.pages,
+                    selectedAyatId = state.selectedAyat?.remoteId,
+                    onAyatLongPress = onAyatLongPress,
+                    arabicSizeSp = state.arabicSizeSp,
+                    arabicLineHeightSp = state.arabicLineHeightSp,
+                    arabicFont = state.arabicFont,
+                    listState = arabOnlyListState,
+                    header = header,
+                )
+        }
     }
 }
 
 /** Derives the currently visible ayat from scroll position for last-read/reading-session tracking
  * (QUR-FR-011/017) — ayat-precise in Arab+translation mode, page-precise in Arab-only mode (see
- * [QuranReaderScrollToTarget]'s same limitation). */
+ * [QuranReaderSynchronizePosition]'s same limitation). */
 @Composable
 private fun QuranReaderTrackVisiblePosition(
     listState: LazyListState,
@@ -361,6 +497,7 @@ private fun QuranArabOnlyPages(
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     arabicSizeSp: Int,
     arabicLineHeightSp: Int,
+    arabicFont: QuranArabicFont,
     listState: LazyListState,
     header: @Composable () -> Unit,
 ) {
@@ -374,22 +511,51 @@ private fun QuranArabOnlyPages(
         ) {
             item(key = "surah-header") { header() }
             itemsIndexed(items = pages, key = { _, page -> "page-${page.firstOrNull()?.page}" }) { _, page ->
-                Column(modifier = Modifier.padding(SanguSantriDimensions.readerHorizontalPadding)) {
+                Column(
+                    modifier =
+                        Modifier.padding(
+                            horizontal = SanguSantriDimensions.readerHorizontalPadding,
+                            vertical = SanguSantriSpacing.medium,
+                        ),
+                ) {
                     QuranFlowingPageText(
                         ayats = page,
                         selectedAyatId = selectedAyatId,
                         onAyatLongPress = onAyatLongPress,
+                        arabicFont = arabicFont,
                         textStyle =
                             TextStyle(
-                                fontFamily = FontFamily.Serif,
+                                fontFamily = arabicFont.toFontFamily(),
                                 fontSize = arabicSizeSp.sp,
                                 lineHeight = arabicLineHeightSp.sp,
                                 textAlign = TextAlign.Justify,
                             ),
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    page.firstOrNull()?.let { firstAyat ->
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = SanguSantriSpacing.default),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.quran_reader_juz, firstAyat.juz),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = QuranMutedText,
+                            )
+                            Text(
+                                text = firstAyat.page.toString(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = QuranPrimary,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+private const val MODE_CROSSFADE_MILLIS = 180

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SanguSantri</string>
+  <string name="app_name">SanguSantri</string>
 
   <!-- Serambi (FR-002) -->
   <string name="serambi_setelan_content_description">Buka Setelan</string>
@@ -291,76 +291,98 @@
 
   <!-- Al-Qur'an Kemenag entry gate (`0.0.6`, QUR-FR-002) -->
   <string name="quran_entry_preparing_title">Menyiapkan Al-Qur\'an Kemenag…</string>
+  <string name="quran_entry_checking_title">Memeriksa data Al-Qur\'an…</string>
+  <string name="quran_entry_checking_description">Menentukan apakah data offline sudah siap digunakan.</string>
   <string name="quran_entry_preparing_progress">%1$d dari %2$d surah</string>
-  <string name="quran_entry_preparing_description">Persiapan awal memerlukan koneksi internet.</string>
-  <string name="quran_entry_failed_title">Gagal menyiapkan Al-Qur\'an</string>
-  <string name="quran_entry_failed_description">Terjadi kendala saat mengambil data Al-Qur\'an. Silakan coba lagi.</string>
+  <string name="quran_entry_preparing_description">Penyiapan pertama membutuhkan internet. Jangan tutup aplikasi sampai selesai.</string>
+  <string name="quran_entry_failed_title">Al-Qur\'an belum dapat disiapkan</string>
+  <string name="quran_entry_failed_description">Terjadi kendala saat menyiapkan data. Pastikan koneksi tersedia lalu coba lagi.</string>
   <string name="quran_entry_retry_action">Coba lagi</string>
   <string name="quran_entry_offline_title">Al-Qur\'an belum tersedia offline</string>
   <string name="quran_entry_offline_description">Sambungkan ke internet sekali untuk menyiapkan data Al-Qur\'an.</string>
 
   <!-- Al-Qur'an Kemenag hub (`0.0.6`, QUR-FR-005/006/007/011/012) -->
   <string name="quran_hub_title">Al-Qur\'an</string>
+  <string name="quran_hub_subtitle">Al-Qur\'an Kemenag</string>
   <string name="quran_hub_tab_surah">Surah</string>
   <string name="quran_hub_tab_juz">Juz</string>
   <string name="quran_hub_tab_bookmark">Bookmark</string>
-  <string name="quran_hub_tab_recent">Terakhir Dibaca</string>
   <string name="quran_hub_search_placeholder">Cari nama atau nomor surah</string>
-  <string name="quran_hub_continue_reading_title">Lanjutkan Bacaan</string>
-  <string name="quran_hub_continue_reading_position">%1$s • Ayat %2$d</string>
+  <string name="quran_hub_continue_reading_title">Terakhir dibaca</string>
+  <string name="quran_hub_continue_reading_position">Halaman %1$d • Ayat %2$d</string>
   <string name="quran_hub_surah_empty">Data surah belum tersedia.</string>
   <string name="quran_hub_surah_number_and_name">%1$d. %2$s</string>
   <string name="quran_hub_surah_category_and_count">%1$s • %2$d ayat</string>
+  <string name="quran_hub_surah_meaning_category_and_count">%1$s · %2$s · %3$d ayat</string>
   <string name="quran_hub_juz_empty">Data Juz belum tersedia.</string>
   <string name="quran_hub_juz_title">Juz %1$d</string>
   <string name="quran_hub_juz_position">%1$s • Ayat %2$d • Halaman %3$d</string>
-  <string name="quran_hub_bookmark_empty">Belum ada ayat yang ditandai. Tekan lama pada ayat untuk menambahkan bookmark.</string>
+  <string name="quran_hub_bookmark_empty_title">Belum ada bookmark</string>
+  <string name="quran_hub_bookmark_empty">Tekan lama ayat saat membaca, lalu pilih Tambahkan bookmark.</string>
   <string name="quran_hub_bookmark_position">Ayat %1$d</string>
-  <string name="quran_hub_recent_empty">Belum ada riwayat bacaan.</string>
-  <string name="quran_hub_recent_position">Ayat %1$d–%2$d</string>
+  <string name="quran_hub_refreshing">Memperbarui data Kemenag di latar belakang…</string>
+  <string name="quran_hub_refresh_failed">Pembaruan gagal. Data offline tetap tersedia.</string>
   <string name="quran_hub_overflow_content_description">Menu lainnya</string>
+  <string name="quran_source_action_content_description">Buka informasi sumber Al-Qur\'an</string>
 
   <!-- Al-Qur'an Kemenag reader (`0.0.6`, QUR-FR-008/009/010/011/012/014) -->
   <string name="quran_settings_action_content_description">Pengaturan tampilan Al-Qur\'an</string>
   <string name="quran_reader_unavailable">Surah tidak ditemukan.</string>
+  <string name="quran_reader_unavailable_title">Posisi bacaan tidak ditemukan</string>
+  <string name="quran_reader_unavailable_description">Data mungkin telah diperbarui. Kembali ke daftar surah untuk memilih posisi lain.</string>
+  <string name="quran_reader_unavailable_action">Kembali ke daftar</string>
+  <string name="quran_reader_unavailable_subtitle">Posisi tidak tersedia</string>
+  <string name="quran_reader_position">Halaman %1$d • Juz %2$d</string>
+  <string name="quran_reader_juz">Juz %1$d</string>
+  <string name="quran_reader_ayat_context">Ayat %1$d · Juz %2$d · Halaman %3$d</string>
   <string name="quran_action_position_info_format">Juz %1$d • Halaman %2$d</string>
 
   <!-- Al-Qur'an Kemenag tafsir sheet (`0.0.6`, QUR-FR-013) -->
-  <string name="quran_tafsir_sheet_title">Tafsir %1$s: %2$d</string>
-  <string name="quran_tafsir_source_line">Sumber: Tafsir Kementerian Agama RI</string>
-  <string name="quran_tafsir_loading">Memuat tafsir…</string>
+  <string name="quran_tafsir_sheet_title">%1$s • Ayat %2$d</string>
+  <string name="quran_tafsir_source_line">Tafsir Kemenag • Kementerian Agama RI</string>
+  <string name="quran_tafsir_loading">Memuat tafsir Kemenag…</string>
   <string name="quran_tafsir_label_ringkas">Tafsir Ringkas</string>
   <string name="quran_tafsir_label_tahlili">Tafsir Tahlili</string>
-  <string name="quran_tafsir_offline_or_failed">Tafsir belum bisa dimuat. Periksa koneksi internet, lalu coba lagi.</string>
-  <string name="quran_tafsir_unavailable">Tafsir untuk ayat ini belum tersedia.</string>
+  <string name="quran_tafsir_cache_chip">Tersimpan offline • memperbarui…</string>
+  <string name="quran_tafsir_unavailable">Hubungkan ke internet untuk memuat tafsir ayat ini.</string>
+  <string name="quran_tafsir_error_title">Tafsir belum dapat dimuat</string>
+  <string name="quran_tafsir_error_body">Coba kembali beberapa saat lagi.</string>
+  <string name="quran_tafsir_unavailable_title">Tafsir belum tersedia offline</string>
+  <string name="quran_tafsir_close">Tutup tafsir</string>
 
   <!-- Al-Qur'an Kemenag source view (`0.0.6`, QUR-FR-019) -->
   <string name="quran_source_title">Sumber Al-Qur\'an</string>
-  <string name="quran_source_provenance_title">Sumber data</string>
+  <string name="quran_source_heading">Al-Qur\'an Kemenag</string>
   <string name="quran_source_provenance_body">Teks Al-Qur\'an, terjemahan, dan tafsir pada aplikasi ini diambil langsung dari API resmi Lajnah Pentashihan Mushaf Al-Qur\'an (LPMQ), Kementerian Agama Republik Indonesia.</string>
-  <string name="quran_source_disclaimer_title">Bukan aplikasi resmi</string>
-  <string name="quran_source_disclaimer_body">SanguSantri bukan aplikasi resmi terbitan Kementerian Agama. Aplikasi ini hanya menggunakan data dari API resmi Kemenag melalui akses yang telah disetujui, dan tidak mewakili maupun diterbitkan oleh Kementerian Agama.</string>
-  <string name="quran_source_fields_title">Data yang diambil</string>
+  <string name="quran_source_fields_title">Data yang digunakan</string>
   <string name="quran_source_fields_body">Daftar surah, teks Arab, terjemahan, dan tafsir (ringkas dan tahlili) per ayat. Transliterasi Latin dari sumber tidak ditampilkan maupun disimpan oleh aplikasi ini.</string>
   <string name="quran_source_offline_title">Penyimpanan offline</string>
   <string name="quran_source_offline_body">Setelah pengambilan data awal, seluruh Al-Qur\'an disimpan secara lokal di perangkat sehingga dapat dibaca tanpa koneksi internet. Pembaruan menyeluruh dari Kemenag dapat terjadi secara berkala saat aplikasi terhubung ke internet.</string>
+  <string name="quran_source_read_only_body">SanguSantri menggunakan data secara baca-saja dan tidak mengubah, menerjemahkan ulang, menggabungkan, atau mengoreksi isi dari Kemenag.</string>
   <string name="quran_source_permission_title">Izin dan jaringan</string>
   <string name="quran_source_permission_body">Aplikasi memerlukan akses internet untuk pengambilan data awal dan pembaruan berkala. Saat membuka tafsir sebuah ayat, permintaan tersebut mengirimkan identitas ayat yang dipilih ke server Kemenag beserta metadata jaringan standar (seperti alamat IP). Tidak ada bookmark, riwayat bacaan, atau data pribadi yang dikirim ke Kemenag.</string>
+  <string name="quran_source_disclaimer_title">Catatan</string>
+  <string name="quran_source_disclaimer_body">SanguSantri bukan aplikasi resmi terbitan Kementerian Agama. Aplikasi ini hanya menggunakan data dari API resmi Kemenag melalui akses yang telah disetujui, dan tidak mewakili maupun diterbitkan oleh Kementerian Agama. Ini tidak menyiratkan dukungan institusional terhadap fitur lain di aplikasi.</string>
 
   <!-- Al-Qur'an Kemenag Tampilan settings (`0.0.6`, QUR-FR-015/016) -->
   <string name="quran_settings_title">Tampilan Al-Qur\'an</string>
-  <string name="quran_settings_arabic_size_label">Ukuran teks Arab</string>
-  <string name="quran_settings_arabic_spacing_label">Jarak baris teks Arab</string>
-  <string name="quran_settings_translation_size_label">Ukuran teks terjemahan</string>
-  <string name="quran_settings_display_mode_label">Mode tampilan</string>
+  <string name="quran_settings_subtitle">Perubahan langsung diterapkan</string>
+  <string name="quran_settings_arabic_size_label">Ukuran Arab</string>
+  <string name="quran_settings_arabic_spacing_label">Jarak baris Arab</string>
+  <string name="quran_settings_translation_size_label">Ukuran terjemahan</string>
+  <string name="quran_settings_display_mode_label">Tampilan bacaan</string>
   <string name="quran_settings_display_mode_arab_only">Arab saja</string>
   <string name="quran_settings_display_mode_arab_translation">Arab + terjemahan</string>
-  <string name="quran_settings_brightness_label">Kecerahan layar Al-Qur\'an</string>
+  <string name="quran_settings_brightness_label">Kecerahan Quran</string>
   <string name="quran_settings_preview_unavailable">Pratinjau belum tersedia.</string>
-  <string name="quran_settings_font_section_title">Font (pratinjau pengembangan)</string>
+  <string name="quran_settings_font_section_title">Font Arab</string>
+  <string name="quran_settings_sp_value">%1$d sp</string>
+  <string name="quran_settings_multiplier_value">%1$s×</string>
+  <string name="quran_settings_percent_value">%1$d%%</string>
   <string name="quran_font_candidate_lpmq">LPMQ Isep Misbah</string>
   <string name="quran_font_candidate_amiri">Amiri Quran</string>
   <string name="quran_font_candidate_king_fahd">King Fahd Complex</string>
+  <string name="quran_font_unavailable">Belum tersedia</string>
   <string name="quran_font_not_yet_cleared">Belum lolos pemeriksaan</string>
 
   <string-array name="reminder_day_names">

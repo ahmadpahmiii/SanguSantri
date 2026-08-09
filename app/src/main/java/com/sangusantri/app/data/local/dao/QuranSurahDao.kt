@@ -18,6 +18,9 @@ interface QuranSurahDao {
     @Query("SELECT COUNT(*) FROM quran_surahs")
     suspend fun count(): Int
 
+    @Query("SELECT COALESCE(SUM(ayatCount), 0) FROM quran_surahs")
+    suspend fun totalExpectedAyatCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(surahs: List<QuranSurahEntity>)
 

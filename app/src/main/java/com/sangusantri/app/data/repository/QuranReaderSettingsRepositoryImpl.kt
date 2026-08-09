@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArabicLineSpacing
@@ -34,6 +35,8 @@ constructor(
             }.map { preferences ->
                 QuranReaderSettings(
                     displayMode = preferences[DISPLAY_MODE]?.let(::parseDisplayMode) ?: QuranDisplayMode.ARAB_ONLY,
+                    arabicFont =
+                        preferences[ARABIC_FONT]?.let(::parseArabicFont) ?: QuranArabicFont.LPMQ_ISEP_MISBAH,
                     arabicSizeSp =
                         coerceArabicSize(preferences[ARABIC_SIZE_SP] ?: QuranReaderSettings.DEFAULT_ARABIC_SIZE_SP),
                     arabicLineSpacingMultiplier =
@@ -50,6 +53,10 @@ constructor(
 
     override suspend fun setDisplayMode(mode: QuranDisplayMode) {
         dataStore.edit { it[DISPLAY_MODE] = mode.name }
+    }
+
+    override suspend fun setArabicFont(font: QuranArabicFont) {
+        dataStore.edit { it[ARABIC_FONT] = font.name }
     }
 
     override suspend fun setArabicSize(sp: Int) {
@@ -71,8 +78,12 @@ constructor(
     private fun parseDisplayMode(value: String): QuranDisplayMode? =
         runCatching { QuranDisplayMode.valueOf(value) }.getOrNull()
 
+    private fun parseArabicFont(value: String): QuranArabicFont? =
+        runCatching { QuranArabicFont.valueOf(value) }.getOrNull()
+
     private companion object {
         val DISPLAY_MODE = stringPreferencesKey("quran_display_mode")
+        val ARABIC_FONT = stringPreferencesKey("quran_arabic_font")
         val ARABIC_SIZE_SP = intPreferencesKey("quran_arabic_size_sp")
         val ARABIC_LINE_SPACING = floatPreferencesKey("quran_arabic_line_spacing")
         val TRANSLATION_SIZE_SP = intPreferencesKey("quran_translation_size_sp")

@@ -51,7 +51,7 @@ interface QuranRepository {
 
     /** Runs a full sync only when the last successful sync is seven or more days old
      * (QUR-FR-004); a no-op [Ready] otherwise. */
-    suspend fun refreshIfStale(): QuranPreparationResult
+    suspend fun refreshIfStale(onRefreshStarted: () -> Unit = {}): QuranPreparationResult
 
     suspend fun toggleBookmark(
         surahNumber: Int,
@@ -64,8 +64,8 @@ interface QuranRepository {
         page: Int,
     )
 
-    /** Writes one reading-activity event only when [startAyat] and [endAyat] differ — merely
-     * opening and closing the reader must not create an event (QUR-FR-017). */
+    /** Writes one reading-activity event only when [endAyat] advances beyond [startAyat] — merely
+     * opening, closing, or moving backwards must not create an event (QUR-FR-017). */
     suspend fun recordReadingSession(
         surahNumber: Int,
         startAyat: Int,

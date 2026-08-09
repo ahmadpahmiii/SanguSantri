@@ -55,4 +55,14 @@ val QuranArabicText = SantriNeutral95
 val QuranTranslationText = Color(0xFFC3C8C0)
 val QuranMutedText = Color(0xFF95A099)
 val QuranOutline = Color(0xFF2D3933)
+val QuranScrim = Color(0xA3000000)
 val QuranError = SantriError80
+
+// Terakhir dibaca card gradient start (figma-export/quran/01-quran-hub-surah.html
+// `.continue{background:linear-gradient(135deg,#07351f,#101713)}`); the end stop reuses
+// QuranSurface so the card fades from a tinted highlight back into the hub's own surface tone.
+val QuranContinueCardGradientStart = Color(0xFF07351F)
+
+// Initial-preparation determinate progress track (figma-export/quran/05b-initial-preparation.html
+// `.big-progress{background:#26312b}`) — distinct from the default Material surfaceVariant track.
+val QuranEntryProgressTrackColor = Color(0xFF26312B)

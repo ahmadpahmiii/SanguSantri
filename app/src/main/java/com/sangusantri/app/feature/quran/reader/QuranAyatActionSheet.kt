@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Bookmark
@@ -32,6 +33,7 @@ import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
 import com.sangusantri.app.core.designsystem.theme.QuranOutline
 import com.sangusantri.app.core.designsystem.theme.QuranPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranScrim
 import com.sangusantri.app.core.designsystem.theme.QuranSurfaceHigh
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
@@ -49,6 +51,12 @@ fun QuranAyatActionSheet(
         containerColor = QuranSurfaceHigh,
         contentColor = QuranArabicText,
         dragHandle = { BottomSheetDefaults.DragHandle(color = QuranMutedText) },
+        scrimColor = QuranScrim,
+        shape =
+            RoundedCornerShape(
+                topStart = SanguSantriDimensions.quranSheetCornerRadius,
+                topEnd = SanguSantriDimensions.quranSheetCornerRadius,
+            ),
     ) {
         QuranAyatActionSheetContent(ayat, isBookmarked, actions, onDismiss)
     }
@@ -65,6 +73,8 @@ private fun QuranAyatActionSheetContent(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .heightIn(max = SanguSantriDimensions.quranSheetMaxHeight)
+                .padding(horizontal = SanguSantriSpacing.extraSmall)
                 .padding(bottom = SanguSantriSpacing.large),
     ) {
         QuranAyatActionSheetHeader(ayat, onDismiss)
@@ -117,7 +127,7 @@ private fun QuranAyatActionSheetHeader(
         ) {
             Text(
                 text = stringResource(R.string.quran_action_sheet_title, ayat.surahName, ayat.ayatNumber),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
             )
             Text(
                 text = stringResource(R.string.quran_action_sheet_context, ayat.juz, ayat.page),

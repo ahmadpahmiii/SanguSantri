@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.quran.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.QuranRepository
@@ -35,6 +36,7 @@ constructor(
             val surahName = surahs.firstOrNull { it.number == AL_FATIHAH_SURAH_NUMBER }?.latinName.orEmpty()
             QuranSettingsUiState(
                 displayMode = settings.displayMode,
+                arabicFont = settings.arabicFont,
                 arabicSizeSp = settings.arabicSizeSp,
                 arabicLineSpacingMultiplier = settings.arabicLineSpacingMultiplier,
                 translationSizeSp = settings.translationSizeSp,
@@ -49,6 +51,10 @@ constructor(
 
     fun setDisplayMode(mode: QuranDisplayMode) {
         viewModelScope.launch { settingsRepository.setDisplayMode(mode) }
+    }
+
+    fun setArabicFont(font: QuranArabicFont) {
+        viewModelScope.launch { settingsRepository.setArabicFont(font) }
     }
 
     fun setArabicSize(sp: Int) {

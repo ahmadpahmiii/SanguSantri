@@ -14,21 +14,43 @@ import androidx.compose.ui.platform.LocalView
 @Composable
 fun QuranBrightnessEffect(brightnessOverride: Float?) {
     val view = LocalView.current
-    if (view.isInEditMode) return
-    DisposableEffect(brightnessOverride) {
+    if (view.isInEditMode || brightnessOverride == null) return
+    DisposableEffect(view, brightnessOverride) {
         val window = (view.context as? Activity)?.window
-        val previousBrightness = window?.attributes?.screenBrightness
-        if (window != null && brightnessOverride != null) {
-            val attributes = window.attributes
-            attributes.screenBrightness = brightnessOverride
-            window.attributes = attributes
-        }
-        onDispose {
-            if (window != null && previousBrightness != null) {
-                val attributes = window.attributes
-                attributes.screenBrightness = previousBrightness
-                window.attributes = attributes
-            }
-        }
+        QuranWindowBrightnessBoundary.enter(window, brightnessOverride)
+        onDispose { QuranWindowBrightnessBoundary.exit(window) }
+    }
+}
+
+/** Keeps navigation overlap between two Quran destinations from restoring brightness too early. */
+private object QuranWindowBrightnessBoundary {
+    private var activeCount = 0
+    private var previousBrightness: Float? = null
+
+    fun enter(
+        window: android.view.Window?,
+        brightness: Float,
+    ) {
+        if (window == null) return
+        if (activeCount == 0) previousBrightness = window.attributes.screenBrightness
+        activeCount += 1
+        setBrightness(window, brightness)
+    }
+
+    fun exit(window: android.view.Window?) {
+        if (window == null) return
+        activeCount = (activeCount - 1).coerceAtLeast(0)
+        if (activeCount > 0) return
+        previousBrightness?.let { setBrightness(window, it) }
+        previousBrightness = null
+    }
+
+    private fun setBrightness(
+        window: android.view.Window,
+        brightness: Float,
+    ) {
+        val attributes = window.attributes
+        attributes.screenBrightness = brightness
+        window.attributes = attributes
     }
 }

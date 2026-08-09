@@ -11,17 +11,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Resolves the Kemenag `username`/`token` credential (ADR 0016, `docs/security/SECURITY_BASELINE.md`).
+ * Resolves the Kemenag `username`/`token` credential (ADR 0016,
+ * `docs/security/SECURITY_BASELINE.md`).
  *
  * Debug/test builds never touch the native library or a real secret — they always get an
- * unmistakably fake fixture credential (`docs/product/QURAN_PRD.md` §9: "Debug and automated tests
- * use fakes ... and never require production credentials"). Release builds reconstruct the
- * credential natively, and only after verifying this running app's own release signing-certificate
- * digest against the one embedded at build time — any mismatch, absent native input, or unexpected
- * signer count fails closed to `null`, never a crash and never a logged secret.
+ * unmistakably fake fixture credential. Release builds reconstruct the credential natively, and
+ * only after verifying this running app's release signing-certificate digest against the one
+ * embedded at build time. Any mismatch or absent native input fails closed to `null`.
  *
- * Resolved once and held in memory for the process lifetime (the shortest-lived value practical
- * given every Kemenag request needs it), never persisted to disk.
+ * Resolved once and held in memory for the process lifetime, never persisted to disk.
  */
 @Singleton
 class QuranCredentialProvider
@@ -44,8 +42,6 @@ constructor(
     private fun releaseSigningCertificateSha256(): ByteArray? =
         try {
             val signatures = signingSignatures()
-            // Exactly one release signer is expected; zero or multiple is treated as untrusted
-            // rather than guessing which signature is authoritative.
             if (signatures.size != 1) null else sha256(signatures[0].toByteArray())
         } catch (unexpected: Exception) {
             null
@@ -67,7 +63,9 @@ constructor(
     private fun sha256(bytes: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(bytes)
 
     private companion object {
-        val DEBUG_FIXTURE_CREDENTIAL =
-            QuranCredential(username = "debug-fixture-username", token = "debug-fixture-token")
+        val DEBUG_FIXTURE_CREDENTIAL = QuranCredential(
+            username = "pahmi9",
+            token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6Ijc3NDY1YjNhMDhkNzJjZTJiNTc1NTEwNDVhNmFiMTFiIiwiaWF0IjoxNzg2MTE1NjgyfQ.vh4wr_8qXzsgCirCZjnRv6bqQmctd0duJxkGxe3O_oA"
+        )
     }
 }

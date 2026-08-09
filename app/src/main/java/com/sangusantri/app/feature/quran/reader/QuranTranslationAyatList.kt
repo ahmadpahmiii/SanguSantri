@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -27,17 +28,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
+import com.sangusantri.app.core.designsystem.theme.QuranMutedText
 import com.sangusantri.app.core.designsystem.theme.QuranOutline
+import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
 import com.sangusantri.app.core.designsystem.theme.QuranTranslationText
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
+import com.sangusantri.app.domain.model.QuranArabicFont
+import com.sangusantri.app.domain.model.QuranReaderSettings
+import com.sangusantri.app.feature.quran.toFontFamily
+import com.sangusantri.app.feature.quran.withQuranFontFallback
 
 /**
  * Arab + translation rendering: one stable lazy item per ordered ayat.
@@ -59,6 +65,7 @@ fun QuranTranslationAyatList(
     arabicSizeSp: Int = DEFAULT_ARABIC_SIZE_SP,
     arabicLineHeightSp: Int = DEFAULT_ARABIC_LINE_HEIGHT_SP,
     translationSizeSp: Int = DEFAULT_TRANSLATION_SIZE_SP,
+    arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     headerContent: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -80,6 +87,7 @@ fun QuranTranslationAyatList(
                     arabicSizeSp = arabicSizeSp,
                     arabicLineHeightSp = arabicLineHeightSp,
                     translationSizeSp = translationSizeSp,
+                    arabicFont = arabicFont,
                 )
             }
         }
@@ -95,12 +103,13 @@ private fun QuranTranslationAyatItem(
     arabicSizeSp: Int,
     arabicLineHeightSp: Int,
     translationSizeSp: Int,
+    arabicFont: QuranArabicFont,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val semanticsLabel = stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
     val selectionColor = QuranPrimaryContainer
     Column(
-        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
+        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -126,10 +135,10 @@ private fun QuranTranslationAyatItem(
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Text(
-                text = ayat.arabicText,
+                text = ayat.arabicText.withQuranFontFallback(arabicFont),
                 style =
                     TextStyle(
-                        fontFamily = FontFamily.Serif,
+                        fontFamily = arabicFont.toFontFamily(),
                         fontSize = arabicSizeSp.sp,
                         lineHeight = arabicLineHeightSp.sp,
                         textAlign = TextAlign.End,
@@ -142,12 +151,35 @@ private fun QuranTranslationAyatItem(
             text = ayat.translation,
             color = QuranTranslationText,
             fontSize = translationSizeSp.sp,
+            lineHeight = (translationSizeSp * TRANSLATION_LINE_HEIGHT_MULTIPLIER).sp,
             modifier = Modifier.fillMaxWidth(),
+        )
+        QuranSourceAnnotations(ayat)
+        Text(
+            text = stringResource(R.string.quran_reader_ayat_context, ayat.ayatNumber, ayat.juz, ayat.page),
+            color = QuranPrimary,
+            style = MaterialTheme.typography.bodySmall,
         )
         HorizontalDivider(color = QuranOutline)
     }
 }
 
-private const val DEFAULT_ARABIC_SIZE_SP = 34
-private const val DEFAULT_ARABIC_LINE_HEIGHT_SP = 60
-private const val DEFAULT_TRANSLATION_SIZE_SP = 17
+@Composable
+private fun QuranSourceAnnotations(ayat: QuranReaderAyatUiModel) {
+    val footnote = ayat.footnoteText.ifBlank { ayat.footnoteNumber }
+    listOf(ayat.note, footnote)
+        .filter(String::isNotBlank)
+        .forEach { sourceText ->
+            Text(
+                text = sourceText,
+                color = QuranMutedText,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+}
+
+private const val DEFAULT_ARABIC_SIZE_SP = QuranReaderSettings.DEFAULT_ARABIC_SIZE_SP
+private const val DEFAULT_ARABIC_LINE_HEIGHT_SP = 48
+private const val DEFAULT_TRANSLATION_SIZE_SP = QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP
+private const val TRANSLATION_LINE_HEIGHT_MULTIPLIER = 1.55f

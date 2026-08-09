@@ -1,5 +1,6 @@
 package com.sangusantri.app.domain.repository
 
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +12,8 @@ interface QuranReaderSettingsRepository {
     fun observe(): Flow<QuranReaderSettings>
 
     suspend fun setDisplayMode(mode: QuranDisplayMode)
+
+    suspend fun setArabicFont(font: QuranArabicFont)
 
     suspend fun setArabicSize(sp: Int)
 

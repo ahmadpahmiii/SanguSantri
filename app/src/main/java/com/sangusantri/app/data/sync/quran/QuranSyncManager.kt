@@ -98,10 +98,10 @@ constructor(
             try {
                 api.getSurahs(first = 1, count = QuranValidator.EXPECTED_SURAH_COUNT)
             } catch (io: IOException) {
-                Log.w(TAG, "surah list fetch failed", io)
+                Log.w(TAG, "surah list fetch failed: ${io::class.java.simpleName}")
                 return FetchOutcome.Failure(QuranSyncResult.RetryableFailure("surah list network error"))
             } catch (malformed: SerializationException) {
-                Log.w(TAG, "surah list fetch malformed", malformed)
+                Log.w(TAG, "surah list fetch malformed: ${malformed::class.java.simpleName}")
                 return FetchOutcome.Failure(QuranSyncResult.PermanentFailure("malformed surah list body"))
             }
         return toFetchOutcome(response, source = "surah list", validateData = QuranValidator::validateSurahList)
@@ -138,12 +138,12 @@ constructor(
             try {
                 api.getAyat(surah.id)
             } catch (io: IOException) {
-                Log.w(TAG, "ayat fetch failed for surah ${surah.id}", io)
+                Log.w(TAG, "ayat fetch failed for surah ${surah.id}: ${io::class.java.simpleName}")
                 return FetchOutcome.Failure(
                     QuranSyncResult.RetryableFailure("ayat network error (surah ${surah.id})"),
                 )
             } catch (malformed: SerializationException) {
-                Log.w(TAG, "ayat fetch malformed for surah ${surah.id}", malformed)
+                Log.w(TAG, "ayat fetch malformed for surah ${surah.id}: ${malformed::class.java.simpleName}")
                 return FetchOutcome.Failure(
                     QuranSyncResult.PermanentFailure("malformed ayat body (surah ${surah.id})"),
                 )

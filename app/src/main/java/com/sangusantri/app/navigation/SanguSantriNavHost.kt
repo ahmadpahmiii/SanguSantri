@@ -30,6 +30,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.icon.TasbihIcon
+import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.activity.ActivityRoute
 import com.sangusantri.app.feature.activity.detail.ActivityAmaliyahHistoryRoute
@@ -188,6 +189,7 @@ fun SanguSantriNavHost(
     onDeepLinkConsumed: () -> Unit = {},
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
+    val isQuranDestination = topLevelBackStack.backStack.lastOrNull().isQuranDestination()
 
     // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
     // reading-mode gate directly, on top of whatever the user was already doing — never replaces
@@ -201,6 +203,7 @@ fun SanguSantriNavHost(
 
     Scaffold(
         modifier = modifier,
+        containerColor = if (isQuranDestination) QuranBackground else MaterialTheme.colorScheme.background,
         bottomBar = {
             if (topLevelBackStack.isAtTopLevelRoot) {
                 BottomNavigationBar(
@@ -224,6 +227,13 @@ fun SanguSantriNavHost(
         )
     }
 }
+
+private fun NavKey?.isQuranDestination(): Boolean =
+    this is QuranEntry ||
+        this is QuranHub ||
+        this is QuranReader ||
+        this is QuranSettings ||
+        this is QuranSource
 
 @Composable
 private fun rootDestinations(): List<RootDestination> =
@@ -400,6 +410,7 @@ private fun EntryProviderScope<NavKey>.quranEntries(topLevelBackStack: TopLevelB
             onAyatSelected = { surahNumber, ayatNumber ->
                 topLevelBackStack.add(QuranReader(surahNumber, targetAyat = ayatNumber))
             },
+            onOpenSettings = { topLevelBackStack.add(QuranSettings) },
             onOpenSource = { topLevelBackStack.add(QuranSource) },
         )
     }

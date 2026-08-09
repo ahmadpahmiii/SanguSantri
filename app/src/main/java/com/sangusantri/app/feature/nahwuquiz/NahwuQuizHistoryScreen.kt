@@ -77,21 +77,28 @@ fun NahwuQuizHistoryScreen(
     ) { innerPadding ->
         when (uiState) {
             NahwuQuizHistoryUiState.Loading ->
-                NahwuQuizLoadingState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizLoadingState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             NahwuQuizHistoryUiState.Empty ->
-                NahwuQuizHistoryEmptyState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizHistoryEmptyState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             is NahwuQuizHistoryUiState.Filled ->
                 NahwuQuizHistoryList(
                     attempts = uiState.attempts,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
         }
     }
@@ -139,9 +146,10 @@ private fun NahwuQuizHistoryRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = SanguSantriSpacing.small),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = SanguSantriSpacing.small),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

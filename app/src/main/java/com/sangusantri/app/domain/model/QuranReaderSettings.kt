@@ -11,21 +11,22 @@ package com.sangusantri.app.domain.model
  */
 data class QuranReaderSettings(
     val displayMode: QuranDisplayMode = QuranDisplayMode.ARAB_ONLY,
+    val arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     val arabicSizeSp: Int = DEFAULT_ARABIC_SIZE_SP,
     val arabicLineSpacingMultiplier: Float = DEFAULT_ARABIC_LINE_SPACING,
     val translationSizeSp: Int = DEFAULT_TRANSLATION_SIZE_SP,
     val brightnessOverride: Float? = null,
 ) {
     companion object {
-        const val DEFAULT_ARABIC_SIZE_SP = 34
-        const val MIN_ARABIC_SIZE_SP = 24
+        const val DEFAULT_ARABIC_SIZE_SP = 24
+        const val MIN_ARABIC_SIZE_SP = 14
         const val MAX_ARABIC_SIZE_SP = 52
 
-        const val DEFAULT_ARABIC_LINE_SPACING = 1.75f
+        const val DEFAULT_ARABIC_LINE_SPACING = 2.00f
         const val MIN_ARABIC_LINE_SPACING = 1.45f
         const val MAX_ARABIC_LINE_SPACING = 2.20f
 
-        const val DEFAULT_TRANSLATION_SIZE_SP = 17
+        const val DEFAULT_TRANSLATION_SIZE_SP = 16
         const val MIN_TRANSLATION_SIZE_SP = 14
         const val MAX_TRANSLATION_SIZE_SP = 24
 

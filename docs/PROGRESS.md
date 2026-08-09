@@ -4801,6 +4801,95 @@ then re-run `§12`'s full acceptance-criteria list end-to-end before considering
 Outside this feature, `docs/PROGRESS.md`'s other in-flight thread (Kalender Hijriah, see the next
 entry below) is the other candidate next milestone.
 
+## Quran response-body EOF hotfix (2026-08-08)
+
+**Scope:** Fix only the `JsonDecodingException` seen when Retrofit parsed a successful Kemenag
+response while debug HTTP body logging was enabled.
+
+### What was fixed
+
+- `ResponseSizeLimitInterceptor.SizeLimitedResponseBody` now creates and returns one cached
+  size-limited `BufferedSource`, matching OkHttp's one-shot response-body contract. Previously,
+  each `source()` call wrapped the same delegate with a new buffer: the debug HTTP logger consumed
+  the first wrapper, then Retrofit received a second wrapper over the already-exhausted delegate
+  and attempted to decode an empty string (`EOF` at JSON path `$`).
+- The response-size cap and its streaming enforcement are unchanged. No Quran DTO, source text,
+  persistence, sync, or UI behavior changed.
+
+### Known limitations
+
+- This hotfix does not change or validate the locally modified Kemenag header/credential setup;
+  those pre-existing working-tree changes remain outside this narrow scope.
+
+### Next recommended milestone
+
+Complete a genuine online Quran preparation run with the intended credential injection path, then
+resolve the remaining external release blockers already listed under Standalone Al-Qur'an Slice 5.
+
+## Standalone Al-Qur'an UI/UX audit and revision (2026-08-08)
+
+**Scope:** Audit every implemented standalone-Quran surface against the local
+`docs/design/figma-export/quran/` baseline and the seven supplied device captures, then revise the
+hub, entry states, both reader modes, ayat actions, tafsir states, display settings, and source
+attribution without changing Quran content or network/persistence contracts.
+
+### What changed
+
+- The fresh-install reader baseline is now **30sp Arabic / 1.65 line-height multiplier / 16sp
+  translation**. This is calibrated for the currently shipped Android serif fallback at compact
+  portrait width: the previous 34sp value came from an LPMQ-font mockup whose visual metrics are
+  materially smaller and therefore appeared over-zoomed in the actual app. The decision is close
+  to the local 29px flowing-reader reference and the Quran Foundation Unicode rendering example's
+  28px baseline, while keeping the existing user-controlled range. Existing persisted preferences
+  are intentionally not overwritten.
+- The hub now matches the approved local hierarchy: two-line Kemenag identity, restrained outlined
+  continue-reading panel, scrollable tabs, tonal search field, numbered list badges, meaning and
+  revelation metadata, Arabic names, and separate settings/source actions. Compact content is
+  capped at 640dp so it remains readable on wider windows without introducing a second navigation
+  system.
+- Both reader modes now use calmer start-of-surah framing, a compact contextual top bar, more
+  balanced basmalah and paragraph spacing, and explicit ayat/Juz/page metadata. The flowing mode
+  retains the approved bracketed inline ayat markers; only the initial scale and rhythm changed.
+- The ayat-action and tafsir sheets no longer inherit the app theme's 50%-rounded `extraLarge`
+  shape. Both use an explicit 26dp top-only radius, dark scrim, and 610dp content cap. Tafsir has a
+  clear header/close affordance and distinct loading, cached-refreshing, loaded, retryable-error,
+  and unavailable presentation.
+- Display settings were rebuilt around a live preview, numeric slider values and discrete steps, a
+  single segmented display-mode control, compact debug-only font-candidate cards, and a full-width
+  source row. The source and entry screens now use centered readable-width content and clearer
+  state hierarchy.
+- Added shared Quran-specific dimensions/scrim tokens and split settings/font-preview composables
+  so the revised surfaces remain within the project's static-analysis complexity thresholds.
+
+The typography rationale is recorded in `docs/design/QURAN_DESIGN_SYSTEM.md`, including the need to
+recalibrate size per approved font. Evidence reviewed: Android scalable-content and paragraph
+guidance, Quran Foundation font-rendering guidance, the local Quran HTML/PNG baselines, and Arabic
+mobile-readability literature; no source supports one universal Quran size independent of font and
+viewport.
+
+### Validation and known limitations
+
+- `:app:compileDebugKotlin`, `:app:lint`, `:app:assembleDebug`, and `:app:installDebug` completed
+  successfully; the debug APK installed on the local Pixel 9 API 35 emulator.
+- `:app:ktlintCheck` reports no Quran-file violation. The global task remains red on unrelated
+  in-progress Nahwu formatting plus the pre-existing overlength credential-provider line.
+- `:app:detekt` reports no issue from this UI revision. The global task remains red only on that
+  same pre-existing credential-provider line.
+- Runtime screenshot verification could not proceed past launch because that emulator retains a
+  Room schema-v4 developer database while this pre-release baseline requires schema v5. The app
+  correctly refuses to open without a migration. No emulator app data was cleared without the
+  product owner's explicit permission.
+- No new tests were added or run, per the temporary Figma-alignment implementation constraints.
+  The 30sp default affects new/no-preference installs only, and must be visually recalibrated once
+  an approved, corpus-verified Quran font replaces `FontFamily.Serif`.
+
+### Next recommended milestone
+
+With approval, clear only the SanguSantri app data on the development emulator and complete the
+manual portrait pass for hub tabs/search, both readers, long-press action sheet, all tafsir states,
+settings controls, and source attribution. Then resolve the remaining external font/licensing and
+credential-scope release inputs already tracked under the Quran PRD.
+
 ## Kalender Hijriah approved PRD and visual baseline (2026-08-08)
 
 **Status:** Product/design scope approved and documented for target `0.0.7`;
@@ -4850,3 +4939,178 @@ Finish the active standalone Quran `0.0.6` release work. When the product owner
 explicitly starts `0.0.7`, begin Kalender Hijriah Slice 1: audit and freeze the
 versioned source bundle, reuse the existing Hijri conversion policy, and add
 the tested pasaran/event-domain rules before building Compose UI.
+
+## Quran numbered-state UI audit and revision (2026-08-09)
+
+**Status:** The numbered `01`–`18` Quran state catalog has been audited against
+the Compose implementation and recorded in
+`docs/reviews/quran-ui-state-audit-2026-08-09.md`.
+
+### What changed
+
+- Replaced the four-tab hub with three equal-width tabs: Surah, Juz, and
+  Bookmark. Terakhir dibaca is now an optional outlined card above the tabs;
+  it is omitted entirely when no saved position exists.
+- Applied a 16dp outer hub inset, compact 8dp row inset, a 640dp content cap,
+  and consistent search/list alignment. Background-refresh running and
+  cache-preserving failure states are now visible without blocking Room data.
+- Rebuilt entry checking/preparation/offline/error hierarchy and reader
+  loading/invalid-target hierarchy to match numbered states 05a–06b and 17–18.
+- Packaged LPMQ Isep Misbah and Amiri Quran, persisted the selected font in
+  DataStore, and applied it to both reader modes and live preview. LPMQ and
+  Amiri cards are selectable; King Fahd is disabled as `Belum tersedia`.
+- Retained the 30sp / 1.65× / 16sp fresh-install defaults and the bracketed
+  Arab-only ayat marker. System-bar icon handling now survives navigation
+  overlap between Quran destinations and remains legible on the host chrome.
+- Regenerated the Quran HTML/JSON catalog and re-rendered the affected hub PNG
+  previews after changing state 04a/04b to last-read-card present/absent.
+
+### Validation and known limitations
+
+- `ktlintFormat`, `lint`, `assembleDebug`, and `installDebug` completed
+  successfully. The final APK installed on Pixel 9 API 35.
+- `ktlintCheck` and `detekt` now report no issue from this UI revision; both
+  global tasks remain red on the existing overlength debug credential line in
+  `QuranCredentialProvider.kt`.
+- Fresh-install runtime verification covered initial sync completion, 3-tab
+  hub with 42px device inset, last-read card absent/present, Surah list/search,
+  LPMQ/Amiri selection semantics, disabled King Fahd, both live previews,
+  Arab-only reader, long-press selection/action sheet, and system-bar contrast.
+- Controlled failure injection was not performed for 06a/06b/06d, 13b/13c,
+  and 18; their explicit Compose branches were inspected statically.
+- Amiri Quran displayed a missing-glyph box for the final Al-Fatihah special
+  mark on API 35. It remains selectable per product direction, but must not pass
+  the release glyph gate until the fixed Kemenag corpus renders cleanly.
+- LPMQ font embedding/redistribution permission is still an external release
+  blocker. King Fahd remains unavailable because no asset/licence was supplied.
+
+### Next recommended milestone
+
+Resolve the Quran font release gates: confirm LPMQ embedding permission, run
+the full Kemenag glyph corpus on supported Android versions, and either fix or
+disable Amiri before release. Then execute controlled captures for the
+remaining offline/error/invalid-target branches listed in the audit.
+
+## Quran design-fidelity re-audit and UI revision (2026-08-09)
+
+**Status:** An independent, state-by-state re-comparison of every asset in
+`docs/design/figma-export/quran/` (26 states: hub, initial preparation,
+reader, ayat action sheet, tafsir sheet, display settings, source, Aktivitas
+row) against the current Compose implementation, run after the audit recorded
+above. This pass read each state's HTML/CSS/JSON reference directly (exact
+colour hex, spacing, and copy) rather than relying on the prior audit's
+"Covered" verdicts, then implemented the confirmed mismatches. It supersedes
+the prior pass's verdicts where they conflict.
+
+### What changed
+
+- **Hub top bar**: removed the leading back icon — every hub design frame
+  (`01`–`04b`, `06c`, `06d`) uses a plain title/subtitle bar with no back
+  affordance, relying on system/predictive back, same as the entry gate.
+- **Terakhir dibaca card**: added the tinted gradient background
+  (`QuranContinueCardGradientStart` → `QuranSurface`, matching
+  `linear-gradient(135deg,#07351f,#101713)`) and restored the page number in
+  the meta line (`Halaman N • Ayat N`) using data already present on
+  `QuranReadingState` but previously dropped when building `QuranHubUiState`.
+- **Hub background-refresh/failed notice**: now a bordered, surfaced pill
+  (`quranNoticeCornerRadius`) instead of a bare row; failed state uses
+  `QuranError` for both icon and text.
+- **Hub empty tab states**: added the icon-mark + heading + description
+  pattern from the design's `.empty` block (bookmark-empty gets its own
+  title/description strings matching the mock; Surah/Juz empty — which has no
+  design frame since Room is always populated by then — reuses the same
+  layout with a neutral icon).
+- **Entry gate** (checking/preparing/offline/failed): added the missing
+  `Al-Qur'an` / `Al-Qur'an Kemenag` header (design has no back icon here
+  either); fixed the state-mark shape (76dp rounded-square with an outline
+  border, not a 72dp circle); failure states now tint the icon `QuranError`
+  instead of `QuranPrimary`; the determinate progress track now uses the
+  design's `#26312B` instead of the default Material track colour; corrected
+  the preparing/failed copy to match the mock exactly; retry button now meets
+  the 132dp minimum width.
+- **Reader invalid-target state**: icon now uses the same bordered 76dp mark
+  and `QuranError` tint as the entry gate (was an unbordered, primary-tinted
+  circle); the top app bar now shows a generic `Al-Qur'an` / `Posisi tidak
+  tersedia` title instead of stale/fallback surah data when the requested
+  ayat can't be resolved; copy and the 132dp button width now match state 18.
+- **Reader loading skeleton**: three equal placeholders (was one distinct
+  96dp "header" block plus three 132dp blocks) — the design never implies a
+  separate header skeleton.
+- **Reader surah-start header**: the title pill lost an unspecified border,
+  and the metadata band's border is now a translucent 42% `QuranPrimary`
+  instead of solid, matching `color-mix(...42%...)` in the reference; the
+  basmalah asset now renders at a fixed ~210dp max width instead of 70% of
+  the column width.
+- **Tafsir sheet**: the retry button in the unavailable branch is now gated
+  by `retryable` — the offline/no-cache state (13b) has no button, matching
+  the design, where previously every unavailable state showed one; the
+  cached-while-refreshing indicator (13a) is now a small pill
+  ("Tersimpan offline • memperbarui…") instead of a full-width progress bar;
+  the sheet heading format changed to `Surah • Ayat N` (was `Tafsir Surah: N`);
+  offline/error copy now matches the mock's wording.
+- **Display settings**: four control labels shortened to match the mock
+  exactly (`Ukuran Arab`, `Jarak baris Arab`, `Ukuran terjemahan`, `Tampilan
+  bacaan`, `Kecerahan Quran`).
+- **Source screen**: restructured to match the mock's actual layout — an
+  `Al-Qur'an Kemenag` heading with the provenance line as plain prose (was a
+  titled card), the bordered box moved onto the "Data yang digunakan" section
+  specifically (it was wrapping provenance instead), a divider between the
+  box and the following prose, the previously-missing read-only/no-correction
+  statement added, and the non-endorsement disclaimer moved last and given
+  the mock's bordered "Catatan" notice treatment plus its "other features in
+  the app" clause, which the prior copy omitted.
+
+### Explicitly reviewed and left unchanged (ambiguous or contradicted by a
+
+written spec)
+
+- The ayat action sheet's corner radius (24px vs the 26dp already implemented)
+  and scrim opacity (42% vs the implemented ~64%): `10-ayat-action-sheet.html`
+  disagrees with the shared stylesheet block used by every other sheet in the
+  set, so there is no single authoritative value to implement against.
+- A second reader top-bar action for a one-tap display-mode toggle: shown in
+  both `08` and `09`, but the two mocks disagree on what the icon does, and
+  building it means a new quick-toggle affordance beyond the existing full
+  settings screen — deferred as a product decision, not a styling fix.
+- Removing the surah-start header/basmalah from Arab+terjemahan mode: state
+  `08`'s single mock omits it, but `QUR-FR-010` in `QURAN_PRD.md` explicitly
+  requires it "at the beginning of every surah" without restricting that to
+  Arab-only. The written requirement was treated as authoritative over one
+  mock frame.
+- The Aktivitas Quran row's one-ayat-progress recording
+  (`last > start` / `endAyat <= startAyat` guards in
+  `QuranReaderViewModel`/`QuranRepositoryImpl`): a delegated review flagged
+  this as dropping a same-ayat session, but acceptance criterion 12 in
+  `QURAN_PRD.md` ("One-ayat progress creates one session; open/close without
+  progress does not") reads at least as naturally as "advancing by one ayat
+  is the threshold," which is what the code already does. Left as-is pending
+  product clarification rather than guessed at.
+- King Fahd's candidate name (`King Fahd` in the mock, `King Fahd Uthmanic
+  Hafs for smart devices` in `QURAN_DESIGN_SYSTEM.md`, `King Fahd Complex` in
+  `strings.xml`) and the settings live-preview verse (Al-Fajr in the mock,
+  Al-Fatihah in the running app): no two of the three naming sources agree,
+  and the preview-verse substitution looks like a deliberate, defensible
+  product choice rather than an oversight.
+- The Activity row timestamp separator (`20.18` in the mock vs the app's
+  `20:18`): an app-wide time-format convention, not specific to Quran.
+
+### Validation and known limitations
+
+- `ktlintFormat`, `ktlintCheck`, `detekt`, `lintDebug`, and `assembleDebug`
+  all completed successfully against the full revision.
+- No emulator or device was attached to this session (`adb devices` returned
+  none), so `installDebug` and on-device manual verification were not
+  performed. Every state above was verified by reading the design HTML/CSS/
+  JSON and the Compose source side by side, not by rendering the app.
+- This pass did not touch: the ayat-action-sheet ambiguities, the reader
+  quick display-mode toggle, the one-ayat-progress recording rule, the King
+  Fahd naming mismatch, or the settings preview-verse choice — see above.
+
+### Next recommended milestone
+
+Get product-owner rulings on the four explicitly-deferred ambiguities above
+(action-sheet corner radius/scrim source of truth, reader quick-toggle
+scope, one-ayat-progress intent, King Fahd naming), then run an on-device
+pass (`installDebug` plus manual TalkBack/RTL/font-scale checks per
+`QURAN_DESIGN_SYSTEM.md` §7) once an emulator or device is available, since
+this session's verification was source-level only.

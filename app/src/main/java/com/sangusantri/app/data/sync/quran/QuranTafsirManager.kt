@@ -38,10 +38,10 @@ constructor(
             try {
                 api.getTafsir(remoteAyatId)
             } catch (io: IOException) {
-                Log.w(TAG, "tafsir fetch failed for ayat $remoteAyatId", io)
+                Log.w(TAG, "tafsir fetch failed: ${io::class.java.simpleName}")
                 return QuranTafsirFetchOutcome.Failure(retryable = true)
             } catch (malformed: SerializationException) {
-                Log.w(TAG, "tafsir fetch malformed for ayat $remoteAyatId", malformed)
+                Log.w(TAG, "tafsir fetch malformed: ${malformed::class.java.simpleName}")
                 return QuranTafsirFetchOutcome.Failure(retryable = false)
             }
         if (!response.isSuccessful) {
@@ -54,6 +54,9 @@ constructor(
         val dto =
             envelope.data.firstOrNull { it.id == remoteAyatId }
                 ?: return QuranTafsirFetchOutcome.Failure(retryable = false)
+        if (dto.teks.isBlank() || dto.tahlili.isBlank()) {
+            return QuranTafsirFetchOutcome.Failure(retryable = false)
+        }
         val entity = dto.toEntity(cachedAtEpochMillis = System.currentTimeMillis())
         tafsirDao.upsert(entity)
         return QuranTafsirFetchOutcome.Success(entity)

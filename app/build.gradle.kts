@@ -255,6 +255,7 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor)
 
     // Background sync
     implementation(libs.androidx.work.runtime.ktx)

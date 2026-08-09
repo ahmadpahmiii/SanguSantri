@@ -78,8 +78,9 @@ shape differences in addition to colour.
 ### 3.1 Font candidates
 
 Candidate binaries and provenance live under
-`docs/design/assets/quran-fonts/`. They are not Android resources until the
-licence and glyph gates pass.
+`docs/design/assets/quran-fonts/`. LPMQ Isep Misbah and Amiri Quran are packaged
+as Android font resources for the approved selector; the release gate still
+requires the licence and glyph checks below.
 
 1. **LPMQ Isep Misbah** — default candidate; closest source pairing for
    Kemenag `teks_msi_usmani`.
@@ -88,16 +89,20 @@ licence and glyph gates pass.
    candidate after its file/readme is supplied and compatibility is proven.
 
 Font selection is not permission to substitute a second Quran dataset. Every
-font renders the same Kemenag string. Any candidate that changes, drops,
-collides, or clips marks is disabled rather than silently falling back.
+font renders the same Kemenag string. The packaged Amiri Quran binary lacks
+U+06D4, U+06D5, and U+08D6 used by the validated Kemenag corpus, so its Android
+presentation explicitly falls back to LPMQ for the complete affected word;
+this compatibility span is documented, changes no stored string, and avoids a
+tofu box. Any remaining candidate that changes, drops, collides, or clips marks
+is disabled rather than silently passing the release gate.
 
 ### 3.2 Reader defaults and ranges
 
 | Role                    |               Default |   User range | Guidance                       |
 |-------------------------|----------------------:|-------------:|--------------------------------|
-| Arabic size             |                  34sp |      24–52sp | Slider, 2sp steps              |
-| Arabic line height      |                 1.75× |   1.45–2.20× | Slider, live preview           |
-| Translation size        |                  17sp |      14–24sp | Slider, 1sp steps              |
+| Arabic size             |                  24sp |      14–52sp | Slider, 2sp steps              |
+| Arabic line height      |                 2.00× |   1.45–2.20× | Slider, live preview           |
+| Translation size        |                  16sp |      14–24sp | Slider, 1sp steps              |
 | Translation line height |                 1.55× |      Derived | Not a separate control         |
 | Surah title             | Material `titleLarge` | System scale | Indonesian/Latin UI font       |
 | Metadata                |  Material `bodySmall` | System scale | Never below accessible minimum |
@@ -106,6 +111,15 @@ Arabic uses RTL direction and centre/right alignment according to the active
 display choice. Translation uses Indonesian LTR. Quranic combining marks must be
 included in measured line height; never clip the font box to imitate tighter
 screenshots.
+
+The 24sp portrait default is the product-owner-approved first impression for
+the primary 360dp-wide viewport with the packaged LPMQ default. The 2.00×
+line-height default deliberately gives Quranic combining marks and dense lines
+more vertical breathing room, while the 14sp minimum supports users who prefer
+a compact overview without making that compact value the initial experience.
+This is a first-impression default, not a universal readability claim: every
+cleared Quran font must be recalibrated against the same verified corpus because
+fonts with the same nominal `sp` can have materially different visual sizes.
 
 ## 4. Settings preview cards
 
@@ -116,8 +130,7 @@ The font selector is a vertical set of mutually exclusive preview cards:
 * selected indicator: radio semantics plus green border/container;
 * optional caption: `Standar Indonesia`, `Naskh`, or `Madinah` only when the
   label is factually verified;
-* unavailable candidate: not shown in production; a development build may
-  show `Belum lolos pemeriksaan` for review.
+* unavailable candidate: shown disabled with `Belum tersedia`, never selectable.
 
 Although visually card-based, this is one radio group—not a multi-select
 checkbox list. Tapping anywhere on a card selects it. The live preview below
@@ -130,13 +143,14 @@ latest values. There is no separate Save button or uncommitted draft state.
 ### 5.1 Quran hub
 
 * Dark top app bar: `Al-Qur'an`, search, source/settings overflow as needed.
-* Optional continue-reading panel directly under the app bar.
-* Horizontally scrollable primary tabs: Surah, Juz, Bookmark, Terakhir Dibaca.
+* Optional Terakhir dibaca card directly under the app bar; absent when no
+  saved position exists and never represented as a tab.
+* Three equal-width primary tabs: Surah, Juz, Bookmark.
 * Lists are flat with separators or tonal selection; do not turn every row
   into a large card.
 * Surah rows prioritise number, name, Arabic name, category, and ayat count.
 * Juz rows prioritise Juz number and starting surah/ayat/page derived locally.
-* Bookmark/recent rows show enough position context to resume confidently.
+* Bookmark rows show enough position context to resume confidently.
 
 ### 5.2 Initial preparation
 
@@ -286,7 +300,7 @@ design file. Minimum frames:
 1. Quran hub — Surah.
 2. Quran hub — Juz.
 3. Quran hub — Bookmark empty/populated.
-4. Quran hub — Terakhir Dibaca.
+4. Quran hub — Terakhir dibaca card present/absent.
 5. Initial preparation.
 6. Initial offline/error.
 7. Flowing reader — Arab saja, full Kemenag-page composition using the same

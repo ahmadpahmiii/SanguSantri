@@ -9,10 +9,9 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 
 /**
  * Every Quran screen, dialog, and sheet is dark-only regardless of the surrounding app theme
- * (QUR-FR-001). Wraps [content] in a forced-dark [SanguSantriTheme] and switches system status/
- * navigation bar icon appearance to match, restoring the previous system-bar appearance when this
- * leaves composition (the outer [SanguSantriTheme] in `MainActivity` is untouched, so the app's own
- * theme choice is automatically what is seen again once the user navigates away from Quran).
+ * (QUR-FR-001). Wraps [content] in a forced-dark [SanguSantriTheme] and uses light system-bar icons
+ * against the navigation host's Quran-dark inset backdrop, restoring the previous icon appearance
+ * when this leaves composition (the outer theme remains untouched).
  */
 @Composable
 fun QuranThemeBoundary(content: @Composable () -> Unit) {
@@ -21,19 +20,37 @@ fun QuranThemeBoundary(content: @Composable () -> Unit) {
         DisposableEffect(view) {
             val window = (view.context as? Activity)?.window
             val controller = window?.let { WindowCompat.getInsetsController(it, view) }
-            val previousLightStatusBars = controller?.isAppearanceLightStatusBars
-            val previousLightNavigationBars = controller?.isAppearanceLightNavigationBars
-            controller?.isAppearanceLightStatusBars = false
-            controller?.isAppearanceLightNavigationBars = false
-            onDispose {
-                if (controller != null && previousLightStatusBars != null) {
-                    controller.isAppearanceLightStatusBars = previousLightStatusBars
-                }
-                if (controller != null && previousLightNavigationBars != null) {
-                    controller.isAppearanceLightNavigationBars = previousLightNavigationBars
-                }
-            }
+            QuranSystemBarBoundary.enter(controller)
+            onDispose { QuranSystemBarBoundary.exit(controller) }
         }
     }
     SanguSantriTheme(darkTheme = true, content = content)
+}
+
+/** Navigation can compose the incoming Quran destination before disposing the outgoing one. A
+ * shared count prevents the outgoing screen from restoring a stale icon appearance during that
+ * overlap. */
+private object QuranSystemBarBoundary {
+    private var activeCount = 0
+    private var previousLightStatusBars: Boolean? = null
+    private var previousLightNavigationBars: Boolean? = null
+
+    fun enter(controller: androidx.core.view.WindowInsetsControllerCompat?) {
+        if (activeCount == 0) {
+            previousLightStatusBars = controller?.isAppearanceLightStatusBars
+            previousLightNavigationBars = controller?.isAppearanceLightNavigationBars
+        }
+        activeCount += 1
+        controller?.isAppearanceLightStatusBars = false
+        controller?.isAppearanceLightNavigationBars = false
+    }
+
+    fun exit(controller: androidx.core.view.WindowInsetsControllerCompat?) {
+        activeCount = (activeCount - 1).coerceAtLeast(0)
+        if (activeCount > 0) return
+        previousLightStatusBars?.let { controller?.isAppearanceLightStatusBars = it }
+        previousLightNavigationBars?.let { controller?.isAppearanceLightNavigationBars = it }
+        previousLightStatusBars = null
+        previousLightNavigationBars = null
+    }
 }

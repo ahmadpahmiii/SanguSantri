@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.remote.quran
 
+import com.sangusantri.app.data.remote.quran.QuranValidator.validateAyatForSurah
 import com.sangusantri.app.data.remote.quran.dto.QuranAyatDto
 import com.sangusantri.app.data.remote.quran.dto.QuranSurahDto
 
@@ -47,6 +48,8 @@ object QuranValidator {
         if (ids.sorted() != (1..EXPECTED_SURAH_COUNT).toList()) {
             return QuranValidation.Invalid("surah ids are not exactly 1..$EXPECTED_SURAH_COUNT")
         }
+        val invalidSurah = surahs.firstOrNull { it.jumlahAyat <= 0 || it.nama.isBlank() || it.arabic.isBlank() }
+        if (invalidSurah != null) return QuranValidation.Invalid("surah ${invalidSurah.id} metadata is incomplete")
         return QuranValidation.Valid
     }
 
@@ -82,7 +85,7 @@ object QuranValidator {
         return when {
             ayat.teksMsiUsmani.isBlank() -> QuranValidation.Invalid("ayat $identity arabic text is blank")
             ayat.terjemah.isBlank() -> QuranValidation.Invalid("ayat $identity translation is blank")
-            ayat.juz <= 0 -> QuranValidation.Invalid("ayat $identity juz must be positive")
+            ayat.juz !in 1..30 -> QuranValidation.Invalid("ayat $identity juz must be within 1..30")
             ayat.halaman <= 0 -> QuranValidation.Invalid("ayat $identity halaman must be positive")
             else -> null
         }

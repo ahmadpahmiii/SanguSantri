@@ -14,4 +14,7 @@ data class QuranReaderAyatUiModel(
     val page: Int,
     val arabicText: String,
     val translation: String,
+    val note: String = "",
+    val footnoteNumber: String = "",
+    val footnoteText: String = "",
 )

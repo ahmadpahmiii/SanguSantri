@@ -33,99 +33,102 @@ private data class QuranHubData(
  * non-blocking background refresh status (QUR-FR-004 §6.2).
  */
 @HiltViewModel
-class QuranHubViewModel @Inject constructor(
-    private val quranRepository: QuranRepository,
-) : ViewModel() {
-    private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
-    private val searchQuery = MutableStateFlow("")
-    private val refreshState = MutableStateFlow(QuranHubRefreshState.IDLE)
+class QuranHubViewModel
+    @Inject
+    constructor(
+        private val quranRepository: QuranRepository,
+    ) : ViewModel() {
+        private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
+        private val searchQuery = MutableStateFlow("")
+        private val refreshState = MutableStateFlow(QuranHubRefreshState.IDLE)
 
-    private val hubData: Flow<QuranHubData> =
-        combine(
-            quranRepository.observeSurahs(),
-            quranRepository.observeJuzStarts(),
-            quranRepository.observeBookmarks(),
-            quranRepository.observeReadingState(),
-        ) { surahs, juzStarts, bookmarks, readingState ->
-            QuranHubData(surahs, juzStarts, bookmarks, readingState)
-        }
+        private val hubData: Flow<QuranHubData> =
+            combine(
+                quranRepository.observeSurahs(),
+                quranRepository.observeJuzStarts(),
+                quranRepository.observeBookmarks(),
+                quranRepository.observeReadingState(),
+            ) { surahs, juzStarts, bookmarks, readingState ->
+                QuranHubData(surahs, juzStarts, bookmarks, readingState)
+            }
 
-    val uiState: StateFlow<QuranHubUiState> =
-        combine(hubData, selectedTab, searchQuery, refreshState, ::buildUiState)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), QuranHubUiState())
+        val uiState: StateFlow<QuranHubUiState> =
+            combine(hubData, selectedTab, searchQuery, refreshState, ::buildUiState)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), QuranHubUiState())
 
-    init {
-        viewModelScope.launch {
-            var refreshStarted = false
-            refreshState.value =
-                when (
-                    quranRepository.refreshIfStale {
-                        refreshStarted = true
-                        refreshState.value = QuranHubRefreshState.REFRESHING
+        init {
+            viewModelScope.launch {
+                var refreshStarted = false
+                refreshState.value =
+                    when (
+                        quranRepository.refreshIfStale {
+                            refreshStarted = true
+                            refreshState.value = QuranHubRefreshState.REFRESHING
+                        }
+                    ) {
+                        QuranPreparationResult.Ready -> QuranHubRefreshState.IDLE
+                        is QuranPreparationResult.Failed ->
+                            if (refreshStarted) QuranHubRefreshState.FAILED else QuranHubRefreshState.IDLE
                     }
-                ) {
-                    QuranPreparationResult.Ready -> QuranHubRefreshState.IDLE
-                    is QuranPreparationResult.Failed ->
-                        if (refreshStarted) QuranHubRefreshState.FAILED else QuranHubRefreshState.IDLE
-                }
+            }
+        }
+
+        fun selectTab(tab: QuranHubTab) {
+            selectedTab.value = tab
+        }
+
+        fun updateSearchQuery(query: String) {
+            searchQuery.value = query
+        }
+
+        private fun buildUiState(
+            data: QuranHubData,
+            tab: QuranHubTab,
+            query: String,
+            refresh: QuranHubRefreshState,
+        ): QuranHubUiState {
+            val surahNames = data.surahs.associate { it.number to it.latinName }
+            return QuranHubUiState(
+                selectedTab = tab,
+                searchQuery = query,
+                surahs = data.surahs.filteredBySearch(query),
+                juzRows =
+                    data.juzStarts.map { verse ->
+                        QuranJuzRow(
+                            juzNumber = verse.juz,
+                            surahNumber = verse.surahNumber,
+                            surahName = surahNames[verse.surahNumber].orEmpty(),
+                            ayatNumber = verse.ayatNumber,
+                            page = verse.page,
+                        )
+                    },
+                bookmarkRows =
+                    data.bookmarks.map { bookmark ->
+                        QuranBookmarkRow(
+                            surahNumber = bookmark.surahNumber,
+                            surahName = surahNames[bookmark.surahNumber].orEmpty(),
+                            ayatNumber = bookmark.ayatNumber,
+                            createdAtEpochMillis = bookmark.createdAtEpochMillis,
+                        )
+                    },
+                continueReading =
+                    data.readingState?.let { state ->
+                        QuranContinueReading(
+                            surahNumber = state.surahNumber,
+                            surahName = surahNames[state.surahNumber].orEmpty(),
+                            ayatNumber = state.ayatNumber,
+                            page = state.page,
+                        )
+                    },
+                refreshState = refresh,
+                isLoading = false,
+            )
+        }
+
+        private companion object {
+            const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
         }
     }
-
-    fun selectTab(tab: QuranHubTab) {
-        selectedTab.value = tab
-    }
-
-    fun updateSearchQuery(query: String) {
-        searchQuery.value = query
-    }
-
-    private fun buildUiState(
-        data: QuranHubData,
-        tab: QuranHubTab,
-        query: String,
-        refresh: QuranHubRefreshState,
-    ): QuranHubUiState {
-        val surahNames = data.surahs.associate { it.number to it.latinName }
-        return QuranHubUiState(
-            selectedTab = tab,
-            searchQuery = query,
-            surahs = data.surahs.filteredBySearch(query),
-            juzRows =
-                data.juzStarts.map { verse ->
-                    QuranJuzRow(
-                        juzNumber = verse.juz,
-                        surahNumber = verse.surahNumber,
-                        surahName = surahNames[verse.surahNumber].orEmpty(),
-                        ayatNumber = verse.ayatNumber,
-                        page = verse.page,
-                    )
-                },
-            bookmarkRows =
-                data.bookmarks.map { bookmark ->
-                    QuranBookmarkRow(
-                        surahNumber = bookmark.surahNumber,
-                        surahName = surahNames[bookmark.surahNumber].orEmpty(),
-                        ayatNumber = bookmark.ayatNumber,
-                        createdAtEpochMillis = bookmark.createdAtEpochMillis,
-                    )
-                },
-            continueReading =
-                data.readingState?.let { state ->
-                    QuranContinueReading(
-                        surahNumber = state.surahNumber,
-                        surahName = surahNames[state.surahNumber].orEmpty(),
-                        ayatNumber = state.ayatNumber,
-                        page = state.page,
-                    )
-                },
-            refreshState = refresh,
-        )
-    }
-
-    private companion object {
-        const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
-    }
-}
 
 /** Case/diacritic-tolerant Latin-name match, or an exact surah-number match (QUR-FR-006) — local
  * only, never a network request. */

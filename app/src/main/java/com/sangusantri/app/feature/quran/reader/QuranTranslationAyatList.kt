@@ -119,21 +119,21 @@ private fun QuranTranslationAyatItem(
                         onLongPress()
                         true
                     }
-                }
-                .pointerInput(ayat.remoteId) {
+                }.pointerInput(ayat.remoteId) {
                     detectTapGestures(
                         onLongPress = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             onLongPress()
                         },
                     )
-                }
-                .padding(
+                }.padding(
                     horizontal = SanguSantriDimensions.readerHorizontalPadding,
                     vertical = SanguSantriSpacing.large,
                 ),
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            // TextAlign.End resolves to the *left* edge once layout direction is Rtl (End is
+            // logical, relative to direction) — Right is the physical alignment this needs.
             Text(
                 text = ayat.arabicText.withQuranFontFallback(arabicFont),
                 style =
@@ -141,7 +141,7 @@ private fun QuranTranslationAyatItem(
                         fontFamily = arabicFont.toFontFamily(),
                         fontSize = arabicSizeSp.sp,
                         lineHeight = arabicLineHeightSp.sp,
-                        textAlign = TextAlign.End,
+                        textAlign = TextAlign.Right,
                     ),
                 color = QuranArabicText,
                 modifier = Modifier.fillMaxWidth(),

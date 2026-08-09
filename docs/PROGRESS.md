@@ -5114,3 +5114,83 @@ scope, one-ayat-progress intent, King Fahd naming), then run an on-device
 pass (`installDebug` plus manual TalkBack/RTL/font-scale checks per
 `QURAN_DESIGN_SYSTEM.md` §7) once an emulator or device is available, since
 this session's verification was source-level only.
+
+## Quran on-device RTL/loading/numbering fix pass (2026-08-09)
+
+**Status:** The on-device follow-up the prior entry recommended — an emulator
+was attached this time, so this pass verified by actually running the app
+rather than only reading source against the design HTML/CSS. It found and
+fixed three defects the prior source-only reviews missed precisely because
+they only manifest visually.
+
+### What was fixed
+
+- **Reader Arab+terjemahan Arabic text rendered flush left, not right**
+  (`feature/quran/reader/QuranTranslationAyatList.kt`). Root cause: the
+  Arabic `Text` was wrapped in `LocalLayoutDirection provides
+  LayoutDirection.Rtl` *and* set `textAlign = TextAlign.End` — `End` is
+  logical and flips to the *left* edge once the ambient direction is Rtl, so
+  the two settings cancelled out. Fixed to `TextAlign.Right` (physical),
+  matching `08-reader-arab-translation.html`'s literal `text-align:right`.
+  Audited every other Arabic `TextAlign` in the feature: `QuranFontPreview`'s
+  similar-looking `End` is not Rtl-wrapped so it already resolves correctly;
+  `QuranSettingsScreen`'s live preview correctly uses `Center`; the Arab-only
+  flowing reader's `Justify` has no Start/End ambiguity. Only the one call
+  site was wrong.
+- **Surah/Juz number badge had no gap to the title.** The prior pass added
+  `QuranNumberBadge` but `QuranListRow`'s `Row` never set
+  `horizontalArrangement`, so the badge sat pixel-flush against the title
+  column — invisible when reading the source (the badge existed, the padding
+  values looked reasonable in isolation) but obvious on a real screen. Added
+  `Arrangement.spacedBy(SanguSantriSpacing.medium)` to `QuranListRow`,
+  matching `01-quran-hub-surah.html`'s `.row{gap:12px}`, and removed the
+  Bookmark row's now-redundant manual `padding(start = ...)` to avoid
+  double-gapping.
+- **Hub's Surah/Juz tabs could show the empty-state message before Room's
+  first emission arrived**, rather than a loading indicator — `QuranHubUiState`
+  has no way to distinguish "not loaded yet" from "loaded and genuinely
+  empty" (the prior pass's own comment on `QuranEmptyTabState` already notes
+  Room is always populated by hub-render time, i.e. this state is a rare
+  defensive fallback, not a real flow — but the seed value before that
+  guarantee is reflected still renders as empty for one frame). Added
+  `QuranHubUiState.isLoading` (defaults `true`, cleared on the first real
+  emission) and a `QuranLoadingTabState` spinner shown only while
+  `isLoading && list.isEmpty()`. Bookmark tab was left unchanged — it has no
+  equivalent guarantee and its empty state is always legitimate for a new
+  user.
+
+### Validation
+
+```text
+./gradlew :app:ktlintFormat/:app:ktlintCheck — pass on all touched files
+./gradlew :app:detekt                        — pass on all touched files (one
+                                  pre-existing, unrelated MaxLineLength
+                                  violation in QuranCredentialProvider.kt,
+                                  byte-identical to master, not touched here)
+./gradlew :app:lint                          — pass
+./gradlew :app:assembleDebug                 — pass
+./gradlew :app:installDebug                  — pass
+```
+
+### Manual validation (Pixel_9 emulator, Android 15/API 35, already-synced local data)
+
+- Hub load: the loading spinner was observed before the Surah list populated.
+- Hub Surah tab: visible gap between the number badge and the title now
+  confirmed on-device (previously flush).
+- Reader → Āli 'Imrān (the feature's default landing state, Arab+terjemahan
+  mode): every ayat renders flush right, including both wrapped lines of a
+  two-line ayat — the exact defect this pass targeted.
+
+### Known limitations
+
+Same scope boundary as the prior pass — only the paths implicated by these
+three defects (hub Surah/Juz lists, Arab+terjemahan reader) were
+re-verified; the ambiguities and other screens the prior entry deferred are
+still open. No automated tests were added — all three fixes are UI/alignment/
+state-shape changes, verified manually.
+
+### Next recommended milestone
+
+Get the product-owner rulings the prior entry still needs, then work through
+the rest of `QURAN_DESIGN_SYSTEM.md` §7's on-device checklist (TalkBack/
+font-scale) now that an emulator is available.

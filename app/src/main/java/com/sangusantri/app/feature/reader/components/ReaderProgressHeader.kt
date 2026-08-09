@@ -24,7 +24,7 @@ import kotlin.math.roundToInt
 private val ProgressTrackHeight = 5.dp
 
 /**
- * Shared reading-progress header (`docs/design/FIGMA_HANDOFF.md` nodes `14:2`/`14:32`): a
+ * Shared reading-progress header (`docs/design/DESIGN_HANDOFF.md` nodes `14:2`/`14:32`): a
  * "Langkah N dari total" label, a percentage, and a track/value bar — identical between Full
  * Reader and Guided Reader (one canonical reading position concept, not duplicated per mode).
  */

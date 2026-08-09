@@ -45,7 +45,7 @@ fun rememberInitialSavedPositionFlag(initialItemIndex: Int): Boolean {
 
 /**
  * Brief confirmation pill shown once when a reader resumes at a previously saved position
- * (`docs/design/FIGMA_HANDOFF.md` nodes `14:2`/`14:32`, "✓ Posisi bacaan tersimpan") — transient,
+ * (`docs/design/DESIGN_HANDOFF.md` nodes `14:2`/`14:32`, "✓ Posisi bacaan tersimpan") — transient,
  * not a permanent fixture, since the underlying save event already happened before this composes.
  */
 @Composable

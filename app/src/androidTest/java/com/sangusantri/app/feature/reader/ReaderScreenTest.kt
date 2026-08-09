@@ -90,7 +90,7 @@ class ReaderScreenTest {
         composeRule.onNodeWithText(FIXTURE_TRANSLATION_TEXT).assertExists()
 
         // Reader appearance settings are reached through the overflow menu, not a standalone
-        // top-bar icon (decision F, Figma product-alignment pass).
+        // top-bar icon (decision F, design product-alignment pass).
         composeRule
             .onNodeWithContentDescription(
                 composeRule.activity.getString(R.string.reader_overflow_content_description),

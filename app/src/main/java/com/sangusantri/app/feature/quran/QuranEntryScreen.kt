@@ -1,42 +1,58 @@
 package com.sangusantri.app.feature.quran
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
+import com.sangusantri.app.core.designsystem.theme.QuranEntryProgressTrackColor
+import com.sangusantri.app.core.designsystem.theme.QuranError
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
 import com.sangusantri.app.core.designsystem.theme.QuranOnPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranOutline
 import com.sangusantri.app.core.designsystem.theme.QuranPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranSurface
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 
 /**
@@ -71,28 +87,41 @@ fun QuranEntryRoute(
 fun QuranEntryScreen(
     uiState: QuranEntryUiState,
     onRetry: () -> Unit,
-    onBack: () -> Unit,
+    @Suppress("UnusedParameter") onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier
-        .fillMaxSize()
-        .background(QuranBackground)) {
-        IconButton(
-            onClick = onBack,
-            colors = IconButtonDefaults.iconButtonColors(contentColor = QuranArabicText),
-            modifier = Modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(SanguSantriSpacing.small),
+    // Approved local reference (figma-export/quran/05a/05b/06a/06b) renders a `.top.plain` header
+    // — title/subtitle only, no back icon, same pattern as the hub. System/predictive back still
+    // pops this destination via the NavHost's own back stack, independent of this callback; kept
+    // on the signature to mirror QuranEntryRoute/QuranHubActions rather than break the call site.
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(QuranBackground),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+                    .padding(horizontal = SanguSantriSpacing.default, vertical = SanguSantriSpacing.medium),
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.navigate_back_content_description),
+            Text(
+                text = stringResource(R.string.quran_hub_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = QuranArabicText,
+            )
+            Text(
+                text = stringResource(R.string.quran_hub_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = QuranMutedText,
             )
         }
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .weight(1f), contentAlignment = Alignment.Center) {
             when (uiState) {
-                QuranEntryUiState.Checking, QuranEntryUiState.Ready ->
-                    CircularProgressIndicator(color = QuranPrimary)
+                QuranEntryUiState.Checking, QuranEntryUiState.Ready -> QuranCheckingState()
 
                 is QuranEntryUiState.Preparing -> QuranPreparingState(uiState)
 
@@ -101,6 +130,7 @@ fun QuranEntryScreen(
                         title = stringResource(R.string.quran_entry_failed_title),
                         description = stringResource(R.string.quran_entry_failed_description),
                         actionLabel = stringResource(R.string.quran_entry_retry_action),
+                        icon = Icons.Outlined.ErrorOutline,
                         onAction = onRetry,
                     )
 
@@ -109,6 +139,7 @@ fun QuranEntryScreen(
                         title = stringResource(R.string.quran_entry_offline_title),
                         description = stringResource(R.string.quran_entry_offline_description),
                         actionLabel = stringResource(R.string.quran_entry_retry_action),
+                        icon = Icons.Outlined.CloudOff,
                         onAction = onRetry,
                     )
             }
@@ -117,39 +148,40 @@ fun QuranEntryScreen(
 }
 
 @Composable
+private fun QuranCheckingState() {
+    QuranEntryStateLayout(
+        title = stringResource(R.string.quran_entry_checking_title),
+        description = stringResource(R.string.quran_entry_checking_description),
+        stateVisual = { QuranEntryStateVisual(showProgress = true) },
+    )
+}
+
+@Composable
 private fun QuranPreparingState(state: QuranEntryUiState.Preparing) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
-        modifier = Modifier.padding(SanguSantriSpacing.large),
-    ) {
-        Text(
-            text = stringResource(R.string.quran_entry_preparing_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = QuranArabicText,
-            textAlign = TextAlign.Center,
-        )
-        if (state.total > 0) {
-            LinearProgressIndicator(
-                progress = { state.completed / state.total.toFloat() },
-                color = QuranPrimary,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = stringResource(R.string.quran_entry_preparing_progress, state.completed, state.total),
-                style = MaterialTheme.typography.bodyMedium,
-                color = QuranMutedText,
-            )
-        } else {
-            CircularProgressIndicator(color = QuranPrimary)
-        }
-        Text(
-            text = stringResource(R.string.quran_entry_preparing_description),
-            style = MaterialTheme.typography.bodySmall,
-            color = QuranMutedText,
-            textAlign = TextAlign.Center,
-        )
-    }
+    QuranEntryStateLayout(
+        title = stringResource(R.string.quran_entry_preparing_title),
+        description = stringResource(R.string.quran_entry_preparing_description),
+        stateVisual = { QuranEntryStateVisual(imageVector = Icons.Outlined.CloudDownload) },
+        supportingContent = {
+            if (state.total > 0) {
+                LinearProgressIndicator(
+                    progress = { state.completed / state.total.toFloat() },
+                    color = QuranPrimary,
+                    trackColor = QuranEntryProgressTrackColor,
+                    modifier = Modifier
+                        .widthIn(max = SanguSantriDimensions.quranEntryProgressWidth)
+                        .fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.quran_entry_preparing_progress, state.completed, state.total),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = QuranMutedText,
+                )
+            } else {
+                CircularProgressIndicator(color = QuranPrimary)
+            }
+        },
+    )
 }
 
 @Composable
@@ -157,16 +189,50 @@ private fun QuranEntryMessage(
     title: String,
     description: String,
     actionLabel: String,
+    icon: ImageVector,
     onAction: () -> Unit,
+) {
+    QuranEntryStateLayout(
+        title = title,
+        description = description,
+        // figma-export/quran/06a/06b `.state-mark.error{color:var(--error)}` — both failure
+        // branches use the error tint, unlike checking/preparing which stay QuranPrimary.
+        stateVisual = { QuranEntryStateVisual(imageVector = icon, tint = QuranError) },
+        supportingContent = {
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(containerColor = QuranPrimary, contentColor = QuranOnPrimary),
+                modifier =
+                    Modifier
+                        .heightIn(min = SanguSantriDimensions.minimumTouchTarget)
+                        .widthIn(min = SanguSantriDimensions.quranStateActionButtonMinWidth),
+            ) {
+                Text(text = actionLabel)
+            }
+        },
+    )
+}
+
+@Composable
+private fun QuranEntryStateLayout(
+    title: String,
+    description: String,
+    stateVisual: @Composable () -> Unit,
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
-        modifier = Modifier.padding(SanguSantriSpacing.large),
+        modifier =
+            Modifier
+                .widthIn(max = 320.dp)
+                .fillMaxWidth()
+                .padding(SanguSantriSpacing.large),
     ) {
+        stateVisual()
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = QuranArabicText,
             textAlign = TextAlign.Center,
         )
@@ -176,11 +242,33 @@ private fun QuranEntryMessage(
             color = QuranMutedText,
             textAlign = TextAlign.Center,
         )
-        Button(
-            onClick = onAction,
-            colors = ButtonDefaults.buttonColors(containerColor = QuranPrimary, contentColor = QuranOnPrimary),
-        ) {
-            Text(text = actionLabel)
+        supportingContent?.invoke()
+    }
+}
+
+@Composable
+private fun QuranEntryStateVisual(
+    imageVector: ImageVector? = null,
+    showProgress: Boolean = false,
+    tint: Color = QuranPrimary,
+) {
+    Surface(
+        color = QuranSurface,
+        border = BorderStroke(1.dp, QuranOutline),
+        shape = RoundedCornerShape(SanguSantriDimensions.quranStateMarkCornerRadius),
+        modifier = Modifier.size(SanguSantriDimensions.quranStateMarkSize),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (showProgress) {
+                CircularProgressIndicator(color = QuranPrimary, modifier = Modifier.size(32.dp))
+            } else if (imageVector != null) {
+                Icon(
+                    imageVector = imageVector,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(34.dp),
+                )
+            }
         }
     }
 }

@@ -19,20 +19,12 @@ data class QuranBookmarkRow(
     val createdAtEpochMillis: Long,
 )
 
-/** One resolved reading-session row for the Terakhir Dibaca tab (QUR-FR-017). */
-data class QuranRecentSessionRow(
-    val surahNumber: Int,
-    val surahName: String,
-    val startAyat: Int,
-    val endAyat: Int,
-    val readAtEpochMillis: Long,
-)
-
 /** The prominent continue-reading action shown when a last position exists (QUR-FR-005/011). */
 data class QuranContinueReading(
     val surahNumber: Int,
     val surahName: String,
     val ayatNumber: Int,
+    val page: Int,
 )
 
 data class QuranHubUiState(
@@ -41,6 +33,12 @@ data class QuranHubUiState(
     val surahs: List<QuranSurah> = emptyList(),
     val juzRows: List<QuranJuzRow> = emptyList(),
     val bookmarkRows: List<QuranBookmarkRow> = emptyList(),
-    val recentSessionRows: List<QuranRecentSessionRow> = emptyList(),
     val continueReading: QuranContinueReading? = null,
+    val refreshState: QuranHubRefreshState = QuranHubRefreshState.IDLE,
 )
+
+enum class QuranHubRefreshState {
+    IDLE,
+    REFRESHING,
+    FAILED,
+}

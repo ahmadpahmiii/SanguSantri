@@ -61,18 +61,22 @@ fun NahwuQuizResultScreen(
     ) { innerPadding ->
         when (uiState) {
             NahwuQuizResultUiState.Loading, NahwuQuizResultUiState.NotFound ->
-                NahwuQuizLoadingState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizLoadingState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             is NahwuQuizResultUiState.Content ->
                 ResultContent(
                     uiState = uiState,
                     onViewHistory = onViewHistory,
                     onRetakeQuiz = onRetakeQuiz,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
         }
     }

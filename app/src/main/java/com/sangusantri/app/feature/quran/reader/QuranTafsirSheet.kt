@@ -3,31 +3,43 @@ package com.sangusantri.app.feature.quran.reader
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
+import com.sangusantri.app.core.designsystem.theme.QuranError
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
 import com.sangusantri.app.core.designsystem.theme.QuranOnPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranOnPrimaryContainer
 import com.sangusantri.app.core.designsystem.theme.QuranPrimary
+import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
+import com.sangusantri.app.core.designsystem.theme.QuranScrim
 import com.sangusantri.app.core.designsystem.theme.QuranSurfaceHigh
 import com.sangusantri.app.core.designsystem.theme.QuranTranslationText
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 
 /**
@@ -48,30 +60,32 @@ fun QuranTafsirSheet(
         onDismissRequest = onDismiss,
         containerColor = QuranSurfaceHigh,
         contentColor = QuranArabicText,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = QuranMutedText) },
+        scrimColor = QuranScrim,
+        shape =
+            RoundedCornerShape(
+                topStart = SanguSantriDimensions.quranSheetCornerRadius,
+                topEnd = SanguSantriDimensions.quranSheetCornerRadius,
+            ),
     ) {
         Column(
             modifier =
                 Modifier
-                    .heightIn(max = TAFSIR_SHEET_MAX_HEIGHT)
+                    .heightIn(max = SanguSantriDimensions.quranSheetMaxHeight)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = SanguSantriSpacing.default, vertical = SanguSantriSpacing.small)
+                    .padding(horizontal = SanguSantriSpacing.large)
                     .padding(bottom = SanguSantriSpacing.large),
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
         ) {
-            Text(
-                text = stringResource(R.string.quran_tafsir_sheet_title, surahName, ayatNumber),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = stringResource(R.string.quran_tafsir_source_line),
-                style = MaterialTheme.typography.bodySmall,
-                color = QuranMutedText,
-            )
+            QuranTafsirHeader(surahName = surahName, ayatNumber = ayatNumber, onDismiss = onDismiss)
             when (uiState) {
                 QuranTafsirUiState.Loading ->
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(SanguSantriSpacing.large)) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(SanguSantriSpacing.large),
+                    ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.fillMaxWidth(),
@@ -80,6 +94,7 @@ fun QuranTafsirSheet(
                             Text(
                                 text = stringResource(R.string.quran_tafsir_loading),
                                 color = QuranMutedText,
+                                style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(top = SanguSantriSpacing.small),
                             )
                         }
@@ -96,9 +111,58 @@ fun QuranTafsirSheet(
 }
 
 @Composable
+private fun QuranTafsirHeader(
+    surahName: String,
+    ayatNumber: Int,
+    onDismiss: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall),
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = stringResource(R.string.quran_tafsir_sheet_title, surahName, ayatNumber),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                text = stringResource(R.string.quran_tafsir_source_line),
+                style = MaterialTheme.typography.bodySmall,
+                color = QuranMutedText,
+            )
+        }
+        IconButton(onClick = onDismiss) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.quran_tafsir_close),
+            )
+        }
+    }
+}
+
+@Composable
 private fun QuranTafsirLoadedContent(state: QuranTafsirUiState.Loaded) {
+    // figma-export/quran/13a-tafsir-cached-refreshing.html `.cache-chip` — cached content stays
+    // visible the whole time; this is a quiet status pill, not a blocking loading bar.
     if (state.isRefreshing) {
-        LinearProgressIndicator(color = QuranPrimary, modifier = Modifier.fillMaxWidth())
+        Surface(
+            color = QuranPrimaryContainer,
+            contentColor = QuranOnPrimaryContainer,
+            shape = RoundedCornerShape(percent = 50),
+        ) {
+            Text(
+                text = stringResource(R.string.quran_tafsir_cache_chip),
+                style = MaterialTheme.typography.labelSmall,
+                modifier =
+                    Modifier.padding(
+                        horizontal = SanguSantriSpacing.small,
+                        vertical = SanguSantriSpacing.extraSmall,
+                    ),
+            )
+        }
     }
     QuranTafsirSection(label = stringResource(R.string.quran_tafsir_label_ringkas), body = state.tafsir.ringkas)
     QuranTafsirSection(label = stringResource(R.string.quran_tafsir_label_tahlili), body = state.tafsir.tahlili)
@@ -111,7 +175,7 @@ private fun QuranTafsirSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall)) {
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = QuranPrimary)
-        Text(text = body, style = MaterialTheme.typography.bodyMedium, color = QuranTranslationText)
+        Text(text = body, style = MaterialTheme.typography.bodyLarge, color = QuranTranslationText)
     }
 }
 
@@ -123,24 +187,43 @@ private fun QuranTafsirUnavailable(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(SanguSantriSpacing.large),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(SanguSantriSpacing.large),
     ) {
+        Icon(
+            imageVector = Icons.Outlined.ErrorOutline,
+            contentDescription = null,
+            tint = QuranError,
+        )
         Text(
             text =
                 stringResource(
-                    if (retryable) R.string.quran_tafsir_offline_or_failed else R.string.quran_tafsir_unavailable,
+                    if (retryable) R.string.quran_tafsir_error_title else R.string.quran_tafsir_unavailable_title,
                 ),
+            style = MaterialTheme.typography.titleMedium,
+            color = QuranArabicText,
+        )
+        Text(
+            text =
+                stringResource(
+                    if (retryable) R.string.quran_tafsir_error_body else R.string.quran_tafsir_unavailable,
+                ),
+            style = MaterialTheme.typography.bodyMedium,
             color = QuranMutedText,
         )
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = QuranPrimary, contentColor = QuranOnPrimary),
-        ) {
-            Text(text = stringResource(R.string.quran_entry_retry_action))
+        // figma-export/quran/13b-tafsir-offline-no-cache.html has no button at all — an offline/
+        // no-cache state with nothing to retry against yet. Only the retryable (13c) branch offers
+        // "Coba lagi".
+        if (retryable) {
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(containerColor = QuranPrimary, contentColor = QuranOnPrimary),
+                modifier = Modifier.heightIn(min = SanguSantriDimensions.minimumTouchTarget),
+            ) {
+                Text(text = stringResource(R.string.quran_entry_retry_action))
+            }
         }
     }
 }
-
-private val TAFSIR_SHEET_MAX_HEIGHT = 480.dp

@@ -1,11 +1,13 @@
 package com.sangusantri.app.feature.quran.settings
 
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.feature.quran.reader.QuranReaderAyatUiModel
 
 data class QuranSettingsUiState(
     val displayMode: QuranDisplayMode = QuranDisplayMode.ARAB_ONLY,
+    val arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     val arabicSizeSp: Int = QuranReaderSettings.DEFAULT_ARABIC_SIZE_SP,
     val arabicLineSpacingMultiplier: Float = QuranReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
     val translationSizeSp: Int = QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP,

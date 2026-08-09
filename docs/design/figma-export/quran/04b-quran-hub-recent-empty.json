@@ -1,6 +1,6 @@
 {
   "artifactType": "local-design-reference",
-  "screen": "Beranda Al-Qur'an — Riwayat kosong",
+  "screen": "Beranda Al-Qur'an — Belum ada posisi terakhir",
   "release": "0.0.6",
   "logicalFrame": {
     "width": 360,
@@ -8,10 +8,10 @@
     "renderScale": 2
   },
   "state": {
-    "tab": "Terakhir Dibaca",
-    "content": "empty"
+    "tab": "Surah",
+    "lastReadCard": "absent"
   },
-  "sourceData": "No Quran payload rendered",
+  "sourceData": "List uses exact product-owner-supplied Kemenag metadata for surah 2–4",
   "tokens": {
     "quranBackground": "#050806",
     "quranSurface": "#101713",

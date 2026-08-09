@@ -61,7 +61,7 @@ The experience must support four common intents:
 * Beranda entry point; not a bottom-navigation destination.
 * Full-screen Quran experience with the global bottom navigation hidden.
 * Dark-only Quran theme, regardless of the app/system theme outside Quran.
-* Surah, Juz, Bookmark, and Terakhir Dibaca tabs.
+* Surah, Juz, and Bookmark tabs, plus an optional Terakhir dibaca card.
 * Search by surah name or surah number only.
 * Arab-saja display: flowing Arabic grouped by the API's `halaman` field.
 * Arab+terjemahan display: one ordered ayat block at a time.
@@ -78,6 +78,8 @@ The experience must support four common intents:
 * Quran reading contributes to the existing combined amalan streak.
 * User-controlled Quran font, Arabic size, Arabic line spacing, translation
   size, translation visibility, and Quran-window brightness.
+* Fresh Quran preferences start at 24sp Arabic with 2.00× Arabic line spacing;
+  the Arabic-size control spans 14–52sp in 2sp steps.
 * Portrait-primary design without forcing device orientation.
 * Full-screen source/permission information destination.
 
@@ -107,7 +109,7 @@ Beranda
     │   ├── Surah
     │   ├── Juz
     │   ├── Bookmark
-    │   └── Terakhir Dibaca
+    │   └── Terakhir dibaca card (when a saved position exists)
     ├── Reader
     │   ├── Arab saja — flowing page by `halaman`
     │   └── Arab + terjemahan — ordered ayat rows
@@ -222,10 +224,10 @@ dataset. There is no partial activation.
 
 ### QUR-FR-005 — Quran hub
 
-The hub shows the four tabs Surah, Juz, Bookmark, and Terakhir Dibaca, plus a
-prominent continue-reading action when a last position exists. Tabs may scroll
-horizontally on narrow phones; labels must not be reduced below accessible
-text size merely to force equal-width tabs.
+The hub shows three equal-width tabs: Surah, Juz, and Bookmark. Terakhir dibaca
+is a prominent card above the tabs only when a saved position exists; it is not
+a fourth tab and has no empty-state placeholder. Labels must not be reduced
+below accessible text size.
 
 ### QUR-FR-006 — Surah browsing and search
 
@@ -333,12 +335,13 @@ window and restores the prior window value on exit.
 
 ### QUR-FR-016 — Font choices
 
-LPMQ Isep Misbah is the default candidate. Amiri Quran and the official King
-Fahd Complex smart-device Hafs font are optional candidates. A font is not
-exposed until its licence permits APK embedding and a fixed Kemenag-text
-corpus passes missing-glyph, mark-collision, clipping, shaping, and Android
-version checks. Selecting a font changes glyph rendering only; it never
-changes the stored Kemenag string.
+LPMQ Isep Misbah is the default choice and Amiri Quran is selectable. The
+official King Fahd Complex smart-device Hafs choice remains visible but disabled
+as `Belum tersedia` until its font asset and accompanying licence/readme are
+supplied. A fixed Kemenag-text corpus still gates release acceptance for
+missing glyphs, mark collisions, clipping, shaping, and Android-version
+consistency. Selecting a font changes glyph rendering only; it never changes
+the stored Kemenag string.
 
 ### QUR-FR-017 — Activity and streak
 

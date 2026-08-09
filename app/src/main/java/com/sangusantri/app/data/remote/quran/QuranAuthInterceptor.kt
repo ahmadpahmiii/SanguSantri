@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.remote.quran
 
+import com.sangusantri.app.data.remote.quran.QuranAuthInterceptor.Companion.QURAN_API_HOST
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
@@ -29,14 +30,14 @@ constructor(
             request
                 .newBuilder()
                 .header(HEADER_USERNAME, credential.username)
-                .header(HEADER_TOKEN, credential.token)
+                .header(HEADER_AUTHORIZATION, credential.token)
                 .build()
         return chain.proceed(authenticated)
     }
 
     companion object {
         const val QURAN_API_HOST = "quran-api.lpmqkemenag.id"
-        private const val HEADER_USERNAME = "username"
-        private const val HEADER_TOKEN = "token"
+        private const val HEADER_USERNAME = "user"
+        private const val HEADER_AUTHORIZATION = "Authorization"
     }
 }

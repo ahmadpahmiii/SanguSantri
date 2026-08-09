@@ -5,6 +5,7 @@ import com.sangusantri.app.data.local.entity.QuranBookmarkEntity
 import com.sangusantri.app.data.local.entity.QuranReadingSessionEntity
 import com.sangusantri.app.data.local.entity.QuranReadingStateEntity
 import com.sangusantri.app.data.mapper.toDomain
+import com.sangusantri.app.data.remote.quran.QuranValidator
 import com.sangusantri.app.data.sync.quran.QuranSyncManager
 import com.sangusantri.app.data.sync.quran.QuranSyncMetadata
 import com.sangusantri.app.data.sync.quran.QuranSyncResult
@@ -21,8 +22,9 @@ import com.sangusantri.app.domain.model.QuranVerse
 import com.sangusantri.app.domain.repository.QuranRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
-import kotlin.math.abs
 
 // Mirrors QuranRepository's own TooManyFunctions suppression — one cohesive implementation.
 @Suppress("TooManyFunctions")
@@ -39,6 +41,7 @@ constructor(
     private val bookmarkDao get() = database.quranBookmarkDao()
     private val readingStateDao get() = database.quranReadingStateDao()
     private val readingSessionDao get() = database.quranReadingSessionDao()
+    private val syncMutex = Mutex()
 
     override fun observeSurahs(): Flow<List<QuranSurah>> =
         surahDao.observeAll().map { surahs -> surahs.map { it.toDomain() } }
@@ -62,14 +65,28 @@ constructor(
     override fun observeReadingSessions(): Flow<List<QuranReadingSession>> =
         readingSessionDao.observeAll().map { sessions -> sessions.map { it.toDomain() } }
 
-    override suspend fun hasLocalDataset(): Boolean = surahDao.count() > 0
+    override suspend fun hasLocalDataset(): Boolean {
+        if (surahDao.count() != QuranValidator.EXPECTED_SURAH_COUNT) return false
+        val expectedAyatCount = surahDao.totalExpectedAyatCount()
+        return expectedAyatCount > 0 && verseDao.count() == expectedAyatCount
+    }
 
     override suspend fun ensureInitialPreparation(
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): QuranPreparationResult = if (hasLocalDataset()) QuranPreparationResult.Ready else runSync(onProgress)
+    ): QuranPreparationResult =
+        syncMutex.withLock {
+            if (hasLocalDataset()) QuranPreparationResult.Ready else runSync(onProgress)
+        }
 
-    override suspend fun refreshIfStale(): QuranPreparationResult =
-        if (syncMetadata.isRefreshStale()) runSync() else QuranPreparationResult.Ready
+    override suspend fun refreshIfStale(onRefreshStarted: () -> Unit): QuranPreparationResult =
+        syncMutex.withLock {
+            if (syncMetadata.isRefreshStale()) {
+                onRefreshStarted()
+                runSync()
+            } else {
+                QuranPreparationResult.Ready
+            }
+        }
 
     private suspend fun runSync(
         onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
@@ -122,7 +139,7 @@ constructor(
         startAyat: Int,
         endAyat: Int,
     ) {
-        if (abs(endAyat - startAyat) < 1) return
+        if (endAyat <= startAyat) return
         readingSessionDao.insert(
             QuranReadingSessionEntity(
                 surahNumber = surahNumber,

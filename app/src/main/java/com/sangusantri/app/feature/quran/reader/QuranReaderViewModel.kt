@@ -47,6 +47,7 @@ constructor(
     private val tafsirSheetOpen = MutableStateFlow(false)
     private var startAyatNumber: Int? = null
     private var lastVisibleAyatNumber: Int? = null
+    private var sessionRecorded = false
     private var tafsirJob: Job? = null
 
     private val _tafsirUiState = MutableStateFlow<QuranTafsirUiState>(QuranTafsirUiState.Loading)
@@ -139,6 +140,15 @@ constructor(
     fun onVisiblePositionChanged(ayatNumber: Int) {
         if (startAyatNumber == null) startAyatNumber = ayatNumber
         lastVisibleAyatNumber = ayatNumber
+        val page =
+            (uiState.value as? QuranReaderUiState.Content)
+                ?.ayats
+                ?.firstOrNull {
+                    it.ayatNumber == ayatNumber
+                }?.page
+        if (page != null) {
+            viewModelScope.launch { quranRepository.setLastRead(surahNumber, ayatNumber, page) }
+        }
     }
 
     /** Called when the reader closes (QUR-FR-017) — writes one session only if the position
@@ -146,8 +156,11 @@ constructor(
     fun recordSessionIfAdvanced() {
         val start = startAyatNumber
         val last = lastVisibleAyatNumber
-        if (start != null && last != null && start != last) {
-            viewModelScope.launch { quranRepository.recordReadingSession(surahNumber, start, last) }
+        if (!sessionRecorded && start != null && last != null) {
+            if (last > start) {
+                sessionRecorded = true
+                viewModelScope.launch { quranRepository.recordReadingSession(surahNumber, start, last) }
+            }
         }
     }
 
@@ -173,6 +186,7 @@ constructor(
             category = surah.category,
             ayatCount = surah.ayatCount,
             displayMode = settings.displayMode,
+            arabicFont = settings.arabicFont,
             ayats = ayats,
             pages = ayats.groupBy { it.page }.values.toList(),
             selectedAyat = selectedAyat,
@@ -207,4 +221,7 @@ internal fun QuranVerse.toReaderUiModel(surahName: String): QuranReaderAyatUiMod
         page = page,
         arabicText = arabicText,
         translation = translation,
+        note = note,
+        footnoteNumber = footnoteNumber,
+        footnoteText = footnoteText,
     )

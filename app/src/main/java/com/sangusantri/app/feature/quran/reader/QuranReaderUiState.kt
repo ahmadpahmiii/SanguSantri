@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.quran.reader
 
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 
 sealed interface QuranReaderUiState {
@@ -15,6 +16,7 @@ sealed interface QuranReaderUiState {
         val category: String,
         val ayatCount: Int,
         val displayMode: QuranDisplayMode,
+        val arabicFont: QuranArabicFont,
         val ayats: List<QuranReaderAyatUiModel>,
         val pages: List<List<QuranReaderAyatUiModel>>,
         val selectedAyat: QuranReaderAyatUiModel?,

@@ -3,7 +3,7 @@ package com.sangusantri.app.feature.quran.hub
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.QuranBookmark
-import com.sangusantri.app.domain.model.QuranReadingSession
+import com.sangusantri.app.domain.model.QuranPreparationResult
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
 import com.sangusantri.app.domain.model.QuranVerse
@@ -17,48 +17,58 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.Normalizer
+import java.util.Locale
 import javax.inject.Inject
 
 private data class QuranHubData(
     val surahs: List<QuranSurah>,
     val juzStarts: List<QuranVerse>,
     val bookmarks: List<QuranBookmark>,
-    val recentSessions: List<QuranReadingSession>,
     val readingState: QuranReadingState?,
 )
 
 /**
- * Owns the Quran hub (QUR-FR-005/006/007/011/012): four tabs backed entirely by Room via
- * [QuranRepository], local case/diacritic-tolerant surah search, and a silent, non-blocking
- * background refresh check (QUR-FR-004 §6.2 — never blocks the hub, a failure is invisible here).
+ * Owns the Quran hub (QUR-FR-005/006/007/011/012): three tabs backed entirely by Room via
+ * [QuranRepository], a last-read card, local case/diacritic-tolerant surah search, and a visible
+ * non-blocking background refresh status (QUR-FR-004 §6.2).
  */
 @HiltViewModel
-class QuranHubViewModel
-@Inject
-constructor(
+class QuranHubViewModel @Inject constructor(
     private val quranRepository: QuranRepository,
 ) : ViewModel() {
     private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
     private val searchQuery = MutableStateFlow("")
+    private val refreshState = MutableStateFlow(QuranHubRefreshState.IDLE)
 
     private val hubData: Flow<QuranHubData> =
         combine(
             quranRepository.observeSurahs(),
             quranRepository.observeJuzStarts(),
             quranRepository.observeBookmarks(),
-            quranRepository.observeReadingSessions(),
             quranRepository.observeReadingState(),
-        ) { surahs, juzStarts, bookmarks, recentSessions, readingState ->
-            QuranHubData(surahs, juzStarts, bookmarks, recentSessions, readingState)
+        ) { surahs, juzStarts, bookmarks, readingState ->
+            QuranHubData(surahs, juzStarts, bookmarks, readingState)
         }
 
     val uiState: StateFlow<QuranHubUiState> =
-        combine(hubData, selectedTab, searchQuery, ::buildUiState)
+        combine(hubData, selectedTab, searchQuery, refreshState, ::buildUiState)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), QuranHubUiState())
 
     init {
-        // Silent, non-blocking — the hub always renders from Room first regardless of outcome.
-        viewModelScope.launch { quranRepository.refreshIfStale() }
+        viewModelScope.launch {
+            var refreshStarted = false
+            refreshState.value =
+                when (
+                    quranRepository.refreshIfStale {
+                        refreshStarted = true
+                        refreshState.value = QuranHubRefreshState.REFRESHING
+                    }
+                ) {
+                    QuranPreparationResult.Ready -> QuranHubRefreshState.IDLE
+                    is QuranPreparationResult.Failed ->
+                        if (refreshStarted) QuranHubRefreshState.FAILED else QuranHubRefreshState.IDLE
+                }
+        }
     }
 
     fun selectTab(tab: QuranHubTab) {
@@ -73,6 +83,7 @@ constructor(
         data: QuranHubData,
         tab: QuranHubTab,
         query: String,
+        refresh: QuranHubRefreshState,
     ): QuranHubUiState {
         val surahNames = data.surahs.associate { it.number to it.latinName }
         return QuranHubUiState(
@@ -98,24 +109,16 @@ constructor(
                         createdAtEpochMillis = bookmark.createdAtEpochMillis,
                     )
                 },
-            recentSessionRows =
-                data.recentSessions.map { session ->
-                    QuranRecentSessionRow(
-                        surahNumber = session.surahNumber,
-                        surahName = surahNames[session.surahNumber].orEmpty(),
-                        startAyat = session.startAyat,
-                        endAyat = session.endAyat,
-                        readAtEpochMillis = session.readAtEpochMillis,
-                    )
-                },
             continueReading =
                 data.readingState?.let { state ->
                     QuranContinueReading(
                         surahNumber = state.surahNumber,
                         surahName = surahNames[state.surahNumber].orEmpty(),
                         ayatNumber = state.ayatNumber,
+                        page = state.page,
                     )
                 },
+            refreshState = refresh,
         )
     }
 
@@ -140,6 +143,6 @@ private fun String.normalizedForSearch(): String =
     Normalizer
         .normalize(this, Normalizer.Form.NFD)
         .replace(DIACRITIC_MARK_REGEX, "")
-        .lowercase()
+        .lowercase(Locale.ROOT)
 
 private val DIACRITIC_MARK_REGEX = Regex("\\p{Mn}+")

@@ -22,7 +22,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
@@ -31,6 +30,10 @@ import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranOnPrimaryContainer
 import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
+import com.sangusantri.app.domain.model.QuranArabicFont
+import com.sangusantri.app.feature.quran.QuranLpmqFontFamily
+import com.sangusantri.app.feature.quran.withQuranFontFallback
+import com.sangusantri.app.feature.quran.withQuranPresentationSpacing
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -41,20 +44,25 @@ private const val AYAT_ANNOTATION_TAG = "quran-ayat-id"
  * adding only a presentation-space and a marker derived from the official numeric ayat metadata.
  */
 @Composable
+@Suppress("LongParameterList")
 fun QuranFlowingPageText(
     ayats: List<QuranReaderAyatUiModel>,
     selectedAyatId: Long?,
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     modifier: Modifier = Modifier,
+    arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     textStyle: TextStyle =
         TextStyle(
-            fontFamily = FontFamily.Serif,
-            fontSize = 34.sp,
-            lineHeight = 60.sp,
+            fontFamily = QuranLpmqFontFamily,
+            fontSize = 30.sp,
+            lineHeight = 50.sp,
             textAlign = TextAlign.Justify,
         ),
 ) {
-    val annotatedPage = remember(ayats, selectedAyatId) { buildPageText(ayats, selectedAyatId) }
+    val annotatedPage =
+        remember(ayats, selectedAyatId, arabicFont) {
+            buildPageText(ayats, selectedAyatId).withQuranFontFallback(arabicFont)
+        }
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     val hapticFeedback = LocalHapticFeedback.current
     val accessibilityActions =
@@ -118,7 +126,7 @@ private fun buildPageText(
             if (index > 0) append(' ')
             val rangeStart = length
             pushStringAnnotation(AYAT_ANNOTATION_TAG, ayat.remoteId.toString())
-            append(ayat.arabicText)
+            append(ayat.arabicText.withQuranPresentationSpacing())
             append(" ﴿")
             append(arabicNumberFormat.format(ayat.ayatNumber))
             append("﴾")

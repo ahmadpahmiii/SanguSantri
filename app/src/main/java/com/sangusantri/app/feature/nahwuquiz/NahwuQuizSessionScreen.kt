@@ -89,21 +89,28 @@ fun NahwuQuizSessionScreen(
     ) { innerPadding ->
         when (uiState) {
             NahwuQuizSessionUiState.Loading ->
-                NahwuQuizLoadingState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizLoadingState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             NahwuQuizSessionUiState.ContentUnavailable ->
-                NahwuQuizEmptyPackageState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizEmptyPackageState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             NahwuQuizSessionUiState.RecoverableError ->
                 NahwuQuizContentUnavailableState(
                     onRetry = { onAction(NahwuQuizSessionUiAction.Retry) },
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
 
             is NahwuQuizSessionUiState.Completed -> Unit // NahwuQuizSessionRoute navigates away.
@@ -112,9 +119,10 @@ fun NahwuQuizSessionScreen(
                 QuestionContent(
                     uiState = uiState,
                     onAction = onAction,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
         }
     }

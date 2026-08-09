@@ -76,25 +76,30 @@ fun NahwuQuizPackagesScreen(
     ) { innerPadding ->
         when (uiState) {
             NahwuQuizPackagesUiState.Loading ->
-                NahwuQuizLoadingState(modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize())
+                NahwuQuizLoadingState(
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                )
 
             NahwuQuizPackagesUiState.ContentUnavailable ->
                 NahwuQuizContentUnavailableState(
                     onRetry = onRetry,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
 
             is NahwuQuizPackagesUiState.Content ->
                 PackagesList(
                     summaries = uiState.summaries,
                     onPackageSelected = onPackageSelected,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                 )
         }
     }

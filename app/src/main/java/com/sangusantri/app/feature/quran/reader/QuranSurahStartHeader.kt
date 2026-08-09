@@ -2,7 +2,6 @@ package com.sangusantri.app.feature.quran.reader
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranOnPrimaryContainer
-import com.sangusantri.app.core.designsystem.theme.QuranOutline
+import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
@@ -82,44 +81,72 @@ private fun QuranSurahMetadataBand(
         verticalAlignment = Alignment.CenterVertically,
         modifier =
             Modifier
-                .fillMaxWidth()
-                .heightIn(min = SanguSantriDimensions.quranSurahHeaderMinHeight)
-                .background(QuranPrimaryContainer)
-                .clearAndSetSemantics { this.contentDescription = contentDescription }
                 .padding(
-                    horizontal = SanguSantriSpacing.medium,
-                    vertical = SanguSantriSpacing.extraSmall,
+                    start = SanguSantriSpacing.default,
+                    top = SanguSantriSpacing.default,
+                    end = SanguSantriSpacing.default,
                 ),
     ) {
-        HeaderSideLabel(category, Alignment.CenterStart, Modifier.weight(1f))
         Surface(
-            color = QuranSurface,
-            contentColor = QuranArabicText,
-            shape = MaterialTheme.shapes.large,
-            border = BorderStroke(1.dp, QuranOutline),
+            color = QuranPrimaryContainer,
+            contentColor = QuranOnPrimaryContainer,
+            // figma-export/quran/09-flowing-reader-arab-only-page.html `.surah-header{border:1px
+            // solid color-mix(in srgb, var(--quran-primary) 42%, transparent)}` — a translucent
+            // border, the band must stay subordinate to the Arabic reading text below it.
+            border = BorderStroke(1.dp, QuranPrimary.copy(alpha = 0.42f)),
+            shape = MaterialTheme.shapes.medium,
             modifier =
                 Modifier
-                    .weight(1.2f)
-                    .heightIn(min = 40.dp),
+                    .fillMaxWidth()
+                    .heightIn(min = SanguSantriDimensions.quranSurahHeaderMinHeight)
+                    .clearAndSetSemantics { this.contentDescription = contentDescription },
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.padding(horizontal = SanguSantriSpacing.small),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier.padding(
+                        horizontal = SanguSantriSpacing.medium,
+                        vertical = SanguSantriSpacing.extraSmall,
+                    ),
             ) {
-                Text(
-                    text = surahDisplayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                HeaderSideLabel(category, Alignment.CenterStart, Modifier.weight(1f))
+                QuranSurahTitlePill(surahDisplayName, Modifier.weight(1.2f))
+                HeaderSideLabel(
+                    text = stringResource(R.string.quran_surah_ayat_count, ayatCount),
+                    alignment = Alignment.CenterEnd,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
-        HeaderSideLabel(
-            text = stringResource(R.string.quran_surah_ayat_count, ayatCount),
-            alignment = Alignment.CenterEnd,
-            modifier = Modifier.weight(1f),
-        )
+    }
+}
+
+@Composable
+private fun QuranSurahTitlePill(
+    surahDisplayName: String,
+    modifier: Modifier = Modifier,
+) {
+    // figma-export/quran/09-flowing-reader-arab-only-page.html `.surah-name` has no border —
+    // it's a plain filled pill, distinct from the QuranNumberBadge/QuranSourceIcon border pattern
+    // used elsewhere.
+    Surface(
+        color = QuranSurface,
+        contentColor = QuranArabicText,
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier.heightIn(min = 40.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = SanguSantriSpacing.small),
+        ) {
+            Text(
+                text = surahDisplayName,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -132,8 +159,9 @@ private fun QuranBasmalah() {
         modifier =
             Modifier
                 .padding(top = SanguSantriSpacing.large)
-                .fillMaxWidth(0.78f)
-                .widthIn(max = SanguSantriDimensions.quranBasmalahMaxWidth),
+                .padding(bottom = SanguSantriSpacing.small)
+                .widthIn(max = SanguSantriDimensions.quranBasmalahMaxWidth)
+                .fillMaxWidth(),
     )
 }
 

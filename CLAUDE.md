@@ -14,12 +14,12 @@ pesantren-specific amaliyah.
   risk-based content publication governance) are complete — verify this
   against `docs/PROGRESS.md` before assuming otherwise; commit titles in
   `git log` are not a reliable milestone indicator (see
-  `docs/reviews/audit-resolution.md`). A Figma product-alignment
+  `docs/reviews/audit-resolution.md`). A design product-alignment
   documentation pass (2026-07-26) has since renamed the home destination
   Serambi → **Beranda** and expanded `0.0.1`'s documented scope (Beranda
   rebuild, Jelajahi Amaliyah, reader TOC/repetition-shortcut) ahead of the
-  matching implementation milestones — see `docs/design/FIGMA_HANDOFF.md`
-  and `docs/reviews/figma-product-alignment.md` before assuming the
+  matching implementation milestones — see `docs/design/DESIGN_HANDOFF.md`
+  and `docs/reviews/design-product-alignment.md` before assuming the
   current code matches the current docs for any of that work. Milestone 8
   (Content Delivery Foundation and Remote Synchronisation, 2026-07-28) has
   since replaced the seed-only bundled-content pipeline
@@ -91,7 +91,7 @@ every document for every task.
 | Task type                                 | Read                                                                                                                                                                           |
 |-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Any task                                  | `docs/PROGRESS.md` (current actual state)                                                                                                                                      |
-| UI / Compose screen                       | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md`, `docs/design/FIGMA_HANDOFF.md` (frame mapping and implementation order) |
+| UI / Compose screen                       | `docs/engineering/CODING_STANDARD.md`, `docs/design/DESIGN_SYSTEM.md`, `docs/design/ACCESSIBILITY.md`, `docs/design/DESIGN_HANDOFF.md` (frame mapping and implementation order) |
 | Data layer / Room / repository / sync     | `docs/engineering/ARCHITECTURE.md`, `docs/engineering/CONTENT_MODEL.md`, `docs/engineering/OFFLINE_FIRST.md`, `docs/content-schema.md`                                         |
 | Security / network / auth                 | `docs/security/SECURITY_BASELINE.md`, `docs/security/THREAT_MODEL.md`                                                                                                          |
 | Privacy / feedback / telemetry            | `docs/security/PRIVACY.md`                                                                                                                                                     |
@@ -172,10 +172,10 @@ and prohibited-pattern list: `docs/engineering/CODING_STANDARD.md`.
 Never claim that a command passed unless it was actually executed
 successfully.
 
-## Temporary implementation-pass constraints (Figma product alignment)
+## Temporary implementation-pass constraints (design product alignment)
 
-These apply only to the phases implementing the Figma product-alignment
-work (`docs/design/FIGMA_HANDOFF.md`, Phases A–E) and are not a permanent
+These apply only to the phases implementing the design product-alignment
+work (`docs/design/DESIGN_HANDOFF.md`, Phases A–E) and are not a permanent
 change to engineering standards. Remove this section once that
 implementation initiative concludes or the user says otherwise.
 

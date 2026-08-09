@@ -18,8 +18,8 @@ separate from the standalone Kemenag data boundary — see
 
 ## `0.0.1` — Core Reader Completion and Public Amaliyah Foundation
 
-Rebaselined by the Figma product-alignment pass
-(`docs/reviews/figma-product-alignment.md`) — supersedes this version's
+Rebaselined by the design product-alignment pass
+(`docs/reviews/design-product-alignment.md`) — supersedes this version's
 previous "Core Amaliyah Reader" scope description below with a wider,
 still-`0.0.1`-scoped foundation:
 
@@ -93,8 +93,8 @@ See `docs/product/PRD.md` for full scope and acceptance criteria.
 
 Renamed from "Riwayat and Streak" — same underlying scope, restructured to
 match the confirmed UX: one vertically scrollable screen, independent
-sections, **no horizontal tabs**. No Figma frame has been supplied for
-this screen yet (`docs/design/FIGMA_HANDOFF.md`) — confirm one exists
+sections, **no horizontal tabs**. No design-tool frame has been supplied for
+this screen yet (`docs/design/DESIGN_HANDOFF.md`) — confirm one exists
 before implementation.
 
 * Independent sections, each with an optional "Lihat semua": streak

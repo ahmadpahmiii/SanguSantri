@@ -117,5 +117,5 @@ cannot make a client-shipped credential secret.
   old data; if LPMQ later publishes rate limits or a version endpoint, this ADR
   must be amended rather than guessing.
 * Font binaries remain design inputs until licence and glyph gates pass.
-* No Kotlin, Room, NDK, Figma, or production feature implementation is part of
-  this documentation decision itself.
+* No Kotlin, Room, NDK, design tooling, or production feature implementation
+  is part of this documentation decision itself.

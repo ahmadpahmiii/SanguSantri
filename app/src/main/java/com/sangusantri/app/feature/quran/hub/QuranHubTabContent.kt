@@ -213,7 +213,7 @@ private fun QuranListRow(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        // figma-export/quran/01-quran-hub-surah.html `.row{gap:12px}` — every direct child (badge,
+        // design-export/quran/01-quran-hub-surah.html `.row{gap:12px}` — every direct child (badge,
         // title column, trailing icon/arabic name) needs this gap; previously absent, so the new
         // number badge sat flush against the title with no breathing room.
         horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
@@ -243,7 +243,7 @@ private fun QuranNumberBadge(number: Int) {
 }
 
 /** Matches the design's `.empty` pattern (icon mark, optional heading, description) — see
- * figma-export/quran/03b-quran-hub-bookmark-empty.html; reused for the Surah/Juz empty
+ * design-export/quran/03b-quran-hub-bookmark-empty.html; reused for the Surah/Juz empty
  * fallbacks, which have no dedicated design frame since Room is always populated by then. */
 @Composable
 private fun QuranEmptyTabState(

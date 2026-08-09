@@ -55,7 +55,7 @@ internal fun ReaderTranslationBlock(
 }
 
 /**
- * Full Reader's repetition shortcut (decision D, `docs/design/FIGMA_HANDOFF.md` node `14:2`):
+ * Full Reader's repetition shortcut (decision D, `docs/design/DESIGN_HANDOFF.md` node `14:2`):
  * "Dibaca N kali · Buka Panduan →" — tapping opens Guided Reader at this exact step immediately,
  * no confirmation. Styled as a tonal pill, visually secondary to the Arabic text above it, never a
  * dominant button (48dp minimum touch target still applies).

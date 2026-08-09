@@ -1456,47 +1456,47 @@ Google Play developer configuration (`docs/product/PRD.md` §13,
 longer one of these for the current two standard public amaliyah, but
 remains required the moment any higher-risk content is added.
 
-## Figma product-alignment documentation pass (pre-Phase A)
+## design product-alignment documentation pass (pre-Phase A)
 
 **Status:** Complete. Not a numbered milestone — no Android/Kotlin source
 changed. Documentation only.
 
 **Scope:** Align product documentation with a set of confirmed
-product/UX decisions and a named Figma file (11 node IDs covering revised
+product/UX decisions and a named design-tool file (11 node IDs covering revised
 Full/Guided Reader, reader overflow menus, Reader Settings and Table of
 Contents bottom sheets, Standalone Tasbih and its custom-target dialog,
 Beranda, and Jelajahi Amaliyah). No Android/Kotlin code was written this
 pass — that begins with Phase A once the user replies "done".
 
-### Figma access blocker
+### design-tool access blocker
 
-The Figma MCP connection was rate-limited (Starter plan) for the entire
+The design-tool MCP connection was rate-limited (Starter plan) for the entire
 session — every call, including a plain `get_metadata` on the top-level
 product-screens page, was rejected before a single node could be opened.
 Per the user's explicit choice when asked how to proceed, this pass wrote
 the documentation from the confirmed decisions given directly in the
-request plus the current repository state, and marked every Figma-derived
+request plus the current repository state, and marked every design-tool-derived
 visual specific (exact spacing, component variants, states drawn in each
-frame) as **pending Figma verification** rather than guessing measurements
-from node names alone. See `docs/design/FIGMA_HANDOFF.md`'s "Status of
-this document" section — re-run Figma discovery before Phase A begins.
+frame) as **pending design-tool verification** rather than guessing measurements
+from node names alone. See `docs/design/DESIGN_HANDOFF.md`'s "Status of
+this document" section — re-run design-tool discovery before Phase A begins.
 
 ### What shipped
 
-* **`docs/design/FIGMA_HANDOFF.md`** (new): file/node reference,
+* **`docs/design/DESIGN_HANDOFF.md`** (new): file/node reference,
   frame-to-feature mapping against current code, navigation map (including
   an explicitly flagged open question on bottom-nav rollout timing),
   reader interaction map, responsive/state/motion notes, Compose component
   mapping, implementation phase order (A–E, matching the request exactly),
-  and known incomplete Figma areas (no frame was supplied for Aktivitas).
-* **`docs/reviews/figma-product-alignment.md`** (new): gap table —
+  and known incomplete design-tool areas (no frame was supplied for Aktivitas).
+* **`docs/reviews/design-product-alignment.md`** (new): gap table —
   existing implementation vs. confirmed decision vs. gap vs. resolution
   vs. owning document vs. phase, across terminology/navigation, reader,
   Beranda/Jelajahi, Tasbih/Aktivitas, and accessibility/design-system rows.
   Also records a pre-existing documentation drift found while reading
   `ARCHITECTURE.md` (a stale `feature/feedback` package in the diagram,
   even though feedback was removed from scope at Milestone 5) — fixed as
-  part of this pass since it was found, not because it relates to Figma.
+  part of this pass since it was found, not because it relates to the design tool.
 * **`docs/product/PRD.md`** (version 1.3 → 1.4): renamed the primary home
   destination Serambi → Beranda (§2.3, §7.2, FR-002 — "Serambi" may persist
   as an internal label only); rewrote §7 Information Architecture with the
@@ -1512,7 +1512,7 @@ this document" section — re-run Figma discovery before Phase A begins.
   Standalone Tasbih bullets to match the confirmed requirements exactly
   (33/100/unlimited/custom, no 99, compact selector, small custom dialog);
   renamed `0.0.3` "Riwayat and Streak" → "Aktivitas" (vertical sections, no
-  tabs, flagged missing Figma frame); added a "Final navigation model"
+  tabs, flagged missing design-tool frame); added a "Final navigation model"
   section documenting the phased destination rollout and its open
   question.
 * **`docs/design/DESIGN_SYSTEM.md`**: marked the "traditional-modern
@@ -1545,9 +1545,9 @@ this document" section — re-run Figma discovery before Phase A begins.
 * **`docs/content-schema.md`**: added a forward note on `amaliyah.category`
   mirroring `CONTENT_MODEL.md`; no bundled JSON asset was edited.
 * **`CLAUDE.md`**: corrected the milestone-state summary to Milestones 0–6
-  (previously said 0–3); added a note that a Figma alignment pass has
+  (previously said 0–3); added a note that a design alignment pass has
   since renamed Serambi → Beranda and expanded documented `0.0.1` scope
-  ahead of matching code; added `FIGMA_HANDOFF.md` to the UI/Compose
+  ahead of matching code; added `DESIGN_HANDOFF.md` to the UI/Compose
   reading-matrix row; added a clearly-scoped, explicitly temporary
   "Temporary implementation-pass constraints" section (no Room migrations,
   no new tests, minimum validation command set) for Phases A–E only, to be
@@ -1559,25 +1559,25 @@ None — documentation-only pass, no build/lint/test commands apply.
 
 ### Known limitations
 
-* No Figma node was actually opened (rate limit) — every visual/spacing/
-  component-variant detail in `FIGMA_HANDOFF.md` is unverified and must be
+* No design-tool node was actually opened (rate limit) — every visual/spacing/
+  component-variant detail in `DESIGN_HANDOFF.md` is unverified and must be
   confirmed before or during Phase A.
 * No Android/Kotlin source changed; none of the new Room tables mentioned
   above exist yet; the reader overflow-menu restructure (settings/TOC
   moving into the overflow) is documented but not implemented; Beranda is
   still the Milestone 2 two-card `SerambiScreen`, not yet renamed or
   rebuilt.
-* The bottom-navigation rollout-timing question (`FIGMA_HANDOFF.md`) is
+* The bottom-navigation rollout-timing question (`DESIGN_HANDOFF.md`) is
   unresolved and should be confirmed before Phase B, since it changes
   whether Phase B builds nav-bar scaffolding at all.
-* No Figma frame was supplied for Aktivitas (`0.0.3`) — confirm one exists
+* No design-tool frame was supplied for Aktivitas (`0.0.3`) — confirm one exists
   before Phase D, or proceed from the written decision alone if the
   product owner confirms none is coming.
 
 ### Next recommended milestone
 
-Phase A — Release `0.0.1` Reader UX alignment (`docs/design/FIGMA_HANDOFF.md`),
-on the user's explicit "done" reply. Re-run Figma discovery (`get_metadata`/
+Phase A — Release `0.0.1` Reader UX alignment (`docs/design/DESIGN_HANDOFF.md`),
+on the user's explicit "done" reply. Re-run design-tool discovery (`get_metadata`/
 `get_design_context`/`get_screenshot` on nodes `14:2`, `14:32`, `16:2`,
 `16:45`, `16:89`, `16:148`) before writing any Phase A code.
 
@@ -1592,7 +1592,7 @@ session (`adb devices` returned empty), so no manual on-device verification
 was performed — see Known limitations.
 
 **Scope:** Align the Full Reader and Guided Reader with the locally
-exported revised Figma frames (`docs/design/figma-export/`, nodes `14:2`,
+exported revised design-tool frames (`docs/design/design-export/`, nodes `14:2`,
 `14:32`, `16:2`, `16:45`, `16:89`, `16:148`), per the Phase A brief: revised
 layouts, both overflow menus, the Full ↔ Guided switch (re-verified, not
 rebuilt), the Full Reader repetition shortcut, progress/counter
@@ -1601,10 +1601,10 @@ source/pentashihan entry, adaptive width, and dark-mode color tokens. No
 Standalone Tasbih, Beranda, Explore, or Activity work — out of scope per
 the brief. No Room migration; no new tests added.
 
-### Figma export inspection
+### Design-tool export inspection
 
 All 10 exported node pairs (JSON + PNG) were inspected via a local Python
-script that walks the `JSON_REST_V1`-shaped export tree (no Figma MCP
+script that walks the `JSON_REST_V1`-shaped export tree (no design-tool MCP
 call — still rate-limited). Concrete findings that changed the
 implementation from what the documentation-only pass had guessed:
 
@@ -1662,7 +1662,7 @@ Serambi's empty-state text — a pre-existing, now-fixed defect); corrected
 to `SantriGreen95`/`SantriGreen20` to match the exported tone exactly. Dark
 scheme: added the same four roles using only existing dark-ramp tokens
 (`SantriGreen20`/`SantriGreen90`/`SantriGreen30`) as a reasoned
-approximation — no dark-mode Figma frame was exported, so no new hex value
+approximation — no dark-mode design-tool frame was exported, so no new hex value
 was invented for dark, per the project's own "do not guess" instruction.
 `Shape.kt`: added `SanguSantriShapes.extraLarge = RoundedCornerShape(percent
 = 50)` — a true stadium/pill shape at any aspect ratio, matching every pill
@@ -1797,17 +1797,17 @@ empty (no emulator/device this session).
   Everything above is verified by static analysis and successful
   compilation/build only.
 * **Translation line spacing has no UI control this phase.** The revised
-  Figma settings sheet only shows 3 steppers; `ReaderSettings.
+  design-tool settings sheet only shows 3 steppers; `ReaderSettings.
   translationLineSpacingMultiplier`, `ReaderUiAction.
   SetTranslationLineSpacing`, and `ReaderSettingsRepository.
   setTranslationLineSpacing` all remain fully functional in the data/domain
   layer (untouched), but nothing in the UI calls them anymore. This is a
-  real, narrower-than-FR-008 gap opened by following the revised Figma
+  real, narrower-than-FR-008 gap opened by following the revised design-tool
   layout exactly rather than guessing a 4th stepper back in — flag for a
   product decision (restore the control, or update FR-008) before this is
   considered fully resolved.
 * **Dark-mode color tokens are a reasoned approximation, not
-  Figma-verified** — no dark-mode frame was exported; the new dark-scheme
+  design-tool-verified** — no dark-mode frame was exported; the new dark-scheme
   role values reuse existing green-ramp tokens rather than inventing new,
   unverified hex values.
 * **RTL was not manually re-verified** for any of the new UI (progress
@@ -1820,13 +1820,13 @@ empty (no emulator/device this session).
   no additional expanded-window-size-class work was done this phase beyond
   what already existed.
 * The bottom-navigation rollout-timing question and the Aktivitas
-  Figma-frame gap (both flagged in `docs/design/FIGMA_HANDOFF.md`) are
+  design-tool-frame gap (both flagged in `docs/design/DESIGN_HANDOFF.md`) are
   unrelated to this phase and remain open.
 
 ### Next recommended milestone
 
 Phase B — Release `0.0.1` Beranda and Explore Amaliyah
-(`docs/design/FIGMA_HANDOFF.md`, nodes `19:2`/`19:84`), on the user's
+(`docs/design/DESIGN_HANDOFF.md`, nodes `19:2`/`19:84`), on the user's
 explicit "done" reply.
 
 ## Milestone 7 follow-up — Reader visual-fidelity and accessibility correction
@@ -1843,7 +1843,7 @@ canonical content, counter state, and source/approval semantics. No
 Beranda/Jelajahi, Standalone Tasbih, data-layer, schema, migration, or
 religious-content work was added.
 
-### Figma exports inspected
+### Design-tool exports inspected
 
 The JSON hierarchy and 2x PNG reference were inspected for every Phase A
 reader pair: `14:2` Full Reader, `14:32` Guided Reader, `16:2` Full Reader
@@ -1856,7 +1856,7 @@ backed by current persistence.
 
 ### What changed
 
-* Added shared Figma-derived component dimensions for the 56dp compact app
+* Added shared design-tool-derived component dimensions for the 56dp compact app
   bar, 20dp reader gutter, 640dp readable maximum width, 22/24dp reader
   surface radii, 210×150dp Guided counter, 280dp overflow menu, 48dp touch
   target, and 550dp sheet maximum.
@@ -1867,7 +1867,7 @@ backed by current persistence.
 * Guided Reader now uses the same constrained gutter/max width, a surfaced
   24dp-radius reading card, a section title derived from the nearest
   canonical heading when the current content step has no title, and the
-  Figma-scale counter. The counter shows the count as the dominant element,
+  design-tool-scale counter. The counter shows the count as the dominant element,
   a separate `dari N` target, grows vertically under font scaling, and
   retains haptics/reset/persistence plus icon-and-colour completion.
 * Both reader top bars use the exported compact height. Guided navigation
@@ -1927,7 +1927,7 @@ whitespace-only.
   gate passed (`BUILD SUCCESSFUL`).
 
 No unit, instrumented, connected, or screenshot tests were run or added,
-per the temporary Figma implementation-pass constraint.
+per the temporary design implementation-pass constraint.
 
 ### Visual validation and known limitations
 
@@ -1943,7 +1943,7 @@ one card; the app keeps canonical heading steps unboxed and surfaces only
 substantive reading steps so lazy-list position IDs remain unchanged and
 the long reader does not become a card wall. The TOC close action is an
 intentional accessibility addition not drawn in `16:148`. No dark-mode
-Figma frame exists, so dark colours remain the prior Phase A reasoned
+design-tool frame exists, so dark colours remain the prior Phase A reasoned
 mapping. The approved Arabic font and a Reader Settings decision for the
 still-persisted translation-line-spacing preference remain outstanding.
 
@@ -2489,7 +2489,7 @@ Unchanged from Milestone 8: building the actual Go backend service (ADR
 
 **Not a milestone — a scope/decision record.** The product owner/tech lead
 approved, in writing, a scope change superseding parts of the 2026-07-26
-Figma product-alignment pass and its `docs/design/figma-export/
+design product-alignment pass and its `docs/design/design-export/
 future-releases/` specification:
 
 * Navigation for every release through `0.0.5` uses **bottom navigation
@@ -2509,8 +2509,8 @@ future-releases/` specification:
 * Recorded formally as ADR
   [0013](decisions/0013-bottom-navigation-only-and-nahwu-quiz-0.0.5.md);
   normative docs (`PRD.md`, `ROADMAP.md`, `ARCHITECTURE.md`,
-  `DESIGN_SYSTEM.md`, `FIGMA_HANDOFF.md`, `reviews/
-  figma-product-alignment.md`, `AGENTS.md`, `CLAUDE.md`) and the
+  `DESIGN_SYSTEM.md`, `DESIGN_HANDOFF.md`, `reviews/
+  design-product-alignment.md`, `AGENTS.md`, `CLAUDE.md`) and the
   `future-releases/` spec files were updated in the same pass — see that
   ADR for the full list of touched files.
 
@@ -2540,7 +2540,7 @@ untracked Standalone Tasbih implementation: `TasbihSession`/
 `TasbihEntityMappers`, `TasbihModule`, and a hand-drawn `TasbihIcon` vector
 (`core/designsystem/icon/`) — none yet registered in `SanguSantriDatabase`/
 `DatabaseModule`, and no `feature/tasbih` UI existed. Audited against
-`docs/design/figma-export/future-releases/02-release-0.0.2-tasbih.md` and
+`docs/design/design-export/future-releases/02-release-0.0.2-tasbih.md` and
 `CODING_STANDARD.md`: high quality, correct no-99-preset rule, correct
 singleton-active-session pattern, `TasbihIcon` a genuine custom vector (no
 Unicode glyph). All of it was kept and built on, not replaced. One real bug
@@ -3086,13 +3086,13 @@ Amaliyah/Variant/Version/Approval/StepType surface and failed to compile —
 this pass's main work was porting each test to the new model, plus fixing
 two real defects the reconciliation review surfaced (see below).
 
-### Conflict check: does the temporary Figma-phase constraint apply here?
+### Conflict check: does the temporary design-phase constraint apply here?
 
-`CLAUDE.md`'s "Temporary implementation-pass constraints (Figma product
+`CLAUDE.md`'s "Temporary implementation-pass constraints (design product
 alignment)" section (no Room migrations, no new tests) is explicitly scoped
-to "the phases implementing the Figma product-alignment work
-(`docs/design/FIGMA_HANDOFF.md`, Phases A–E)". Checked
-`FIGMA_HANDOFF.md`'s own "Implementation order" list: Phase A (Reader UX,
+to "the phases implementing the design product-alignment work
+(`docs/design/DESIGN_HANDOFF.md`, Phases A–E)". Checked
+`DESIGN_HANDOFF.md`'s own "Implementation order" list: Phase A (Reader UX,
 `0.0.1`), Phase B (Beranda/Jelajahi, `0.0.1`), Phase C (Tasbih, `0.0.2`),
 Phase D (Aktivitas, `0.0.3`), Phase E (Pengingat, `0.0.4`, not yet started).
 ADR 0015 and the Firebase Hosting static-content-delivery work are a
@@ -3322,7 +3322,7 @@ Deploy the `content-hosting/` Firebase project and repoint
 `SANGU_CONTENT_API_BASE_URL` at the real deployed URL (the natural next step
 to make the already-implemented Android sync client observably functional
 end-to-end) — or proceed directly to Release `0.0.4` (Phase E — Pengingat
-Amaliyah) per `docs/design/FIGMA_HANDOFF.md`'s implementation order, treating
+Amaliyah) per `docs/design/DESIGN_HANDOFF.md`'s implementation order, treating
 the Firebase deployment as a parallel workstream, consistent with how ADR
 0012's Android-side sync client was originally built ahead of its backend.
 
@@ -3388,7 +3388,7 @@ not have been conclusive).
 ### Next recommended milestone
 
 Release `0.0.4` (Phase E — Pengingat Amaliyah), per
-`docs/design/FIGMA_HANDOFF.md`'s implementation order.
+`docs/design/DESIGN_HANDOFF.md`'s implementation order.
 
 ## Milestone 11 — Release 0.0.4, Phase E: Pengingat Amaliyah
 
@@ -3397,7 +3397,7 @@ Release `0.0.4` (Phase E — Pengingat Amaliyah), per
 `0.0.4` spec — personal Tahlil/Istighosah reminder schedules with
 Tahlil-malam-Jumat and Istighosah-weekly presets, Gregorian and Hijri-date
 scheduling, notification permission flow, reboot rescheduling, no
-"remind me later" — is complete. This phase falls under `FIGMA_HANDOFF.md`'s
+"remind me later" — is complete. This phase falls under `DESIGN_HANDOFF.md`'s
 "Phase E" and therefore under `CLAUDE.md`'s temporary implementation-pass
 constraints: no Room migration class (`SanguSantriDatabase` version bumped
 2→3 on the clean baseline, no `MIGRATION_2_3` — developers must clear app
@@ -3558,7 +3558,8 @@ documents before release packaging.
 ## Standalone Al-Qur'an Kemenag `0.0.6` — PRD and architecture baseline (2026-08-08)
 
 **Status:** Product/design/architecture documentation approved; no Android,
-Room, NDK, Figma, credential, or production feature implementation completed.
+Room, NDK, design tooling, credential, or production feature implementation
+completed.
 
 The product owner resolved the discovery questionnaire and approved a complete
 standalone Quran milestone after Nahwu Quiz `0.0.5`. The baseline now defines:
@@ -3591,7 +3592,7 @@ record of what was true when they were written.
   permission with LPMQ.
 * Confirm LPMQ Isep Misbah APK redistribution permission, supply King Fahd font
   and licence if desired, and complete exact-Kemenag-corpus glyph testing.
-* Create the Figma page `03 Al-Qur'an Kemenag` from the approved frame contract.
+* Create the design-tool page `03 Al-Qur'an Kemenag` from the approved frame contract.
 
 ### Documentation validation
 
@@ -3604,7 +3605,7 @@ inputs only, not application source or resources.
 
 ### Next recommended milestone
 
-Finish and release `0.0.5` Nahwu Quiz first. Then create the `0.0.6` Figma page
+Finish and release `0.0.5` Nahwu Quiz first. Then create the `0.0.6` design-tool page
 and implement the Quran data/security foundation as delivery slice 1 in
 `docs/product/QURAN_PRD.md` §14.
 
@@ -3666,8 +3667,8 @@ observations. Reuse this prototype only after real Room-backed UI models exist.
 **Status:** First approved-format local design artefact created; no production
 Quran navigation or data integration added.
 
-Added `docs/design/figma-export/quran/` as the persistent visual-reference
-directory for the future `03 Al-Qur'an Kemenag` Figma page. Its first screen is
+Added `docs/design/design-export/quran/` as the persistent visual-reference
+directory for the future `03 Al-Qur'an Kemenag` design-tool page. Its first screen is
 the revised `Arab saja` flowing reader at 360×800 logical pixels and 720×1600
 PNG output. The reference follows the approved dark semantic tokens, removes
 audio/light-mode/global-navigation chrome, groups the screen by Kemenag page
@@ -3689,7 +3690,7 @@ so future sessions can reproduce the design without guessing.
 * Chromium rendered the HTML at device scale 2 into a 720×1600 PNG.
 * The PNG was inspected visually against the source screenshots and Quran
   design-system contract.
-* This is a local reference, not a Figma node export; its Figma node ID remains
+* This is a local reference, not a design-tool node export; its design-tool node ID remains
   empty until the page is manually recreated.
 * The candidate LPMQ reader font remains a design input and is not approved for
   APK packaging until its provenance, licence, and glyph gates pass. The Amiri
@@ -3709,7 +3710,7 @@ design artefact and not wired into the production app.
 
 The product owner supplied a complete Kemenag response for Surah 89. The raw
 JSON is preserved unchanged at
-`docs/design/figma-export/quran/data/al-fajr-89-kemenag-response.json` with its
+`docs/design/design-export/quran/data/al-fajr-89-kemenag-response.json` with its
 SHA-256 and validation notes. It contains 30 unique ayat in non-canonical
 transport order across pages 593 and 594, reinforcing the existing numeric
 sorting requirement.
@@ -3820,10 +3821,10 @@ models.
 
 ## Standalone Quran complete presentation-reference catalog (2026-08-08)
 
-**Status:** Complete local HTML/JSON/PNG reference catalog; no Figma MCP or
+**Status:** Complete local HTML/JSON/PNG reference catalog; no design-tool MCP or
 production navigation/data wiring performed.
 
-Expanded `docs/design/figma-export/quran/` from the three approved reader
+Expanded `docs/design/design-export/quran/` from the three approved reader
 frames into 26 presentation references. The set now covers populated and empty
 Surah/Juz/Bookmark/Terakhir Dibaca hub states, initial checking/preparation and
 errors, background refresh outcomes, both reader displays, long-press and
@@ -3850,7 +3851,7 @@ instead of being invented.
 * All 26 frame PNGs were rendered by headless Chromium at exactly 720×1600.
 * Representative hub, reader, tafsir, settings, source, activity, loading, and
   error PNGs were visually inspected.
-* These are local design references, not real Figma nodes; node IDs remain
+* These are local design references, not real design-tool nodes; node IDs remain
   empty until manual recreation.
 * No Gradle task was run because this milestone modifies design documentation
   and generated visual artefacts only.
@@ -4209,13 +4210,13 @@ Documents section.
   documentation only. Markdown links and changed-document consistency were
   reviewed in this session.
 * The `0.0.7` position, Umm al-Qura method, local-only architecture, notice,
-  exclusions, and Figma requirement remain proposed until the product owner
+  exclusions, and design-tool requirement remain proposed until the product owner
   explicitly approves them.
 
 ### Next recommended milestone
 
 Finish the already-active standalone Quran `0.0.6` implementation. Then approve
-the Kalender Hijriah PRD decisions and create its required Figma states before
+the Kalender Hijriah PRD decisions and create its required design-tool states before
 starting `0.0.7` Android implementation.
 
 ## Standalone Al-Qur'an Kemenag Slice 2 — Entry, hub, search, bookmarks, last read (2026-08-08)
@@ -4323,7 +4324,7 @@ inspection).
 ./gradlew :app:assembleDebug   — pass, unchanged native build
 ./gradlew :app:testDebugUnitTest — 82/82 passed, unchanged from Slice 1 (this slice added no new
                                   automated tests — its logic is either Compose UI, best verified
-                                  manually per the temporary Figma-phase-adjacent working method, or
+                                  manually per the temporary design-phase-adjacent working method, or
                                   thin ViewModel orchestration already covered indirectly by Slice
                                   1's QuranSyncManager/QuranValidator tests it delegates to)
 ./gradlew :app:compileDebugAndroidTestKotlin — pass (pre-existing warnings only)
@@ -4355,7 +4356,7 @@ environment does not have (expected, see Known limitations). It is verified only
   and empty states are implemented and pass static analysis but are unverified by direct visual
   inspection or an instrumented UI test.
 - **No Compose UI tests were added** for the entry gate or hub — consistent with this slice's
-  validation approach (manual + static analysis, matching the temporary Figma-phase-adjacent
+  validation approach (manual + static analysis, matching the temporary design-phase-adjacent
   constraint's spirit even though Quran `0.0.6` is nominally outside that window per `CLAUDE.md`);
   revisit before Slice 5's full accessibility/parity audit.
 - Surah/Juz/bookmark/recent-session row taps and the continue-reading panel do not navigate anywhere
@@ -4767,12 +4768,12 @@ prior slice).
 
 ### Known limitations
 
-- **Figma pixel parity could not be checked because no Figma frames exist yet** —
-  `docs/design/QURAN_DESIGN_SYSTEM.md` itself states "Status: approved design direction; Figma
-  frames not yet created" and its own §9 frame checklist is an open design task, not a
+- **Design pixel parity could not be checked because no design-tool frames exist yet** —
+  `docs/design/QURAN_DESIGN_SYSTEM.md` itself states "Status: approved design direction;
+  design-tool frames not yet created" and its own §9 frame checklist is an open design task, not a
   completed reference. "Parity" this slice therefore means parity against the written design-system
   document (verified throughout Slices 1–4 and re-checked section-by-section this slice), not
-  pixel-diffing against Figma.
+  pixel-diffing against a hosted design tool.
 - **The reader/hub/settings/source/tafsir screens remain visually unverified on-device** — same
   root cause as every prior slice (the debug build's fixed fixture credential is correctly rejected
   by the real Kemenag API; reaching a populated local dataset requires the real, currently
@@ -4829,7 +4830,7 @@ resolve the remaining external release blockers already listed under Standalone 
 ## Standalone Al-Qur'an UI/UX audit and revision (2026-08-08)
 
 **Scope:** Audit every implemented standalone-Quran surface against the local
-`docs/design/figma-export/quran/` baseline and the seven supplied device captures, then revise the
+`docs/design/design-export/quran/` baseline and the seven supplied device captures, then revise the
 hub, entry states, both reader modes, ayat actions, tafsir states, display settings, and source
 attribution without changing Quran content or network/persistence contracts.
 
@@ -4879,7 +4880,7 @@ viewport.
   Room schema-v4 developer database while this pre-release baseline requires schema v5. The app
   correctly refuses to open without a migration. No emulator app data was cleared without the
   product owner's explicit permission.
-- No new tests were added or run, per the temporary Figma-alignment implementation constraints.
+- No new tests were added or run, per the temporary design-alignment implementation constraints.
   The 30sp default affects new/no-preference installs only, and must be visually recalibrated once
   an approved, corpus-verified Quran font replaces `FontFamily.Serif`.
 
@@ -4911,10 +4912,10 @@ prohibition/observance records rather than fasting recommendations. Unknown
 future dates remain labelled as Umm al-Qura calculations until a sourced
 official record is added through an app/content-bundle update.
 
-Created `docs/design/figma-export/hijri-calendar/` using the established Quran
+Created `docs/design/design-export/hijri-calendar/` using the established Quran
 export pattern. It includes four editable `360x800` HTML states, matching JSON
 sidecars, `720x1600` PNG previews, a regenerating Ruby catalog script, a local
-state picker, and a README/Figma handoff contract. The smaller number in each
+state picker, and a README/design handoff contract. The smaller number in each
 calendar cell now uses Arabic-Indic numerals; Gregorian numbers and Indonesian
 accessibility semantics remain unchanged. The earlier interactive concept was
 updated to match this numeral decision.
@@ -4925,8 +4926,8 @@ updated to match this numeral decision.
 * All four HTML frames were rendered through headless Chrome at device scale 2
   and visually inspected at their original `720x1600` resolution.
 * The previews cover light, dark, non-weekly fasting-filter, and source-sheet
-  states. Figma page/node IDs remain `null` because no remote Figma write was
-  requested or performed.
+  states. Design-tool page/node IDs remain `null` because no remote design-tool
+  write was requested or performed.
 * The August 2026 agenda is a design fixture, not the production runtime
   bundle. Annual government holiday/cuti-bersama records and every fasting
   rule still require source-by-source editorial acceptance before release.
@@ -4994,7 +4995,7 @@ remaining offline/error/invalid-target branches listed in the audit.
 ## Quran design-fidelity re-audit and UI revision (2026-08-09)
 
 **Status:** An independent, state-by-state re-comparison of every asset in
-`docs/design/figma-export/quran/` (26 states: hub, initial preparation,
+`docs/design/design-export/quran/` (26 states: hub, initial preparation,
 reader, ayat action sheet, tafsir sheet, display settings, source, Aktivitas
 row) against the current Compose implementation, run after the audit recorded
 above. This pass read each state's HTML/CSS/JSON reference directly (exact
@@ -5194,3 +5195,72 @@ state-shape changes, verified manually.
 Get the product-owner rulings the prior entry still needs, then work through
 the rest of `QURAN_DESIGN_SYSTEM.md` §7's on-device checklist (TalkBack/
 font-scale) now that an emulator is available.
+
+## "Figma" → "design" naming cleanup (2026-08-09)
+
+**Status:** Complete. Documentation/naming only — no product behaviour,
+architecture, or Room schema changed.
+
+**Scope:** The product owner clarified this project has never used a real
+Figma connection — every "Figma" reference in file/directory names, code
+comments, and docs was internal naming for local, hand-authored design
+references (HTML/JSON/PNG), not an actual live design-tool integration.
+Renamed every occurrence to "design" wording, so future sessions don't
+mistake it for a real Figma dependency.
+
+* **Renamed** (`git mv`): `docs/design/figma-export/` →
+  `docs/design/design-export/`; `docs/design/FIGMA_HANDOFF.md` →
+  `docs/design/DESIGN_HANDOFF.md`; `docs/reviews/figma-product-alignment.md`
+  → `docs/reviews/design-product-alignment.md`.
+* **Renamed** the `figma` JSON sidecar key to `designReference` across all
+  `docs/design/design-export/quran/*.json` files and their generator
+  (`generate-quran-catalog.rb`).
+* **Reworded** every remaining "Figma" mention (code comments in
+  `core/designsystem/`, `feature/reader/`, `feature/quran/`,
+  `feature/guidedreader/`, `domain/model/`, `data/local/database/`,
+  `strings.xml`, and one androidTest; every doc under `docs/` including
+  `CLAUDE.md`/`AGENTS.md`, `PRD.md`, `ROADMAP.md`, `DESIGN_SYSTEM.md`,
+  `QURAN_DESIGN_SYSTEM.md`, `DESIGN_HANDOFF.md`, the `design-export/
+  future-releases/` spec files, ADRs 0013/0016, `PROGRESS.md` itself, and
+  the three `*_AUTONOMOUS_PROMPT.md` files) to generic "design"/"design
+  tool" phrasing — historical facts (e.g. the design-tool MCP rate-limit
+  blocker, the frame/node ledger) were preserved, only the branded name
+  was replaced, since the tool identity was never load-bearing.
+* Left `.claude/settings.local.json`'s `mcp__figma__*` permission entry
+  untouched — that's an unrelated, gitignored local MCP tool permission,
+  not this project's naming.
+* A pre-existing, untracked `docs/design/figma-export/hijri-calendar/`
+  directory in the working copy (not yet committed at the time of this
+  pass) was out of reach from this change's isolated worktree; rename it
+  the same way (directory → `design-export/hijri-calendar/`, and its
+  `README.md`/`generate-hijri-calendar-catalog.rb`/JSON/HTML content) the
+  next time it's touched.
+
+### Validation
+
+```text
+./gradlew :app:ktlintCheck   — pre-existing, unrelated violations only
+                                (confirmed identical on files this pass
+                                never touched, e.g. NahwuQuizBootstrapper.kt)
+./gradlew :app:detekt        — same pre-existing MaxLineLength violation in
+                                QuranCredentialProvider.kt noted in the prior
+                                entry, untouched by this pass
+./gradlew :app:lint          — pass
+./gradlew :app:assembleDebug — pass
+```
+
+`ktlintFormat` was run once, found it reformatted ~30 unrelated files
+codebase-wide (pre-existing style debt, not caused by this pass), and its
+output was discarded in favour of hand-reverting every file to keep this
+change scoped to wording/renames only, per the no-unrelated-cleanup rule.
+
+### Known limitations
+
+The untracked `hijri-calendar` design-export subdirectory noted above still
+says "Figma" in its own files; it wasn't committed yet so this pass's
+isolated worktree couldn't see or edit it.
+
+### Next recommended milestone
+
+Nahwu Quiz `0.0.5` implementation (see the Kalender Hijriah `0.0.7` PRD
+entry above for that milestone's own next-step note).

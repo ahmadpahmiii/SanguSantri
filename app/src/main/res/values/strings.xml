@@ -6,7 +6,7 @@
   <string name="serambi_about_content_description">Tentang SanguSantri</string>
   <string name="serambi_empty_state">Konten sedang disiapkan.</string>
 
-  <!-- Bottom navigation shell (0.0.2+, docs/design/figma-export/future-releases/01-navigation-and-shared-components.md) -->
+  <!-- Bottom navigation shell (0.0.2+, docs/design/design-export/future-releases/01-navigation-and-shared-components.md) -->
   <string name="nav_beranda_label">Beranda</string>
   <string name="nav_aktivitas_label">Aktivitas</string>
   <string name="nav_tasbih_label">Tasbih</string>
@@ -108,7 +108,7 @@
   <string name="reader_error_message">Bacaan tidak dapat dimuat.</string>
   <string name="reader_retry_action">Coba lagi</string>
 
-  <!-- Reader progress header and saved-position status (Figma product-alignment pass, nodes 14:2/14:32) -->
+  <!-- Reader progress header and saved-position status (design product-alignment pass, nodes 14:2/14:32) -->
   <string name="reader_progress_label">Langkah %1$d dari %2$d</string>
   <string name="reader_progress_percentage">%1$d%%</string>
   <string name="reader_saved_position_status">Posisi bacaan tersimpan</string>

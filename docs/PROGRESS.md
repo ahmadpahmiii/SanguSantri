@@ -6438,3 +6438,102 @@ no Kotlin file.
 
 Build and upload a real signed release AAB to a Play Console testing track to confirm the 16 KB
 rejection is gone end-to-end, then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.
+
+## Quran sync: in-memory per-surah retry + crash-safety net (2026-08-09)
+
+**Status:** Implemented and verified (build-level); not manually verified on-device this session
+(see Known limitations).
+
+### Problem
+
+Product owner reported a real Kemenag failure: `ayat/local/5` returned `IOException: unexpected
+end of stream` (a transient dropped connection). Tapping "Coba lagi" restarted the entire
+114-surah fetch from scratch even though most surahs had already succeeded — wasteful, and on a
+weak connection could make an attempt never converge. Approved approach (see this session's own
+discussion) is two layers: transparent per-request retry, plus an in-memory cache so a retry only
+re-fetches surahs that actually failed — while explicitly keeping the edge cases (internet loss,
+the app being closed mid-sync, and any unexpected exception) crash-safe.
+
+### Changes
+
+`QuranSyncManager.kt` is the only file with production logic changed:
+
+- **Per-request retry** (up to 3 attempts, linear backoff): `fetchSurahs`/`fetchAyatForSurah` now
+  share a new `fetchWithRetry`/`attemptSingleFetch` pair that transparently retries a request when
+  the failure is classified retryable (`IOException` or a retryable HTTP status) before ever
+  surfacing a failure. Malformed bodies and non-retryable HTTP codes are never retried.
+- **In-memory per-surah retry cache**: successfully-fetched surahs are kept in a
+  `ConcurrentHashMap<Int, List<QuranAyatDto>>` (`cachedAyatBySurah`) for the process's lifetime. A
+  subsequent `sync()` call — manual "coba lagi" or automatic — only re-fetches surahs missing from
+  that cache instead of all 114. The cache is discarded on a successful commit, on a permanent
+  failure, or the instant the target `stableVersion` changes; it survives a retryable failure,
+  which is the case this targets. `onProgress` now starts from the already-cached count instead of
+  resetting to zero on a retry.
+- **Crash-safety net for the two named edge cases**: every `sync()` call — both
+  `QuranEntryViewModel`'s interactive path and `QuranUpdateWorker`'s background path (the latter
+  bypasses `QuranRepositoryImpl`'s own mutex entirely) — is now serialized through a new internal
+  `cacheMutex` and wrapped in a catch-all that rethrows `CancellationException` first (so the app
+  closing / the user leaving the screen mid-sync cancels cleanly — `Mutex.withLock` releases
+  correctly on cancellation, and whatever was already cached survives for next time) but converts
+  any other unexpected exception into `QuranSyncResult.RetryableFailure` instead of letting it
+  propagate — this coroutine can run on `viewModelScope`, which crashes the app on an uncaught
+  exception otherwise. Reported to Crashlytics.
+- The Room commit path (`commit()`) is unchanged: still one atomic `withTransaction` replace, gated
+  on the complete, validated 114-surah set — no partial Quran can ever reach Room or the UI.
+- Added `@Suppress("TooManyFunctions")` (mirrors `QuranRepositoryImpl`'s own, same rationale: one
+  cohesive fetch-validate-commit algorithm decomposed into small private steps) since the
+  retry/cache
+  logic pushed the class from 11 to 14 functions.
+
+`docs/decisions/0016-standalone-quran-kemenag-direct-api.md`: added a 2026-08-09 amendment narrowing
+decision #7's "resumable staging is rejected" to mean *durable, persisted* staging — the thing
+actually rejected — documenting that this in-memory, process-lifetime, non-persisted retry does not
+reopen it (no new Room tables, no WorkManager-persisted progress, still discarded on process death,
+still never read by Room before the one atomic commit).
+
+### Edge cases (explicitly requested)
+
+- **Internet lost mid-sync**: a single dropped request retries in place; if the whole attempt still
+  fails, only the surahs still missing get re-fetched on the next attempt.
+- **User closes the app mid-sync**: cancellation is rethrown, never swallowed, so structured
+  concurrency and `Mutex.withLock`'s cancellation-safe release both work correctly; surahs already
+  cached before cancellation survive in memory for the next attempt as long as the process itself
+  survives (an actual process kill still falls back to a full restart, unchanged from before).
+- **Concurrent callers** (interactive UI vs. `QuranUpdateWorker`, which does not share
+  `QuranRepositoryImpl`'s mutex): closed by the new manager-internal `cacheMutex`, so the cache is
+  never read or written concurrently regardless of caller.
+- **Version-triggered update overlapping a cached initial-preparation attempt**: the cache is keyed
+  to the `stableVersion` it was populated under and discarded if a `sync()` call arrives for a
+  different version.
+
+### Validation
+
+The whole-module `ktlintFormat`/`ktlintMainSourceSetCheck` reformatted ~40 unrelated pre-existing
+files across the codebase on every run (the same whole-codebase "Unexpected indentation" debt noted
+in prior entries) — restored all of them via `git restore` each time, keeping only
+`QuranSyncManager.kt` and the ADR amendment in the working tree. Confirmed via a `git stash`/
+original-HEAD comparison that `QuranSyncManager.kt` itself already carried 175 of these pre-existing
+indentation findings before this change, so none of it is new debt.
+
+- `./gradlew :app:ktlintMainSourceSetCheck` — 0 findings in `QuranSyncManager.kt` after formatting;
+  every remaining finding is the pre-existing debt in untouched files.
+- `./gradlew :app:detekt` — 0 findings in `QuranSyncManager.kt` after the `TooManyFunctions`
+  suppression; the one remaining finding (`QuranEntryScreen.kt:201`, unused parameter) is
+  pre-existing, in a file this change never touched.
+- `./gradlew :app:lintDebug` — pass, no findings.
+- `./gradlew :app:assembleDebug` — pass.
+
+### Known limitations
+
+- Not manually verified on an emulator/device this session (none available) — the retry/cache
+  behaviour has been reasoned through and build-validated, not exercised against a real flaky
+  connection or a real app-close-mid-sync.
+- No automated test coverage added (no existing `QuranSyncManagerTest` to keep compiling; none was
+  requested this session).
+- Codebase-wide ktlint indentation debt remains unaddressed (unchanged from prior entries).
+
+### Next recommended milestone
+
+Manually verify on a device/emulator once available: interrupt Quran preparation mid-sync (airplane
+mode, then force-close) and confirm a resumed "coba lagi" only re-fetches the surahs that hadn't
+completed yet. Then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.

@@ -146,8 +146,9 @@ architecture and accepted credential trade-off.
 * Long press is the sole visible per-ayat action, opening bookmark, tafsir,
   mark-last-read, and Juz/page information. No copy/share action.
 * Room is the source of truth. First use fetches and atomically validates all
-  114 surahs; failure shows a simple retry that restarts initialisation. A
-  seven-day full refresh keeps old local content if the network refresh fails.
+  114 surahs; failure shows a simple retry that restarts initialisation. After
+  that, the corpus stays offline with no periodic refresh; only a higher
+  Firebase Remote Config `quran_stable_version` enqueues one atomic update.
 * Tafsir is online-first on first access, then cached in Room with seven-day
   stale-while-revalidate behaviour.
 * Local bookmark, one global last-read position, and Quran reading-session

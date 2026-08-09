@@ -5,6 +5,43 @@
   <string name="serambi_setelan_content_description">Buka Setelan</string>
   <string name="serambi_about_content_description">Tentang SanguSantri</string>
   <string name="serambi_empty_state">Konten sedang disiapkan.</string>
+  <string name="serambi_greeting">Assalamu’alaikum</string>
+  <string name="serambi_greeting_supporting">Mau mulai dari mana hari ini?</string>
+  <string name="serambi_search_placeholder">Cari amaliyah</string>
+  <string name="serambi_feature_section_title">Fitur utama</string>
+  <string name="serambi_amaliyah_feature_title">Amaliyah</string>
+  <string name="serambi_amaliyah_feature_description">Jelajahi bacaan</string>
+  <string name="serambi_quran_feature_title">Al-Qur’an</string>
+  <string name="serambi_quran_feature_description">Baca dan tafsir</string>
+  <string name="serambi_nahwu_feature_description">Belajar offline</string>
+  <string name="serambi_hijri_calendar_title">Kalender Hijriah</string>
+  <string name="serambi_coming_soon_badge">Segera hadir</string>
+  <string name="serambi_hijri_calendar_placeholder_message">Kalender Hijriah sedang disiapkan untuk versi 0.0.7.</string>
+  <string name="serambi_reminder_feature_title">Pengingat</string>
+  <string name="serambi_reminder_feature_description">Atur jadwal</string>
+  <string name="serambi_nahwu_supporting_resume">Lanjutkan kuis</string>
+  <string name="serambi_nahwu_supporting_choose">Pilih latihan</string>
+  <string name="serambi_featured_amaliyah_title">Amaliyah pilihan</string>
+  <string name="serambi_see_all_action">Lihat semua</string>
+  <string name="serambi_resume_eyebrow">LANJUTKAN</string>
+  <string name="serambi_resume_action">Lanjutkan</string>
+  <string name="serambi_resume_dismiss_description">Sembunyikan aktivitas ini</string>
+  <string name="serambi_resume_amaliyah_full_progress">Langkah %1$d dari %2$d · Bacaan Lengkap</string>
+  <string name="serambi_resume_amaliyah_guided_progress">Langkah %1$d dari %2$d · Panduan</string>
+  <string name="serambi_resume_quran_title">Al-Qur’an</string>
+  <string name="serambi_resume_quran_progress">%1$s · Ayat %2$d dari %3$d</string>
+  <string name="serambi_resume_tasbih_title">Tasbih</string>
+  <string name="serambi_resume_tasbih_target_progress">%1$d dari target %2$d hitungan</string>
+  <string name="serambi_resume_tasbih_unlimited_progress">%1$d hitungan · Tanpa target</string>
+  <string name="serambi_reminder_row_description">%1$s, %2$s. Buka Pengingat.</string>
+
+  <!-- Jelajahi Amaliyah — scalable catalogue entry from Beranda -->
+  <string name="explore_title">Jelajahi Amaliyah</string>
+  <string name="explore_search_placeholder">Cari amaliyah</string>
+  <string name="explore_clear_search">Hapus pencarian</string>
+  <string name="explore_category_all">Semua</string>
+  <string name="explore_result_count">%1$d amaliyah</string>
+  <string name="explore_empty_search">Amaliyah yang dicari belum ditemukan.</string>
 
   <!-- Bottom navigation shell (0.0.2+, docs/design/design-export/future-releases/01-navigation-and-shared-components.md) -->
   <string name="nav_beranda_label">Beranda</string>
@@ -327,8 +364,6 @@
   <string name="quran_hub_bookmark_empty_title">Belum ada bookmark</string>
   <string name="quran_hub_bookmark_empty">Tekan lama ayat saat membaca, lalu pilih Tambahkan bookmark.</string>
   <string name="quran_hub_bookmark_position">Ayat %1$d</string>
-  <string name="quran_hub_refreshing">Memperbarui data Kemenag di latar belakang…</string>
-  <string name="quran_hub_refresh_failed">Pembaruan gagal. Data offline tetap tersedia.</string>
   <string name="quran_hub_overflow_content_description">Menu lainnya</string>
   <string name="quran_source_action_content_description">Buka informasi sumber Al-Qur\'an</string>
 

@@ -2,15 +2,20 @@ package com.sangusantri.app.feature.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,7 +31,8 @@ private val CardImageHeight = 120.dp
 
 /**
  * Tappable catalog entry (FR-002, ADR 0015) — flat surface with a hairline border, no shadow.
- * Renders [Content.imageUrl] when present (via Coil, [SanguSantriApplication][com.sangusantri.app.SanguSantriApplication]
+ * Renders [Content.imageUrl] when present (via Coil,
+ * [SanguSantriApplication][com.sangusantri.app.SanguSantriApplication]
  * supplies the network-capable `ImageLoader`); the card layout is otherwise unchanged if no image
  * exists yet for an item, since neither bundled amaliyah currently has one.
  */
@@ -35,6 +41,7 @@ fun ContentCard(
     content: Content,
     onClick: (contentId: String) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     OutlinedCard(
         onClick = { onClick(content.id) },
@@ -45,7 +52,7 @@ fun ContentCard(
         elevation = CardDefaults.outlinedCardElevation(defaultElevation = SanguSantriElevation.flat),
     ) {
         Column {
-            content.imageUrl?.takeIf { it.isNotBlank() }?.let { imageUrl ->
+            content.imageUrl?.takeIf { it.isNotBlank() && !compact }?.let { imageUrl ->
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = null,
@@ -56,31 +63,44 @@ fun ContentCard(
                             .height(CardImageHeight),
                 )
             }
-            ContentCardBody(content)
+            ContentCardBody(content = content, compact = compact)
         }
     }
 }
 
 @Composable
-private fun ContentCardBody(content: Content) {
-    Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
-        content.category?.takeIf { it.isNotBlank() }?.let { category ->
-            Text(
-                text = category,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
+private fun ContentCardBody(
+    content: Content,
+    compact: Boolean,
+) {
+    Row(
+        modifier = Modifier.padding(SanguSantriSpacing.default),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            content.category?.takeIf { it.isNotBlank() }?.let { category ->
+                Text(
+                    text = category,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
+            }
+            Text(text = content.title, style = MaterialTheme.typography.titleMedium)
+            if (content.description.isNotBlank() && !compact) {
+                Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
+                Text(
+                    text = content.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        Text(text = content.title, style = MaterialTheme.typography.titleMedium)
-        if (content.description.isNotBlank()) {
-            Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
-            Text(
-                text = content.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

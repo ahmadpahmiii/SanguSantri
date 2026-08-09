@@ -13,4 +13,7 @@ interface QuranTafsirDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: QuranTafsirEntity)
+
+    @Query("DELETE FROM quran_tafsir")
+    suspend fun deleteAll()
 }

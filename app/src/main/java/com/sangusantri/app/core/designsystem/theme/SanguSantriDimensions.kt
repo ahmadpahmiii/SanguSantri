@@ -7,6 +7,11 @@ object SanguSantriDimensions {
     val minimumTouchTarget = 48.dp
     val compactTopAppBarHeight = 56.dp
     val readerContentMaxWidth = 640.dp
+    val dashboardContentMaxWidth = 840.dp
+    val dashboardGridMinCellWidth = 160.dp
+    val dashboardMainFeatureMinCellWidth = 96.dp
+    val dashboardSupportingMinCellWidth = 144.dp
+    val catalogueGridMinCellWidth = 280.dp
     val readerHorizontalPadding = 20.dp
     val readerCardVerticalPadding = 12.dp
     val readerCardCornerRadius = 22.dp

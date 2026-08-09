@@ -63,8 +63,9 @@ Al-Qur'an Kemenag is releasable only when all acceptance criteria in
   114 surahs; an interrupted/invalid import exposes no partial Quran; Retry
   starts cleanly from the beginning.
 * Previously initialised content, bookmarks, last-read state, and settings work
-  offline. A failed seven-day refresh preserves the previous Room snapshot;
-  cached tafsir remains available while stale refresh fails.
+  offline. Equal/lower `quran_stable_version` values make no corpus request; a
+  failed higher-version update preserves the previous Room snapshot and applied
+  version. Cached tafsir remains available while its own stale refresh fails.
 * No Kemenag Latin transliteration is persisted, rendered, logged, or exposed
   through accessibility semantics. No copy/share or audio surface exists.
 * Both Quran reader modes, translation switch, long-press actions, tafsir,
@@ -133,10 +134,11 @@ section only if a future, explicit product decision reintroduces
 downloadable audio.
 
 Before `0.0.6`, record any Kemenag request quota/rate-limit guidance supplied
-with the private access approval. The client performs a full 114-surah initial
-fetch and at most one eligible full refresh per seven days per installation,
-plus user-requested tafsir calls; test this request budget and implement polite
-bounded retry without inventing an undocumented quota.
+with the private access approval. The client performs one full 114-surah initial
+fetch, then another full fetch only when operations publishes a higher
+`quran_stable_version`, plus user-requested tafsir calls. Verify the Remote
+Config publish checklist and request budget without inventing an undocumented
+quota.
 
 ## Production credential ownership
 

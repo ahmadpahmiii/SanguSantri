@@ -6,44 +6,56 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
- * Quran full-sync bookkeeping, stored through the existing `app_metadata` key-value table
- * (`docs/engineering/CONTENT_MODEL.md`) rather than a dedicated table solely for two timestamps.
- *
- * The seven-day refresh gate (QUR-FR-004, `docs/product/QURAN_PRD.md` §6.2) is read from the last
- * *successful* full sync only — unlike the amaliyah content sync's "last terminal attempt" gate, a
- * failed Quran refresh does not push the next eligible attempt back, since a refresh is only ever
- * triggered by a user opening the hub, not a periodic background worker. A complete local
- * dataset without a success timestamp is treated as stale, covering interruption between
- * the atomic Room commit and metadata write.
+ * Durable Quran dataset-version and failed-update bookkeeping in the existing `app_metadata`
+ * key-value table. Successful version writes happen inside [QuranSyncManager]'s corpus transaction;
+ * this class owns only reads, legacy-baseline adoption, and the failure cooldown gate.
  */
 class QuranSyncMetadata
 @Inject
 constructor(
     private val appMetadataDao: AppMetadataDao,
 ) {
-    suspend fun getLastSuccessfulSyncAtEpochMillis(): Long? =
-        appMetadataDao.getByKey(KEY_LAST_SUCCESSFUL_SYNC)?.updatedAtEpochMillis
+    suspend fun getAppliedStableVersion(): Int? =
+        appMetadataDao.getByKey(KEY_APPLIED_STABLE_VERSION)?.value?.toPositiveIntOrNull()
 
-    suspend fun recordSuccessfulSync() {
-        val now = System.currentTimeMillis()
-        appMetadataDao.upsert(AppMetadataEntity(KEY_LAST_SUCCESSFUL_SYNC, "SUCCESS", now))
-        appMetadataDao.upsert(AppMetadataEntity(KEY_LAST_SYNC_ATTEMPT, "SUCCESS", now))
+    suspend fun adoptStableVersion(version: Int): Int {
+        require(version > 0)
+        getAppliedStableVersion()?.let { return it }
+        appMetadataDao.upsert(
+            AppMetadataEntity(KEY_APPLIED_STABLE_VERSION, version.toString(), System.currentTimeMillis()),
+        )
+        return version
     }
 
-    /** Diagnostic only (`docs/operations/PRODUCTION_READINESS.md`) — never read by the refresh
-     * staleness gate, which is [getLastSuccessfulSyncAtEpochMillis] alone. */
-    suspend fun recordFailedSync() {
-        appMetadataDao.upsert(AppMetadataEntity(KEY_LAST_SYNC_ATTEMPT, "FAILED", System.currentTimeMillis()))
+    @Suppress("ReturnCount")
+    suspend fun isUpdateAttemptEligible(
+        appliedVersion: Int,
+        targetVersion: Int,
+        nowEpochMillis: Long = System.currentTimeMillis(),
+    ): Boolean {
+        if (targetVersion <= appliedVersion) return false
+        val lastAttempt = appMetadataDao.getByKey(KEY_LAST_FAILED_UPDATE_ATTEMPT) ?: return true
+        val lastTarget = lastAttempt.value.toPositiveIntOrNull() ?: return true
+        if (lastTarget != targetVersion) return true
+        return nowEpochMillis - lastAttempt.updatedAtEpochMillis >= FAILED_UPDATE_COOLDOWN_MILLIS
     }
 
-    suspend fun isRefreshStale(): Boolean {
-        val lastSuccess = getLastSuccessfulSyncAtEpochMillis() ?: return true
-        return System.currentTimeMillis() - lastSuccess >= REFRESH_STALE_THRESHOLD_MILLIS
+    suspend fun recordFailedUpdateAttempt(targetVersion: Int) {
+        require(targetVersion > 0)
+        appMetadataDao.upsert(
+            AppMetadataEntity(
+                KEY_LAST_FAILED_UPDATE_ATTEMPT,
+                targetVersion.toString(),
+                System.currentTimeMillis(),
+            ),
+        )
     }
+
+    private fun String.toPositiveIntOrNull(): Int? = toIntOrNull()?.takeIf { it > 0 }
 
     companion object {
-        const val KEY_LAST_SUCCESSFUL_SYNC = "quran_last_full_sync_success"
-        const val KEY_LAST_SYNC_ATTEMPT = "quran_last_full_sync_attempt"
-        val REFRESH_STALE_THRESHOLD_MILLIS: Long = TimeUnit.DAYS.toMillis(7)
+        const val KEY_APPLIED_STABLE_VERSION = "quran_applied_stable_version"
+        const val KEY_LAST_FAILED_UPDATE_ATTEMPT = "quran_last_failed_update_attempt"
+        val FAILED_UPDATE_COOLDOWN_MILLIS: Long = TimeUnit.DAYS.toMillis(1)
     }
 }

@@ -44,13 +44,15 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
 /**
  * Canonical local source of truth (PRD 12.1). Version 2 (ADR 0015, dynamic catalog
  * simplification) collapses the former Amaliyah/AmaliyahVariant/AmaliyahVersion/AmaliyahStep/
- * Approval hierarchy into the flat `content`/`content_steps` model — see [MIGRATION_1_2] for the
- * real, non-destructive data migration. Enum type converters were removed along with the enums
+ * Approval hierarchy into the flat `content`/`content_steps` model. Enum type converters were
+ * removed along with the enums
  * (`StepType`, `AmaliyahVersionStatus`, `ApprovalStatus`, `OwnerType`, `Visibility`) they existed
  * for; Room's built-in enum support (2.6+) is used natively where an enum column still exists
  * (`TasbihSessionEntity.targetPreset`, `NahwuQuizQuestionEntity.correctOption`), so no `Converters`
- * class is needed any more. Destructive migration (`fallbackToDestructiveMigration`) is
- * deliberately NOT used.
+ * class is needed any more. The product owner has explicitly selected Room's drop-all-tables
+ * destructive fallback for every unsupported schema transition; no hand-written migration chain
+ * is retained. Bundled content bootstraps again, while non-bundled Quran data must be downloaded
+ * again before offline reading is restored.
  *
  * Version 3 (`0.0.4`, Pengingat Amaliyah) adds `reminders` — purely additive, no existing table
  * changed. `CLAUDE.md`'s temporary design-phase constraint (that pass's Phase E) prohibited writing

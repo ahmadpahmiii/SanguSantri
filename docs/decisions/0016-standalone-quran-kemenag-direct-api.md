@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (2026-08-08, product owner/tech lead)
+Accepted (2026-08-08, product owner/tech lead); update policy amended
+2026-08-09
 
 ## Context
 
@@ -51,10 +52,13 @@ cannot make a client-shipped credential secret.
    app fetches all 114 surahs, validates completeness/order, and commits once.
    Any failure writes no active partial Quran and retry begins again from the
    start; resumable staging is rejected as unnecessary complexity.
-8. **Refresh is complete, atomic, and gated for seven days.** With no remote
-   version, staleness is time-based. A failed refresh preserves the old
-   complete dataset. Existing Room `app_metadata` stores sync timestamps and
-   status instead of a one-purpose sync table.
+8. **Corpus updates are complete, atomic, and Remote Config version-gated.**
+   Firebase Remote Config `quran_stable_version` starts at `1`; only a strictly
+   higher value than Room's `quran_applied_stable_version` can enqueue a full
+   update. There is no weekly/monthly fallback. The update is unique,
+   unmetered, battery-not-low, and makes one complete attempt; failure preserves
+   the old dataset and applies a 24-hour cooldown to that target. The applied
+   version is committed in the same transaction as the validated corpus.
 9. **Tafsir is on-demand and cached.** A cached tafsir is local-first and
    stale-while-revalidate after seven days.
 10. **The Quran model is separate from amaliyah content.** Dedicated surah,
@@ -99,6 +103,12 @@ cannot make a client-shipped credential secret.
   but not official line composition.
 * **Font switching with arbitrary Quran datasets** — rejected; selectable
   fonts render the same Kemenag text and must pass compatibility checks.
+* **Weekly or monthly defensive full refresh** — rejected because the Kemenag
+  corpus has no cheap change manifest and a no-change refresh still repeats the
+  full list-plus-114-surah request set per installation.
+* **Treat Remote Config as upstream proof or rollback storage** — rejected;
+  `quran_stable_version` is only SanguSantri's monotonic fetch trigger. Kemenag
+  remains the content source and exposes no historical snapshot by that number.
 
 ## Consequences
 
@@ -112,10 +122,14 @@ cannot make a client-shipped credential secret.
 * Initial first-use availability is weaker than bundled amaliyah: without
   internet and without prior preparation, Quran shows an error; after one
   successful preparation, reading is local-first.
-* A weekly complete refresh may make many Kemenag requests per install. The
-  implementation must bound concurrency, avoid duplicate work, and preserve
-  old data; if LPMQ later publishes rate limits or a version endpoint, this ADR
-  must be amended rather than guessing.
+* After first preparation, an installation makes no further full-corpus Kemenag
+  request until operations publishes a higher `quran_stable_version`. Remote
+  Config must be increased only after the intended Kemenag data is fully live
+  and verified; publishing it early can cause clients to stamp the target after
+  fetching the previous live API state.
+* A successful corpus replacement clears cached tafsir because it is keyed by
+  Kemenag remote ayat id; bookmarks and last-read state remain keyed by stable
+  `(surah, ayat)` identity and survive.
 * Font binaries remain design inputs until licence and glyph gates pass.
 * No Kotlin, Room, NDK, design tooling, or production feature implementation
   is part of this documentation decision itself.

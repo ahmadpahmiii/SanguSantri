@@ -4,10 +4,10 @@ import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import com.sangusantri.app.data.local.entity.QuranBookmarkEntity
 import com.sangusantri.app.data.local.entity.QuranReadingSessionEntity
 import com.sangusantri.app.data.local.entity.QuranReadingStateEntity
+import com.sangusantri.app.data.local.quran.QuranLocalDataset
 import com.sangusantri.app.data.mapper.toDomain
-import com.sangusantri.app.data.remote.quran.QuranValidator
+import com.sangusantri.app.data.remote.quran.QuranStableVersionConfig
 import com.sangusantri.app.data.sync.quran.QuranSyncManager
-import com.sangusantri.app.data.sync.quran.QuranSyncMetadata
 import com.sangusantri.app.data.sync.quran.QuranSyncResult
 import com.sangusantri.app.data.sync.quran.QuranTafsirFetchOutcome
 import com.sangusantri.app.data.sync.quran.QuranTafsirManager
@@ -33,7 +33,8 @@ class QuranRepositoryImpl
 constructor(
     private val database: SanguSantriDatabase,
     private val syncManager: QuranSyncManager,
-    private val syncMetadata: QuranSyncMetadata,
+    private val localDataset: QuranLocalDataset,
+    private val stableVersionConfig: QuranStableVersionConfig,
     private val tafsirManager: QuranTafsirManager,
 ) : QuranRepository {
     private val surahDao get() = database.quranSurahDao()
@@ -65,47 +66,27 @@ constructor(
     override fun observeReadingSessions(): Flow<List<QuranReadingSession>> =
         readingSessionDao.observeAll().map { sessions -> sessions.map { it.toDomain() } }
 
-    override suspend fun hasLocalDataset(): Boolean {
-        if (surahDao.count() != QuranValidator.EXPECTED_SURAH_COUNT) return false
-        val expectedAyatCount = surahDao.totalExpectedAyatCount()
-        return expectedAyatCount > 0 && verseDao.count() == expectedAyatCount
-    }
+    override suspend fun hasLocalDataset(): Boolean = localDataset.isComplete()
 
     override suspend fun ensureInitialPreparation(
         onProgress: (completed: Int, total: Int) -> Unit,
     ): QuranPreparationResult =
         syncMutex.withLock {
-            if (hasLocalDataset()) QuranPreparationResult.Ready else runSync(onProgress)
-        }
-
-    override suspend fun refreshIfStale(onRefreshStarted: () -> Unit): QuranPreparationResult =
-        syncMutex.withLock {
-            if (syncMetadata.isRefreshStale()) {
-                onRefreshStarted()
-                runSync()
-            } else {
+            if (hasLocalDataset()) {
                 QuranPreparationResult.Ready
+            } else {
+                runSync(stableVersionConfig.fetchStableVersion(), onProgress)
             }
         }
 
     private suspend fun runSync(
+        stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
     ): QuranPreparationResult =
-        when (syncManager.sync(onProgress)) {
-            is QuranSyncResult.Completed -> {
-                syncMetadata.recordSuccessfulSync()
-                QuranPreparationResult.Ready
-            }
-
-            is QuranSyncResult.RetryableFailure -> {
-                syncMetadata.recordFailedSync()
-                QuranPreparationResult.Failed(retryable = true)
-            }
-
-            is QuranSyncResult.PermanentFailure -> {
-                syncMetadata.recordFailedSync()
-                QuranPreparationResult.Failed(retryable = false)
-            }
+        when (syncManager.sync(stableVersion, onProgress)) {
+            is QuranSyncResult.Completed -> QuranPreparationResult.Ready
+            is QuranSyncResult.RetryableFailure -> QuranPreparationResult.Failed(retryable = true)
+            is QuranSyncResult.PermanentFailure -> QuranPreparationResult.Failed(retryable = false)
         }
 
     override suspend fun toggleBookmark(

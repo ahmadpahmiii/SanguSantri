@@ -45,7 +45,7 @@ reference tag any more. The standalone Al-Qur'an Kemenag feature approved for
 `0.0.6` is a separate bounded data model and does not restore the removed
 amaliyah step type — see `docs/product/QURAN_PRD.md` and ADR 0016.
 
-## Standalone Quran bounded model (`0.0.6`, planned)
+## Standalone Quran bounded model (`0.0.6`, implemented)
 
 The standalone feature owns dedicated Room tables rather than forcing
 official Kemenag records into the versioned amaliyah catalog:
@@ -54,15 +54,19 @@ official Kemenag records into the versioned amaliyah catalog:
 * `quran_verses` — stable local key `(surah, ayat)`, unique remote ayat `id`,
   Juz/page metadata, official Usmani/gundul text, translation, and footnote
   fields. The API's Latin `teks` field MUST NOT be persisted or displayed.
-* `quran_tafsir` — remote ayat id plus concise and tahlili text and fetch time.
+* `quran_tafsir` — remote ayat id plus concise and tahlili text and fetch time;
+  cleared only when a successful corpus-version replacement may invalidate
+  remote-id associations.
 * `quran_bookmarks` — local ayat-only bookmarks.
 * `quran_reading_state` — one global last-read position and reading mode.
 * `quran_reading_sessions` — local reading activity emitted only after the
   position advances by at least one ayat.
 
-Quran settings that are simple scalar preferences belong in DataStore. Sync
-timestamps/status reuse namespaced keys in `app_metadata`; do not create a
-table solely for a timestamp. Network DTOs, Room entities, and domain models
+Quran settings that are simple scalar preferences belong in DataStore. The
+applied Remote Config target (`quran_applied_stable_version`) and last failed
+target/cooldown timestamp (`quran_last_failed_update_attempt`) reuse namespaced
+keys in `app_metadata`; do not create a dedicated version/sync table. Network
+DTOs, Room entities, and domain models
 remain separate boundary types. Official Arabic, translation, footnote, and
 tafsir fields are preserved exactly as received; only numeric ordering,
 structural validation, and UI presentation may transform them. Full field and
@@ -289,6 +293,13 @@ manifest ETag or manifest-version bookkeeping exists — the catalog is
 fetched plainly at most once every 24 hours, so there is nothing for
 either key to usefully cache.
 
+Quran corpus update bookkeeping (`QuranSyncMetadata`, `data/sync/quran/`) uses
+two separate namespaced keys in the same table. `quran_applied_stable_version`
+is written atomically with a successful complete corpus replacement;
+`quran_last_failed_update_attempt` stores the failed target in `value` and the
+terminal attempt time in `updatedAtEpochMillis` for its 24-hour cooldown. These
+keys are unrelated to the amaliyah `content_last_sync` schedule.
+
 User preferences remain in DataStore, not Room.
 
 ## Current implementation status
@@ -319,33 +330,21 @@ yet implemented); the reminder model (Phase E, `0.0.4`) is
 forward-documented only. See `docs/PROGRESS.md` for the authoritative
 current state.
 
-## Schema-freeze policy (pre-public-release) and the ADR 0015 exception
+## Schema transition policy — destructive drop-all
 
-The application has not been publicly released, so the current Room schema
-is a **future production baseline candidate**, not yet frozen. The general
-pre-release convention established at Milestone 4 — reset the schema to a
-clean version-1 baseline instead of writing a real migration, since there
-are no production installs to protect — remains the default for future
-schema changes. **ADR 0015 is an explicit, product-owner-directed exception
-to that default**: rather than resetting to a new baseline and clearing
-developer data, the version 1 → 2 change (dropping the Amaliyah/Variant/
-Version/Approval hierarchy for the flat Content/ContentStep model) ships a
-real, tested Room `Migration(1, 2)` (`MIGRATION_1_2`,
-`data/local/database/Migrations.kt`) that preserves existing reading/guided/
-counter progress across the change. This was a deliberate instruction for
-this specific schema change, not a reversal of the general policy — a
-future unrelated schema change may still use a clean baseline reset unless
-told otherwise.
+The product owner explicitly accepts data loss on every unsupported Room
+schema transition. `DatabaseModule` therefore uses
+`fallbackToDestructiveMigration(dropAllTables = true)` and the project retains
+no hand-written migration chain, including the former version 1→2 migration.
 
-* Destructive migration (`fallbackToDestructiveMigration`) remains
-  prohibited in any build that could reach a real user (ADR
-  [0003](../decisions/0003-room-as-local-source-of-truth.md)) — this
-  project has never enabled it, including for the ADR 0015 migration.
-* Every schema change must still keep the Room schema internally coherent
-  (foreign keys, indices, non-null constraints matching the domain model).
-
-**This baseline-reset policy ends the moment the initial public schema
-ships.** From that point on, every schema change MUST ship a real, tested
-Room `Migration`, exactly as ADR 0015's already does — no further
-version-reset-and-clear-app-data cycles once real installs hold real user
-data.
+* Room drops every table, including tables it does not recognise from the
+  current entity set, then recreates the current schema.
+* Bundled amaliyah content is restored by the idempotent bootstrap. Quran is
+  not bundled, so it must be downloaded again before offline reading returns.
+* Reading progress, activity history, tasbih sessions/history, reminders,
+  Quran bookmarks/history/state, metadata, and every other Room-backed user
+  value are intentionally not preserved.
+* Schema exports remain enabled for review of the current shape, not to support
+  historical migration tests.
+* Every schema version must still be internally coherent: foreign keys,
+  indices, and nullability must match the domain model.

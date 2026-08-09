@@ -4,23 +4,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -28,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
@@ -38,12 +42,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.component.SectionHeader
+import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.Content
-import com.sangusantri.app.domain.model.Reminder
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
 import com.sangusantri.app.feature.update.AppUpdateGate
+import kotlinx.coroutines.launch
 
 @Composable
 fun SerambiRoute(
@@ -53,14 +59,28 @@ fun SerambiRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val calendarPlaceholderMessage = stringResource(R.string.serambi_hijri_calendar_placeholder_message)
+    val screenActions =
+        actions.copy(
+            onDismissResume = viewModel::dismissResume,
+            // TODO(calendar-0.0.7-slice-2): Replace this feedback with the real Navigation 3
+            // Kalender Hijriah destination when its approved UI slice is implemented.
+            onHijriCalendarClick = {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = calendarPlaceholderMessage,
+                        duration = SnackbarDuration.Long,
+                    )
+                }
+            },
+        )
     SerambiScreen(
         uiState = uiState,
         onContentSelected = onContentSelected,
-        actions = actions,
+        actions = screenActions,
         snackbarHostState = snackbarHostState,
     )
-    // Checked once per cold start (ADR 0017) — mounted alongside, not inside, SerambiScreen so the
-    // latter stays a pure, Hilt-free, preview-safe composable.
     AppUpdateGate(snackbarHostState = snackbarHostState)
 }
 
@@ -78,7 +98,12 @@ fun SerambiScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.app_name)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                },
                 actions = {
                     IconButton(onClick = actions.onSetelanClick) {
                         Icon(
@@ -97,9 +122,18 @@ fun SerambiScreen(
         },
     ) { innerPadding ->
         when (uiState) {
-            is SerambiUiState.Loading -> SerambiLoading(modifier = Modifier.padding(innerPadding))
+            SerambiUiState.Loading ->
+                Box(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+
             is SerambiUiState.Loaded ->
-                SerambiContent(
+                SerambiDashboard(
                     uiState = uiState,
                     onContentSelected = onContentSelected,
                     actions = actions,
@@ -110,171 +144,135 @@ fun SerambiScreen(
 }
 
 @Composable
-private fun SerambiLoading(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun SerambiContent(
+private fun SerambiDashboard(
     uiState: SerambiUiState.Loaded,
     onContentSelected: (String) -> Unit,
     actions: SerambiActions,
     modifier: Modifier = Modifier,
 ) {
-    if (uiState.items.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(R.string.serambi_empty_state),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        return
-    }
-
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(SanguSantriSpacing.default),
-        verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
-    ) {
-        item(key = "quran") { QuranEntrySection(onClick = actions.onQuranClick) }
-        item(key = "nearest_reminder") {
-            NearestReminderSection(
-                reminder = uiState.nearestReminder,
-                contentTitle = uiState.nearestReminderContentTitle(),
-                onClick = actions.onPengingatClick,
-            )
-        }
-        if (uiState.hasNahwuQuizContent) {
-            item(key = "belajar") { BelajarSection(onClick = actions.onBelajarClick) }
-        }
-        items(items = uiState.items, key = { it.id }) { item ->
-            ContentCard(content = item, onClick = onContentSelected)
-        }
-    }
-}
-
-/**
- * `0.0.6`, standalone Al-Qur'an Kemenag — a real, accessible entry point (QUR-FR-001), always
- * shown like [NearestReminderSection] rather than hidden behind any data condition: the feature
- * always exists once shipped, and its own entry gate (not this card) is what decides whether local
- * Quran data still needs preparing.
- */
-@Composable
-private fun QuranEntrySection(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(modifier = modifier.fillMaxWidth(), onClick = onClick) {
-        Row(
-            modifier = Modifier.padding(SanguSantriSpacing.default),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.serambi_quran_card_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = stringResource(R.string.serambi_quran_card_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-        }
-    }
-}
-
-/** `0.0.5`, Nahwu Quiz — a static entry-point tile to the Landing screen, not a specific package's
- * own summary card (design spec: "'Kuis Nahwu', short description, chevron_right"). Hidden until
- * [SerambiUiState.Loaded.hasNahwuQuizContent] is true, unlike [NearestReminderSection]'s always-
- * shown rule — Nahwu Quiz has its own separate creation entry point (`Daftar Paket`), so there is
- * no equivalent "nowhere else to start" problem to guard against here. */
-@Composable
-private fun BelajarSection(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        SectionHeader(title = stringResource(R.string.serambi_belajar_title))
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
-            Row(
-                modifier = Modifier.padding(SanguSantriSpacing.default),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.serambi_belajar_card_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = stringResource(R.string.serambi_belajar_card_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-            }
-        }
-    }
-}
-
-/**
- * `0.0.4`, Pengingat Amaliyah. Always shown (unlike other Beranda sections' hide-if-empty rule) —
- * with zero reminders this is the app's *only* entry point into the Pengingat screen, since
- * Aktivitas's own "Pengingat" section only appears once a reminder already exists. Hiding this one
- * too whenever [reminder] is null would make the feature permanently undiscoverable for a user who
- * has never created a reminder.
- */
-@Composable
-private fun NearestReminderSection(
-    reminder: Reminder?,
-    contentTitle: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
     val hijriMonthNames = stringArrayResource(R.array.reminder_hijri_month_names).toList()
-    Column(modifier = modifier) {
-        SectionHeader(title = stringResource(R.string.serambi_nearest_reminder_title))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(SanguSantriDimensions.dashboardGridMinCellWidth),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
+            contentPadding = PaddingValues(SanguSantriSpacing.default),
+            horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
         ) {
-            Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
-                if (reminder == null) {
-                    Text(
-                        text = stringResource(R.string.serambi_nearest_reminder_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Text(
-                        text = reminder.label.ifBlank { contentTitle ?: reminder.contentId },
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = ReminderScheduleFormatter.formatScheduleSummary(reminder.schedule, hijriMonthNames),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            item(key = "greeting", span = { GridItemSpan(maxLineSpan) }) {
+                SerambiGreeting()
+            }
+
+            if (uiState.items.isNotEmpty()) {
+                item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
+                    SerambiSearchEntry(onClick = actions.onExploreClick)
+                }
+            }
+
+            uiState.resumeItem?.let { resumeItem ->
+                item(key = "resume", span = { GridItemSpan(maxLineSpan) }) {
+                    SerambiResumeCard(
+                        item = resumeItem,
+                        actions = actions,
+                        onDismiss = actions.onDismissResume,
                     )
                 }
             }
+            featureSection(uiState, actions)
+            supportingFeatureSection(uiState, actions, hijriMonthNames)
+            amaliyahSection(uiState, actions, onContentSelected)
         }
     }
 }
 
-// Development-only preview fixtures — bracketed placeholders, never real amaliyah text.
+private fun LazyGridScope.featureSection(
+    uiState: SerambiUiState.Loaded,
+    actions: SerambiActions,
+) {
+    item(key = "feature_spacer", span = { GridItemSpan(maxLineSpan) }) {
+        Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
+    }
+    item(key = "feature_header", span = { GridItemSpan(maxLineSpan) }) {
+        SectionHeader(title = stringResource(R.string.serambi_feature_section_title))
+    }
+    item(key = "main_features", span = { GridItemSpan(maxLineSpan) }) {
+        SerambiMainFeatures(
+            showAmaliyah = uiState.items.isNotEmpty(),
+            actions = actions,
+        )
+    }
+}
+
+private fun LazyGridScope.supportingFeatureSection(
+    uiState: SerambiUiState.Loaded,
+    actions: SerambiActions,
+    hijriMonthNames: List<String>,
+) {
+    item(key = "supporting_features", span = { GridItemSpan(maxLineSpan) }) {
+        SerambiSupportingFeatures(
+            reminderDescription =
+                uiState.nearestReminder?.let { reminder ->
+                    ReminderScheduleFormatter.formatScheduleSummary(reminder.schedule, hijriMonthNames)
+                } ?: stringResource(R.string.serambi_reminder_feature_description),
+            showNahwuQuiz = uiState.hasNahwuQuizContent,
+            nahwuDescription =
+                stringResource(
+                    if (uiState.hasActiveNahwuQuiz) {
+                        R.string.serambi_nahwu_supporting_resume
+                    } else {
+                        R.string.serambi_nahwu_supporting_choose
+                    },
+                ),
+            actions = actions,
+        )
+    }
+}
+
+private fun LazyGridScope.amaliyahSection(
+    uiState: SerambiUiState.Loaded,
+    actions: SerambiActions,
+    onContentSelected: (String) -> Unit,
+) {
+    if (uiState.featuredItems.isEmpty()) return
+    item(key = "amaliyah_spacer", span = { GridItemSpan(maxLineSpan) }) {
+        Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
+    }
+    item(key = "amaliyah_header", span = { GridItemSpan(maxLineSpan) }) {
+        SectionHeader(
+            title = stringResource(R.string.serambi_featured_amaliyah_title),
+            actionLabel = stringResource(R.string.serambi_see_all_action),
+            onActionClick = actions.onExploreClick,
+        )
+    }
+    items(items = uiState.featuredItems, key = { "content_${it.id}" }) { item ->
+        ContentCard(content = item, onClick = onContentSelected, compact = true)
+    }
+}
+
+@Composable
+private fun SerambiGreeting() {
+    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall)) {
+        Text(
+            text = stringResource(R.string.serambi_greeting),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            text = stringResource(R.string.serambi_greeting_supporting),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+// Development-only preview fixtures — no religious text is invented.
 private val previewItems =
     listOf(
         Content(
             id = "tahlil",
             title = "Tahlil",
-            description = "Rangkaian bacaan Tahlil. FIXTURE PENGEMBANGAN.",
+            description = "[FIXTURE] Konten pengembangan.",
             imageUrl = null,
             category = "Tahlil dan Doa",
             version = 1,
@@ -286,7 +284,7 @@ private val previewItems =
         Content(
             id = "istighosah",
             title = "Istighosah",
-            description = "Rangkaian bacaan Istighosah. FIXTURE PENGEMBANGAN.",
+            description = "[FIXTURE] Konten pengembangan.",
             imageUrl = null,
             category = "Tahlil dan Doa",
             version = 1,
@@ -301,9 +299,13 @@ private val previewActions =
     SerambiActions(
         onSetelanClick = {},
         onAboutClick = {},
+        onExploreClick = {},
         onPengingatClick = {},
         onBelajarClick = {},
         onQuranClick = {},
+        onContinueAmaliyah = { _, _ -> },
+        onContinueQuran = { _, _ -> },
+        onContinueTasbih = {},
     )
 
 @PreviewLightDark
@@ -311,7 +313,21 @@ private val previewActions =
 private fun SerambiScreenContentPreview() {
     SanguSantriTheme {
         SerambiScreen(
-            uiState = SerambiUiState.Loaded(previewItems),
+            uiState =
+                SerambiUiState.Loaded(
+                    items = previewItems,
+                    hasNahwuQuizContent = true,
+                    hasActiveNahwuQuiz = true,
+                    resumeItem =
+                        SerambiResumeItem.Amaliyah(
+                            contentId = "tahlil",
+                            title = "Tahlil",
+                            mode = ReaderMode.GUIDED,
+                            current = 12,
+                            total = 37,
+                            lastActivityAtEpochMillis = 1L,
+                        ),
+                ),
             onContentSelected = {},
             actions = previewActions,
         )

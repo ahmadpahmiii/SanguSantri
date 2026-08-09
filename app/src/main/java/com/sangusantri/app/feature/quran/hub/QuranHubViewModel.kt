@@ -3,7 +3,6 @@ package com.sangusantri.app.feature.quran.hub
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.QuranBookmark
-import com.sangusantri.app.domain.model.QuranPreparationResult
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
 import com.sangusantri.app.domain.model.QuranVerse
@@ -15,7 +14,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.text.Normalizer
 import java.util.Locale
 import javax.inject.Inject
@@ -29,8 +27,8 @@ private data class QuranHubData(
 
 /**
  * Owns the Quran hub (QUR-FR-005/006/007/011/012): three tabs backed entirely by Room via
- * [QuranRepository], a last-read card, local case/diacritic-tolerant surah search, and a visible
- * non-blocking background refresh status (QUR-FR-004 §6.2).
+ * [QuranRepository], a last-read card, and local case/diacritic-tolerant surah search. Corpus
+ * update scheduling is application-owned and never a hub/ViewModel network side effect.
  */
 @HiltViewModel
 class QuranHubViewModel
@@ -40,7 +38,6 @@ class QuranHubViewModel
     ) : ViewModel() {
         private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
         private val searchQuery = MutableStateFlow("")
-        private val refreshState = MutableStateFlow(QuranHubRefreshState.IDLE)
 
         private val hubData: Flow<QuranHubData> =
             combine(
@@ -53,25 +50,8 @@ class QuranHubViewModel
             }
 
         val uiState: StateFlow<QuranHubUiState> =
-            combine(hubData, selectedTab, searchQuery, refreshState, ::buildUiState)
+            combine(hubData, selectedTab, searchQuery, ::buildUiState)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), QuranHubUiState())
-
-        init {
-            viewModelScope.launch {
-                var refreshStarted = false
-                refreshState.value =
-                    when (
-                        quranRepository.refreshIfStale {
-                            refreshStarted = true
-                            refreshState.value = QuranHubRefreshState.REFRESHING
-                        }
-                    ) {
-                        QuranPreparationResult.Ready -> QuranHubRefreshState.IDLE
-                        is QuranPreparationResult.Failed ->
-                            if (refreshStarted) QuranHubRefreshState.FAILED else QuranHubRefreshState.IDLE
-                    }
-            }
-        }
 
         fun selectTab(tab: QuranHubTab) {
             selectedTab.value = tab
@@ -85,7 +65,6 @@ class QuranHubViewModel
             data: QuranHubData,
             tab: QuranHubTab,
             query: String,
-            refresh: QuranHubRefreshState,
         ): QuranHubUiState {
             val surahNames = data.surahs.associate { it.number to it.latinName }
             return QuranHubUiState(
@@ -120,7 +99,6 @@ class QuranHubViewModel
                             page = state.page,
                         )
                     },
-                refreshState = refresh,
                 isLoading = false,
             )
         }

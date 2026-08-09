@@ -2,15 +2,34 @@ package com.sangusantri.app.feature.home
 
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
+import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.NahwuQuizActiveAttempt
 import com.sangusantri.app.domain.model.NahwuQuizAttempt
 import com.sangusantri.app.domain.model.NahwuQuizPackage
 import com.sangusantri.app.domain.model.NahwuQuizPackageSummary
 import com.sangusantri.app.domain.model.NahwuQuizQuestion
+import com.sangusantri.app.domain.model.QuranBookmark
+import com.sangusantri.app.domain.model.QuranPreparationResult
+import com.sangusantri.app.domain.model.QuranReadingSession
+import com.sangusantri.app.domain.model.QuranReadingState
+import com.sangusantri.app.domain.model.QuranSurah
+import com.sangusantri.app.domain.model.QuranTafsir
+import com.sangusantri.app.domain.model.QuranTafsirResult
+import com.sangusantri.app.domain.model.QuranVerse
+import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.model.Reminder
+import com.sangusantri.app.domain.model.StepProgress
+import com.sangusantri.app.domain.model.TasbihHistoryEntry
+import com.sangusantri.app.domain.model.TasbihSession
+import com.sangusantri.app.domain.model.TasbihTargetPreset
 import com.sangusantri.app.domain.repository.ContentRepository
+import com.sangusantri.app.domain.repository.GuidedReadingRepository
+import com.sangusantri.app.domain.repository.HomePreferencesRepository
 import com.sangusantri.app.domain.repository.NahwuQuizRepository
+import com.sangusantri.app.domain.repository.QuranRepository
+import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
+import com.sangusantri.app.domain.repository.TasbihRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -31,11 +50,7 @@ class SerambiViewModelTest {
     fun uiStateStartsAsLoadingBeforeRepositoryEmits() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
-                SerambiViewModel(
-                    FakeContentRepository(flowOf(listOf(tahlil))),
-                    FakeReminderRepository(),
-                    FakeNahwuQuizRepository(),
-                )
+                createViewModel(FakeContentRepository(flowOf(listOf(tahlil))))
 
             assertEquals(SerambiUiState.Loading, viewModel.uiState.value)
         }
@@ -44,11 +59,7 @@ class SerambiViewModelTest {
     fun uiStateBecomesLoadedWithRepositoryContent() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
-                SerambiViewModel(
-                    FakeContentRepository(flowOf(listOf(tahlil, istighosah))),
-                    FakeReminderRepository(),
-                    FakeNahwuQuizRepository(),
-                )
+                createViewModel(FakeContentRepository(flowOf(listOf(tahlil, istighosah))))
 
             val collected = mutableListOf<SerambiUiState>()
             val job = launch { viewModel.uiState.toList(collected) }
@@ -62,11 +73,7 @@ class SerambiViewModelTest {
     fun emptyCatalogueIsLoadedWithEmptyListNotLoading() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
-                SerambiViewModel(
-                    FakeContentRepository(flowOf(emptyList())),
-                    FakeReminderRepository(),
-                    FakeNahwuQuizRepository(),
-                )
+                createViewModel(FakeContentRepository(flowOf(emptyList())))
 
             val collected = mutableListOf<SerambiUiState>()
             val job = launch { viewModel.uiState.toList(collected) }
@@ -75,6 +82,22 @@ class SerambiViewModelTest {
 
             assertEquals(SerambiUiState.Loaded(emptyList()), collected.last())
         }
+
+    private fun createViewModel(contentRepository: ContentRepository): SerambiViewModel =
+        SerambiViewModel(
+            contentRepository = contentRepository,
+            reminderRepository = FakeReminderRepository(),
+            nahwuQuizRepository = FakeNahwuQuizRepository(),
+            resumeCoordinator =
+                SerambiResumeCoordinator(
+                    contentRepository = contentRepository,
+                    readingPositionRepository = FakeReadingPositionRepository(),
+                    guidedReadingRepository = FakeGuidedReadingRepository(),
+                    quranRepository = FakeQuranRepository(),
+                    tasbihRepository = FakeTasbihRepository(),
+                    homePreferencesRepository = FakeHomePreferencesRepository(),
+                ),
+        )
 
     private companion object {
         val tahlil =
@@ -118,6 +141,26 @@ private class FakeReminderRepository : ReminderRepository {
     override fun observeNearestEnabled(): Flow<Reminder?> = flowOf(null)
 }
 
+private class FakeReadingPositionRepository : ReadingPositionRepository {
+    override suspend fun getPosition(contentId: String): ReadingPosition? = null
+
+    override suspend fun getMostRecentPosition(): ReadingPosition? = null
+
+    override suspend fun savePosition(position: ReadingPosition) = Unit
+}
+
+private class FakeGuidedReadingRepository : GuidedReadingRepository {
+    override suspend fun getSession(contentId: String): GuidedReadingSession? = null
+
+    override suspend fun getMostRecentIncompleteSession(): GuidedReadingSession? = null
+
+    override suspend fun saveSession(session: GuidedReadingSession) = Unit
+
+    override suspend fun getStepProgress(contentId: String): List<StepProgress> = emptyList()
+
+    override suspend fun saveStepProgress(progress: StepProgress) = Unit
+}
+
 private class FakeNahwuQuizRepository : NahwuQuizRepository {
     override fun observePackageSummaries(): Flow<List<NahwuQuizPackageSummary>> = flowOf(emptyList())
 
@@ -146,4 +189,74 @@ private class FakeNahwuQuizRepository : NahwuQuizRepository {
         packageId: String,
         excludingAttemptId: String,
     ): Int? = null
+}
+
+private class FakeQuranRepository : QuranRepository {
+    override fun observeSurahs(): Flow<List<QuranSurah>> = flowOf(emptyList())
+
+    override fun observeVersesBySurah(surahNumber: Int): Flow<List<QuranVerse>> = flowOf(emptyList())
+
+    override fun observeJuzStarts(): Flow<List<QuranVerse>> = flowOf(emptyList())
+
+    override fun observeBookmarks(): Flow<List<QuranBookmark>> = flowOf(emptyList())
+
+    override fun observeIsBookmarked(
+        surahNumber: Int,
+        ayatNumber: Int,
+    ): Flow<Boolean> = flowOf(false)
+
+    override fun observeReadingState(): Flow<QuranReadingState?> = flowOf(null)
+
+    override fun observeReadingSessions(): Flow<List<QuranReadingSession>> = flowOf(emptyList())
+
+    override suspend fun hasLocalDataset(): Boolean = false
+
+    override suspend fun ensureInitialPreparation(
+        onProgress: (completed: Int, total: Int) -> Unit,
+    ): QuranPreparationResult = throw UnsupportedOperationException("not needed by SerambiViewModelTest")
+
+    override suspend fun toggleBookmark(
+        surahNumber: Int,
+        ayatNumber: Int,
+    ) = Unit
+
+    override suspend fun setLastRead(
+        surahNumber: Int,
+        ayatNumber: Int,
+        page: Int,
+    ) = Unit
+
+    override suspend fun recordReadingSession(
+        surahNumber: Int,
+        startAyat: Int,
+        endAyat: Int,
+    ) = Unit
+
+    override suspend fun getCachedTafsir(remoteAyatId: Long): QuranTafsir? = null
+
+    override suspend fun fetchTafsir(remoteAyatId: Long): QuranTafsirResult =
+        throw UnsupportedOperationException("not needed by SerambiViewModelTest")
+}
+
+private class FakeTasbihRepository : TasbihRepository {
+    override fun observeSession(): Flow<TasbihSession?> = flowOf(null)
+
+    override suspend fun incrementCount() = Unit
+
+    override suspend fun startSession(
+        targetPreset: TasbihTargetPreset,
+        targetValue: Int?,
+    ) = Unit
+
+    override suspend fun renameSession(sessionName: String?) = Unit
+
+    override suspend fun resetSession() = Unit
+
+    override fun observeHistory(): Flow<List<TasbihHistoryEntry>> = flowOf(emptyList())
+}
+
+private class FakeHomePreferencesRepository : HomePreferencesRepository {
+    override fun observeDismissedResumeFingerprint(): Flow<String?> = flowOf(null)
+
+    override suspend fun dismissResume(fingerprint: String) = Unit
 }

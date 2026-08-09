@@ -63,9 +63,10 @@ constructor(
     private fun sha256(bytes: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(bytes)
 
     private companion object {
-        val DEBUG_FIXTURE_CREDENTIAL = QuranCredential(
-            username = "pahmi9",
-            token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6Ijc3NDY1YjNhMDhkNzJjZTJiNTc1NTEwNDVhNmFiMTFiIiwiaWF0IjoxNzg2MTE1NjgyfQ.vh4wr_8qXzsgCirCZjnRv6bqQmctd0duJxkGxe3O_oA"
-        )
+        val DEBUG_FIXTURE_CREDENTIAL =
+            QuranCredential(
+                username = "pahmi9",
+                token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6Ijc3NDY1YjNhMDhkNzJjZTJiNTc1NTEwNDVhNmFiMTFiIiwiaWF0IjoxNzg2MTE1NjgyfQ.vh4wr_8qXzsgCirCZjnRv6bqQmctd0duJxkGxe3O_oA",
+            )
     }
 }

@@ -16,6 +16,8 @@ class ReadingPositionRepositoryImpl
         override suspend fun getPosition(contentId: String): ReadingPosition? =
             readingPositionDao.getByContentId(contentId)?.toDomain()
 
+    override suspend fun getMostRecentPosition(): ReadingPosition? = readingPositionDao.getMostRecent()?.toDomain()
+
         override suspend fun savePosition(position: ReadingPosition) {
             readingPositionDao.upsert(position.toEntity())
         }

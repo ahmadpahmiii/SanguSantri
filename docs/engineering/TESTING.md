@@ -20,7 +20,8 @@ content, reader settings mapping.
 
 Standalone Quran `0.0.6` adds: out-of-order ayat sorting, duplicate/missing
 ayat rejection, expected surah-count validation, complete-candidate atomicity,
-seven-day refresh eligibility, failed-refresh old-snapshot retention,
+Remote Config monotonic-version eligibility/cooldown, failed-update
+old-snapshot retention,
 stale-while-revalidate tafsir, global last-read updates, bookmark idempotency,
 and reading-session eligibility only after advancing at least one ayat.
 
@@ -29,15 +30,19 @@ and reading-session eligibility only after advancing at least one ayat.
 Use an in-memory Room database on Android instrumentation for: content
 package import, duplicate import (idempotency), transaction rollback,
 version replacement (atomic, never downgrading), version-scoped progress
-reset on replacement, database migration. See `ContentPackageImporterTest`
+reset on replacement, and clean bootstrap after an empty/destructively reset
+database. See `ContentPackageImporterTest`
 for the existing pattern to extend — Android intentionally has no
 previous-version retention to test (superseded FR-011, ADR 0012).
 
-Quran Room coverage must prove: a complete 114-surah import commits once;
-failed or cancelled initialisation leaves no partial source snapshot; a failed
-weekly refresh preserves the prior snapshot and user state; remote ayat ids
+Quran Room coverage must prove: a complete 114-surah import and applied stable
+version commit once; failed or cancelled initialisation leaves no partial
+source snapshot; a failed version-triggered update preserves the prior snapshot,
+applied version, and user state; remote ayat ids
 remain unique while `(surah, ayat)` is the stable local identity; tafsir and
-bookmark/reading-state relations survive source refresh correctly.
+bookmark/reading-state relations survive source refresh correctly; and the
+local Juz-start query returns exactly one canonically ordered row for each Juz
+without a per-verse correlated scan.
 
 ## Compose UI tests
 
@@ -65,8 +70,8 @@ activation; invalid remote content → current Room version remains readable.
 
 Add one Quran journey: fresh install → connected full initialisation → read
 and advance → bookmark → open tafsir → restart offline → resume/page render/
-cached tafsir. Add failure journeys for initialisation retry-from-start and
-seven-day refresh retaining old Room content.
+cached tafsir. Add failure journeys for initialisation retry-from-start and a
+higher-version update retaining old Room content.
 
 Security/release tests for `0.0.6` must scan source/APK/native strings and logs
 for the real Kemenag credential, verify the release build fails without secret

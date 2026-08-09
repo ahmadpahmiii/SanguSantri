@@ -46,7 +46,7 @@ object DatabaseModule {
                 context,
                 SanguSantriDatabase::class.java,
                 SanguSantriDatabase.DATABASE_NAME,
-            ).fallbackToDestructiveMigration(true)
+            ).fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
     @Provides

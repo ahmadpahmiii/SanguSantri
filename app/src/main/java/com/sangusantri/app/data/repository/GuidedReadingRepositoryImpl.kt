@@ -18,6 +18,9 @@ class GuidedReadingRepositoryImpl
         override suspend fun getSession(contentId: String): GuidedReadingSession? =
             sessionDao.getByContentId(contentId)?.toDomain()
 
+    override suspend fun getMostRecentIncompleteSession(): GuidedReadingSession? =
+        sessionDao.getMostRecentIncomplete()?.toDomain()
+
         override suspend fun saveSession(session: GuidedReadingSession) {
             sessionDao.upsert(session.toEntity())
         }

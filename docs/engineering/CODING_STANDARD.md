@@ -36,7 +36,8 @@ Claude must not introduce:
 * Network calls from composables; DAO calls from ViewModels.
 * Hardcoded Arabic religious content in Kotlin, hardcoded user-facing
   strings, hardcoded production URLs, secrets in source control.
-* `GlobalScope`; destructive database migration; silent exception
+* `GlobalScope`; a custom or partial destructive database migration that
+  bypasses the product-owner-approved Room drop-all fallback; silent exception
   swallowing.
 * Duplicate mappers, duplicate design tokens, multiple competing navigation
   frameworks.

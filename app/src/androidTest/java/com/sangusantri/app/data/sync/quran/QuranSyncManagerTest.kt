@@ -64,7 +64,7 @@ class QuranSyncManagerTest {
             server.dispatcher = fixtureDispatcher(ayatOrderForSurah114 = listOf(2, 1, 3, 4, 5, 6))
             val manager = manager()
 
-            val result = manager.sync()
+            val result = manager.sync(stableVersion = 2)
 
             assertTrue(result is QuranSyncResult.Completed)
             assertEquals(EXPECTED_SURAH_COUNT, database.quranSurahDao().count())
@@ -72,6 +72,15 @@ class QuranSyncManagerTest {
             assertEquals(expectedVerseCount, database.quranVerseDao().count())
             val surah114Ayats = database.quranVerseDao().observeBySurah(114).first()
             assertEquals(listOf(1, 2, 3, 4, 5, 6), surah114Ayats.map { it.ayatNumber })
+            val juzStarts = database.quranVerseDao().observeJuzStarts().first()
+            assertEquals((1..30).toList(), juzStarts.map { it.juz })
+            assertEquals(
+                "2",
+                database
+                    .appMetadataDao()
+                    .getByKey(QuranSyncMetadata.KEY_APPLIED_STABLE_VERSION)
+                    ?.value,
+            )
         }
 
     @Test
@@ -80,7 +89,7 @@ class QuranSyncManagerTest {
             server.dispatcher = fixtureDispatcher(failAyatForSurah = 50)
             val manager = manager()
 
-            val result = manager.sync()
+            val result = manager.sync(stableVersion = 1)
 
             assertTrue(result is QuranSyncResult.RetryableFailure)
             assertEquals(0, database.quranSurahDao().count())
@@ -92,16 +101,23 @@ class QuranSyncManagerTest {
         runTest {
             server.dispatcher = fixtureDispatcher()
             val manager = manager()
-            assertTrue(manager.sync() is QuranSyncResult.Completed)
+            assertTrue(manager.sync(stableVersion = 1) is QuranSyncResult.Completed)
             val surahCountBefore = database.quranSurahDao().count()
             val verseCountBefore = database.quranVerseDao().count()
 
             server.dispatcher = fixtureDispatcher(failAyatForSurah = 20)
-            val refreshResult = manager.sync()
+            val refreshResult = manager.sync(stableVersion = 2)
 
             assertTrue(refreshResult is QuranSyncResult.RetryableFailure)
             assertEquals(surahCountBefore, database.quranSurahDao().count())
             assertEquals(verseCountBefore, database.quranVerseDao().count())
+            assertEquals(
+                "1",
+                database
+                    .appMetadataDao()
+                    .getByKey(QuranSyncMetadata.KEY_APPLIED_STABLE_VERSION)
+                    ?.value,
+            )
         }
 
     @Test
@@ -110,7 +126,7 @@ class QuranSyncManagerTest {
             server.dispatcher = fixtureDispatcher(duplicateRemoteIdAcrossSurahs = true)
             val manager = manager()
 
-            val result = manager.sync()
+            val result = manager.sync(stableVersion = 1)
 
             assertTrue(result is QuranSyncResult.PermanentFailure)
             assertEquals(0, database.quranSurahDao().count())
@@ -198,7 +214,7 @@ class QuranSyncManagerTest {
                         id = remoteIdOverride ?: (surahNumber * 1000L + ayatNumber),
                         surah = surahNumber,
                         ayat = ayatNumber,
-                        juz = 1,
+                        juz = ((surahNumber - 1) % 30) + 1,
                         halaman = 1,
                         teksMsiUsmani = "[FIXTURE-AR]",
                         teksGundul = "[FIXTURE-AR]",

@@ -32,9 +32,12 @@ is a real cost, not free caution.
   (`docs/content-schema.md`); a release-blocking validation gate that fails
   the build when only such fixtures are bundled is **not yet implemented**
   — tracked, not silently skipped.
-* Room migration safety — **done**: hand-written, schema-verified,
-  `MigrationTestHelper`-tested migrations, no destructive fallback (ADR
-  0003).
+* Room schema-transition policy — **explicit product-owner risk acceptance**:
+  no migration chain; unsupported versions use
+  `fallbackToDestructiveMigration(dropAllTables = true)` and erase all
+  Room-backed content/user state before recreating the current schema (ADR
+  0003/0015 amendments, 2026-08-09). Schema exports remain enabled for current
+  shape review.
 * Content integrity — version comparison only, no checksum (ADR 0015 —
   a monotonic integer version is sufficient once content is authored and
   deployed from the same git repository that serves it; the previous
@@ -44,9 +47,9 @@ is a real cost, not free caution.
   shrink.
 * Privacy policy required before Play publication — see
   `docs/security/PRIVACY.md`.
-* Crash-report redaction — required once crash reporting is wired (not yet
-  wired); Arabic reading text and counter values must never appear in crash
-  payloads.
+* Crash-report redaction — Crashlytics is wired for technical failures; Arabic
+  reading text, response bodies, credentials, counter values, and devotional
+  state must never appear in custom keys, logs, or recorded exception messages.
 * No devotional history uploaded — see FR-012 and
   `docs/security/PRIVACY.md`.
 
@@ -126,6 +129,9 @@ attacker who controls the APK/device. The following hardening is mandatory:
 * Credential rotation requires issuing a new app release unless Kemenag
   provides a different authorised mechanism. A leaked/revoked credential is a
   release incident, not something Room synchronisation can repair.
+* Firebase Remote Config `quran_stable_version` is public control-plane data,
+  never a secret or an integrity proof. Invalid/missing/lower values fail safe
+  to the local baseline and must not cause a Kemenag corpus request or rollback.
 
 Certificate pinning and root detection are not substitutes for protecting a
 static client credential and remain deferred absent a separate concrete

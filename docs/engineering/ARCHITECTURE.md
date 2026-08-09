@@ -76,9 +76,9 @@ com.sangusantri.app
 │   ├── local (dao, database, entity)
 │   │   └── content          BundledContentBootstrapper (reads AssetManager)
 │   ├── remote (api, dto)     ContentApiService (Retrofit) + DTOs only
-│   │   └── quran             planned Kemenag-only API client + DTOs (`0.0.6`)
+│   │   └── quran             Kemenag-only API client + DTOs (`0.0.6`)
 │   ├── sync                  ContentSyncManager/Scheduler/Worker/Metadata
-│   │   └── quran             planned initial/weekly Quran refresh (`0.0.6`)
+│   │   └── quran             initial + version-gated Quran update (`0.0.6`)
 │   ├── mapper
 │   └── repository
 ├── domain
@@ -92,7 +92,7 @@ com.sangusantri.app
 │   ├── guidedreader
 │   ├── tasbih
 │   ├── activity
-│   ├── quran                 planned standalone Quran feature (`0.0.6`)
+│   ├── quran                 standalone Quran feature (`0.0.6`)
 │   ├── contentdetail
 │   ├── settings
 │   └── about
@@ -114,9 +114,8 @@ Reader + the reading-mode gate), `feature/guidedreader` (Guided Reader),
 Milestone 9), and `feature/activity` (Aktivitas, `0.0.3`, Milestone 10)
 are implemented; `feature/explore` (Jelajahi Amaliyah, `0.0.1`) is
 scheduled but not yet implemented — do not create its package before the
-milestone that needs it. `feature/quran` and its data packages are likewise
-planned, not implemented; create them only when `0.0.6` is explicitly
-requested. `feature/feedback`
+milestone that needs it. `feature/quran` and its dedicated data packages are
+implemented for `0.0.6`. `feature/feedback`
 was removed from this diagram: public content-correction feedback was
 removed from `0.0.1` scope at Milestone 5 (`docs/product/PRD.md` FR-012)
 and no feedback code exists or is planned. `feature/contentdetail` and
@@ -232,7 +231,7 @@ tafsir, and reading-session events join this local ownership model at `0.0.6`.
 Only the public Kemenag content/tafsir fetch crosses the network boundary; no
 personal Quran state is uploaded.
 
-## Kemenag Quran data path (planned — `0.0.6`, ADR 0016)
+## Kemenag Quran data path (implemented — `0.0.6`, ADR 0016)
 
 Use a dedicated Retrofit/OkHttp client scoped to
 `https://quran-api.lpmqkemenag.id/api-alquran/`. Its `username` and `token`
@@ -240,12 +239,16 @@ headers MUST only be attached to this host/client, never to Firebase content
 requests. Initialisation fetches the complete 114-surah dataset, validates
 identity/count/order/uniqueness, and commits the candidate in one Room
 transaction. Retry restarts initialisation; no resumable staging protocol is
-needed. A seven-day connected-network refresh follows the same complete,
-atomic replacement rule and retains the prior Room snapshot on failure.
+needed. After that, no elapsed-time corpus refresh exists. An application-start
+check reads the lightweight Firebase Remote Config `quran_stable_version`; only
+a target greater than Room's applied version enqueues one unique, unmetered,
+battery-not-low full replacement. The version and corpus commit atomically; a
+failure preserves the prior Room snapshot and is cooled down for 24 hours.
 Tafsir is fetched by remote ayat id, cached independently, and refreshed after
-seven days without blocking an available cached result. Full security and
-credential rules live in `docs/security/SECURITY_BASELINE.md`; full product
-semantics live in `docs/product/QURAN_PRD.md`.
+seven days without blocking an available cached result; a successful corpus
+replacement clears that remote-id-coupled cache. Full security and credential
+rules live in `docs/security/SECURITY_BASELINE.md`; full product semantics live
+in `docs/product/QURAN_PRD.md`.
 
 ---
 

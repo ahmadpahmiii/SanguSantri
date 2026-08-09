@@ -193,7 +193,7 @@ these tables are designed or created by this documentation pass — see
 `docs/engineering/CONTENT_MODEL.md` for their planned shape and owning
 phase.
 
-## Standalone Al-Qur'an Kemenag (`0.0.6`, planned)
+## Standalone Al-Qur'an Kemenag (`0.0.6`, implemented)
 
 The Quran source is not bundled. A fresh installation therefore requires one
 successful connected initialisation before Quran content can be read. This is
@@ -210,12 +210,17 @@ candidate atomically. A failure publishes nothing and shows a concise error
 with Retry; Retry simply starts initialisation again. Do not add resumable
 chunks, a download manager, or partial-reader states.
 
-After initialisation, Room renders immediately with no network dependency. A
-connected-network refresh becomes eligible seven days after the last
-successful complete refresh. It builds and validates a new complete candidate;
-success atomically replaces the Quran source tables, while any HTTP, parsing,
-or validation failure leaves the old snapshot readable. Store timestamps and
-terminal status in namespaced `app_metadata` keys.
+After initialisation, Room renders immediately with no network dependency and
+there is no calendar-based corpus refresh. On application startup, a cheap
+Firebase Remote Config check compares monotonic `quran_stable_version` (default
+`1`) with `quran_applied_stable_version` in `app_metadata`. Equal/lower values
+perform no Kemenag corpus request. A higher value enqueues one unique update
+constrained to unmetered network and battery-not-low. It builds and validates a
+new complete candidate; success atomically replaces the Quran source tables,
+clears remote-id-coupled tafsir cache, and writes the applied version, while any
+HTTP, parsing, validation, cancellation, or Room failure leaves the old
+snapshot/version readable. A failed target is cooled down for 24 hours rather
+than receiving immediate whole-corpus WorkManager retries.
 
 Tafsir is fetched on demand by Kemenag ayat id. A cached result renders
 offline; when at least seven days old it renders immediately and revalidates in
@@ -231,12 +236,11 @@ never depend on the network.
   with no Quran snapshot shows the defined error/retry state.
 * Failed synchronisation must not remove, replace, downgrade, or hide local
   content already in Room.
-* Any Room schema change must follow the current schema-freeze policy
-  (`docs/engineering/CONTENT_MODEL.md`) — a real, tested `Migration` once
-  the initial public schema ships (ADR 0015's version 1→2 migration is an
-  explicit, product-owner-directed exception taken early);
-  `fallbackToDestructiveMigration` remains prohibited in any build that
-  could reach a real user.
+* Unsupported Room schema transitions use the product-owner-approved
+  `fallbackToDestructiveMigration(dropAllTables = true)`. This deliberately
+  sacrifices all Room-backed offline content and user state. Bundled content
+  bootstraps again, but Quran requires a fresh connected acquisition before
+  it becomes offline-readable again.
 * Content imports (bundled or remote) must be transactional and atomic —
   see Atomic replacement above.
 * User progress must survive application termination.

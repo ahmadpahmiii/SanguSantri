@@ -6,5 +6,7 @@ import com.sangusantri.app.domain.model.ReadingPosition
 interface ReadingPositionRepository {
     suspend fun getPosition(contentId: String): ReadingPosition?
 
+    suspend fun getMostRecentPosition(): ReadingPosition?
+
     suspend fun savePosition(position: ReadingPosition)
 }

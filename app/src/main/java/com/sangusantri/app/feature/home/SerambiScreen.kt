@@ -21,10 +21,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
@@ -40,6 +43,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.Reminder
 import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
+import com.sangusantri.app.feature.update.AppUpdateGate
 
 @Composable
 fun SerambiRoute(
@@ -48,11 +52,16 @@ fun SerambiRoute(
     viewModel: SerambiViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     SerambiScreen(
         uiState = uiState,
         onContentSelected = onContentSelected,
         actions = actions,
+        snackbarHostState = snackbarHostState,
     )
+    // Checked once per cold start (ADR 0017) — mounted alongside, not inside, SerambiScreen so the
+    // latter stays a pure, Hilt-free, preview-safe composable.
+    AppUpdateGate(snackbarHostState = snackbarHostState)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,9 +71,11 @@ fun SerambiScreen(
     onContentSelected: (String) -> Unit,
     actions: SerambiActions,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.app_name)) },

@@ -44,9 +44,10 @@ fun SerambiSearchEntry(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = SanguSantriDimensions.minimumTouchTarget),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = SanguSantriDimensions.minimumTouchTarget),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
@@ -145,9 +146,10 @@ private fun ResumeCardSurface(
             if (item.progress != null) {
                 LinearProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PROGRESS_HEIGHT),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(PROGRESS_HEIGHT),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )

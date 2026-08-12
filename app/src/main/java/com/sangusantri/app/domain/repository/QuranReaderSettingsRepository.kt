@@ -3,6 +3,7 @@ package com.sangusantri.app.domain.repository
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
+import com.sangusantri.app.domain.model.QuranThemeMode
 import kotlinx.coroutines.flow.Flow
 
 /** Quran reader appearance settings (QUR-FR-015), DataStore-backed like the existing
@@ -22,4 +23,10 @@ interface QuranReaderSettingsRepository {
     suspend fun setTranslationSize(sp: Int)
 
     suspend fun setBrightnessOverride(value: Float)
+
+    suspend fun setThemeMode(mode: QuranThemeMode)
+
+    /** Flips DARK↔LIGHT atomically without the caller needing to know the current value first —
+     * used by the reader/hub top bar's one-tap toggle. */
+    suspend fun toggleThemeMode()
 }

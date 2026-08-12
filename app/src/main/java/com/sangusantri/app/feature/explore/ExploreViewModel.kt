@@ -30,9 +30,9 @@ constructor(
                     val matchesCategory = effectiveCategory == null || item.category == effectiveCategory
                     val matchesQuery =
                         searchQuery.isBlank() ||
-                            item.title.contains(searchQuery, ignoreCase = true) ||
-                            item.description.contains(searchQuery, ignoreCase = true) ||
-                            item.category?.contains(searchQuery, ignoreCase = true) == true
+                                item.title.contains(searchQuery, ignoreCase = true) ||
+                                item.description.contains(searchQuery, ignoreCase = true) ||
+                                item.category?.contains(searchQuery, ignoreCase = true) == true
                     matchesCategory && matchesQuery
                 }
             ExploreUiState.ContentReady(

@@ -372,6 +372,8 @@
 
   <!-- Al-Qur'an Kemenag reader (`0.0.6`, QUR-FR-008/009/010/011/012/014) -->
   <string name="quran_settings_action_content_description">Pengaturan tampilan Al-Qur\'an</string>
+  <string name="quran_theme_toggle_to_light_content_description">Ganti ke mode terang</string>
+  <string name="quran_theme_toggle_to_dark_content_description">Ganti ke mode gelap</string>
   <string name="quran_reader_unavailable">Surah tidak ditemukan.</string>
   <string name="quran_reader_unavailable_title">Posisi bacaan tidak ditemukan</string>
   <string name="quran_reader_unavailable_description">Data mungkin telah diperbarui. Kembali ke daftar surah untuk memilih posisi lain.</string>
@@ -418,6 +420,9 @@
   <string name="quran_settings_display_mode_label">Tampilan bacaan</string>
   <string name="quran_settings_display_mode_arab_only">Arab saja</string>
   <string name="quran_settings_display_mode_arab_translation">Arab + terjemahan</string>
+  <string name="quran_settings_theme_label">Tema</string>
+  <string name="quran_settings_theme_light">Terang</string>
+  <string name="quran_settings_theme_dark">Gelap</string>
   <string name="quran_settings_brightness_label">Kecerahan Quran</string>
   <string name="quran_settings_preview_unavailable">Pratinjau belum tersedia.</string>
   <string name="quran_settings_font_section_title">Font Arab</string>

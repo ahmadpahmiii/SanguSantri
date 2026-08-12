@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.sangusantri.app.feature.quran.settings
 
 import androidx.compose.foundation.BorderStroke
@@ -57,6 +59,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
+import com.sangusantri.app.domain.model.QuranThemeMode
 import com.sangusantri.app.feature.quran.QuranBrightnessEffect
 import com.sangusantri.app.feature.quran.QuranThemeBoundary
 import com.sangusantri.app.feature.quran.toFontFamily
@@ -86,6 +89,7 @@ fun QuranSettingsRoute(
                     onArabicLineSpacingChanged = viewModel::setArabicLineSpacing,
                     onTranslationSizeChanged = viewModel::setTranslationSize,
                     onBrightnessChanged = viewModel::setBrightness,
+                    onThemeModeChanged = viewModel::setThemeMode,
                     onOpenSource = onOpenSource,
                 ),
             modifier = modifier,
@@ -100,6 +104,7 @@ data class QuranSettingsActions(
     val onArabicLineSpacingChanged: (Float) -> Unit,
     val onTranslationSizeChanged: (Int) -> Unit,
     val onBrightnessChanged: (Float) -> Unit,
+    val onThemeModeChanged: (QuranThemeMode) -> Unit,
     val onOpenSource: () -> Unit,
 )
 
@@ -177,6 +182,7 @@ private fun QuranSettingsBody(
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.large),
     ) {
         QuranLivePreview(uiState)
+        QuranThemeModeControl(uiState.themeMode, actions.onThemeModeChanged)
         QuranFontSelector(
             selectedFont = uiState.arabicFont,
             sampleText = uiState.previewAyat?.arabicText,
@@ -222,7 +228,7 @@ private fun QuranTextSettings(
                     value = uiState.arabicLineSpacingMultiplier,
                     valueRange =
                         QuranReaderSettings.MIN_ARABIC_LINE_SPACING..QuranReaderSettings.MAX_ARABIC_LINE_SPACING,
-                    steps = 14,
+                    steps = 69,
                 ),
             onValueChange = actions.onArabicLineSpacingChanged,
         )
@@ -348,6 +354,44 @@ private data class QuranSliderSpec(
     val valueRange: ClosedFloatingPointRange<Float>,
     val steps: Int,
 )
+
+/** Explicit Light/Dark control (2026-08-10 addition, ADR 0016 amendment) — the same choice as the
+ * hub/reader top bar's quick [com.sangusantri.app.feature.quran.QuranThemeToggleButton], offered
+ * here too since not everyone notices or wants to use a top-bar icon. */
+@Composable
+private fun QuranThemeModeControl(
+    selected: QuranThemeMode,
+    onSelected: (QuranThemeMode) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small)) {
+        Text(
+            text = stringResource(R.string.quran_settings_theme_label),
+            color = QuranArabicText,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Surface(
+            color = QuranSurface,
+            border = BorderStroke(1.dp, QuranOutline),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(modifier = Modifier.padding(SanguSantriSpacing.extraSmall)) {
+                QuranDisplayModeSegment(
+                    label = stringResource(R.string.quran_settings_theme_light),
+                    selected = selected == QuranThemeMode.LIGHT,
+                    onClick = { onSelected(QuranThemeMode.LIGHT) },
+                    modifier = Modifier.weight(1f),
+                )
+                QuranDisplayModeSegment(
+                    label = stringResource(R.string.quran_settings_theme_dark),
+                    selected = selected == QuranThemeMode.DARK,
+                    onClick = { onSelected(QuranThemeMode.DARK) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun QuranDisplayModeControl(

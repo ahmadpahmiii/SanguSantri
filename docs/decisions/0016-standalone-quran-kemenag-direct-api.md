@@ -3,7 +3,7 @@
 ## Status
 
 Accepted (2026-08-08, product owner/tech lead); update policy amended
-2026-08-09
+2026-08-09; decision #12 (dark-only) amended 2026-08-10
 
 ## Context
 
@@ -70,7 +70,9 @@ cannot make a client-shipped credential secret.
     Navigation 3 stack. No second Activity or navigation system is introduced.
 12. **Every Quran surface is dark-only.** It uses feature colour roles within
     the existing design system and restores the previous app theme/brightness
-    on exit.
+    on exit. *(Amended 2026-08-10 — see "Amendment (2026-08-10): user-controlled
+    Light/Dark mode" below; dark remains the default, but is no longer the
+    only mode.)*
 13. **Design is portrait-primary, not orientation-locked.** Rotation must
     remain functional and preserve state.
 14. **Quran sessions contribute to the combined amalan streak** only after
@@ -166,3 +168,44 @@ written to Room or exposed to the UI, and there is no cross-process-death
 resumable staging (no new Room tables, no WorkManager-persisted progress).
 Only the in-memory fetch phase of a single sync attempt became
 retry-aware.
+
+## Amendment (2026-08-10): user-controlled Light/Dark mode
+
+Decision #12 said "every Quran surface is dark-only." The product owner has
+since requested a user-controlled Light mode with a switch between it and
+the original Dark mode, on product/UX grounds (reading comfort varies with
+ambient light — a bright reading room is common for a physical Mushaf, not
+just low-light study). This amendment narrows decision #12 to: **Dark
+remains the default and the original baseline appearance; Light is now an
+equally-supported, user-selected alternative, not a fallback or a lesser
+mode.**
+
+* `QuranThemeMode` (`DARK` default, `LIGHT`) is a new Quran-scoped
+  preference, DataStore-persisted the same way as every other Tampilan
+  Al-Qur'an setting (QUR-FR-015) — a new install still opens Quran in Dark,
+  unchanged from the original decision.
+* The choice is available two ways, per product/UX direction: a one-tap
+  sun/moon icon in the hub and reader top bars (fastest, for switching
+  mid-read), and an explicit Light/Dark segmented control in Tampilan
+  Al-Qur'an settings (discoverable, for anyone who does not notice or want
+  the top-bar icon). Both write the same preference; there is no separate
+  "follow system theme" mode — Quran's appearance stays deliberately
+  independent of the outer app/system theme, consistent with decision #12's
+  original "regardless of the surrounding app theme" framing.
+* Light mode is not a naive colour inversion. It reuses the app's own
+  existing light-theme tokens (`SantriGreen40/95/20`, `SantriNeutral10/40/99`,
+  `SantriSurface`, `SantriOutline`, `SantriError40`) wherever their role
+  matches exactly, for the same brand consistency dark mode already has with
+  the rest of the design system, plus two dedicated new tokens
+  (`QuranMutedTextLight`, `QuranEntryProgressTrackColorLight`) where no
+  existing token fit. Every text-on-surface pairing was contrast-checked
+  (WCAG relative luminance) at ≥4.8:1, clearing the 4.5:1 AA threshold for
+  body text (`docs/design/ACCESSIBILITY.md`).
+* What decision #12 actually guarantees is unchanged in spirit: Quran's
+  appearance is still fully independent of the outer app/system theme, still
+  restores the previous app theme/brightness on exit, and still uses feature
+  colour roles within the existing design system rather than a second,
+  disconnected theme. Only "dark-only" became "Dark by default, Light
+  available" — implemented as `QuranThemeBoundary` resolving
+  `LocalQuranThemeMode` (provided once by `SanguSantriNavHost` from the
+  persisted setting) instead of a hardcoded `darkTheme = true`.

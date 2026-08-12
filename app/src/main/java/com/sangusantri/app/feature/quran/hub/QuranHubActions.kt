@@ -6,6 +6,7 @@ data class QuranHubActions(
     val onBack: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenSource: () -> Unit,
+    val onToggleTheme: () -> Unit,
     val onTabSelected: (QuranHubTab) -> Unit,
     val onSearchQueryChanged: (String) -> Unit,
     val onSurahSelected: (surahNumber: Int) -> Unit,

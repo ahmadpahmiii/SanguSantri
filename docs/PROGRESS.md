@@ -6537,3 +6537,165 @@ indentation findings before this change, so none of it is new debt.
 Manually verify on a device/emulator once available: interrupt Quran preparation mid-sync (airplane
 mode, then force-close) and confirm a resumed "coba lagi" only re-fetches the surahs that hadn't
 completed yet. Then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.
+
+## Quran Light mode + Light/Dark switch (2026-08-10)
+
+**Status:** Implemented and verified locally — `ktlintCheck`, `detekt`, `lint`, `assembleDebug` all
+pass. Not manually verified on-device this session (no emulator/device available).
+
+### Problem
+
+Product owner requested a light mode for the standalone Quran feature with a switch between it and
+the original dark mode — reversing ADR 0016 decision #12 ("every Quran surface is dark-only"), which
+had been a deliberate product decision, not an oversight. Amended the ADR (below) rather than
+silently deviating from it, per the project's documentation-first working method.
+
+### Design decisions (user-confirmed before implementation)
+
+* **Toggle placement:** both a quick one-tap sun/moon icon in the hub and reader top bars, and an
+  explicit Light/Dark segmented control in Tampilan Al-Qur'an settings — not settings-only.
+* **Mode set:** two explicit states (Light/Dark), defaulting to Dark (unchanged behaviour for
+  existing users) — no third "follow system theme" state, since Quran's appearance is deliberately
+  independent of the outer app/system theme (ADR 0016 decision #1/#12).
+
+### Changes
+
+**Domain/data:**
+
+* New `domain/model/QuranThemeMode.kt` (`DARK` default, `LIGHT`).
+* `QuranReaderSettings.themeMode` (new field, defaults `DARK`).
+* `QuranReaderSettingsRepository`/`Impl`: new `setThemeMode(mode)` (explicit, for the settings
+  control) and `toggleThemeMode()` (atomic DataStore read-modify-write, no caller-side "current
+  value" needed — used by the top-bar quick icon). New `quran_theme_mode` DataStore key.
+
+**Design system:**
+
+* `Color.kt`: every existing `Quran*` dark token renamed with a `Dark` suffix
+  (`QuranBackgroundDark`, etc.); matching `*Light` tokens added. Reused the app's own existing
+  light-theme tokens (`SantriGreen40/95/20`, `SantriNeutral10/40/99`, `SantriSurface`,
+  `SantriOutline`, `SantriError40`) wherever the role matched exactly, for brand consistency with
+  `Theme.kt`'s own `LightColorScheme`; added two dedicated new hex values only where nothing fit
+  (`QuranMutedTextLight`, `QuranEntryProgressTrackColorLight`). Every text/surface pairing was
+  contrast-checked (WCAG relative luminance) at ≥4.8:1, clearing the 4.5:1 AA threshold.
+  `QuranScrim` stays a single shared value (a scrim always darkens regardless of mode).
+* New `core/designsystem/theme/QuranColorScheme.kt`: `LocalQuranThemeMode` CompositionLocal
+  (default `DARK`) plus `@Composable get()` properties reusing the exact bare names
+  (`QuranBackground`, `QuranSurface`, …) every existing Quran screen already imported — so none of
+  those ~13 files needed an import change, only their colour source went from a static `val` to a
+  live-resolved property.
+
+**Cross-cutting wiring:**
+
+* New `feature/quran/QuranThemeViewModel.kt`: observes the persisted mode once, for
+  `SanguSantriNavHost` to provide ambiently — avoids five separate DataStore observers (one per
+  Quran route) and keeps the nav host's own background behind the Quran destination in sync with
+  every Quran screen inside it.
+* `SanguSantriNavHost.kt`: collects that mode and wraps its content in
+  `CompositionLocalProvider(LocalQuranThemeMode provides mode)`.
+* `QuranThemeBoundary.kt`: now resolves `darkTheme` from `LocalQuranThemeMode` instead of a
+  hardcoded `true`, and flips system-bar icon appearance (light icons on Dark, dark icons on Light)
+  to match, live, when the mode changes mid-session.
+* New `feature/quran/QuranThemeToggleButton.kt`: the shared quick-toggle icon button (sun while
+  Dark, moon while Light — the icon shown is the mode a tap switches *to*), used identically by both
+  the hub and reader top bars.
+
+**Screens:**
+
+* Hub (`QuranHubActions`/`QuranHubViewModel`/`QuranHubScreen`) and Reader
+  (`QuranReaderBodyActions`/`QuranReaderViewModel`/`QuranReaderScreen`) top bars: added the quick
+  toggle icon, wired to each screen's own `toggleTheme()` → `settingsRepository.toggleThemeMode()`.
+* Settings (`QuranSettingsUiState`/`ViewModel`/`Screen`): added an explicit Light/Dark segmented
+  control (`QuranThemeModeControl`, reusing the existing `QuranDisplayModeSegment` composable),
+  placed directly under the live preview so the effect is visible immediately.
+* `feature/quran/reader/QuranFlowingPageText.kt`: its `buildPageText` helper and the `BasicText`
+  `color` producer both run outside composition, so they cannot read the now-`@Composable`
+  `Quran*` colour properties directly — extracted a small `rememberQuranAnnotatedPage` composable
+  that resolves `QuranPrimary`/`QuranOnPrimaryContainer`/`QuranPrimaryContainer` once (composable
+  context) and passes them in as plain `Color` values, included in the `remember` keys so a live
+  theme toggle recolours the already-built annotated string's baked-in ayat-number/selection spans.
+
+**Strings:** `quran_theme_toggle_to_light_content_description`, `_to_dark_...`,
+`quran_settings_theme_label`, `quran_settings_theme_light`, `quran_settings_theme_dark`.
+
+**Docs:** `docs/decisions/0016-standalone-quran-kemenag-direct-api.md` — dated amendment narrowing
+decision #12 to "Dark by default, Light available" (full rationale, token reuse, and what remains
+unchanged). `docs/product/QURAN_PRD.md` — updated the dark-only product-outcome/scope statements,
+QUR-FR-015's settings list, and acceptance criterion 14 (entering/leaving Quran no longer forces
+dark; it now uses the user's persisted Quran theme choice, independent of the outer app theme either
+way). `docs/design/QURAN_DESIGN_SYSTEM.md` — added a full Light colour-role table beside the
+existing Dark one (§2.2, with contrast figures), updated §1's experience direction, §5.1's hub top
+bar, §5.2's initial-preparation theme statement, and §5.7's Tampilan Al-Qur'an control list.
+
+### Validation
+
+`./gradlew :app:compileDebugKotlin` — pass (also fixed the one real compile break the property
+conversion caused, in `QuranFlowingPageText.kt`, see above).
+`./gradlew :app:ktlintMainSourceSetCheck`
+— every file this change touched has 0 findings; remaining failures are the same pre-existing
+whole-codebase "Unexpected indentation" debt noted in prior entries, in files this change never
+touched (`ktlintFormat`'s auto-reformat of ~40 unrelated files was reverted via `git restore`,
+keeping only the intentional changes). `./gradlew :app:detekt` — 0 new findings; fixed three real
+findings this change caused (`QuranFlowingPageText`'s `LongMethod`, `QuranSettingsScreen.kt`'s and
+`QuranReaderSettingsRepositoryImpl`'s `TooManyFunctions`, the latter two suppressed with the same
+"one cohesive feature decomposed into small steps" rationale already used elsewhere in this codebase
+for the same rule); the one remaining finding (`QuranEntryScreen.kt:201`, unused parameter) is the
+same pre-existing, unrelated debt noted in prior entries. `./gradlew :app:lintDebug` — pass, no
+findings. `./gradlew :app:assembleDebug` — pass.
+
+### Known limitations
+
+* Not manually verified on an emulator/device this session (none available) — the live theme
+  switch, system-bar icon flip, and annotated-span recolouring have been reasoned through and
+  build-validated, not exercised on a real screen.
+* No automated test coverage added (per this project's current temporary implementation-pass
+  constraints — no new tests during this phase; existing test sources were unaffected since this
+  change touches no file any existing test compiles against).
+* Codebase-wide ktlint indentation debt remains unaddressed (unchanged from prior entries).
+
+### Next recommended milestone
+
+Manually verify the Light/Dark toggle on a device/emulator once available (both entry points, both
+directions, mid-session switching while the reader/tafsir sheet/action sheet are open, and that
+leaving Quran restores the outer app's own theme/brightness regardless of which Quran theme was
+active). Then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.
+
+## Quran "Jarak baris Arab" (Arabic line spacing) range widened (2026-08-10)
+
+**Status:** Implemented and validated locally.
+
+### Change
+
+Product owner requested a wider Arabic line-spacing range in Quran settings: default unchanged at
+`2.00×`, minimum widened from `1.45×` to `1.50×`, maximum widened from `2.20×` to `5.00×`.
+
+* `domain/model/QuranReaderSettings.kt`: `MIN_ARABIC_LINE_SPACING` `1.45f` → `1.50f`,
+  `MAX_ARABIC_LINE_SPACING` `2.20f` → `5.00f` (`DEFAULT_ARABIC_LINE_SPACING` already `2.30f`,
+  unchanged). `coerceArabicLineSpacing` and the DataStore persistence path
+  (`QuranReaderSettingsRepositoryImpl`) already derive from these constants, so both picked up the
+  new range with no further code change.
+* `feature/quran/settings/QuranSettingsScreen.kt`: the Arabic line-spacing `QuranSliderSetting`'s
+  `steps` raised from `14` to `69` to keep the same `0.05×` step granularity across the now-wider
+  `3.50×` span (was `0.75×`).
+* `docs/design/QURAN_DESIGN_SYSTEM.md` §3.2: reader defaults/ranges table row updated to
+  `1.50–5.00×`.
+
+### Validation
+
+`./gradlew ktlintFormat ktlintCheck` — pass. `./gradlew detekt` — the one finding
+(`QuranEntryScreen.kt:201`, unused parameter) is the same pre-existing, unrelated debt noted in
+prior entries; nothing new from this change. `./gradlew lint` — pass, no findings.
+`./gradlew assembleDebug` — pass.
+
+### Known limitations
+
+* Not manually verified on an emulator/device this session (none available) — the widened slider
+  range and live preview at the new extremes have not been exercised on a real screen.
+* No automated test coverage added (per this project's current temporary implementation-pass
+  constraints).
+
+### Next recommended milestone
+
+Manually verify the line-spacing slider at both new extremes (`1.50×` and `5.00×`) on a
+device/emulator once available, confirming the live preview and persisted value both track
+correctly. Then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.
+

@@ -17,11 +17,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -30,6 +34,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.icon.TasbihIcon
+import com.sangusantri.app.core.designsystem.theme.LocalQuranThemeMode
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.activity.ActivityRoute
@@ -49,6 +54,7 @@ import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackagesRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizResultRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizSessionRoute
 import com.sangusantri.app.feature.quran.QuranEntryRoute
+import com.sangusantri.app.feature.quran.QuranThemeViewModel
 import com.sangusantri.app.feature.quran.hub.QuranHubRoute
 import com.sangusantri.app.feature.quran.reader.QuranReaderRoute
 import com.sangusantri.app.feature.quran.settings.QuranSettingsRoute
@@ -202,6 +208,12 @@ fun SanguSantriNavHost(
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
     val isQuranDestination = topLevelBackStack.backStack.lastOrNull().isQuranDestination()
 
+    // Read once here (not per Quran route) so the nav host's own background behind the Quran
+    // destination (below) and every Quran screen inside it resolve the same live value — see
+    // QuranThemeViewModel/LocalQuranThemeMode.
+    val quranThemeViewModel: QuranThemeViewModel = hiltViewModel()
+    val quranThemeMode by quranThemeViewModel.themeMode.collectAsStateWithLifecycle()
+
     // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
     // reading-mode gate directly, on top of whatever the user was already doing — never replaces
     // the current tab's own back stack, matching how every other content selection navigates.
@@ -212,30 +224,32 @@ fun SanguSantriNavHost(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = if (isQuranDestination) QuranBackground else MaterialTheme.colorScheme.background,
-        bottomBar = {
-            if (topLevelBackStack.isAtTopLevelRoot) {
-                BottomNavigationBar(
-                    destinations = rootDestinations(),
-                    selectedKey = topLevelBackStack.topLevelKey,
-                    onSelect = topLevelBackStack::addTopLevel,
-                )
-            }
-        },
-    ) { innerPadding ->
-        NavDisplay(
-            backStack = topLevelBackStack.backStack,
-            modifier = Modifier.padding(innerPadding),
-            onBack = { topLevelBackStack.removeLast() },
-            entryDecorators =
-                listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
-            entryProvider = sanguSantriEntryProvider(topLevelBackStack),
-        )
+    CompositionLocalProvider(LocalQuranThemeMode provides quranThemeMode) {
+        Scaffold(
+            modifier = modifier,
+            containerColor = if (isQuranDestination) QuranBackground else MaterialTheme.colorScheme.background,
+            bottomBar = {
+                if (topLevelBackStack.isAtTopLevelRoot) {
+                    BottomNavigationBar(
+                        destinations = rootDestinations(),
+                        selectedKey = topLevelBackStack.topLevelKey,
+                        onSelect = topLevelBackStack::addTopLevel,
+                    )
+                }
+            },
+        ) { innerPadding ->
+            NavDisplay(
+                backStack = topLevelBackStack.backStack,
+                modifier = Modifier.padding(innerPadding),
+                onBack = { topLevelBackStack.removeLast() },
+                entryDecorators =
+                    listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                entryProvider = sanguSantriEntryProvider(topLevelBackStack),
+            )
+        }
     }
 }
 

@@ -69,6 +69,7 @@ import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.feature.quran.QuranBrightnessEffect
 import com.sangusantri.app.feature.quran.QuranThemeBoundary
+import com.sangusantri.app.feature.quran.QuranThemeToggleButton
 import com.sangusantri.app.feature.quran.toFontFamily
 import kotlinx.coroutines.launch
 
@@ -117,6 +118,7 @@ fun QuranReaderRoute(
                     onDismissTafsirSheet = viewModel::onDismissTafsirSheet,
                     onRetryTafsir = viewModel::onRetryTafsir,
                     onVisiblePositionChanged = viewModel::onVisiblePositionChanged,
+                    onToggleTheme = viewModel::toggleTheme,
                 ),
             modifier = modifier,
         )
@@ -134,6 +136,7 @@ data class QuranReaderBodyActions(
     val onDismissTafsirSheet: () -> Unit,
     val onRetryTafsir: (remoteAyatId: Long) -> Unit,
     val onVisiblePositionChanged: (Int) -> Unit,
+    val onToggleTheme: () -> Unit,
 )
 
 @Suppress("LongParameterList")
@@ -182,6 +185,7 @@ fun QuranReaderScreen(
                     },
                 onBack = onBack,
                 onOpenSettings = onOpenSettings,
+                onToggleTheme = actions.onToggleTheme,
             )
         },
     ) { innerPadding ->
@@ -349,6 +353,7 @@ private fun QuranReaderTopBar(
     position: String,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    onToggleTheme: () -> Unit,
 ) {
     val settingsContentDescription = stringResource(R.string.quran_settings_action_content_description)
     TopAppBar(
@@ -373,6 +378,7 @@ private fun QuranReaderTopBar(
             }
         },
         actions = {
+            QuranThemeToggleButton(onClick = onToggleTheme)
             IconButton(onClick = onOpenSettings) {
                 Text(
                     text = "aA",

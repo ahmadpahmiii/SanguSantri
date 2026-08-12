@@ -43,29 +43,67 @@ val SantriError90 = Color(0xFFFFDAD6)
 val SantriError10 = Color(0xFF410002)
 
 // Standalone Al-Qur'an reading-room roles (`0.0.6`). These extend the one canonical
-// SanguSantri token source; they are not a second application theme.
-val QuranBackground = Color(0xFF050806)
-val QuranSurface = Color(0xFF101713)
-val QuranSurfaceHigh = Color(0xFF1A1C19)
-val QuranPrimary = SantriGreen80
-val QuranOnPrimary = SantriGreen20
-val QuranPrimaryContainer = SantriGreen20
-val QuranOnPrimaryContainer = SantriGreen90
-val QuranArabicText = SantriNeutral95
-val QuranTranslationText = Color(0xFFC3C8C0)
-val QuranMutedText = Color(0xFF95A099)
-val QuranOutline = Color(0xFF2D3933)
-val QuranScrim = Color(0xA3000000)
-val QuranError = SantriError80
+// SanguSantri token source; they are not a second application theme. Dark was the feature's
+// original (and still default) mode — ADR 0016 decision #12; a light mode was added by product
+// decision as a user-controlled toggle (`docs/decisions/0016-standalone-quran-kemenag-direct-api.md`
+// 2026-08-10 amendment), so every role below now has a Dark/Light pair resolved live by
+// `QuranColorScheme.kt`'s `LocalQuranThemeMode`-aware properties — the bare `Quran*` names UI
+// screens actually import.
+val QuranBackgroundDark = Color(0xFF050806)
+val QuranSurfaceDark = Color(0xFF101713)
+val QuranSurfaceHighDark = Color(0xFF1A1C19)
+val QuranPrimaryDark = SantriGreen80
+val QuranOnPrimaryDark = SantriGreen20
+val QuranPrimaryContainerDark = SantriGreen20
+val QuranOnPrimaryContainerDark = SantriGreen90
+val QuranArabicTextDark = SantriNeutral95
+val QuranTranslationTextDark = Color(0xFFC3C8C0)
+val QuranMutedTextDark = Color(0xFF95A099)
+val QuranOutlineDark = Color(0xFF2D3933)
+val QuranErrorDark = SantriError80
 
 // Terakhir dibaca card gradient start (design-export/quran/01-quran-hub-surah.html
 // `.continue{background:linear-gradient(135deg,#07351f,#101713)}`); the end stop reuses
 // QuranSurface so the card fades from a tinted highlight back into the hub's own surface tone.
-val QuranContinueCardGradientStart = Color(0xFF07351F)
+val QuranContinueCardGradientStartDark = Color(0xFF07351F)
 
 // Initial-preparation determinate progress track (design-export/quran/05b-initial-preparation.html
 // `.big-progress{background:#26312b}`) — distinct from the default Material surfaceVariant track.
-val QuranEntryProgressTrackColor = Color(0xFF26312B)
+val QuranEntryProgressTrackColorDark = Color(0xFF26312B)
+
+// Light mode (2026-08-10 addition) — a warm "mushaf paper" reading surface rather than stark
+// white, mirroring the softness of the dark palette instead of a harsh inversion. Reuses the
+// app's own established light tokens (SantriGreen40/95/20, SantriNeutral10/40/99, SantriSurface,
+// SantriOutline, SantriError40) everywhere their role matches exactly, for brand consistency with
+// the rest of the app's light theme (`Theme.kt`'s `LightColorScheme`) — new hex values are added
+// only for the two roles with no existing equivalent (QuranMutedTextLight,
+// QuranEntryProgressTrackColorLight). Every text-on-surface pairing below was contrast-checked
+// (WCAG relative luminance) at ≥4.8:1, comfortably above the 4.5:1 AA threshold for body text.
+val QuranBackgroundLight = SantriNeutral99
+val QuranSurfaceLight = SantriSurface
+val QuranSurfaceHighLight = Color(0xFFFFFFFF)
+val QuranPrimaryLight = SantriGreen40
+val QuranOnPrimaryLight = SantriNeutral99
+val QuranPrimaryContainerLight = SantriGreen95
+val QuranOnPrimaryContainerLight = SantriGreen20
+val QuranArabicTextLight = SantriNeutral10
+
+// Dedicated (not reused) — SantriNeutral40 is already spoken for as QuranTranslationTextLight;
+// this needs to sit visibly lighter than that while still clearing 4.5:1 against
+// QuranBackgroundLight/QuranSurfaceLight (measured 4.84:1).
+val QuranMutedTextLight = Color(0xFF6B7268)
+val QuranTranslationTextLight = SantriNeutral40
+val QuranOutlineLight = SantriOutline
+val QuranErrorLight = SantriError40
+val QuranContinueCardGradientStartLight = SantriGreen95
+
+// Dedicated — a soft sage track distinct from Material's default surfaceVariant, echoing the
+// desaturated-green feel of QuranEntryProgressTrackColorDark rather than a flat neutral gray.
+val QuranEntryProgressTrackColorLight = Color(0xFFE3E8DF)
+
+// Dims behind Quran bottom sheets/dialogs in both modes — a scrim always darkens, so one shared
+// value (not a Dark/Light pair) is correct here.
+val QuranScrim = Color(0xA3000000)
 
 // Kalender Hijriah (`0.0.7`) event-semantic roles — figma-export/hijri-calendar/
 // 01-calendar-overview-light.html and 02-calendar-overview-dark.html `:root`/`body.dark` CSS

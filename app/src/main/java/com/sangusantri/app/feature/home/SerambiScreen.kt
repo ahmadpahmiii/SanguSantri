@@ -106,9 +106,10 @@ fun SerambiScreen(
         when (uiState) {
             SerambiUiState.Loading ->
                 Box(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -136,9 +137,10 @@ private fun SerambiDashboard(
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(SanguSantriDimensions.dashboardGridMinCellWidth),
-            modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
             contentPadding = PaddingValues(SanguSantriSpacing.default),
             horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),

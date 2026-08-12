@@ -14,6 +14,7 @@ import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArab
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArabicSize
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceBrightness
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceTranslationSize
+import com.sangusantri.app.domain.model.QuranThemeMode
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -23,6 +24,7 @@ import javax.inject.Inject
 
 /** Mirrors [ReaderSettingsRepositoryImpl]'s corruption-safe coerce-on-read pattern, in the shared
  * preferences DataStore but under a `quran_`-namespaced key set of its own. */
+@Suppress("TooManyFunctions")
 class QuranReaderSettingsRepositoryImpl
 @Inject
 constructor(
@@ -48,6 +50,7 @@ constructor(
                             preferences[TRANSLATION_SIZE_SP] ?: QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP,
                         ),
                     brightnessOverride = preferences[BRIGHTNESS_OVERRIDE]?.let(::coerceBrightness),
+                    themeMode = preferences[THEME_MODE]?.let(::parseThemeMode) ?: QuranThemeMode.DARK,
                 )
             }
 
@@ -75,11 +78,26 @@ constructor(
         dataStore.edit { it[BRIGHTNESS_OVERRIDE] = coerceBrightness(value) }
     }
 
+    override suspend fun setThemeMode(mode: QuranThemeMode) {
+        dataStore.edit { it[THEME_MODE] = mode.name }
+    }
+
+    override suspend fun toggleThemeMode() {
+        dataStore.edit { preferences ->
+            val current = preferences[THEME_MODE]?.let(::parseThemeMode) ?: QuranThemeMode.DARK
+            val next = if (current == QuranThemeMode.DARK) QuranThemeMode.LIGHT else QuranThemeMode.DARK
+            preferences[THEME_MODE] = next.name
+        }
+    }
+
     private fun parseDisplayMode(value: String): QuranDisplayMode? =
         runCatching { QuranDisplayMode.valueOf(value) }.getOrNull()
 
     private fun parseArabicFont(value: String): QuranArabicFont? =
         runCatching { QuranArabicFont.valueOf(value) }.getOrNull()
+
+    private fun parseThemeMode(value: String): QuranThemeMode? =
+        runCatching { QuranThemeMode.valueOf(value) }.getOrNull()
 
     private companion object {
         val DISPLAY_MODE = stringPreferencesKey("quran_display_mode")
@@ -88,5 +106,6 @@ constructor(
         val ARABIC_LINE_SPACING = floatPreferencesKey("quran_arabic_line_spacing")
         val TRANSLATION_SIZE_SP = intPreferencesKey("quran_translation_size_sp")
         val BRIGHTNESS_OVERRIDE = floatPreferencesKey("quran_brightness_override")
+        val THEME_MODE = stringPreferencesKey("quran_theme_mode")
     }
 }

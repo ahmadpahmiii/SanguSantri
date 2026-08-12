@@ -135,6 +135,10 @@ constructor(
         onDismissActionSheet()
     }
 
+    fun toggleTheme() {
+        viewModelScope.launch { settingsRepository.toggleThemeMode() }
+    }
+
     /** Called as the visible ayat changes while scrolling (QUR-FR-011) — the first call seeds
      * the session's starting position, every call updates the last-seen position. */
     fun onVisiblePositionChanged(ayatNumber: Int) {

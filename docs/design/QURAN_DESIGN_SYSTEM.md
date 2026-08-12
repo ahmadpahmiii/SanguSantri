@@ -3,6 +3,8 @@
 **Applies to:** every standalone Quran screen, overlay, system bar, and state
 in release `0.0.6`.
 **Status:** approved design direction; design-tool frames not yet created.
+Dark was the original sole mode; a user-controlled Light mode was added
+2026-08-10 (ADR 0016 amendment) — see §1 and §2.
 
 Read with `DESIGN_SYSTEM.md`, `ACCESSIBILITY.md`, and
 `docs/product/QURAN_PRD.md`. This is a feature theme layered through the
@@ -11,20 +13,28 @@ theme implementation or duplicate token system.
 
 ## 1. Experience direction
 
-The Quran feature is a calm, focused reading room inside SanguSantri:
+The Quran feature is a calm, focused reading room inside SanguSantri,
+independent of the surrounding app/system theme:
 
-* always dark, even when the surrounding app is light;
-* near-black reader canvas, charcoal-green navigation surfaces;
-* restrained green emphasis, never decorative gradients;
-* Arabic text is the strongest visual element;
-* translation and metadata are clearly subordinate;
+* Dark by default; Light is an equally-supported, user-selected alternative
+  (2026-08-10 amendment, ADR 0016) — never a system-theme follow, and never
+  tied to the outer app's own light/dark state;
+* Dark mode: near-black reader canvas, charcoal-green navigation surfaces;
+  Light mode: warm "mushaf paper" canvas (never stark white), crisp white
+  elevated surfaces;
+* restrained green emphasis, never decorative gradients, in either mode;
+* Arabic text is the strongest visual element in either mode;
+* translation and metadata are clearly subordinate in either mode;
 * plain high-contrast surfaces with no pattern behind Quran text;
 * no persistent bottom navigation, advertising, audio player, or ornamental
-  chrome competing with reading.
+  chrome competing with reading;
+* switching mode (top-bar icon or Tampilan Al-Qur'an settings) is instant and
+  live — no restart, no flash of the other mode's colours.
 
-Dark mode is a product identity decision, not a medical eye-comfort claim.
-Comfort for prolonged reading comes from configurable type, line spacing,
-brightness, constrained width, and device testing as well as colour.
+Neither mode is a medical eye-comfort claim. Comfort for prolonged reading
+comes from configurable type, line spacing, brightness, constrained width,
+device testing, and — since 2026-08-10 — the reader's own choice of ambient
+colour scheme, as well as colour itself.
 
 ### Research basis
 
@@ -41,11 +51,16 @@ The sources justify semantic roles and measurable contrast, not a claim that
 dark mode is universally healthier. The final comfort decision remains a
 manual long-reading test with adjustable typography and brightness.
 
-## 2. Dark colour roles
+## 2. Colour roles (Dark and Light)
 
 These roles reuse or extend the existing SanguSantri green/neutral ramps. Use
 semantic role names in code; do not scatter hexadecimal literals through
-composables.
+composables. Every role below has both a Dark and a Light value, resolved
+live from the persisted `QuranThemeMode` — never a fixed per-role choice.
+`quranScrim` is the one exception: a scrim always darkens, so it is shared
+across both modes.
+
+### 2.1 Dark (default)
 
 | Quran role                |              Hex | Use                                   |
 |---------------------------|-----------------:|---------------------------------------|
@@ -60,7 +75,7 @@ composables.
 | `quranTranslationText`    |        `#C3C8C0` | Indonesian translation                |
 | `quranMutedText`          |        `#95A099` | Surah metadata, Juz/page, timestamps  |
 | `quranOutline`            |        `#2D3933` | Hairline dividers and quiet borders   |
-| `quranScrim`              | `#000000` at 64% | Modal background                      |
+| `quranScrim`              | `#000000` at 64% | Modal background (shared both modes)  |
 | `quranError`              |        `#FFB4AB` | Error text/icon                       |
 
 Reference contrast on `quranBackground`/`quranSurface`:
@@ -69,9 +84,46 @@ Reference contrast on `quranBackground`/`quranSurface`:
 * Translation `#C3C8C0` on `#101713`: approximately 10.70:1.
 * Primary `#7FDB9C` on `#101713`: approximately 10.85:1.
 
-Do not use pure white for long Quran text. Do not reduce muted text below
-WCAG AA. Selected/unselected and success/error states require icon, label, or
-shape differences in addition to colour.
+### 2.2 Light (2026-08-10 addition, ADR 0016 amendment)
+
+A warm "mushaf paper" surface, not a stark-white inversion. Reuses the app's
+own existing light-theme tokens (`SantriGreen40/95/20`, `SantriNeutral10/40/99`,
+`SantriSurface`, `SantriOutline`, `SantriError40` — see `DESIGN_SYSTEM.md`)
+wherever the role matches exactly, for the same brand consistency Dark mode
+already has; only `quranMutedText` and the initial-preparation progress-track
+role (§5.2) needed a new, dedicated hex with no existing equivalent.
+
+| Quran role                |              Hex | Reused from        | Use                                   |
+|---------------------------|-----------------:|--------------------|---------------------------------------|
+| `quranBackground`         |        `#FBFDF7` | `SantriNeutral99`  | Reader canvas                         |
+| `quranSurface`            |        `#FFFDF8` | `SantriSurface`    | Hub, app bars, bottom sheets          |
+| `quranSurfaceHigh`        |        `#FFFFFF` | —                  | Selected cards, settings controls     |
+| `quranPrimary`            |        `#0B6E3B` | `SantriGreen40`    | Active tab, bookmark, focus, progress |
+| `quranOnPrimary`          |        `#FBFDF7` | `SantriNeutral99`  | Content on a solid primary action     |
+| `quranPrimaryContainer`   |        `#D7F8DF` | `SantriGreen95`    | Selected preview/filter surface       |
+| `quranOnPrimaryContainer` |        `#00391C` | `SantriGreen20`    | Content on selected surface           |
+| `quranArabicText`         |        `#1A1C19` | `SantriNeutral10`  | Main Quran Arabic                     |
+| `quranTranslationText`    |        `#59605A` | `SantriNeutral40`  | Indonesian translation                |
+| `quranMutedText`          |        `#6B7268` | — (dedicated)      | Surah metadata, Juz/page, timestamps  |
+| `quranOutline`            |        `#C3C8C0` | `SantriOutline`    | Hairline dividers and quiet borders   |
+| `quranScrim`              | `#000000` at 64% | (shared with Dark) | Modal background                      |
+| `quranError`              |        `#BA1A1A` | `SantriError40`    | Error text/icon                       |
+
+Reference contrast on `quranBackground`/`quranSurface` (WCAG relative
+luminance; all comfortably clear the 4.5:1 AA threshold for body text):
+
+* Arabic `#1A1C19` on `#FBFDF7`: approximately 16.74:1.
+* Translation `#59605A` on `#FBFDF7`: approximately 6.31:1.
+* Muted `#6B7268` on `#FBFDF7`: approximately 4.84:1.
+* Primary `#0B6E3B` on `#FBFDF7`: approximately 6.20:1.
+* `quranOnPrimary` `#FBFDF7` on `quranPrimary` `#0B6E3B`: approximately 6.20:1.
+* `quranOnPrimaryContainer` `#00391C` on `quranPrimaryContainer` `#D7F8DF`:
+  approximately 11.47:1.
+
+Do not use pure white for long Quran Arabic text (Dark mode; Light mode's
+canvas is intentionally off-white for the same reason). Do not reduce muted
+text below WCAG AA in either mode. Selected/unselected and success/error
+states require icon, label, or shape differences in addition to colour.
 
 ## 3. Typography
 
@@ -101,7 +153,7 @@ is disabled rather than silently passing the release gate.
 | Role                    |               Default |   User range | Guidance                       |
 |-------------------------|----------------------:|-------------:|--------------------------------|
 | Arabic size             |                  24sp |      14–52sp | Slider, 2sp steps              |
-| Arabic line height      |                 2.00× |   1.45–2.20× | Slider, live preview           |
+| Arabic line height      |                 2.00× |   1.50–5.00× | Slider, live preview           |
 | Translation size        |                  16sp |      14–24sp | Slider, 1sp steps              |
 | Translation line height |                 1.55× |      Derived | Not a separate control         |
 | Surah title             | Material `titleLarge` | System scale | Indonesian/Latin UI font       |
@@ -140,9 +192,18 @@ latest values. There is no separate Save button or uncommitted draft state.
 
 ## 5. Screen specifications
 
+Specifications below name Dark-mode roles/hex values as the primary
+reference (§2.1); Light mode (§2.2) resolves the same role names to its own
+hex values automatically when active — the same layout, hierarchy, and
+component structure apply in both modes, never a separate design.
+
 ### 5.1 Quran hub
 
-* Dark top app bar: `Al-Qur'an`, search, source/settings overflow as needed.
+* Top app bar (`quranSurface`/`quranBackground` depending on mode):
+  `Al-Qur'an`, search, source/settings overflow as needed, plus a one-tap
+  Light/Dark theme icon (2026-08-10 addition) — a sun icon while Dark is
+  active (tap switches to Light), a moon icon while Light is active (tap
+  switches to Dark).
 * Optional Terakhir dibaca card directly under the app bar; absent when no
   saved position exists and never represented as a tab.
 * Three equal-width primary tabs: Surah, Juz, Bookmark.
@@ -154,7 +215,9 @@ latest values. There is no separate Save button or uncommitted draft state.
 
 ### 5.2 Initial preparation
 
-* Remain within the dark theme from the first frame.
+* Remain within the user's active Quran theme mode from the first frame
+  (Dark by default; Light if previously selected) — never a forced/default
+  theme independent of the persisted choice.
 * Use a calm centred status, determinate progress, completed-surah count, and
   concise explanation that the first preparation needs internet.
 * No fake Quran sample text while loading.
@@ -233,15 +296,18 @@ dismissed.
 
 This is a full-screen nested settings destination:
 
-1. Live preview region.
-2. Font preview cards.
-3. Arabic-size slider.
-4. Arabic-spacing slider.
-5. Translation-size slider.
-6. Arab saja / Arab + terjemahan control.
-7. Quran brightness slider.
+1. Live preview region (reflects the current theme choice immediately).
+2. Light / Dark theme control (2026-08-10 addition) — a two-segment control,
+   same mechanism and visual treatment as item 6 below, directly under the
+   live preview so switching it shows its effect immediately.
+3. Font preview cards.
+4. Arabic-size slider.
+5. Arabic-spacing slider.
+6. Translation-size slider.
+7. Arab saja / Arab + terjemahan control.
+8. Quran brightness slider.
 
-No light-mode toggle and no keep-screen-on control.
+No "follow system theme" option and no keep-screen-on control.
 
 ### 5.8 Source view
 

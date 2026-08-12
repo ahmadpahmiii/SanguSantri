@@ -6,6 +6,7 @@ import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
 import com.sangusantri.app.domain.model.QuranVerse
+import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.QuranRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.Normalizer
 import java.util.Locale
 import javax.inject.Inject
@@ -35,6 +37,7 @@ class QuranHubViewModel
     @Inject
     constructor(
         private val quranRepository: QuranRepository,
+        private val settingsRepository: QuranReaderSettingsRepository,
     ) : ViewModel() {
         private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
         private val searchQuery = MutableStateFlow("")
@@ -60,6 +63,10 @@ class QuranHubViewModel
         fun updateSearchQuery(query: String) {
             searchQuery.value = query
         }
+
+    fun toggleTheme() {
+        viewModelScope.launch { settingsRepository.toggleThemeMode() }
+    }
 
         private fun buildUiState(
             data: QuranHubData,

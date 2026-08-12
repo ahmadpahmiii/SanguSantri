@@ -155,9 +155,10 @@ private fun SerambiMainFeatureTile(
         elevation = CardDefaults.cardElevation(defaultElevation = SanguSantriElevation.flat),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(SanguSantriSpacing.medium),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(SanguSantriSpacing.medium),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
         ) {
@@ -200,9 +201,10 @@ private fun SerambiSupportingMenuItem(
         elevation = CardDefaults.cardElevation(defaultElevation = SanguSantriElevation.flat),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(SanguSantriSpacing.medium),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(SanguSantriSpacing.medium),
             horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
             verticalAlignment = Alignment.CenterVertically,
         ) {

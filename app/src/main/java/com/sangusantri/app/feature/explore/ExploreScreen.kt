@@ -97,9 +97,10 @@ fun ExploreScreen(
         when (uiState) {
             ExploreUiState.Loading ->
                 Box(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -125,9 +126,10 @@ private fun ExploreContent(
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(SanguSantriDimensions.catalogueGridMinCellWidth),
-            modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
             contentPadding = PaddingValues(SanguSantriSpacing.default),
             horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
@@ -232,15 +234,17 @@ private fun ExploreEmptyState(
 ) {
     AnimatedContent(
         targetState = hasCatalogue,
-        modifier = modifier
-            .fillMaxWidth()
-            .animateContentSize(),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .animateContentSize(),
         label = "explore_empty_state",
     ) { catalogueAvailable ->
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = SanguSantriSpacing.extraLarge),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = SanguSantriSpacing.extraLarge),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
         ) {

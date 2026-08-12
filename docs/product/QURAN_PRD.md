@@ -27,9 +27,11 @@ approved release. Implementation must also follow:
 ## 2. Product outcome
 
 SanguSantri users can read the official Mushaf Standar Indonesia Quran text,
-Indonesian translation, and Kemenag tafsir in a focused dark-only reader. The
-feature is public, account-free, local-first after its initial online
-preparation, and integrated with SanguSantri's local activity streak.
+Indonesian translation, and Kemenag tafsir in a focused reader, Dark by
+default with a user-controlled Light mode (2026-08-10 amendment, ADR 0016
+§"Amendment (2026-08-10)"). The feature is public, account-free, local-first
+after its initial online preparation, and integrated with SanguSantri's local
+activity streak.
 
 The experience must support four common intents:
 
@@ -60,7 +62,11 @@ The experience must support four common intents:
 
 * Beranda entry point; not a bottom-navigation destination.
 * Full-screen Quran experience with the global bottom navigation hidden.
-* Dark-only Quran theme, regardless of the app/system theme outside Quran.
+* Dark-by-default Quran theme with a user-controlled Light mode, both
+  independent of the app/system theme outside Quran (2026-08-10 amendment,
+  ADR 0016). Switchable via a quick top-bar icon (hub and reader) or an
+  explicit Light/Dark control in Tampilan Al-Qur'an settings; no separate
+  "follow system" mode.
 * Surah, Juz, and Bookmark tabs, plus an optional Terakhir dibaca card.
 * Search by surah name or surah number only.
 * Arab-saja display: flowing Arabic grouped by the API's `halaman` field.
@@ -353,10 +359,15 @@ and live controls exceed a compact sheet. It must provide:
 * Arabic line-spacing slider with live preview;
 * translation-size slider with live preview;
 * Arab saja / Arab + terjemahan choice;
-* Quran-window brightness slider.
+* Quran-window brightness slider;
+* Light / Dark theme choice (2026-08-10 amendment, ADR 0016) — the same
+  choice also available as a one-tap icon in the hub and reader top bars;
+  every entry point persists the same setting.
 
-No “keep screen on” control is included. Brightness overrides only the Quran
-window and restores the prior window value on exit.
+No “keep screen on” control is included and no “follow system” theme option
+is offered. Brightness overrides only the Quran window and restores the
+prior window value on exit; the theme choice persists across sessions and is
+independent of the outer app/system theme.
 
 ### QUR-FR-016 — Font choices
 
@@ -520,8 +531,13 @@ Release `0.0.6` is acceptable only when:
     combined streak; open/close without progress does not.
 13. Every enabled font passes the verified-corpus glyph test and renders live
     preview/settings consistently with the reader.
-14. Entering Quran from light mode makes all Quran surfaces/system bars dark;
-    leaving restores light mode and prior brightness.
+14. Entering Quran (from either app theme) renders every Quran surface and
+    system bar in the user's persisted Quran theme choice (Dark by default,
+    or Light if previously selected — independent of the outer app/system
+    theme); leaving restores the outer app's theme and prior brightness
+    regardless of which Quran theme was active (2026-08-10 amendment, ADR
+    0016). Switching Quran's own theme mid-session updates every open Quran
+    surface and its system-bar icon appearance live.
 15. Release artifacts and logs contain no plain credential string, while the
     ADR continues to acknowledge native extraction remains possible.
 

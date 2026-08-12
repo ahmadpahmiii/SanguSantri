@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -59,10 +60,8 @@ fun QuranFlowingPageText(
             textAlign = TextAlign.Justify,
         ),
 ) {
-    val annotatedPage =
-        remember(ayats, selectedAyatId, arabicFont) {
-            buildPageText(ayats, selectedAyatId).withQuranFontFallback(arabicFont)
-        }
+    val arabicTextColor = QuranArabicText
+    val annotatedPage = rememberQuranAnnotatedPage(ayats, selectedAyatId, arabicFont)
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     val hapticFeedback = LocalHapticFeedback.current
     val accessibilityActions =
@@ -80,7 +79,7 @@ fun QuranFlowingPageText(
         BasicText(
             text = annotatedPage,
             style = textStyle,
-            color = { QuranArabicText },
+            color = { arabicTextColor },
             onTextLayout = { textLayoutResult = it },
             modifier =
                 modifier
@@ -116,9 +115,31 @@ fun QuranFlowingPageText(
     }
 }
 
+/** [buildPageText] runs outside composition, so the Light/Dark-aware colour roles it needs are
+ * resolved here (composable context) and passed in as plain [Color] values — included in the
+ * `remember` keys so a live [com.sangusantri.app.core.designsystem.theme.LocalQuranThemeMode]
+ * toggle rebuilds the annotated string's baked-in span colours. */
+@Composable
+private fun rememberQuranAnnotatedPage(
+    ayats: List<QuranReaderAyatUiModel>,
+    selectedAyatId: Long?,
+    arabicFont: QuranArabicFont,
+): AnnotatedString {
+    val primaryColor = QuranPrimary
+    val onPrimaryContainerColor = QuranOnPrimaryContainer
+    val primaryContainerColor = QuranPrimaryContainer
+    return remember(ayats, selectedAyatId, arabicFont, primaryColor, onPrimaryContainerColor, primaryContainerColor) {
+        buildPageText(ayats, selectedAyatId, primaryColor, onPrimaryContainerColor, primaryContainerColor)
+            .withQuranFontFallback(arabicFont)
+    }
+}
+
 private fun buildPageText(
     ayats: List<QuranReaderAyatUiModel>,
     selectedAyatId: Long?,
+    primaryColor: Color,
+    onPrimaryContainerColor: Color,
+    primaryContainerColor: Color,
 ): AnnotatedString =
     buildAnnotatedString {
         val arabicNumberFormat = NumberFormat.getIntegerInstance(Locale.forLanguageTag("ar"))
@@ -133,15 +154,15 @@ private fun buildPageText(
             pop()
             val rangeEnd = length
             addStyle(
-                SpanStyle(color = QuranPrimary),
+                SpanStyle(color = primaryColor),
                 rangeEnd - arabicNumberFormat.format(ayat.ayatNumber).length - 2,
                 rangeEnd,
             )
             if (ayat.remoteId == selectedAyatId) {
                 addStyle(
                     SpanStyle(
-                        color = QuranOnPrimaryContainer,
-                        background = QuranPrimaryContainer,
+                        color = onPrimaryContainerColor,
+                        background = primaryContainerColor,
                     ),
                     rangeStart,
                     rangeEnd,

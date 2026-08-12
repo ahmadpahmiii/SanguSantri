@@ -51,6 +51,7 @@ import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.feature.quran.QuranThemeBoundary
+import com.sangusantri.app.feature.quran.QuranThemeToggleButton
 
 /** Quran hub aligned to the approved 360×800 local reference: calm two-line app bar, restrained
  * last-read card, three fixed tabs, and inset flat content lists backed by Room. */
@@ -74,6 +75,7 @@ fun QuranHubRoute(
                     onBack = onBack,
                     onOpenSettings = onOpenSettings,
                     onOpenSource = onOpenSource,
+                    onToggleTheme = viewModel::toggleTheme,
                     onTabSelected = viewModel::selectTab,
                     onSearchQueryChanged = viewModel::updateSearchQuery,
                     onSurahSelected = onSurahSelected,
@@ -119,6 +121,7 @@ private fun QuranHubTopBar(actions: QuranHubActions) {
             }
         },
         actions = {
+            QuranThemeToggleButton(onClick = actions.onToggleTheme)
             IconButton(onClick = actions.onOpenSettings) {
                 Icon(
                     imageVector = Icons.Outlined.Settings,

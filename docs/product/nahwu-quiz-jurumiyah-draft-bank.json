@@ -1,322 +1,354 @@
 {
+  "_disclaimer": "AI-assisted draft, grounded in cited research (docs/product/NAHWU_JURUMIYAH_RESEARCH.md). NOT reviewed by any kyai/ustaz/religious authority — still carries NO institutional or religious endorsement. STATUS (14 August 2026): reviewed and explicitly accepted by the product owner; promoted into app/src/main/assets/nahwu_quiz/nahwu_quiz_bank.json as package id 'nahwu-jurumiyah' (question ids renamed *-draft-q* -> *-q*, this file's 'source'/'_disclaimer' fields dropped there since they are not part of NahwuQuizQuestionDto). This file is kept as the historical pre-promotion snapshot and provenance record, per docs/operations/CONTENT_GOVERNANCE.md's 'corrections create a new version, never edit in place' convention — it is not itself production content and is not read by the app.",
   "schemaVersion": 1,
   "packages": [
     {
-      "id": "nahwu-jurumiyah",
-      "title": "Jurumiyah",
-      "description": "Dasar-dasar ilmu nahwu berdasarkan Matn al-Ājurrūmiyyah karya Ibnu Ājurrūm — kitab nahwu pertama yang diajarkan di banyak pesantren. Tahap dasar dari tiga tingkatan (Jurumiyah → Imrithi → Alfiyah).",
+      "id": "nahwu-jurumiyah-draft",
+      "title": "Jurumiyah (DRAFT — belum ditinjau)",
+      "description": "Paket rintisan (draft) berisi 31 soal dasar dari Matn al-Ājurrūmiyyah, mencakup Bab al-Kalām, al-Iʿrāb, ʿAlāmāt al-Iʿrāb, al-Afʿāl, dan dasar Marfūʿāt/Manṣūbāt/Makhfūḍāt al-Asmāʾ. Disusun berbantuan AI berdasarkan riset bersumber di docs/product/NAHWU_JURUMIYAH_RESEARCH.md — BELUM ditinjau ustaz, kyai, atau product owner, dan BUKAN konten produksi. Merupakan tahap awal menuju target ~60–90 soal tier Jurumiyah pada docs/product/NAHWU_QUIZ_ENGAGEMENT_PRD.md §8.",
       "order": 1,
-      "isActive": true,
+      "isActive": false,
       "questions": [
         {
-          "id": "nahwu-jurumiyah-q1",
+          "id": "nahwu-jurumiyah-draft-q1",
           "stem": "Menurut Matn al-Ājurrūmiyyah, al-kalām (الكَلَامُ) didefinisikan sebagai...?",
           "optionA": "Lafal tunggal yang tidak tersusun",
           "optionB": "Kalimat yang hanya berupa fi'il madhi",
           "optionC": "اللَّفْظُ الْمُرَكَّبُ الْمُفِيدُ بِالْوَضْعِ — lafal tersusun yang memberi makna sempurna menurut kaidah bahasa Arab",
           "optionD": "Lafal yang hanya terdiri dari huruf hijaiyah",
           "correctOption": "C",
-          "explanation": "Al-kalām adalah اللَّفْظُ الْمُرَكَّبُ الْمُفِيدُ بِالْوَضْعِ: ucapan tersusun (minimal dua kata) yang memberikan makna sempurna dan dapat dipahami sesuai kaidah bahasa Arab."
+          "explanation": "Al-kalām adalah اللَّفْظُ الْمُرَكَّبُ الْمُفِيدُ بِالْوَضْعِ: ucapan tersusun (minimal dua kata) yang memberikan makna sempurna dan dapat dipahami sesuai kaidah bahasa Arab.",
+          "source": "Bab al-Kalām — definisi pembuka matn; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.1"
         },
         {
-          "id": "nahwu-jurumiyah-q2",
+          "id": "nahwu-jurumiyah-draft-q2",
           "stem": "Menurut Jurumiyyah, al-kalām (الكَلَامُ) terbagi menjadi tiga bagian, yaitu...?",
           "optionA": "اسْمٌ، وَفِعْلٌ، وَحَرْفٌ",
           "optionB": "اسْمٌ، وَفِعْلٌ، وَجُمْلَةٌ",
           "optionC": "فِعْلٌ، وَحَرْفٌ، وَظَرْفٌ",
           "optionD": "اسْمٌ، وَضَمِيرٌ، وَحَرْفٌ",
           "correctOption": "A",
-          "explanation": "Tiga bagian kalām adalah isim (kata benda), fi'il (kata kerja), dan harf (huruf/partikel yang membawa makna)."
+          "explanation": "Tiga bagian kalām adalah isim (kata benda), fi'il (kata kerja), dan harf (huruf/partikel yang membawa makna).",
+          "source": "Bab al-Kalām; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.1"
         },
         {
-          "id": "nahwu-jurumiyah-q3",
+          "id": "nahwu-jurumiyah-draft-q3",
           "stem": "Salah satu tanda yang menunjukkan sebuah kata adalah isim menurut Jurumiyyah adalah kata tersebut dapat menerima...?",
           "optionA": "قَدْ dan السِّينُ",
           "optionB": "تَاءُ التَّأْنِيثِ السَّاكِنَةُ saja",
           "optionC": "Hanya dapat berada di awal kalimat",
           "optionD": "التَّنْوِينُ (tanwin) dan الْخَفْضُ (khafd/jarr)",
           "correctOption": "D",
-          "explanation": "Isim dikenali antara lain melalui khafd/jarr, tanwin, dimasuki alif-lam (اَلْ), dan didahului huruf jarr/qasam — bukan tanda-tanda fi'il seperti qad/sin/saufa."
+          "explanation": "Isim dikenali antara lain melalui khafd/jarr, tanwin, dimasuki alif-lam (اَلْ), dan didahului huruf jarr/qasam — bukan tanda-tanda fi'il seperti qad/sin/saufa.",
+          "source": "Bab al-Kalām; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.1"
         },
         {
-          "id": "nahwu-jurumiyah-q4",
+          "id": "nahwu-jurumiyah-draft-q4",
           "stem": "Menurut Jurumiyyah, fi'il (kata kerja) dikenali antara lain karena dapat menerima partikel...?",
           "optionA": "أَلْ التَّعْرِيفِ",
           "optionB": "قَدْ، وَالسِّينُ، وَسَوْفَ، وَتَاءُ التَّأْنِيثِ السَّاكِنَةُ",
           "optionC": "حُرُوفُ الْخَفْضِ seperti مِنْ dan إِلَى",
           "optionD": "التَّنْوِينُ",
           "correctOption": "B",
-          "explanation": "Fi'il dikenali karena dapat dimasuki قَدْ, السِّينُ, سَوْفَ, dan tāʾ taʾnīts sākinah (seperti pada قَامَتْ) — bukan tanda-tanda isim."
+          "explanation": "Fi'il dikenali karena dapat dimasuki قَدْ, السِّينُ, سَوْفَ, dan tāʾ taʾnīts sākinah (seperti pada قَامَتْ) — bukan tanda-tanda isim.",
+          "source": "Bab al-Kalām; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.1"
         },
         {
-          "id": "nahwu-jurumiyah-q5",
+          "id": "nahwu-jurumiyah-draft-q5",
           "stem": "Bagaimana Jurumiyyah mendefinisikan al-ḥarf (الْحَرْفُ)?",
           "optionA": "Kata yang selalu berharakat dhammah",
           "optionB": "Kata yang hanya dipakai untuk menghubungkan dua fi'il",
           "optionC": "Kata yang tidak layak menerima tanda isim maupun tanda fi'il (مَا لَا يَصْلُحُ مَعَهُ دَلِيلُ الِاسْمِ وَلَا دَلِيلُ الْفِعْلِ)",
           "optionD": "Kata benda yang menunjukkan waktu",
           "correctOption": "C",
-          "explanation": "Harf didefinisikan secara negatif: kata yang tidak menerima tanda isim ataupun tanda fi'il."
+          "explanation": "Harf didefinisikan secara negatif: kata yang tidak menerima tanda isim ataupun tanda fi'il.",
+          "source": "Bab al-Kalām; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.1"
         },
         {
-          "id": "nahwu-jurumiyah-q6",
+          "id": "nahwu-jurumiyah-draft-q6",
           "stem": "Menurut Jurumiyyah, al-iʿrāb (الْإِعْرَابُ) adalah...?",
           "optionA": "Perubahan pada akhir kata karena berbedanya 'amil (faktor tata bahasa) yang memasukinya, baik secara lafal (لَفْظًا) maupun perkiraan (تَقْدِيرًا)",
           "optionB": "Penambahan huruf di awal kata",
           "optionC": "Perubahan makna kata karena konteks kalimat",
           "optionD": "Pengulangan kata untuk penekanan",
           "correctOption": "A",
-          "explanation": "الْإِعْرَابُ هُوَ تَغْيِيرُ أَوَاخِرِ الْكَلِمِ لِاخْتِلَافِ الْعَوَامِلِ الدَّاخِلَةِ عَلَيْهَا لَفْظًا أَوْ تَقْدِيرًا — perubahan akhir kata akibat 'amil yang berbeda-beda."
+          "explanation": "الْإِعْرَابُ هُوَ تَغْيِيرُ أَوَاخِرِ الْكَلِمِ لِاخْتِلَافِ الْعَوَامِلِ الدَّاخِلَةِ عَلَيْهَا لَفْظًا أَوْ تَقْدِيرًا — perubahan akhir kata akibat 'amil yang berbeda-beda.",
+          "source": "Bab al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.2"
         },
         {
-          "id": "nahwu-jurumiyah-q7",
+          "id": "nahwu-jurumiyah-draft-q7",
           "stem": "Ada berapa jenis i'rab menurut Jurumiyyah, dan apa saja?",
           "optionA": "Tiga: رَفْعٌ، وَنَصْبٌ، وَجَزْمٌ",
           "optionB": "Lima, termasuk وَقْفٌ",
           "optionC": "Dua: مَرْفُوعٌ dan مَنْصُوبٌ saja",
           "optionD": "Empat: رَفْعٌ، وَنَصْبٌ، وَخَفْضٌ، وَجَزْمٌ",
           "correctOption": "D",
-          "explanation": "I'rab terbagi menjadi empat: rafa', nashab, khafadh, dan jazm."
+          "explanation": "I'rab terbagi menjadi empat: rafa', nashab, khafadh, dan jazm.",
+          "source": "Bab al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.2"
         },
         {
-          "id": "nahwu-jurumiyah-q8",
+          "id": "nahwu-jurumiyah-draft-q8",
           "stem": "Manakah pernyataan yang BENAR tentang i'rab pada isim menurut Jurumiyyah?",
           "optionA": "Isim dapat mengalami keempat jenis i'rab termasuk jazm",
           "optionB": "Isim dapat rafa', nashab, dan khafadh, tetapi tidak pernah jazm",
           "optionC": "Isim hanya bisa rafa' saja",
           "optionD": "Isim tidak pernah mengalami i'rab",
           "correctOption": "B",
-          "explanation": "فَلِلْأَسْمَاءِ مِنْ ذَلِكَ الرَّفْعُ وَالنَّصْبُ وَالْخَفْضُ وَلَا جَزْمَ فِيهَا — isim tidak pernah jazm; jazm khusus untuk fi'il."
+          "explanation": "فَلِلْأَسْمَاءِ مِنْ ذَلِكَ الرَّفْعُ وَالنَّصْبُ وَالْخَفْضُ وَلَا جَزْمَ فِيهَا — isim tidak pernah jazm; jazm khusus untuk fi'il.",
+          "source": "Bab al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.2"
         },
         {
-          "id": "nahwu-jurumiyah-q9",
+          "id": "nahwu-jurumiyah-draft-q9",
           "stem": "Manakah pernyataan yang BENAR tentang i'rab pada fi'il menurut Jurumiyyah?",
           "optionA": "Fi'il dapat mengalami khafadh seperti isim",
           "optionB": "Fi'il hanya bisa majzum",
           "optionC": "Fi'il dapat rafa', nashab, dan jazm, tetapi tidak pernah khafadh",
           "optionD": "Fi'il tidak pernah mengalami i'rab",
           "correctOption": "C",
-          "explanation": "وَلِلْأَفْعَالِ مِنْ ذَلِكَ الرَّفْعُ وَالنَّصْبُ وَالْجَزْمُ وَلَا خَفْضَ فِيهَا — fi'il tidak pernah khafadh; khafadh khusus untuk isim."
+          "explanation": "وَلِلْأَفْعَالِ مِنْ ذَلِكَ الرَّفْعُ وَالنَّصْبُ وَالْجَزْمُ وَلَا خَفْضَ فِيهَا — fi'il tidak pernah khafadh; khafadh khusus untuk isim.",
+          "source": "Bab al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.2"
         },
         {
-          "id": "nahwu-jurumiyah-q10",
+          "id": "nahwu-jurumiyah-draft-q10",
           "stem": "Menurut Jurumiyyah, ada berapa tanda (alamat) untuk rafa', dan apa saja?",
           "optionA": "Empat: الضَّمَّةُ وَالْوَاوُ وَالْأَلِفُ وَالنُّونُ",
           "optionB": "Tiga: الضَّمَّةُ وَالْوَاوُ وَالْأَلِفُ",
           "optionC": "Lima, sama seperti tanda nashab",
           "optionD": "Dua: الضَّمَّةُ وَالْكَسْرَةُ",
           "correctOption": "A",
-          "explanation": "لِلرَّفْعِ أَرْبَعُ عَلَامَاتٍ: الضَّمَّةُ وَالْوَاوُ وَالْأَلِفُ وَالنُّونُ."
+          "explanation": "لِلرَّفْعِ أَرْبَعُ عَلَامَاتٍ: الضَّمَّةُ وَالْوَاوُ وَالْأَلِفُ وَالنُّونُ.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q11",
+          "id": "nahwu-jurumiyah-draft-q11",
           "stem": "Dhammah (الضَّمَّةُ) menjadi tanda rafa' pada isim mufrad, jamak taksir, jamak muannats salim, dan pada...?",
           "optionA": "Fi'il amr",
           "optionB": "Isim yang termasuk al-asmāʾ al-khamsah",
           "optionC": "Fi'il madhi",
           "optionD": "Fi'il mudhari' yang tidak bersambung dengan dhamir apa pun di akhirnya",
           "correctOption": "D",
-          "explanation": "Dhammah menjadi tanda rafa' pada empat tempat: isim mufrad, jamak taksir, jamak muannats salim, dan fi'il mudhari' tanpa dhamir bersambung di akhirnya."
+          "explanation": "Dhammah menjadi tanda rafa' pada empat tempat: isim mufrad, jamak taksir, jamak muannats salim, dan fi'il mudhari' tanpa dhamir bersambung di akhirnya.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q12",
+          "id": "nahwu-jurumiyah-draft-q12",
           "stem": "Wawu (الْوَاوُ) menjadi tanda rafa' pada jamak mudzakkar salim dan pada kelompok isim yang disebut al-asmāʾ al-khamsah (الْأَسْمَاءُ الْخَمْسَةُ). Manakah yang termasuk al-asmāʾ al-khamsah?",
           "optionA": "زَيْدٌ، وَعَمْرٌو، وَبَكْرٌ، وَهِنْدُ، وَخَالِدٌ",
           "optionB": "أَبُوكَ، وَأَخُوكَ، وَحَمُوكَ، وَفُوكَ، وَذُو مَالٍ",
           "optionC": "أَنَا، وَنَحْنُ، وَأَنْتَ، وَهُوَ، وَهِيَ",
           "optionD": "الَّذِي، وَالَّتِي، وَمَنْ، وَمَا، وَأَيُّ",
           "correctOption": "B",
-          "explanation": "Al-asmāʾ al-khamsah adalah lima isim khusus: أَبُوكَ (ayahmu), أَخُوكَ (saudaramu), حَمُوكَ (mertua laki-lakimu), فُوكَ (mulutmu), dan ذُو مَالٍ (yang memiliki harta) — dirafa'kan dengan wawu."
+          "explanation": "Al-asmāʾ al-khamsah adalah lima isim khusus: أَبُوكَ (ayahmu), أَخُوكَ (saudaramu), حَمُوكَ (mertua laki-lakimu), فُوكَ (mulutmu), dan ذُو مَالٍ (yang memiliki harta) — dirafa'kan dengan wawu.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q13",
+          "id": "nahwu-jurumiyah-draft-q13",
           "stem": "Menurut Jurumiyyah, ada berapa tanda untuk nashab?",
           "optionA": "Empat, sama seperti tanda rafa'",
           "optionB": "Tiga: الْفَتْحَةُ وَالْأَلِفُ وَالْكَسْرَةُ",
           "optionC": "Lima: الْفَتْحَةُ وَالْأَلِفُ وَالْكَسْرَةُ وَالْيَاءُ وَحَذْفُ النُّونِ",
           "optionD": "Enam",
           "correctOption": "C",
-          "explanation": "وَلِلنَّصْبِ خَمْسُ عَلَامَاتٍ: الْفَتْحَةُ وَالْأَلِفُ وَالْكَسْرَةُ وَالْيَاءُ وَحَذْفُ النُّونِ."
+          "explanation": "وَلِلنَّصْبِ خَمْسُ عَلَامَاتٍ: الْفَتْحَةُ وَالْأَلِفُ وَالْكَسْرَةُ وَالْيَاءُ وَحَذْفُ النُّونِ.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q14",
+          "id": "nahwu-jurumiyah-draft-q14",
           "stem": "Pada umumnya tanda nashab adalah fathah, namun ada satu pengecualian di mana tanda nashab-nya justru kasrah. Kata apakah itu?",
           "optionA": "جَمْعُ الْمُؤَنَّثِ السَّالِمِ (jamak muannats salim)",
           "optionB": "جَمْعُ التَّكْسِيرِ",
           "optionC": "الْأَسْمَاءُ الْخَمْسَةُ",
           "optionD": "الْمُثَنَّى (bentuk dua/tatsniyah)",
           "correctOption": "A",
-          "explanation": "Jamak muannats salim adalah pengecualian: tanda nashab-nya adalah kasrah (الْكَسْرَةُ), bukan fathah."
+          "explanation": "Jamak muannats salim adalah pengecualian: tanda nashab-nya adalah kasrah (الْكَسْرَةُ), bukan fathah.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q15",
+          "id": "nahwu-jurumiyah-draft-q15",
           "stem": "Menurut Jurumiyyah, ada berapa tanda untuk khafadh (jarr), dan apa saja?",
           "optionA": "Dua: الْكَسْرَةُ وَالْيَاءُ",
           "optionB": "Empat, sama seperti tanda rafa'",
           "optionC": "Lima, sama seperti tanda nashab",
           "optionD": "Tiga: الْكَسْرَةُ وَالْيَاءُ وَالْفَتْحَةُ",
           "correctOption": "D",
-          "explanation": "وَلِلْخَفْضِ ثَلَاثُ عَلَامَاتٍ: الْكَسْرَةُ وَالْيَاءُ وَالْفَتْحَةُ."
+          "explanation": "وَلِلْخَفْضِ ثَلَاثُ عَلَامَاتٍ: الْكَسْرَةُ وَالْيَاءُ وَالْفَتْحَةُ.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q16",
+          "id": "nahwu-jurumiyah-draft-q16",
           "stem": "Menurut Jurumiyyah, ada berapa tanda untuk jazm, dan apa saja?",
           "optionA": "Tiga, sama seperti tanda khafadh",
           "optionB": "Dua: السُّكُونُ وَالْحَذْفُ",
           "optionC": "Satu: السُّكُونُ saja",
           "optionD": "Empat",
           "correctOption": "B",
-          "explanation": "وَلِلْجَزْمِ عَلَامَتَانِ: السُّكُونُ وَالْحَذْفُ."
+          "explanation": "وَلِلْجَزْمِ عَلَامَتَانِ: السُّكُونُ وَالْحَذْفُ.",
+          "source": "Bab ʿAlāmāt al-Iʿrāb; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.3"
         },
         {
-          "id": "nahwu-jurumiyah-q17",
+          "id": "nahwu-jurumiyah-draft-q17",
           "stem": "Menurut Jurumiyyah, fi'il (kata kerja) terbagi menjadi tiga jenis, yaitu...?",
           "optionA": "مَاضٍ، وَمُضَارِعٌ، وَمَصْدَرٌ",
           "optionB": "مَاضٍ، وَحَالٌ، وَأَمْرٌ",
           "optionC": "مَاضٍ، وَمُضَارِعٌ، وَأَمْرٌ",
           "optionD": "مُضَارِعٌ، وَأَمْرٌ، وَنَهْيٌ saja",
           "correctOption": "C",
-          "explanation": "Fi'il ada tiga: māḍī (lampau), muḍāriʿ (sekarang/akan datang), dan amr (perintah)."
+          "explanation": "Fi'il ada tiga: māḍī (lampau), muḍāriʿ (sekarang/akan datang), dan amr (perintah).",
+          "source": "Bab al-Afʿāl; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.4"
         },
         {
-          "id": "nahwu-jurumiyah-q18",
+          "id": "nahwu-jurumiyah-draft-q18",
           "stem": "Menurut Jurumiyyah, huruf akhir fi'il madhi (فِعْلٌ مَاضٍ) — seperti pada ضَرَبَ — selalu berharakat...?",
           "optionA": "فَتْحَةٌ (fathah), selamanya",
           "optionB": "ضَمَّةٌ (dhammah)",
           "optionC": "سُكُونٌ (sukun), selamanya",
           "optionD": "Tergantung kedudukannya dalam kalimat",
           "correctOption": "A",
-          "explanation": "Fi'il madhi selalu diakhiri fathah — tidak mengalami i'rab yang berubah-ubah seperti isim mu'rab."
+          "explanation": "Fi'il madhi selalu diakhiri fathah — tidak mengalami i'rab yang berubah-ubah seperti isim mu'rab.",
+          "source": "Bab al-Afʿāl; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.4"
         },
         {
-          "id": "nahwu-jurumiyah-q19",
+          "id": "nahwu-jurumiyah-draft-q19",
           "stem": "Menurut Jurumiyyah, fi'il amr (فِعْلُ الْأَمْرِ) — seperti pada اِضْرِبْ — selalu berkedudukan...?",
           "optionA": "مَرْفُوعٌ (marfu'), selamanya",
           "optionB": "مَنْصُوبٌ (manshub), selamanya",
           "optionC": "Tergantung huruf jazm yang mendahuluinya",
           "optionD": "مَجْزُومٌ (majzum), selamanya",
           "correctOption": "D",
-          "explanation": "Fi'il amr selalu majzum, tanpa perlu didahului huruf jazm apa pun."
+          "explanation": "Fi'il amr selalu majzum, tanpa perlu didahului huruf jazm apa pun.",
+          "source": "Bab al-Afʿāl; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.4"
         },
         {
-          "id": "nahwu-jurumiyah-q20",
+          "id": "nahwu-jurumiyah-draft-q20",
           "stem": "Fi'il mudhari' dikenali karena diawali salah satu dari empat huruf tambahan, yang biasa diringkas dengan singkatan أَنَيْتَ. Manakah keempat huruf tersebut?",
           "optionA": "أَلِفٌ، وَلَامٌ، وَمِيمٌ، وَنُونٌ",
           "optionB": "أَلِفٌ، وَنُونٌ، وَيَاءٌ، وَتَاءٌ (hamzah, nun, ya', ta')",
           "optionC": "سِينٌ، وَتَاءٌ، وَقَدْ، وَسَوْفَ",
           "optionD": "وَاوٌ، وَيَاءٌ، وَأَلِفٌ، وَنُونٌ",
           "correctOption": "B",
-          "explanation": "Empat huruf mudhara'ah adalah hamzah (أَفْعَلُ), nun (نَفْعَلُ), ya' (يَفْعَلُ), dan ta' (تَفْعَلُ) — diringkas أَنَيْتَ."
+          "explanation": "Empat huruf mudhara'ah adalah hamzah (أَفْعَلُ), nun (نَفْعَلُ), ya' (يَفْعَلُ), dan ta' (تَفْعَلُ) — diringkas أَنَيْتَ.",
+          "source": "Bab al-Afʿāl; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.4"
         },
         {
-          "id": "nahwu-jurumiyah-q21",
+          "id": "nahwu-jurumiyah-draft-q21",
           "stem": "Menurut Jurumiyyah, fi'il mudhari' pada dasarnya berkedudukan marfu' terus-menerus, KECUALI jika...?",
           "optionA": "Berada di awal kalimat",
           "optionB": "Subjeknya berupa isim mu'annats",
           "optionC": "Didahului oleh salah satu huruf nashab (نَاصِبٌ) atau huruf jazm (جَازِمٌ)",
           "optionD": "Diakhiri dengan tanwin",
           "correctOption": "C",
-          "explanation": "Fi'il mudhari' marfu' selama tidak dimasuki huruf nashib (menashabkan) atau huruf jazim (menjazmkan)."
+          "explanation": "Fi'il mudhari' marfu' selama tidak dimasuki huruf nashib (menashabkan) atau huruf jazim (menjazmkan).",
+          "source": "Bab al-Afʿāl; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.4"
         },
         {
-          "id": "nahwu-jurumiyah-q22",
+          "id": "nahwu-jurumiyah-draft-q22",
           "stem": "Menurut Jurumiyyah, ada berapa kategori marfūʿāt al-asmāʾ (hal-hal yang dirafa'kan pada isim)?",
           "optionA": "Tujuh (سَبْعَةٌ)",
           "optionB": "Lima",
           "optionC": "Sepuluh",
           "optionD": "Tiga",
           "correctOption": "A",
-          "explanation": "الْمَرْفُوعَاتُ سَبْعَةٌ: al-fāʿil, al-mafʿūl alladhī lam yusamma fāʿiluhu, al-mubtadaʾ, khabaruhu, ism kāna wa akhawātihā, khabar inna wa akhawātihā, dan al-tābiʿ li-l-marfūʿ."
+          "explanation": "الْمَرْفُوعَاتُ سَبْعَةٌ: al-fāʿil, al-mafʿūl alladhī lam yusamma fāʿiluhu, al-mubtadaʾ, khabaruhu, ism kāna wa akhawātihā, khabar inna wa akhawātihā, dan al-tābiʿ li-l-marfūʿ.",
+          "source": "Bab Marfūʿāt al-Asmāʾ; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q23",
+          "id": "nahwu-jurumiyah-draft-q23",
           "stem": "Bagaimana Jurumiyyah mendefinisikan al-fāʿil (الْفَاعِلُ)?",
           "optionA": "Isim yang selalu manshub setelah fi'il",
           "optionB": "Kata kerja yang menunjukkan pelaku",
           "optionC": "Isim yang selalu berada di akhir kalimat",
           "optionD": "الِاسْمُ الْمَرْفُوعُ الْمَذْكُورُ قَبْلَهُ فِعْلُهُ — isim yang dirafa'kan dan disebutkan fi'ilnya sebelum dia, contoh: قَامَ زَيْدٌ",
           "correctOption": "D",
-          "explanation": "Fa'il adalah isim marfu' yang fi'ilnya disebutkan lebih dulu, contoh: قَامَ زَيْدٌ (Zayd telah berdiri)."
+          "explanation": "Fa'il adalah isim marfu' yang fi'ilnya disebutkan lebih dulu, contoh: قَامَ زَيْدٌ (Zayd telah berdiri).",
+          "source": "Bab al-Fāʿil (bagian dari Marfūʿāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q24",
+          "id": "nahwu-jurumiyah-draft-q24",
           "stem": "Pada kalimat pasif ضُرِبَ زَيْدٌ (Zayd dipukul), kata زَيْدٌ berkedudukan sebagai...?",
           "optionA": "فَاعِلٌ biasa",
           "optionB": "نَائِبُ الْفَاعِلِ / الْمَفْعُولُ الَّذِي لَمْ يُسَمَّ فَاعِلُهُ — isim marfu' yang fa'ilnya tidak disebutkan",
           "optionC": "مَفْعُولٌ بِهِ manshub",
           "optionD": "مُبْتَدَأٌ",
           "correctOption": "B",
-          "explanation": "Ketika fa'il tidak disebutkan, maf'ul menggantikan posisinya menjadi marfu' — disebut nāʾib al-fāʿil, contoh: ضُرِبَ زَيْدٌ."
+          "explanation": "Ketika fa'il tidak disebutkan, maf'ul menggantikan posisinya menjadi marfu' — disebut nāʾib al-fāʿil, contoh: ضُرِبَ زَيْدٌ.",
+          "source": "Bab al-Mafʿūl alladhī lam yusamma fāʿiluhu (bagian dari Marfūʿāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q25",
+          "id": "nahwu-jurumiyah-draft-q25",
           "stem": "Bagaimana Jurumiyyah mendefinisikan al-mubtadaʾ (الْمُبْتَدَأُ)?",
           "optionA": "Isim yang selalu didahului huruf jarr",
           "optionB": "Fi'il yang berada di awal kalimat",
           "optionC": "الْمُبْتَدَأُ — isim marfu' yang bersih/lepas dari 'amil lafal, biasanya mengawali jumlah ismiyyah, contoh: زَيْدٌ pada زَيْدٌ قَائِمٌ",
           "optionD": "Isim yang selalu manshub",
           "correctOption": "C",
-          "explanation": "Mubtada' adalah isim marfu' yang tidak didahului 'amil lafzhi, biasanya berada di awal jumlah ismiyyah, contoh: زَيْدٌ قَائِمٌ (Zayd sedang berdiri)."
+          "explanation": "Mubtada' adalah isim marfu' yang tidak didahului 'amil lafzhi, biasanya berada di awal jumlah ismiyyah, contoh: زَيْدٌ قَائِمٌ (Zayd sedang berdiri).",
+          "source": "Bab al-Mubtadaʾ wa-l-Khabar (bagian dari Marfūʿāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q26",
+          "id": "nahwu-jurumiyah-draft-q26",
           "stem": "Pada kalimat زَيْدٌ قَائِمٌ (Zayd sedang berdiri), kata قَائِمٌ berkedudukan sebagai...?",
           "optionA": "خَبَرٌ — isim marfu' yang memberi informasi/predikat atas mubtada'",
           "optionB": "مُبْتَدَأٌ kedua",
           "optionC": "فَاعِلٌ",
           "optionD": "حَالٌ",
           "correctOption": "A",
-          "explanation": "Khabar adalah isim marfu' yang disandarkan pada mubtada' untuk melengkapi maknanya, contoh: قَائِمٌ pada زَيْدٌ قَائِمٌ."
+          "explanation": "Khabar adalah isim marfu' yang disandarkan pada mubtada' untuk melengkapi maknanya, contoh: قَائِمٌ pada زَيْدٌ قَائِمٌ.",
+          "source": "Bab al-Mubtadaʾ wa-l-Khabar (bagian dari Marfūʿāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q27",
+          "id": "nahwu-jurumiyah-draft-q27",
           "stem": "Kāna dan saudara-saudaranya (كَانَ وَأَخَوَاتُهَا) — seperti pada كَانَ زَيْدٌ قَائِمًا — berfungsi untuk...?",
           "optionA": "Menashabkan isim dan merafa'kan khabar",
           "optionB": "Menjazmkan khabar",
           "optionC": "Mengkhafadhkan isim dan khabar",
           "optionD": "Merafa'kan isim (menjadi اسْمُ كَانَ) dan menashabkan khabar (menjadi خَبَرُ كَانَ)",
           "correctOption": "D",
-          "explanation": "كَانَ وَأَخَوَاتُهَا تَرْفَعُ الِاسْمَ وَتَنْصِبُ الْخَبَرَ — contoh: كَانَ زَيْدٌ قَائِمًا (زَيْدٌ tetap marfu' sebagai isim kāna, قَائِمًا menjadi manshub sebagai khabar kāna)."
+          "explanation": "كَانَ وَأَخَوَاتُهَا تَرْفَعُ الِاسْمَ وَتَنْصِبُ الْخَبَرَ — contoh: كَانَ زَيْدٌ قَائِمًا (زَيْدٌ tetap marfu' sebagai isim kāna, قَائِمًا menjadi manshub sebagai khabar kāna).",
+          "source": "Bab al-ʿAwāmil al-Dākhilah ʿalā al-Mubtadaʾ wa-l-Khabar (bagian dari Marfūʿāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q28",
+          "id": "nahwu-jurumiyah-draft-q28",
           "stem": "Inna dan saudara-saudaranya (إِنَّ وَأَخَوَاتُهَا) — seperti pada إِنَّ زَيْدًا قَائِمٌ — berfungsi untuk...?",
           "optionA": "Merafa'kan isim dan menashabkan khabar, sama seperti كَانَ",
           "optionB": "Menashabkan isim (menjadi اسْمُ إِنَّ) dan merafa'kan khabar (menjadi خَبَرُ إِنَّ) — kebalikan dari كَانَ وَأَخَوَاتُهَا",
           "optionC": "Menjazmkan isim dan khabar",
           "optionD": "Hanya berlaku untuk fi'il, bukan jumlah ismiyyah",
           "correctOption": "B",
-          "explanation": "إِنَّ وَأَخَوَاتُهَا (termasuk أَنَّ، لَكِنَّ، كَأَنَّ، لَيْتَ، لَعَلَّ) menashabkan isim dan merafa'kan khabar — kebalikan kāna. Contoh: إِنَّ زَيْدًا قَائِمٌ (زَيْدًا manshub sebagai isim inna, قَائِمٌ tetap marfu' sebagai khabar inna)."
+          "explanation": "إِنَّ وَأَخَوَاتُهَا (termasuk أَنَّ، لَكِنَّ، كَأَنَّ، لَيْتَ، لَعَلَّ) menashabkan isim dan merafa'kan khabar — kebalikan kāna. Contoh: إِنَّ زَيْدًا قَائِمٌ (زَيْدًا manshub sebagai isim inna, قَائِمٌ tetap marfu' sebagai khabar inna).",
+          "source": "Bab al-ʿAwāmil al-Dākhilah ʿalā al-Mubtadaʾ wa-l-Khabar (bagian dari Marfūʿāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.5"
         },
         {
-          "id": "nahwu-jurumiyah-q29",
+          "id": "nahwu-jurumiyah-draft-q29",
           "stem": "Pada kalimat ضَرَبْتُ زَيْدًا (aku memukul Zayd), kata زَيْدًا berkedudukan sebagai...?",
           "optionA": "الْفَاعِلُ",
           "optionB": "الْمُبْتَدَأُ",
           "optionC": "الْمَفْعُولُ بِهِ — isim manshub yang menjadi objek/sasaran perbuatan fi'il",
           "optionD": "خَبَرُ كَانَ",
           "correctOption": "C",
-          "explanation": "Maf'ul bih adalah isim manshub yang dikenai pekerjaan fi'il, contoh: ضَرَبْتُ زَيْدًا."
+          "explanation": "Maf'ul bih adalah isim manshub yang dikenai pekerjaan fi'il, contoh: ضَرَبْتُ زَيْدًا.",
+          "source": "Bab al-Mafʿūl bihi (bagian dari Manṣūbāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.6 — hanya aturan Maf'ul bihi yang dipakai, bukan jumlah total Manṣūbāt al-Asmāʾ (lihat catatan ketidakpastian pada §3.6/§6 riset)"
         },
         {
-          "id": "nahwu-jurumiyah-q30",
+          "id": "nahwu-jurumiyah-draft-q30",
           "stem": "Manakah contoh mashdar (الْمَصْدَرُ — isim yang menunjukkan kejadian pekerjaan) yang digunakan Jurumiyyah?",
           "optionA": "ضَرَبْتُ ضَرْبًا (aku memukul dengan satu pukulan)",
           "optionB": "ضَرَبْتُ زَيْدًا",
           "optionC": "جَاءَ زَيْدٌ رَاكِبًا",
           "optionD": "يَا زَيْدُ",
           "correctOption": "A",
-          "explanation": "Mashdar adalah isim manshub yang muncul sebagai bentuk ketiga dari tashrif fi'il, contoh: ضَرَبْتُ ضَرْبًا."
+          "explanation": "Mashdar adalah isim manshub yang muncul sebagai bentuk ketiga dari tashrif fi'il, contoh: ضَرَبْتُ ضَرْبًا.",
+          "source": "Bab al-Maṣdar (bagian dari Manṣūbāt al-Asmāʾ); lihat NAHWU_JURUMIYAH_RESEARCH.md §3.6"
         },
         {
-          "id": "nahwu-jurumiyah-q31",
+          "id": "nahwu-jurumiyah-draft-q31",
           "stem": "Pada frasa غُلَامُ زَيْدٍ (pembantu Zayd), kata زَيْدٍ berkedudukan makhfudh (majrur) karena...?",
           "optionA": "Didahului huruf jarr",
           "optionB": "Menjadi na'at bagi غُلَامُ",
           "optionC": "Menjadi fa'il",
           "optionD": "Menjadi مُضَافٌ إِلَيْهِ (mudhaf ilaih) dalam susunan iḍāfah — kata kedua dalam iḍāfah selalu makhfudh",
           "correctOption": "D",
-          "explanation": "Iḍāfah (susunan penyandaran/kepunyaan) selalu menjadikan kata kedua (mudhaf ilaih) berkedudukan makhfudh, contoh: غُلَامُ زَيْدٍ — tanpa memerlukan huruf jarr."
+          "explanation": "Iḍāfah (susunan penyandaran/kepunyaan) selalu menjadikan kata kedua (mudhaf ilaih) berkedudukan makhfudh, contoh: غُلَامُ زَيْدٍ — tanpa memerlukan huruf jarr.",
+          "source": "Bab Makhfūḍāt al-Asmāʾ; lihat NAHWU_JURUMIYAH_RESEARCH.md §3.7"
         }
       ]
     }

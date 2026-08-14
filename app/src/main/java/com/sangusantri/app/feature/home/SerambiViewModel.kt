@@ -20,39 +20,39 @@ import javax.inject.Inject
 /** Builds Beranda exclusively from local repositories; Room remains the source of truth. */
 @HiltViewModel
 class SerambiViewModel
-    @Inject
-    constructor(
-        contentRepository: ContentRepository,
-        reminderRepository: ReminderRepository,
-        nahwuQuizRepository: NahwuQuizRepository,
-        private val resumeCoordinator: SerambiResumeCoordinator,
-    ) : ViewModel() {
+@Inject
+constructor(
+    contentRepository: ContentRepository,
+    reminderRepository: ReminderRepository,
+    nahwuQuizRepository: NahwuQuizRepository,
+    private val resumeCoordinator: SerambiResumeCoordinator,
+) : ViewModel() {
     private val activeContent = contentRepository.observeActiveContent()
 
     private val baseData: Flow<BaseData> =
-            combine(
-                activeContent,
-                reminderRepository.observeNearestEnabled(),
-                nahwuQuizRepository.observePackageSummaries().map { it.isNotEmpty() },
-                nahwuQuizRepository.observeActiveAttempt(),
-            ) { items, nearestReminder, hasNahwuQuizContent, activeQuiz ->
-                BaseData(items, nearestReminder, hasNahwuQuizContent, activeQuiz != null)
-            }
+        combine(
+            activeContent,
+            reminderRepository.observeNearestEnabled(),
+            nahwuQuizRepository.observePackageSummaries().map { it.isNotEmpty() },
+            nahwuQuizRepository.observeActiveAttempt(),
+        ) { items, nearestReminder, hasNahwuQuizContent, activeQuiz ->
+            BaseData(items, nearestReminder, hasNahwuQuizContent, activeQuiz != null)
+        }
 
     val uiState: StateFlow<SerambiUiState> =
         combine(baseData, resumeCoordinator.observe(activeContent)) { base, resumeItem ->
-                SerambiUiState.Loaded(
-                    items = base.items,
-                    nearestReminder = base.nearestReminder,
-                    hasNahwuQuizContent = base.hasNahwuQuizContent,
-                    hasActiveNahwuQuiz = base.hasActiveNahwuQuiz,
-                    resumeItem = resumeItem,
-                )
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = SerambiUiState.Loading,
+            SerambiUiState.Loaded(
+                items = base.items,
+                nearestReminder = base.nearestReminder,
+                hasNahwuQuizContent = base.hasNahwuQuizContent,
+                hasActiveNahwuQuiz = base.hasActiveNahwuQuiz,
+                resumeItem = resumeItem,
             )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = SerambiUiState.Loading,
+        )
 
     fun dismissResume(fingerprint: String) {
         viewModelScope.launch { resumeCoordinator.dismiss(fingerprint) }
@@ -65,7 +65,7 @@ class SerambiViewModel
         val hasActiveNahwuQuiz: Boolean,
     )
 
-        private companion object {
-            const val STOP_TIMEOUT_MILLIS = 5_000L
-        }
+    private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
     }
+}

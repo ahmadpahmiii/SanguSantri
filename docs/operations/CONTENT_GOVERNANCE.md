@@ -160,6 +160,49 @@ on-device data structure. `tools/content-importer/` remains available as
 a developer-only tool for preparing future content updates; it is never
 invoked automatically or at application runtime.
 
+## Nahwu Quiz content (educational, not amaliyah)
+
+This document's header scopes it to "amaliyah text" — communal ritual
+recitation content (Tahlil, Istighosah). Nahwu Quiz question content
+(`0.0.5`, `docs/product/NAHWU_QUIZ_ENGAGEMENT_PRD.md`) is a different kind
+of content: classical Arabic grammar education (i'rab rules, parts of
+speech), not devotional or ritual text, and not itself a claim about
+doctrine. It was never explicitly covered by the risk-based model above.
+By explicit product-owner decision, recorded here rather than left
+ambiguous: Nahwu Quiz grammar content sourced from an identified, publicly
+accessible, non-sectarian classical text (e.g. Matn al-Ājurrūmiyyah, in
+the public domain and taught identically across mainstream Islamic
+educational traditions) is treated the same way "standard public
+amaliyah" is treated in §Risk-based publication model — publishable on the
+product owner's own explicit editorial acceptance, with the source cited,
+kyai/ustaz sign-off optional rather than mandatory. This does not change
+anything about actual amaliyah content, and it does not authorise treating
+doctrinally contested or pesantren/tarekat-specific nahwu material the
+same way — that would still be higher-risk content under the criteria
+above.
+
+**AI's role stays the same as elsewhere in this document.** Claude may
+research primary sources, draft candidate questions grounded in cited
+facts, and structure/format/validate content — Claude never decides on its
+own judgement that drafted content is accepted, and any AI-drafted batch
+must be clearly labelled as an unreviewed draft until the product owner
+explicitly accepts it (mirroring `tools/content-importer/`'s
+draft-then-human-review split above, §Developer draft tooling).
+
+**Nahwu Quiz content baseline.** The Jurumiyah-tier question bank (31
+questions, package id `nahwu-jurumiyah`) was researched against primary
+sources (`docs/product/NAHWU_JURUMIYAH_RESEARCH.md`, citing a directly
+fetched bab-by-bab Arabic reproduction of the matn plus a full English
+translation), drafted with each question citing the specific bab/rule it
+tests, and explicitly reviewed and accepted by the product owner on 14
+August 2026 — replacing both `[FIXTURE]` placeholder packages in
+`app/src/main/assets/nahwu_quiz/nahwu_quiz_bank.json`. No kyai/ustaz
+review has occurred; the app must never present this content as if a
+religious authority reviewed it (same rule as §Source verification vs.
+approval vs. endorsement). This is 31 of the ~60–90 question target for
+the Jurumiyah tier (`NAHWU_QUIZ_ENGAGEMENT_PRD.md` §8) — a first tranche,
+not the complete tier.
+
 ## Correction workflow
 
 Content correction is an internal SanguSantri-team operation. Users do not

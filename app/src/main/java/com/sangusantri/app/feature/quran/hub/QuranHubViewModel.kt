@@ -34,86 +34,86 @@ private data class QuranHubData(
  */
 @HiltViewModel
 class QuranHubViewModel
-    @Inject
-    constructor(
-        private val quranRepository: QuranRepository,
-        private val settingsRepository: QuranReaderSettingsRepository,
-    ) : ViewModel() {
-        private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
-        private val searchQuery = MutableStateFlow("")
+@Inject
+constructor(
+    private val quranRepository: QuranRepository,
+    private val settingsRepository: QuranReaderSettingsRepository,
+) : ViewModel() {
+    private val selectedTab = MutableStateFlow(QuranHubTab.SURAH)
+    private val searchQuery = MutableStateFlow("")
 
-        private val hubData: Flow<QuranHubData> =
-            combine(
-                quranRepository.observeSurahs(),
-                quranRepository.observeJuzStarts(),
-                quranRepository.observeBookmarks(),
-                quranRepository.observeReadingState(),
-            ) { surahs, juzStarts, bookmarks, readingState ->
-                QuranHubData(surahs, juzStarts, bookmarks, readingState)
-            }
-
-        val uiState: StateFlow<QuranHubUiState> =
-            combine(hubData, selectedTab, searchQuery, ::buildUiState)
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), QuranHubUiState())
-
-        fun selectTab(tab: QuranHubTab) {
-            selectedTab.value = tab
+    private val hubData: Flow<QuranHubData> =
+        combine(
+            quranRepository.observeSurahs(),
+            quranRepository.observeJuzStarts(),
+            quranRepository.observeBookmarks(),
+            quranRepository.observeReadingState(),
+        ) { surahs, juzStarts, bookmarks, readingState ->
+            QuranHubData(surahs, juzStarts, bookmarks, readingState)
         }
 
-        fun updateSearchQuery(query: String) {
-            searchQuery.value = query
-        }
+    val uiState: StateFlow<QuranHubUiState> =
+        combine(hubData, selectedTab, searchQuery, ::buildUiState)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), QuranHubUiState())
+
+    fun selectTab(tab: QuranHubTab) {
+        selectedTab.value = tab
+    }
+
+    fun updateSearchQuery(query: String) {
+        searchQuery.value = query
+    }
 
     fun toggleTheme() {
         viewModelScope.launch { settingsRepository.toggleThemeMode() }
     }
 
-        private fun buildUiState(
-            data: QuranHubData,
-            tab: QuranHubTab,
-            query: String,
-        ): QuranHubUiState {
-            val surahNames = data.surahs.associate { it.number to it.latinName }
-            return QuranHubUiState(
-                selectedTab = tab,
-                searchQuery = query,
-                surahs = data.surahs.filteredBySearch(query),
-                juzRows =
-                    data.juzStarts.map { verse ->
-                        QuranJuzRow(
-                            juzNumber = verse.juz,
-                            surahNumber = verse.surahNumber,
-                            surahName = surahNames[verse.surahNumber].orEmpty(),
-                            ayatNumber = verse.ayatNumber,
-                            page = verse.page,
-                        )
-                    },
-                bookmarkRows =
-                    data.bookmarks.map { bookmark ->
-                        QuranBookmarkRow(
-                            surahNumber = bookmark.surahNumber,
-                            surahName = surahNames[bookmark.surahNumber].orEmpty(),
-                            ayatNumber = bookmark.ayatNumber,
-                            createdAtEpochMillis = bookmark.createdAtEpochMillis,
-                        )
-                    },
-                continueReading =
-                    data.readingState?.let { state ->
-                        QuranContinueReading(
-                            surahNumber = state.surahNumber,
-                            surahName = surahNames[state.surahNumber].orEmpty(),
-                            ayatNumber = state.ayatNumber,
-                            page = state.page,
-                        )
-                    },
-                isLoading = false,
-            )
-        }
-
-        private companion object {
-            const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
-        }
+    private fun buildUiState(
+        data: QuranHubData,
+        tab: QuranHubTab,
+        query: String,
+    ): QuranHubUiState {
+        val surahNames = data.surahs.associate { it.number to it.latinName }
+        return QuranHubUiState(
+            selectedTab = tab,
+            searchQuery = query,
+            surahs = data.surahs.filteredBySearch(query),
+            juzRows =
+                data.juzStarts.map { verse ->
+                    QuranJuzRow(
+                        juzNumber = verse.juz,
+                        surahNumber = verse.surahNumber,
+                        surahName = surahNames[verse.surahNumber].orEmpty(),
+                        ayatNumber = verse.ayatNumber,
+                        page = verse.page,
+                    )
+                },
+            bookmarkRows =
+                data.bookmarks.map { bookmark ->
+                    QuranBookmarkRow(
+                        surahNumber = bookmark.surahNumber,
+                        surahName = surahNames[bookmark.surahNumber].orEmpty(),
+                        ayatNumber = bookmark.ayatNumber,
+                        createdAtEpochMillis = bookmark.createdAtEpochMillis,
+                    )
+                },
+            continueReading =
+                data.readingState?.let { state ->
+                    QuranContinueReading(
+                        surahNumber = state.surahNumber,
+                        surahName = surahNames[state.surahNumber].orEmpty(),
+                        ayatNumber = state.ayatNumber,
+                        page = state.page,
+                    )
+                },
+            isLoading = false,
+        )
     }
+
+    private companion object {
+        const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
+    }
+}
 
 /** Case/diacritic-tolerant Latin-name match, or an exact surah-number match (QUR-FR-006) — local
  * only, never a network request. */

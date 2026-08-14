@@ -9,16 +9,16 @@ import javax.inject.Inject
 
 /** Reads and writes reading position via Room, keyed by content id. */
 class ReadingPositionRepositoryImpl
-    @Inject
-    constructor(
-        private val readingPositionDao: ReadingPositionDao,
-    ) : ReadingPositionRepository {
-        override suspend fun getPosition(contentId: String): ReadingPosition? =
-            readingPositionDao.getByContentId(contentId)?.toDomain()
+@Inject
+constructor(
+    private val readingPositionDao: ReadingPositionDao,
+) : ReadingPositionRepository {
+    override suspend fun getPosition(contentId: String): ReadingPosition? =
+        readingPositionDao.getByContentId(contentId)?.toDomain()
 
     override suspend fun getMostRecentPosition(): ReadingPosition? = readingPositionDao.getMostRecent()?.toDomain()
 
-        override suspend fun savePosition(position: ReadingPosition) {
-            readingPositionDao.upsert(position.toEntity())
-        }
+    override suspend fun savePosition(position: ReadingPosition) {
+        readingPositionDao.upsert(position.toEntity())
     }
+}

@@ -4039,16 +4039,20 @@ in this slice is reachable from the running app.
       not a secret, so unlike `CONTENT_API_BASE_URL` it has no override property).
     - `QuranCredentialProvider` (`data/remote/quran/`): resolves once, held in memory for the
       process
-      lifetime. `BuildConfig.DEBUG` short-circuits to a fixed, unmistakably fake fixture credential
-      (`debug-fixture-username`/`debug-fixture-token`) without ever touching the native library —
-      debug/test builds never require production secrets (PRD §9). Release builds compute this app's
+      lifetime. `BuildConfig.DEBUG` short-circuits to a fixed, unmistakably fake fixture
+      credential
+      (`debug-fixture-username`/`debug-fixture-token`) without ever touching the native
+      library —
+      debug/test builds never require production secrets (PRD §9). Release builds compute this
+      app's
       own signing-certificate SHA-256 via `PackageManager` and only then call
       `QuranNativeCredentialBridge` (the JNI boundary).
     - `QuranAuthInterceptor`: attaches `username`/`token` headers only to requests whose host is
       exactly `quran-api.lpmqkemenag.id`; passes every other request through unauthenticated
       (header-origin isolation, verified by `QuranAuthInterceptorTest`).
     - `di/QuranNetworkModule.kt`: a wholly separate `@QuranHttpClient`-qualified `OkHttpClient`/
-      `Retrofit`/`QuranApiService` from `NetworkModule`'s Firebase Hosting content client — Kemenag
+      `Retrofit`/`QuranApiService` from `NetworkModule`'s Firebase Hosting content client —
+      Kemenag
       headers can never attach to a non-Kemenag request even by accident.
 - **Sync** (`data/sync/quran/`): `QuranSyncManager` — fetches `/surah/local/1/114` then all 114
   surahs' `/ayat/local/{no_surah}` with bounded concurrency (`Semaphore(6)`), validates the complete
@@ -6698,4 +6702,97 @@ prior entries; nothing new from this change. `./gradlew lint` — pass, no findi
 Manually verify the line-spacing slider at both new extremes (`1.50×` and `5.00×`) on a
 device/emulator once available, confirming the live preview and persisted value both track
 correctly. Then resume Nahwu Quiz (`0.0.5`) or Kalender Hijriah's next slice.
+
+## Nahwu Quiz — engagement design spec, Jurumiyah content research, and first production content tranche (2026-08-13 to 2026-08-14)
+
+**Status:** Design spec and research complete; content-only change implemented and validated
+locally. Not the daily-challenge/engagement mechanics themselves — those remain a separate,
+not-yet-started implementation pass.
+
+### What shipped
+
+**Design spec** (`docs/product/NAHWU_QUIZ_ENGAGEMENT_PRD.md`, 2026-08-13): a grilling session with
+the product owner produced a full design for Nahwu Quiz's daily-challenge/engagement layer on top
+of the already-built-but-unreleased `0.0.5` base flow — a dedicated "Tantangan Harian" mode
+(date-seeded shuffled-cycle question selection, one attempt/day, timer + combo + rich feedback
+exclusive to that mode), a standalone streak computed from the attempt log (hard reset on a missed
+day, no XP/badges), a Beranda live streak/status indicator replacing a dedicated notification, and
+an explicit decision to defer leaderboard/social features (documented as future work, not built) to
+stay inside ADR 0013's guardrails. No code was written for this spec — it is a future
+implementation-pass input, per the session's own "design spec first, implement later" decision.
+
+**Primary-source research** (`docs/product/NAHWU_JURUMIYAH_RESEARCH.md`, 605 lines): a background
+agent researched Matn al-Ājurrūmiyyah's bab structure, core grammar rules, and canonical examples
+against directly-fetched Arabic-language primary-adjacent sources plus a full English translation,
+citing every claim and explicitly flagging what could not be verified confidently (the full jawāzim
+particle list, the Manṣūbāt al-Asmāʾ 14-vs-15 count arithmetic) rather than guessing.
+
+**First production content tranche**: 31 Jurumiyah-tier multiple-choice questions were drafted from
+that research (`docs/product/nahwu-quiz-jurumiyah-draft-bank.json`, kept as the pre-promotion
+provenance record), reviewed and explicitly accepted by the product owner, then promoted into
+`app/src/main/assets/nahwu_quiz/nahwu_quiz_bank.json` as package `nahwu-jurumiyah` — replacing
+both `[FIXTURE]` placeholder packages (`nahwu-dasar-fixture`, `nahwu-lanjutan-fixture`) entirely.
+Question/package ids renamed to drop the `-draft` marker; the draft file's `source`/`_disclaimer`
+fields (not part of `NahwuQuizQuestionDto`) were dropped from the production file. This is 31 of
+the ~60–90 question target for the Jurumiyah tier (a first tranche, not the complete tier), and
+does not yet include the `includedInDailyChallenge` schema field the engagement spec's §7
+proposes — that arrives with the engagement-mechanics implementation pass, not this content-only
+change.
+
+**Content governance**: `docs/operations/CONTENT_GOVERNANCE.md` gained a new "Nahwu Quiz content
+(educational, not amaliyah)" section recording that this document's risk-based publication model —
+previously scoped only to amaliyah ritual text — now explicitly also covers Nahwu grammar-education
+content by product-owner decision, plus the Jurumiyah baseline acceptance record itself (same
+pattern as the existing Tahlil/Istighosah "Public content baseline" paragraph). No kyai/ustaz review
+occurred or is claimed; the risk-based model's product-owner-acceptance path was used, matching how
+standard public amaliyah is already treated.
+
+### Validation
+
+`./gradlew :app:ktlintFormat :app:ktlintCheck` — the one failure
+(`ReminderRepositoryImpl.kt:1:1`, max line length) is pre-existing, uncommitted working-tree state
+from before this session (confirmed via `git diff --stat` against the last commit touching that
+file) — this session touched no `.kt` file. `./gradlew :app:detekt` — the one finding
+(`QuranEntryScreen.kt:201`, unused parameter) is the same pre-existing, unrelated debt noted in
+every prior entry above. `./gradlew :app:lintDebug` — pass, no findings.
+`./gradlew :app:assembleDebug`
+— pass, confirming the new bundled JSON asset merges and packages correctly.
+
+**Manual on-device verification** (Pixel_9 emulator, API 15/36, connected this session):
+`installDebug` + `adb shell pm clear com.sangusantri.app` (see the bootstrap-staleness known
+limitation below) then walked Beranda → Kuis Nahwu → Lihat paket soal → Jurumiyah → Detail Paket →
+Instruksi → Soal 1. Confirmed no `[FIXTURE]` text anywhere, package shows "Jurumiyah" with the real
+description, "31 soal" / "31 pertanyaan pilihan ganda" both agree with the asset's actual question
+count, and question 1 renders its Arabic (`اللَّفْظُ الْمُرَكَّبُ الْمُفِيدُ بِالْوَضْعِ`) with
+correct harakat inline with Indonesian RTL/LTR mixed text. Did not exercise submitting an answer,
+completing the attempt, or any other package/screen beyond question 1.
+
+### Known limitations
+
+- No code implements the engagement spec's mechanics yet (daily challenge, streak, timer/combo,
+  Beranda indicator, new Room entities) — `docs/product/NAHWU_QUIZ_ENGAGEMENT_PRD.md` §12's
+  implementation pass is still future work.
+- 31 questions is short of the ~60–90 Jurumiyah-tier target; more content passes are needed before
+  the daily-challenge shuffled-cycle mechanic has enough pool depth to be worthwhile.
+- Imrithi and Alfiyah tiers remain entirely unauthored.
+- **`NahwuQuizBootstrapper` import-once behaviour caught an already-seeded emulator off guard**:
+  bootstrap is gated purely on `packageDao.count() > 0` (by design, this milestone's scope has no
+  remote-sync/version-reconciliation path — see the class doc comment), so a device/emulator that
+  ran the app before this content promotion kept showing the old `[FIXTURE]` packages after the
+  asset changed, until app data was cleared. Not a code bug; a real fresh install always bootstraps
+  correctly from the current asset. Worth remembering during manual testing of any future bundled-
+  content change: `adb shell pm clear com.sangusantri.app` (or uninstall/reinstall) before checking
+  it on a device that has run the app before.
+- No automated test coverage added or run (per this project's current temporary implementation-pass
+  constraints — this was also a content-only change, not a production-API change, so no existing
+  test was at risk of breaking; confirmed by inspection that `NahwuQuizSessionViewModelTest.kt` and
+  `NahwuQuizValidatorTest.kt` construct their own in-memory fixture data and never read the bundled
+  asset file).
+
+### Next recommended milestone
+
+Either (a) author more Jurumiyah questions toward the ~60–90 target, or (b) begin the engagement
+spec's implementation pass (`NAHWU_QUIZ_ENGAGEMENT_PRD.md` §12: data model, selection algorithm,
+session mechanics, streak query, Beranda indicator) using the 31 questions already shipped. Kalender
+Hijriah/Quran polish items noted in earlier entries remain otherwise unaffected.
 

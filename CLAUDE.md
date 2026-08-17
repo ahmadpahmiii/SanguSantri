@@ -85,6 +85,15 @@ pesantren-specific amaliyah.
   subscriptions, Quran Foundation integration, or Quran audio is on the
   roadmap (`docs/product/ROADMAP.md`). The Kemenag integration approved for
   `0.0.6` is the sole standalone-Quran exception.
+* Jadwal Sholat + Kiblat is wired to **api.myquran.com** (ADR
+  [0018](docs/decisions/0018-myquran-for-prayer-times-and-qibla.md), 2026-08-17):
+  prayer schedules keyed by kabupaten/kota (no location permission), qibla via
+  `ACCESS_COARSE_LOCATION` — the app's first runtime permission, optional and
+  on-demand. That service also publishes Quran text, per-ayah/per-surah audio,
+  extra tafsir and a hijri calendar; **none of it is used**. Kemenag remains the
+  only Quran-content API (ADR 0016 §2) and hijri dates stay the app's own offline
+  `HijrahDate` computation. Do not wire any of those without a product decision —
+  the evidence and the deferred options are recorded in ADR 0018.
 
 Do not implement the entire PRD unless explicitly requested. Implement only
 the milestone actually asked for.

@@ -145,6 +145,9 @@ class GuidedReaderViewModel
          */
         fun onSettingsAction(action: ReaderUiAction) {
             when (action) {
+                // Dispatched by the Full Reader's top bar, never by the settings sheet this handles.
+                is ReaderUiAction.SetThemeMode -> Unit
+
                 is ReaderUiAction.SetArabicFontSize ->
                     viewModelScope.launch { readerSettingsRepository.setArabicFontSize(action.sp) }
 

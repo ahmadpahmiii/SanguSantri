@@ -1,51 +1,60 @@
+@file:Suppress("TooManyFunctions")
+
 package com.sangusantri.app.feature.home
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridScope
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.component.SectionHeader
+import com.sangusantri.app.core.designsystem.theme.LocalAppThemeMode
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ReaderMode
-import com.sangusantri.app.feature.reminder.ReminderScheduleFormatter
 import com.sangusantri.app.feature.update.AppUpdateGate
 
 @Composable
@@ -56,17 +65,48 @@ fun SerambiRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val screenActions = actions.copy(onDismissResume = viewModel::dismissResume)
+
+    // First launch only: ask for location so the prayer schedule can set itself up. Denying is a
+    // normal outcome — the prayer section then invites picking a city by hand, and nothing else in
+    // the app is affected. The prompt is marked as shown either way, so it never nags.
+    val shouldAskForLocation by viewModel.shouldAskForLocation.collectAsStateWithLifecycle()
+    val detectingCity by viewModel.detectingCity.collectAsStateWithLifecycle()
+    val locationLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.onLocationPermissionResult(granted)
+        }
+    LaunchedEffect(shouldAskForLocation) {
+        if (shouldAskForLocation) locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    val screenActions =
+        actions.copy(
+            onDismissResume = viewModel::dismissResume,
+            onThemeModeSelected = viewModel::setThemeMode,
+        )
     SerambiScreen(
         uiState = uiState,
         onContentSelected = onContentSelected,
         actions = screenActions,
         snackbarHostState = snackbarHostState,
+        detectingCity = detectingCity,
     )
     AppUpdateGate(snackbarHostState = snackbarHostState)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Beranda, rebuilt to the revamp handoff (§1). Top to bottom: greeting row with the app-wide theme
+ * toggle and search, the next-prayer block, four menu tiles, the continue row, and the curated
+ * amaliyah scroller.
+ *
+ * The screen has no top app bar any more — the design replaced it with the greeting row, and the
+ * two placeholder destinations it used to link to (Setelan, Tentang) went with it.
+ *
+ * Every section still decides its own visibility from genuine local data; nothing renders a section
+ * with nothing in it. That rule is what keeps the prayer block off release builds while no
+ * prayer-time source is wired.
+ */
+@Suppress("LongParameterList")
 @Composable
 fun SerambiScreen(
     uiState: SerambiUiState,
@@ -74,181 +114,252 @@ fun SerambiScreen(
     actions: SerambiActions,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    detectingCity: Boolean = false,
 ) {
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                },
-                actions = {
-                    IconButton(onClick = actions.onSetelanClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.serambi_setelan_content_description),
-                        )
-                    }
-                    IconButton(onClick = actions.onAboutClick) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = stringResource(R.string.serambi_about_content_description),
-                        )
-                    }
-                },
-            )
-        },
     ) { innerPadding ->
-        when (uiState) {
-            SerambiUiState.Loading ->
-                Box(
-                    modifier =
-                        Modifier
-                            .padding(innerPadding)
-                            .fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+        Box(
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            when (uiState) {
+                SerambiUiState.Loading ->
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
 
-            is SerambiUiState.Loaded ->
-                SerambiDashboard(
-                    uiState = uiState,
-                    onContentSelected = onContentSelected,
-                    actions = actions,
-                    modifier = Modifier.padding(innerPadding),
-                )
+                is SerambiUiState.Loaded ->
+                    SerambiDashboard(
+                        uiState = uiState,
+                        onContentSelected = onContentSelected,
+                        actions = actions,
+                        detectingCity = detectingCity,
+                    )
+            }
         }
     }
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun SerambiDashboard(
     uiState: SerambiUiState.Loaded,
     onContentSelected: (String) -> Unit,
     actions: SerambiActions,
-    modifier: Modifier = Modifier,
+    detectingCity: Boolean,
 ) {
-    val hijriMonthNames = stringArrayResource(R.array.hijri_month_names).toList()
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(SanguSantriDimensions.dashboardGridMinCellWidth),
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
-            contentPadding = PaddingValues(SanguSantriSpacing.default),
-            horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
-            verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
+    ) {
+        BerandaGreetingRow(actions = actions)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = SanguSantriSpacing.large),
         ) {
-            item(key = "greeting", span = { GridItemSpan(maxLineSpan) }) {
-                SerambiGreeting()
-            }
-
-            if (uiState.items.isNotEmpty()) {
-                item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
-                    SerambiSearchEntry(onClick = actions.onExploreClick)
-                }
-            }
-
-            uiState.resumeItem?.let { resumeItem ->
-                item(key = "resume", span = { GridItemSpan(maxLineSpan) }) {
-                    SerambiResumeCard(
-                        item = resumeItem,
-                        actions = actions,
-                        onDismiss = actions.onDismissResume,
+            item(key = "prayer") {
+                val schedule = uiState.prayerSchedule
+                if (schedule == null) {
+                    BerandaPrayerSetupRow(
+                        onOpenSchedule = actions.onPrayerScheduleClick,
+                        detecting = detectingCity,
+                        modifier = Modifier.padding(horizontal = BerandaHorizontalPadding),
+                    )
+                } else {
+                    BerandaPrayerBlock(
+                        schedule = schedule,
+                        now = uiState.now,
+                        onOpenSchedule = actions.onPrayerScheduleClick,
+                        onOpenKiblat = actions.onKiblatClick,
+                        modifier = Modifier.padding(horizontal = BerandaHorizontalPadding),
                     )
                 }
             }
-            featureSection(uiState, actions)
-            supportingFeatureSection(uiState, actions, hijriMonthNames)
-            amaliyahSection(uiState, actions, onContentSelected)
+
+            item(key = "menu") {
+                BerandaMenuTiles(
+                    actions = actions,
+                    showSholawat = uiState.hasSholawatContent,
+                    showNahwu = uiState.hasNahwuQuizContent,
+                    modifier =
+                        Modifier.padding(
+                            start = BerandaHorizontalPadding,
+                            end = BerandaHorizontalPadding,
+                            top = SectionGap,
+                        ),
+                )
+            }
+
+            uiState.resumeItem?.let { resume ->
+                item(key = "resume") {
+                    BerandaContinueRow(
+                        title = resume.resumeTitle(),
+                        supporting = resume.resumeSupporting(),
+                        fraction = resume.progress?.fraction,
+                        onContinue = { actions.continueResume(resume) },
+                        modifier =
+                            Modifier.padding(
+                                start = BerandaHorizontalPadding,
+                                end = BerandaHorizontalPadding,
+                                top = SectionGap,
+                            ),
+                    )
+                }
+            }
+
+            if (uiState.featuredItems.isNotEmpty()) {
+                item(key = "amaliyah_header") {
+                    SectionHeader(
+                        title = stringResource(R.string.serambi_featured_amaliyah_title),
+                        actionLabel = stringResource(R.string.beranda_explore_action),
+                        onActionClick = actions.onExploreClick,
+                        modifier =
+                            Modifier.padding(
+                                start = BerandaHorizontalPadding,
+                                end = BerandaHorizontalPadding,
+                                top = SectionGap,
+                                bottom = SanguSantriSpacing.medium,
+                            ),
+                    )
+                }
+                item(key = "amaliyah") {
+                    BerandaAmaliyahScroller(
+                        items = uiState.featuredItems,
+                        onContentSelected = onContentSelected,
+                        contentPadding = PaddingValues(horizontal = BerandaHorizontalPadding),
+                    )
+                }
+            }
         }
     }
 }
 
-private fun LazyGridScope.featureSection(
-    uiState: SerambiUiState.Loaded,
-    actions: SerambiActions,
-) {
-    item(key = "feature_spacer", span = { GridItemSpan(maxLineSpan) }) {
-        Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
-    }
-    item(key = "feature_header", span = { GridItemSpan(maxLineSpan) }) {
-        SectionHeader(title = stringResource(R.string.serambi_feature_section_title))
-    }
-    item(key = "main_features", span = { GridItemSpan(maxLineSpan) }) {
-        SerambiMainFeatures(
-            showAmaliyah = uiState.items.isNotEmpty(),
-            actions = actions,
-        )
-    }
-}
-
-private fun LazyGridScope.supportingFeatureSection(
-    uiState: SerambiUiState.Loaded,
-    actions: SerambiActions,
-    hijriMonthNames: List<String>,
-) {
-    item(key = "supporting_features", span = { GridItemSpan(maxLineSpan) }) {
-        SerambiSupportingFeatures(
-            reminderDescription =
-                uiState.nearestReminder?.let { reminder ->
-                    ReminderScheduleFormatter.formatScheduleSummary(reminder.schedule, hijriMonthNames)
-                } ?: stringResource(R.string.serambi_reminder_feature_description),
-            showNahwuQuiz = uiState.hasNahwuQuizContent,
-            nahwuDescription =
-                stringResource(
-                    if (uiState.hasActiveNahwuQuiz) {
-                        R.string.serambi_nahwu_supporting_resume
-                    } else {
-                        R.string.serambi_nahwu_supporting_choose
-                    },
+/** Handoff §1.1. The bell was dropped in review; the two controls are the app-wide theme toggle and
+ * search. */
+@Composable
+private fun BerandaGreetingRow(actions: SerambiActions) {
+    val isDark = LocalAppThemeMode.current == AppThemeMode.DARK
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = BerandaHorizontalPadding,
+                    end = BerandaHorizontalPadding,
+                    top = SanguSantriSpacing.extraSmall,
+                    bottom = GreetingBottomPadding,
                 ),
-            actions = actions,
-        )
-    }
-}
-
-private fun LazyGridScope.amaliyahSection(
-    uiState: SerambiUiState.Loaded,
-    actions: SerambiActions,
-    onContentSelected: (String) -> Unit,
-) {
-    if (uiState.featuredItems.isEmpty()) return
-    item(key = "amaliyah_spacer", span = { GridItemSpan(maxLineSpan) }) {
-        Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
-    }
-    item(key = "amaliyah_header", span = { GridItemSpan(maxLineSpan) }) {
-        SectionHeader(
-            title = stringResource(R.string.serambi_featured_amaliyah_title),
-            actionLabel = stringResource(R.string.serambi_see_all_action),
-            onActionClick = actions.onExploreClick,
-        )
-    }
-    items(items = uiState.featuredItems, key = { "content_${it.id}" }) { item ->
-        ContentCard(content = item, onClick = onContentSelected, compact = true)
+    ) {
+        Column {
+            Text(
+                text = stringResource(R.string.beranda_greeting_salutation),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.app_name),
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = (-0.3).sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall + 2.dp)) {
+            CircularAction(
+                icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                contentDescription =
+                    stringResource(
+                        if (isDark) {
+                            R.string.theme_toggle_to_light_content_description
+                        } else {
+                            R.string.theme_toggle_to_dark_content_description
+                        },
+                    ),
+                tint = MaterialTheme.colorScheme.primary,
+                onClick = {
+                    actions.onThemeModeSelected(if (isDark) AppThemeMode.LIGHT else AppThemeMode.DARK)
+                },
+            )
+            CircularAction(
+                icon = Icons.Outlined.Search,
+                contentDescription = stringResource(R.string.beranda_search_content_description),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = actions.onExploreClick,
+            )
+        }
     }
 }
 
 @Composable
-private fun SerambiGreeting() {
-    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall)) {
-        Text(
-            text = stringResource(R.string.serambi_greeting),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = stringResource(R.string.serambi_greeting_supporting),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun CircularAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    tint: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            Modifier
+                .size(CircularActionSize)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                .clickable(onClick = onClick),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(21.dp),
         )
     }
 }
+
+@Composable
+private fun SerambiResumeItem.resumeTitle(): String =
+    when (this) {
+        is SerambiResumeItem.Amaliyah -> title
+        is SerambiResumeItem.Quran -> surahName
+        is SerambiResumeItem.Tasbih -> sessionName ?: stringResource(R.string.beranda_resume_tasbih_title)
+    }
+
+@Composable
+private fun SerambiResumeItem.resumeSupporting(): String =
+    when (this) {
+        is SerambiResumeItem.Amaliyah ->
+            stringResource(R.string.beranda_resume_amaliyah_supporting, current, total)
+
+        is SerambiResumeItem.Quran ->
+            stringResource(R.string.beranda_resume_quran_supporting, ayatNumber, totalAyat)
+
+        is SerambiResumeItem.Tasbih ->
+            targetCount
+                ?.let { stringResource(R.string.beranda_resume_tasbih_supporting, currentCount, it) }
+                ?: stringResource(R.string.beranda_resume_tasbih_supporting_unlimited, currentCount)
+    }
+
+private fun SerambiActions.continueResume(item: SerambiResumeItem) {
+    when (item) {
+        is SerambiResumeItem.Amaliyah -> onContinueAmaliyah(item.contentId, item.mode)
+        is SerambiResumeItem.Quran -> onContinueQuran(item.surahNumber, item.ayatNumber)
+        is SerambiResumeItem.Tasbih -> onContinueTasbih()
+    }
+}
+
+private val BerandaHorizontalPadding = 20.dp
+private val SectionGap = 24.dp
+private val GreetingBottomPadding = 14.dp
+private val CircularActionSize = 42.dp
 
 // Development-only preview fixtures — no religious text is invented.
 private val previewItems =
@@ -281,8 +392,6 @@ private val previewItems =
 
 private val previewActions =
     SerambiActions(
-        onSetelanClick = {},
-        onAboutClick = {},
         onExploreClick = {},
         onPengingatClick = {},
         onBelajarClick = {},

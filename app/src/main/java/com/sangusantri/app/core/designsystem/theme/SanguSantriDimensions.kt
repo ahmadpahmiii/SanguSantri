@@ -21,6 +21,10 @@ object SanguSantriDimensions {
     val overflowMenuWidth = 280.dp
     val readerSheetMaxHeight = 550.dp
 
+    // Bottom sheets: 26dp top corners (revamp handoff §Radii). Always passed explicitly — see the
+    // note in Shape.kt about Material 3's extraLarge-derived default.
+    val sheetTopCornerRadius = 26.dp
+
     // Standalone Al-Qur'an reader (`0.0.6`).
     val quranSurahHeaderMinHeight = 48.dp
 
@@ -41,8 +45,10 @@ object SanguSantriDimensions {
     val quranStateActionButtonMinWidth = 132.dp
     val quranEntryProgressWidth = 270.dp
 
-    /** Standalone Tasbih counter (0.0.2) — the strongest visual element on its screen, min 220dp. */
-    val tasbihCounterMinSize = 220.dp
+    /** Standalone Tasbih counter (0.0.2) — the strongest visual element on its screen. A fixed
+     * 236dp circle since the revamp handoff §10; §8's guided counter is the smaller 184dp one. */
+    val tasbihCounterSize = 236.dp
+    val guidedCounterSize = 184.dp
 
     // Kalender Hijriah (`0.0.7`) — figma-export/hijri-calendar/01-calendar-overview-light.html.
     val hijriCalendarDayCellMinHeight = 48.dp

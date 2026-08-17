@@ -10,6 +10,7 @@ import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
+import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import dagger.assisted.Assisted
@@ -48,6 +49,7 @@ class ReaderViewModel
         private val readingPositionRepository: ReadingPositionRepository,
         private val readerSettingsRepository: ReaderSettingsRepository,
         private val guidedReadingRepository: GuidedReadingRepository,
+        private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
     ) : ViewModel() {
         @AssistedFactory
         interface Factory {
@@ -94,6 +96,9 @@ class ReaderViewModel
 
         fun onAction(action: ReaderUiAction) {
             when (action) {
+                is ReaderUiAction.SetThemeMode ->
+                    viewModelScope.launch { quranReaderSettingsRepository.setThemeMode(action.mode) }
+
                 is ReaderUiAction.ScrollPositionChanged -> {
                     lastKnownItemIndex = action.itemIndex
                     scrollPositionUpdates.tryEmit(ScrollPosition(action.itemIndex, action.itemOffset))

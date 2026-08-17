@@ -1,5 +1,7 @@
 package com.sangusantri.app.feature.home
 
+import com.sangusantri.app.domain.model.AppThemeMode
+import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.GuidedReadingSession
@@ -8,11 +10,18 @@ import com.sangusantri.app.domain.model.NahwuQuizAttempt
 import com.sangusantri.app.domain.model.NahwuQuizPackage
 import com.sangusantri.app.domain.model.NahwuQuizPackageSummary
 import com.sangusantri.app.domain.model.NahwuQuizQuestion
+import com.sangusantri.app.domain.model.PrayerCity
+import com.sangusantri.app.domain.model.PrayerName
+import com.sangusantri.app.domain.model.PrayerSchedule
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranBookmark
+import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranPreparationResult
+import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.domain.model.QuranReadingSession
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.model.QuranTafsir
 import com.sangusantri.app.domain.model.QuranTafsirResult
 import com.sangusantri.app.domain.model.QuranVerse
@@ -26,6 +35,8 @@ import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.HomePreferencesRepository
 import com.sangusantri.app.domain.repository.NahwuQuizRepository
+import com.sangusantri.app.domain.repository.PrayerScheduleRepository
+import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.QuranRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
@@ -40,6 +51,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SerambiViewModelTest {
@@ -83,11 +95,29 @@ class SerambiViewModelTest {
             assertEquals(SerambiUiState.Loaded(emptyList()), collected.last())
         }
 
+    @Test
+    fun sholawatCategoryItemsAreExcludedFromItemsButGateHasSholawatContent() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel =
+                createViewModel(FakeContentRepository(flowOf(listOf(tahlil, sholawatNariyah))))
+
+            val collected = mutableListOf<SerambiUiState>()
+            val job = launch { viewModel.uiState.toList(collected) }
+            advanceUntilIdle()
+            job.cancel()
+
+            val state = collected.last() as SerambiUiState.Loaded
+            assertEquals(listOf(tahlil), state.items)
+            assertEquals(true, state.hasSholawatContent)
+        }
+
     private fun createViewModel(contentRepository: ContentRepository): SerambiViewModel =
         SerambiViewModel(
             contentRepository = contentRepository,
             reminderRepository = FakeReminderRepository(),
             nahwuQuizRepository = FakeNahwuQuizRepository(),
+            prayerScheduleRepository = FakePrayerScheduleRepository(),
+            settingsRepository = FakeQuranReaderSettingsRepository(),
             resumeCoordinator =
                 SerambiResumeCoordinator(
                     contentRepository = contentRepository,
@@ -114,6 +144,12 @@ class SerambiViewModelTest {
                 sourceUrl = "https://example.invalid/fixture",
             )
         val istighosah = tahlil.copy(id = "istighosah", title = "Istighosah")
+        val sholawatNariyah =
+            tahlil.copy(
+                id = "sholawat-nariyah",
+                title = "[FIXTURE] Sholawat Nariyah",
+                category = Content.SHOLAWAT_CATEGORY,
+            )
     }
 }
 
@@ -259,4 +295,53 @@ private class FakeHomePreferencesRepository : HomePreferencesRepository {
     override fun observeDismissedResumeFingerprint(): Flow<String?> = flowOf(null)
 
     override suspend fun dismissResume(fingerprint: String) = Unit
+}
+
+/** Minimal stand-in for the app-wide theme/Quran-reader settings store — this test asserts nothing
+ * about appearance, it only needs the ViewModel to construct. */
+private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository {
+    override fun observe(): Flow<QuranReaderSettings> = flowOf(QuranReaderSettings())
+
+    override suspend fun setDisplayMode(mode: QuranDisplayMode) = Unit
+
+    override suspend fun setArabicFont(font: QuranArabicFont) = Unit
+
+    override suspend fun setArabicSize(sp: Int) = Unit
+
+    override suspend fun setArabicLineSpacing(multiplier: Float) = Unit
+
+    override suspend fun setTranslationSize(sp: Int) = Unit
+
+    override suspend fun setBrightnessOverride(value: Float) = Unit
+
+    override suspend fun setThemeMode(mode: AppThemeMode) = Unit
+
+    override suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) = Unit
+}
+
+/** No city chosen, so no schedule — the next-prayer block is a section like any other and simply
+ * does not render. */
+private class FakePrayerScheduleRepository : PrayerScheduleRepository {
+    override fun observeToday(): Flow<PrayerSchedule?> = flowOf(null)
+
+    override fun observeSelectedCity(): Flow<PrayerCity?> = flowOf(null)
+
+    override fun observeCities(query: String): Flow<List<PrayerCity>> = flowOf(emptyList())
+
+    override suspend fun ensureCitiesCached(): Result<Unit> = Result.success(Unit)
+
+    override suspend fun selectCity(cityId: String) = Unit
+
+    override suspend fun detectAndSelectCity(): CityDetection = CityDetection.Unavailable
+
+    override fun observeLocationPromptShown(): Flow<Boolean> = flowOf(true)
+
+    override suspend fun markLocationPromptShown() = Unit
+
+    override suspend fun ensureScheduleCached(month: LocalDate): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setNotificationEnabled(
+        prayer: PrayerName,
+        enabled: Boolean,
+    ) = Unit
 }

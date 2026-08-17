@@ -10,6 +10,7 @@ import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
 import com.sangusantri.app.data.local.dao.NahwuQuizAttemptDao
 import com.sangusantri.app.data.local.dao.NahwuQuizPackageDao
 import com.sangusantri.app.data.local.dao.NahwuQuizQuestionDao
+import com.sangusantri.app.data.local.dao.PrayerTimesDao
 import com.sangusantri.app.data.local.dao.QuranBookmarkDao
 import com.sangusantri.app.data.local.dao.QuranReadingSessionDao
 import com.sangusantri.app.data.local.dao.QuranReadingStateDao
@@ -48,6 +49,9 @@ object DatabaseModule {
                 SanguSantriDatabase.DATABASE_NAME,
             ).fallbackToDestructiveMigration(dropAllTables = true)
             .build()
+
+    @Provides
+    fun providePrayerTimesDao(database: SanguSantriDatabase): PrayerTimesDao = database.prayerTimesDao()
 
     @Provides
     fun provideAppMetadataDao(database: SanguSantriDatabase): AppMetadataDao = database.appMetadataDao()

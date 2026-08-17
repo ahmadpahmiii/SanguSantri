@@ -1,15 +1,14 @@
 package com.sangusantri.app.feature.guidedreader.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,10 +24,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 
@@ -100,19 +99,19 @@ private fun GuidedTasbihBadge(
     visualState: GuidedCounterVisualState,
     onTap: () -> Unit,
 ) {
+    // Revamp handoff §8: the same surface-filled circle as standalone Tasbih, two sizes smaller.
+    // Only the 1dp border and the numeral change at the target — outline to primary — and a
+    // "Tercapai" line appears; the circle itself never becomes a filled block.
+    val borderColor =
+        if (visualState.isComplete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     Surface(
         onClick = { if (!visualState.isComplete) onTap() },
-        shape = SanguSantriShapes.extraLarge,
-        color =
-            if (visualState.isComplete) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.primaryContainer
-            },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, borderColor),
         modifier =
             Modifier
-                .width(SanguSantriDimensions.guidedCounterWidth)
-                .heightIn(min = SanguSantriDimensions.guidedCounterHeight)
+                .size(SanguSantriDimensions.guidedCounterSize)
                 .semantics {
                     contentDescription = visualState.tapLabel
                     stateDescription = visualState.stateText
@@ -123,38 +122,36 @@ private fun GuidedTasbihBadge(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            if (visualState.isComplete) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
             Text(
                 text = visualState.currentCount.toString(),
-                fontSize = 58.sp,
-                lineHeight = 64.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = GUIDED_COUNT_SIZE_SP.sp,
+                lineHeight = (GUIDED_COUNT_SIZE_SP + 4).sp,
+                fontWeight = FontWeight.Light,
+                letterSpacing = (-2).sp,
                 color =
                     if (visualState.isComplete) {
-                        MaterialTheme.colorScheme.onPrimary
+                        MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.onPrimaryContainer
+                        MaterialTheme.colorScheme.onSurface
                     },
             )
             Text(
                 text = visualState.targetText,
-                style = MaterialTheme.typography.titleMedium,
-                color =
-                    if (visualState.isComplete) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (visualState.isComplete) {
+                Text(
+                    text = stringResource(R.string.guided_counter_reached_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
+
+private const val GUIDED_COUNT_SIZE_SP = 62
 
 @PreviewLightDark
 @Composable

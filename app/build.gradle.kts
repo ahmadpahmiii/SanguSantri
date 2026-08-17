@@ -43,6 +43,10 @@ android {
         // unlike CONTENT_API_BASE_URL above it has no override property.
         buildConfigField("String", "QURAN_API_BASE_URL", "\"https://quran-api.lpmqkemenag.id/api-alquran/\"")
 
+        // myquran (api.myquran.com v3) — prayer schedules and qibla only. Public, unauthenticated,
+        // no key; fixed like the Kemenag URL above, so no override property.
+        buildConfigField("String", "PRAYER_TIMES_API_BASE_URL", "\"https://api.myquran.com/v3/\"")
+
         externalNativeBuild {
             cmake {
                 arguments += "-DGENERATED_HEADER_DIR=${quranCredentialHeaderDir.get().asFile.absolutePath}"

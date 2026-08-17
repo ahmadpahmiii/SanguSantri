@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.quran.reader
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.domain.model.QuranSurah
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -53,13 +55,25 @@ constructor(
     private val _tafsirUiState = MutableStateFlow<QuranTafsirUiState>(QuranTafsirUiState.Loading)
     val tafsirUiState: StateFlow<QuranTafsirUiState> = _tafsirUiState
 
+    /** The basmalah the tenang surah header renders is Al-Fatihah ayat 1 read straight from Room —
+     * the exact official Kemenag string, so the app never carries its own copy of Quran Arabic. Left
+     * blank when the dataset has not been prepared; the header then draws no basmalah rather than
+     * substituting anything. */
+    private val basmalahArabic =
+        quranRepository
+            .observeVersesBySurah(AL_FATIHAH_SURAH_NUMBER)
+            .map { verses -> verses.firstOrNull()?.arabicText.orEmpty() }
+
     private val roomData =
         combine(
             quranRepository.observeSurahs(),
             quranRepository.observeVersesBySurah(surahNumber),
             settingsRepository.observe(),
             quranRepository.observeBookmarks(),
-        ) { surahs, verses, settings, bookmarks -> QuranReaderRoomData(surahs, verses, settings, bookmarks) }
+            basmalahArabic,
+        ) { surahs, verses, settings, bookmarks, basmalah ->
+            QuranReaderRoomData(surahs, verses, settings, bookmarks, basmalah)
+        }
 
     val uiState: StateFlow<QuranReaderUiState> =
         combine(roomData, selectedAyatId, tafsirSheetOpen) { data, selected, tafsirOpen ->
@@ -135,8 +149,8 @@ constructor(
         onDismissActionSheet()
     }
 
-    fun toggleTheme() {
-        viewModelScope.launch { settingsRepository.toggleThemeMode() }
+    fun setThemeMode(mode: AppThemeMode) {
+        viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
     /** Called as the visible ayat changes while scrolling (QUR-FR-011) — the first call seeds
@@ -187,6 +201,9 @@ constructor(
         return QuranReaderUiState.Content(
             surahNumber = surah.number,
             surahName = surah.latinName,
+            surahArabicName = surah.arabicName,
+            basmalahArabic = data.basmalahArabic,
+            surahHeaderVariant = settings.surahHeaderVariant,
             category = surah.category,
             ayatCount = surah.ayatCount,
             displayMode = settings.displayMode,
@@ -204,6 +221,7 @@ constructor(
     }
 
     private companion object {
+        const val AL_FATIHAH_SURAH_NUMBER = 1
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
         val TAFSIR_STALE_THRESHOLD_MILLIS = TimeUnit.DAYS.toMillis(7)
     }
@@ -214,6 +232,7 @@ private data class QuranReaderRoomData(
     val verses: List<QuranVerse>,
     val settings: QuranReaderSettings,
     val bookmarks: List<QuranBookmark>,
+    val basmalahArabic: String,
 )
 
 internal fun QuranVerse.toReaderUiModel(surahName: String): QuranReaderAyatUiModel =

@@ -85,7 +85,11 @@ private fun QuranFlowingPrototype() {
                     surahNumber = 2,
                     category = "[FIXTURE] Kategori",
                     surahDisplayName = "[FIXTURE] Surah",
+                    surahArabicName = "[FIXTURE]",
                     ayatCount = prototypeFixtureAyats.size,
+                    // Never a real basmalah in a fixture preview — the tenang header draws none
+                    // when this is blank, which is exactly what this debug-only screen should show.
+                    basmalahArabic = "",
                 )
                 QuranFlowingPageText(
                     ayats = prototypeFixtureAyats,

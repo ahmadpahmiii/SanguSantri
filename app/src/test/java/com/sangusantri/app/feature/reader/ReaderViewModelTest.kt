@@ -1,16 +1,22 @@
 package com.sangusantri.app.feature.reader
 
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.GuidedReadingSession
+import com.sangusantri.app.domain.model.QuranArabicFont
+import com.sangusantri.app.domain.model.QuranDisplayMode
+import com.sangusantri.app.domain.model.QuranReaderSettings
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
 import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
+import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
@@ -237,6 +243,7 @@ class ReaderViewModelTest {
         readingPositionRepository = readingPositionRepository,
         readerSettingsRepository = readerSettingsRepository,
         guidedReadingRepository = guidedReadingRepository,
+        quranReaderSettingsRepository = FakeQuranReaderSettingsRepository(),
     )
 
     private companion object {
@@ -383,4 +390,26 @@ private class FakeGuidedReadingRepository : GuidedReadingRepository {
     override suspend fun saveStepProgress(progress: StepProgress) {
         this.progress.getOrPut(progress.contentId) { mutableListOf() }.add(progress)
     }
+}
+
+/** Minimal stand-in for the app-wide theme/Quran-reader settings store — this test asserts nothing
+ * about appearance, it only needs the ViewModel to construct. */
+private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository {
+    override fun observe(): Flow<QuranReaderSettings> = flowOf(QuranReaderSettings())
+
+    override suspend fun setDisplayMode(mode: QuranDisplayMode) = Unit
+
+    override suspend fun setArabicFont(font: QuranArabicFont) = Unit
+
+    override suspend fun setArabicSize(sp: Int) = Unit
+
+    override suspend fun setArabicLineSpacing(multiplier: Float) = Unit
+
+    override suspend fun setTranslationSize(sp: Int) = Unit
+
+    override suspend fun setBrightnessOverride(value: Float) = Unit
+
+    override suspend fun setThemeMode(mode: AppThemeMode) = Unit
+
+    override suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) = Unit
 }

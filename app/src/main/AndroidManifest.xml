@@ -4,6 +4,14 @@
 
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+  <!-- Arah Kiblat only. Coarse is enough: the bearing varies by well under a degree across a
+       city, so the app never asks for a precise fix and never starts an active location request.
+       Optional — every other feature works without it (docs/security/PRIVACY.md). -->
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-feature
+    android:name="android.hardware.location"
+    android:required="false" />
   <!-- Pengingat Amaliyah (0.0.4): runtime-requested on API 33+ (data/reminder/, feature/reminder/'s
        notification permission flow); a no-op declaration below that version. -->
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

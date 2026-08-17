@@ -33,33 +33,108 @@ val SantriSurface = Color(0xFFFFFDF8)
 val SantriNeutral40 = Color(0xFF59605A)
 
 // Hairline border / drag handle — design product-alignment pass, observed as rgb(195,200,192) for
-// every card/sheet stroke and bottom-sheet drag handle in the revised exports. Previously this
-// role fell through to Material 3's unbranded default.
+// every card/sheet stroke and bottom-sheet drag handle in the revised exports.
 val SantriOutline = Color(0xFFC3C8C0)
+
+// ---------------------------------------------------------------------------------------------
+// App-wide palette — Beranda/Quran revamp handoff (design_handoff_beranda_quran_revamp/README.md
+// §"New app-wide palette"). One colour family for the whole app: Beranda, Jadwal Sholat,
+// Aktivitas, Tasbih, Amaliyah, and the Quran reading surfaces all resolve to the roles below, so
+// moving between them never reads as two applications. Light is warm mushaf paper rather than a
+// green-tinted white; dark is a raised near-black with a desaturated accent (the OLED halation
+// fix that started the revamp). `Theme.kt` maps these onto Material 3's scheme — no screen reads
+// them directly — and the `Quran*` roles further down alias them so the reader stays in family.
+// ---------------------------------------------------------------------------------------------
+val SantriBackgroundLight = Color(0xFFF7F4EC)
+val SantriBackgroundDark = Color(0xFF0E1210)
+
+val SantriSurfaceLight = SantriSurface
+val SantriSurfaceDark = Color(0xFF161B18)
+
+val SantriTextLight = SantriNeutral10
+val SantriTextDark = Color(0xFFE8E5DA)
+
+val SantriMutedTextLight = Color(0xFF6B7268)
+val SantriMutedTextDark = Color(0xFF8A938B)
+
+val SantriTranslationTextLight = SantriNeutral40
+val SantriTranslationTextDark = Color(0xFFB4BBB2)
+
+val SantriOutlineLight = Color(0xFFE3DFD2)
+val SantriOutlineDark = Color(0xFF283029)
+
+val SantriPrimaryLight = SantriGreen40
+val SantriPrimaryDark = Color(0xFF6FA88A)
+
+val SantriOnPrimaryLight = SantriNeutral99
+val SantriOnPrimaryDark = Color(0xFF08150E)
+
+// "Tint" is the quiet filled role — icon tiles, chips, selected segments, the ayat-number circle.
+// Deliberately not a filled-button colour; onTint is the text/icon that sits on it.
+val SantriTintLight = Color(0xFFE6F1E4)
+val SantriTintDark = Color(0xFF1B2A21)
+
+val SantriOnTintLight = Color(0xFF0A3A20)
+val SantriOnTintDark = Color(0xFFC6DCCD)
+
+// "Block" roles — the one dark green panel the revamp allows itself (Beranda's next-prayer block
+// and Jadwal Sholat's countdown). Deliberately its own small role group rather than Material
+// roles: it is a deep green surface in *both* themes, so nothing in `colorScheme` describes it.
+// Light keeps a solid panel with no border; dark softens the green and adds a hairline so the
+// panel still separates from the canvas. Resolved per mode by `BlockColorScheme.kt`.
+val SantriBlockBackgroundLight = Color(0xFF0A3A20)
+val SantriBlockBackgroundDark = Color(0xFF16241C)
+
+val SantriBlockBorderDark = Color(0xFF2A3B31)
+
+val SantriBlockTextLight = Color(0xFFC8DFCD)
+val SantriBlockTextDark = Color(0xFFB7CFBF)
+
+val SantriBlockStrongLight = Color(0xFFFCFDF9)
+val SantriBlockStrongDark = SantriTextDark
+
+val SantriBlockDimLight = Color(0xB8C8DFCD)
+val SantriBlockDimDark = Color(0xFF8FA895)
+
+val SantriBlockTrackLight = Color(0x33C8DFCD)
+val SantriBlockTrackDark = Color(0x29B7CFBF)
+
+val SantriBlockFillLight = Color(0xFF8FC9A2)
+val SantriBlockFillDark = SantriPrimaryDark
+
+val SantriBlockChipBackgroundLight = Color(0x1FC8DFCD)
+val SantriBlockChipBackgroundDark = Color(0x246FA88A)
+
+val SantriBlockChipTextLight = Color(0xFFDDEDE0)
+val SantriBlockChipTextDark = SantriOnTintDark
 
 val SantriError40 = Color(0xFFBA1A1A)
 val SantriError80 = Color(0xFFFFB4AB)
 val SantriError90 = Color(0xFFFFDAD6)
 val SantriError10 = Color(0xFF410002)
 
-// Standalone Al-Qur'an reading-room roles (`0.0.6`). These extend the one canonical
-// SanguSantri token source; they are not a second application theme. Dark was the feature's
-// original (and still default) mode — ADR 0016 decision #12; a light mode was added by product
-// decision as a user-controlled toggle (`docs/decisions/0016-standalone-quran-kemenag-direct-api.md`
-// 2026-08-10 amendment), so every role below now has a Dark/Light pair resolved live by
-// `QuranColorScheme.kt`'s `LocalQuranThemeMode`-aware properties — the bare `Quran*` names UI
-// screens actually import.
-val QuranBackgroundDark = Color(0xFF050806)
-val QuranSurfaceDark = Color(0xFF101713)
+// Standalone Al-Qur'an reading-room roles (`0.0.6`). These are aliases of the app-wide palette
+// above, not a second application theme — the Beranda/Quran revamp made the reader and the rest of
+// the app one colour family, so every role below now points at its app-wide equivalent and only
+// the reader-specific roles (surface-high, Arabic text, entry progress track) carry their own
+// value. The bare `Quran*` names UI screens import are resolved per mode in `QuranColorScheme.kt`.
+//
+// The dark values changed in the revamp (README §"Quran dark, changed"): primary #7FDB9C→#6FA88A,
+// background #050806→#0E1210, surface #101713→#161B18, Arabic text #F1F1EB→#E8E5DA, outline
+// #2D3933→#283029, primary container #00391C→#1B2A21, on-primary-container #A1F5B9→#C6DCCD.
+// Arabic-on-canvas contrast moves from ≈17.7:1 to ≈14.8:1 — still far above AA, with less
+// halation on OLED.
+val QuranBackgroundDark = SantriBackgroundDark
+val QuranSurfaceDark = SantriSurfaceDark
 val QuranSurfaceHighDark = Color(0xFF1A1C19)
-val QuranPrimaryDark = SantriGreen80
-val QuranOnPrimaryDark = SantriGreen20
-val QuranPrimaryContainerDark = SantriGreen20
-val QuranOnPrimaryContainerDark = SantriGreen90
-val QuranArabicTextDark = SantriNeutral95
-val QuranTranslationTextDark = Color(0xFFC3C8C0)
-val QuranMutedTextDark = Color(0xFF95A099)
-val QuranOutlineDark = Color(0xFF2D3933)
+val QuranPrimaryDark = SantriPrimaryDark
+val QuranOnPrimaryDark = SantriOnPrimaryDark
+val QuranPrimaryContainerDark = SantriTintDark
+val QuranOnPrimaryContainerDark = SantriOnTintDark
+val QuranArabicTextDark = SantriTextDark
+val QuranTranslationTextDark = SantriTranslationTextDark
+val QuranMutedTextDark = SantriMutedTextDark
+val QuranOutlineDark = SantriOutlineDark
 val QuranErrorDark = SantriError80
 
 // Terakhir dibaca card gradient start (design-export/quran/01-quran-hub-surah.html
@@ -72,28 +147,21 @@ val QuranContinueCardGradientStartDark = Color(0xFF07351F)
 val QuranEntryProgressTrackColorDark = Color(0xFF26312B)
 
 // Light mode (2026-08-10 addition) — a warm "mushaf paper" reading surface rather than stark
-// white, mirroring the softness of the dark palette instead of a harsh inversion. Reuses the
-// app's own established light tokens (SantriGreen40/95/20, SantriNeutral10/40/99, SantriSurface,
-// SantriOutline, SantriError40) everywhere their role matches exactly, for brand consistency with
-// the rest of the app's light theme (`Theme.kt`'s `LightColorScheme`) — new hex values are added
-// only for the two roles with no existing equivalent (QuranMutedTextLight,
-// QuranEntryProgressTrackColorLight). Every text-on-surface pairing below was contrast-checked
-// (WCAG relative luminance) at ≥4.8:1, comfortably above the 4.5:1 AA threshold for body text.
-val QuranBackgroundLight = SantriNeutral99
-val QuranSurfaceLight = SantriSurface
+// white, mirroring the softness of the dark palette instead of a harsh inversion. Now aliases of
+// the app-wide light palette for the same one-family reason as the dark roles above; the revamp
+// changed background #FBFDF7→#F7F4EC, outline →#E3DFD2, primary container #D7F8DF→#E6F1E4, and
+// on-primary-container #00391C→#0A3A20 (README §"Quran light, changed").
+val QuranBackgroundLight = SantriBackgroundLight
+val QuranSurfaceLight = SantriSurfaceLight
 val QuranSurfaceHighLight = Color(0xFFFFFFFF)
-val QuranPrimaryLight = SantriGreen40
-val QuranOnPrimaryLight = SantriNeutral99
-val QuranPrimaryContainerLight = SantriGreen95
-val QuranOnPrimaryContainerLight = SantriGreen20
-val QuranArabicTextLight = SantriNeutral10
-
-// Dedicated (not reused) — SantriNeutral40 is already spoken for as QuranTranslationTextLight;
-// this needs to sit visibly lighter than that while still clearing 4.5:1 against
-// QuranBackgroundLight/QuranSurfaceLight (measured 4.84:1).
-val QuranMutedTextLight = Color(0xFF6B7268)
-val QuranTranslationTextLight = SantriNeutral40
-val QuranOutlineLight = SantriOutline
+val QuranPrimaryLight = SantriPrimaryLight
+val QuranOnPrimaryLight = SantriOnPrimaryLight
+val QuranPrimaryContainerLight = SantriTintLight
+val QuranOnPrimaryContainerLight = SantriOnTintLight
+val QuranArabicTextLight = SantriTextLight
+val QuranMutedTextLight = SantriMutedTextLight
+val QuranTranslationTextLight = SantriTranslationTextLight
+val QuranOutlineLight = SantriOutlineLight
 val QuranErrorLight = SantriError40
 val QuranContinueCardGradientStartLight = SantriGreen95
 

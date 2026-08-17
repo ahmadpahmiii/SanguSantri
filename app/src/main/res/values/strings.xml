@@ -19,6 +19,8 @@
   <string name="serambi_reminder_feature_description">Atur jadwal</string>
   <string name="serambi_nahwu_supporting_resume">Lanjutkan kuis</string>
   <string name="serambi_nahwu_supporting_choose">Pilih latihan</string>
+  <string name="serambi_sholawat_feature_title">Sholawat</string>
+  <string name="serambi_sholawat_feature_description">Baca &amp; artinya</string>
   <string name="serambi_featured_amaliyah_title">Amaliyah pilihan</string>
   <string name="serambi_see_all_action">Lihat semua</string>
   <string name="serambi_resume_eyebrow">LANJUTKAN</string>
@@ -40,6 +42,12 @@
   <string name="explore_category_all">Semua</string>
   <string name="explore_result_count">%1$d amaliyah</string>
   <string name="explore_empty_search">Amaliyah yang dicari belum ditemukan.</string>
+
+  <!-- Sholawat dan Artinya (0.0.8) — own list + reader, deliberately outside Jelajahi Amaliyah -->
+  <string name="sholawat_list_title">Sholawat</string>
+  <string name="sholawat_empty_state">Sholawat sedang disiapkan.</string>
+  <string name="sholawat_show_translation_content_description">Tampilkan terjemahan</string>
+  <string name="sholawat_hide_translation_content_description">Sembunyikan terjemahan</string>
 
   <!-- Bottom navigation shell (0.0.2+, docs/design/design-export/future-releases/01-navigation-and-shared-components.md) -->
   <string name="nav_beranda_label">Beranda</string>
@@ -318,6 +326,7 @@
   <string name="quran_fixture_prototype_label">[FIXTURE] Prototype interaksi nonproduksi</string>
   <string name="quran_surah_ayat_count">%1$d Ayat</string>
   <string name="quran_surah_header_description">%1$s, %2$s, %3$d ayat</string>
+  <string name="quran_surah_header_caps_line">%1$s · %2$s · %3$d AYAT</string>
   <string name="quran_basmalah_content_description">Basmalah</string>
 
   <!-- Al-Qur'an Kemenag Beranda entry (`0.0.6`, QUR-FR-001) -->
@@ -372,8 +381,80 @@
 
   <!-- Al-Qur'an Kemenag reader (`0.0.6`, QUR-FR-008/009/010/011/012/014) -->
   <string name="quran_settings_action_content_description">Pengaturan tampilan Al-Qur\'an</string>
-  <string name="quran_theme_toggle_to_light_content_description">Ganti ke mode terang</string>
-  <string name="quran_theme_toggle_to_dark_content_description">Ganti ke mode gelap</string>
+  <string name="theme_toggle_to_light_content_description">Ganti ke mode terang</string>
+  <string name="theme_toggle_to_dark_content_description">Ganti ke mode gelap</string>
+
+  <!-- Beranda revamp (design_handoff_beranda_quran_revamp) -->
+  <string name="beranda_greeting_salutation">Assalamualaikum</string>
+  <string name="beranda_search_content_description">Cari amaliyah</string>
+  <string name="beranda_explore_action">Jelajahi</string>
+  <string name="beranda_menu_quran">Al-Qur\'an</string>
+  <string name="beranda_menu_sholawat">Sholawat</string>
+  <string name="beranda_menu_kalender">Kalender</string>
+  <string name="beranda_menu_nahwu">Nahwu</string>
+  <string name="beranda_continue_action">Lanjut</string>
+  <string name="beranda_resume_tasbih_title">Tasbih</string>
+  <string name="beranda_resume_amaliyah_supporting">Langkah %1$d dari %2$d · tersimpan</string>
+  <string name="beranda_resume_quran_supporting">Ayat %1$d dari %2$d · tersimpan</string>
+  <string name="beranda_resume_tasbih_supporting">%1$d dari %2$d · tersimpan</string>
+  <string name="beranda_resume_tasbih_supporting_unlimited">%1$d hitungan · tersimpan</string>
+  <string name="beranda_prayer_next_label">SELANJUTNYA</string>
+  <string name="beranda_prayer_full_schedule">Jadwal lengkap</string>
+  <string name="beranda_prayer_kiblat">Kiblat</string>
+  <string name="beranda_prayer_tomorrow">besok</string>
+  <string name="beranda_prayer_setup_title">Jadwal sholat</string>
+  <string name="beranda_prayer_setup_supporting">Pilih kota Anda untuk menampilkan jadwal, atau izinkan lokasi</string>
+  <string name="beranda_prayer_setup_detecting">Mencari kota Anda dari lokasi…</string>
+  <string name="tasbih_counter_of_target">dari %1$d</string>
+  <string name="tasbih_counter_tap_hint">Ketuk lingkaran untuk menghitung</string>
+  <string name="reader_full_mode_subtitle">Mode Penuh · %1$d langkah</string>
+  <string name="guided_counter_reached_label">✓ Tercapai</string>
+  <string name="activity_streak_days_unit">hari</string>
+  <string name="activity_streak_record_label">Rekor %1$d</string>
+  <string name="beranda_prayer_remaining_hours_minutes">%1$d jam %2$d menit lagi</string>
+  <string name="beranda_prayer_remaining_minutes">%1$d menit lagi</string>
+  <string name="beranda_prayer_remaining_summary">%1$s · %2$s</string>
+  <string name="prayer_imsak">Imsak</string>
+  <string name="prayer_subuh">Subuh</string>
+  <string name="prayer_zuhur">Zuhur</string>
+  <string name="prayer_asar">Asar</string>
+  <string name="prayer_magrib">Magrib</string>
+  <string name="prayer_isya">Isya</string>
+
+  <!-- Jadwal Sholat + Kiblat -->
+  <string name="jadwal_sholat_title">Jadwal Sholat</string>
+  <string name="jadwal_sholat_subtitle">%1$s · %2$s</string>
+  <string name="jadwal_sholat_countdown_label">%1$s MASUK DALAM</string>
+  <string name="jadwal_sholat_notification_on">Matikan pengingat %1$s</string>
+  <string name="jadwal_sholat_notification_off">Nyalakan pengingat %1$s</string>
+  <string name="jadwal_sholat_unavailable_title">Jadwal sholat belum tersedia</string>
+  <string name="jadwal_sholat_unavailable_description">Jadwal untuk hari ini belum tersimpan. Coba muat ulang saat ada koneksi.</string>
+  <string name="jadwal_sholat_offline_description">Tidak dapat menghubungi sumber jadwal. Jadwal yang sudah tersimpan tetap bisa dibuka tanpa koneksi.</string>
+  <string name="jadwal_sholat_choose_city_title">Pilih kota</string>
+  <string name="jadwal_sholat_choose_city_description">Pilih kota Anda untuk menampilkan jadwal, atau izinkan lokasi agar kota terisi otomatis.</string>
+  <string name="jadwal_sholat_choose_city_action">Pilih kota</string>
+  <string name="jadwal_sholat_change_city">Ganti kota</string>
+  <string name="jadwal_sholat_city_search_hint">Cari kabupaten/kota</string>
+  <string name="jadwal_sholat_city_sheet_supporting">Jadwal mengikuti kota yang dipilih</string>
+  <string name="jadwal_sholat_close_city_picker">Tutup pilihan kota</string>
+  <string name="jadwal_sholat_clear_search">Hapus pencarian</string>
+  <string name="jadwal_sholat_city_no_results">Tidak ada kota yang cocok dengan \"%1$s\"</string>
+  <string name="jadwal_sholat_city_selected">Kota terpilih</string>
+  <string name="jadwal_sholat_city_list_unavailable">Daftar kota belum bisa dimuat. Periksa koneksi lalu coba lagi.</string>
+  <string name="jadwal_sholat_retry">Muat ulang</string>
+  <string name="jadwal_sholat_source">myquran.com</string>
+  <string name="kiblat_enable_action">Aktifkan arah kiblat</string>
+  <string name="kiblat_recompute_action">Hitung ulang</string>
+  <string name="jadwal_sholat_detect_location_action">Izinkan lokasi</string>
+  <string name="jadwal_sholat_detect_failed">Kota tidak dapat dideteksi dari lokasi Anda. Silakan pilih manual.</string>
+  <string name="kiblat_heading_hint">Arahkan ponsel; jarum menunjuk kiblat.</string>
+  <string name="kiblat_calibrate_hint">Akurasi kompas rendah — putar ponsel membentuk angka 8.</string>
+  <string name="kiblat_card_title">Arah Kiblat</string>
+  <string name="kiblat_compass_north">U</string>
+  <string name="kiblat_bearing_degrees">%1$d°</string>
+  <string name="kiblat_bearing_unknown">Belum tersedia</string>
+  <string name="kiblat_calibration_hint">Kalibrasi: putar angka 8.</string>
+  <string name="kiblat_unavailable_description">Arah kiblat membutuhkan izin lokasi perkiraan, dihitung sekali lalu disimpan.</string>
   <string name="quran_reader_unavailable">Surah tidak ditemukan.</string>
   <string name="quran_reader_unavailable_title">Posisi bacaan tidak ditemukan</string>
   <string name="quran_reader_unavailable_description">Data mungkin telah diperbarui. Kembali ke daftar surah untuk memilih posisi lain.</string>
@@ -382,6 +463,8 @@
   <string name="quran_reader_position">Halaman %1$d • Juz %2$d</string>
   <string name="quran_reader_juz">Juz %1$d</string>
   <string name="quran_reader_ayat_context">Ayat %1$d · Juz %2$d · Halaman %3$d</string>
+  <string name="quran_reader_ayat_origin">Juz %1$d · Hal %2$d</string>
+  <string name="quran_reader_mushaf_strip">Juz %1$d · Hal %2$d</string>
   <string name="quran_action_position_info_format">Juz %1$d • Halaman %2$d</string>
 
   <!-- Al-Qur'an Kemenag tafsir sheet (`0.0.6`, QUR-FR-013) -->
@@ -423,6 +506,9 @@
   <string name="quran_settings_theme_label">Tema</string>
   <string name="quran_settings_theme_light">Terang</string>
   <string name="quran_settings_theme_dark">Gelap</string>
+  <string name="quran_settings_surah_header_label">Kepala surah</string>
+  <string name="quran_settings_surah_header_tenang">Tenang</string>
+  <string name="quran_settings_surah_header_band">Band</string>
   <string name="quran_settings_brightness_label">Kecerahan Quran</string>
   <string name="quran_settings_preview_unavailable">Pratinjau belum tersedia.</string>
   <string name="quran_settings_font_section_title">Font Arab</string>

@@ -39,7 +39,6 @@ import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
-import com.sangusantri.app.feature.quran.QuranThemeBoundary
 
 /**
  * Sumber Al-Qur'an (QUR-FR-019, `docs/design/QURAN_DESIGN_SYSTEM.md` §5.8) — a static, full-screen
@@ -50,9 +49,7 @@ import com.sangusantri.app.feature.quran.QuranThemeBoundary
  */
 @Composable
 fun QuranSourceRoute(onBack: () -> Unit) {
-    QuranThemeBoundary {
-        QuranSourceScreen(onBack = onBack)
-    }
+    QuranSourceScreen(onBack = onBack)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

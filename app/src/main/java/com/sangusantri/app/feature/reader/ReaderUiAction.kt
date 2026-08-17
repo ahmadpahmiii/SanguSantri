@@ -1,7 +1,14 @@
 package com.sangusantri.app.feature.reader
 
+import com.sangusantri.app.domain.model.AppThemeMode
+
 /** User-initiated intents the Full Reader sends to [ReaderViewModel] (unidirectional data flow). */
 sealed interface ReaderUiAction {
+    /** The app-wide theme toggle now lives in this reader's top bar too (revamp handoff §7). */
+    data class SetThemeMode(
+        val mode: AppThemeMode,
+    ) : ReaderUiAction
+
     data class ScrollPositionChanged(
         val itemIndex: Int,
         val itemOffset: Int,

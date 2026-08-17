@@ -1189,6 +1189,9 @@ this one is product/legal/governance-owned.
 * Approved standalone Kalender Hijriah `0.0.7` scope, source evaluation,
   local-bundle policy, and acceptance criteria:
   `docs/product/HIJRI_CALENDAR_PRD.md`
+* Sholawat dan Artinya `0.0.8` scope and acceptance criteria (own progress
+  doc, not this file's milestone log): `docs/product/SHOLAWAT_PRD.md`,
+  `docs/product/SHOLAWAT_PROGRESS.md`
 * Standalone Quran visual system and design frame contract: `docs/design/QURAN_DESIGN_SYSTEM.md`
 * Observed Kemenag endpoint/data contract: `docs/engineering/QURAN_API_CONTRACT_DRAFT.md`
 * Standalone Quran architecture/security decision:

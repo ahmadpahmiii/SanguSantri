@@ -202,7 +202,11 @@ private fun TasbihNoSessionContent(
         stateDescription = stringResource(R.string.tasbih_counter_state_no_target, 0),
         onTap = { onAction(TasbihUiAction.IncrementCounter) },
     )
-    Text(text = stringResource(R.string.tasbih_choose_target_label), style = MaterialTheme.typography.titleMedium)
+    Text(
+        text = stringResource(R.string.tasbih_counter_tap_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     TasbihTargetSelector(
         selectedPreset = null,
         onPresetSelected = { onAction(TasbihUiAction.SelectPreset(it)) },
@@ -249,9 +253,14 @@ private fun TasbihActiveContent(
                 statusText,
             ),
         onTap = { onAction(TasbihUiAction.IncrementCounter) },
+        targetLabel =
+            state.targetValue?.let { stringResource(R.string.tasbih_counter_of_target, it) },
     )
-
-    Text(text = stringResource(R.string.tasbih_choose_target_label), style = MaterialTheme.typography.titleMedium)
+    Text(
+        text = stringResource(R.string.tasbih_counter_tap_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     TasbihTargetSelector(
         selectedPreset = state.targetPreset,
         onPresetSelected = { onAction(TasbihUiAction.SelectPreset(it)) },

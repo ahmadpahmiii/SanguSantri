@@ -1,31 +1,19 @@
 package com.sangusantri.app.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -34,8 +22,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.icon.TasbihIcon
-import com.sangusantri.app.core.designsystem.theme.LocalQuranThemeMode
-import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.activity.ActivityRoute
 import com.sangusantri.app.feature.activity.detail.ActivityAmaliyahHistoryRoute
@@ -53,8 +39,8 @@ import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackageDetailRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackagesRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizResultRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizSessionRoute
+import com.sangusantri.app.feature.prayertimes.JadwalSholatRoute
 import com.sangusantri.app.feature.quran.QuranEntryRoute
-import com.sangusantri.app.feature.quran.QuranThemeViewModel
 import com.sangusantri.app.feature.quran.hub.QuranHubRoute
 import com.sangusantri.app.feature.quran.reader.QuranReaderRoute
 import com.sangusantri.app.feature.quran.settings.QuranSettingsRoute
@@ -62,6 +48,8 @@ import com.sangusantri.app.feature.quran.source.QuranSourceRoute
 import com.sangusantri.app.feature.reader.ReaderEntryRoute
 import com.sangusantri.app.feature.reader.ReaderRoute
 import com.sangusantri.app.feature.reminder.ReminderRoute
+import com.sangusantri.app.feature.sholawat.SholawatListRoute
+import com.sangusantri.app.feature.sholawat.SholawatReaderRoute
 import com.sangusantri.app.feature.tasbih.TasbihRoute
 import com.sangusantri.app.feature.tasbih.history.TasbihHistoryRoute
 import kotlinx.serialization.Serializable
@@ -110,11 +98,10 @@ private data class GuidedReader(
     val contentId: String,
 ) : NavKey
 
+/** Jadwal Sholat + Kiblat — a Beranda entry point only, never a bottom-nav destination. Kiblat has
+ * no key of its own: the handoff folds it into this screen. */
 @Serializable
-private data object Setelan : NavKey
-
-@Serializable
-private data object About : NavKey
+private data object JadwalSholat : NavKey
 
 /** Searchable, category-driven amaliyah catalogue reached from Beranda. */
 @Serializable
@@ -129,6 +116,16 @@ private data object Pengingat : NavKey
  * (`docs/product/HIJRI_CALENDAR_PRD.md` §4.1's "never add a bottom-navigation item"). */
 @Serializable
 private data object KalenderHijriah : NavKey
+
+/** `0.0.8`, Sholawat dan Artinya — Beranda-only entry, deliberately not inside [Explore]
+ * (`docs/product/SHOLAWAT_PRD.md`). */
+@Serializable
+private data object SholawatList : NavKey
+
+@Serializable
+private data class SholawatReader(
+    val contentId: String,
+) : NavKey
 
 /** `0.0.5`, Nahwu Quiz — also never a bottom-nav destination (ADR 0013), reached only from
  * Beranda's "Belajar" entry point. */
@@ -206,13 +203,6 @@ fun SanguSantriNavHost(
     onDeepLinkConsumed: () -> Unit = {},
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
-    val isQuranDestination = topLevelBackStack.backStack.lastOrNull().isQuranDestination()
-
-    // Read once here (not per Quran route) so the nav host's own background behind the Quran
-    // destination (below) and every Quran screen inside it resolve the same live value — see
-    // QuranThemeViewModel/LocalQuranThemeMode.
-    val quranThemeViewModel: QuranThemeViewModel = hiltViewModel()
-    val quranThemeMode by quranThemeViewModel.themeMode.collectAsStateWithLifecycle()
 
     // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
     // reading-mode gate directly, on top of whatever the user was already doing — never replaces
@@ -224,41 +214,34 @@ fun SanguSantriNavHost(
         }
     }
 
-    CompositionLocalProvider(LocalQuranThemeMode provides quranThemeMode) {
-        Scaffold(
-            modifier = modifier,
-            containerColor = if (isQuranDestination) QuranBackground else MaterialTheme.colorScheme.background,
-            bottomBar = {
-                if (topLevelBackStack.isAtTopLevelRoot) {
-                    BottomNavigationBar(
-                        destinations = rootDestinations(),
-                        selectedKey = topLevelBackStack.topLevelKey,
-                        onSelect = topLevelBackStack::addTopLevel,
-                    )
-                }
-            },
-        ) { innerPadding ->
-            NavDisplay(
-                backStack = topLevelBackStack.backStack,
-                modifier = Modifier.padding(innerPadding),
-                onBack = { topLevelBackStack.removeLast() },
-                entryDecorators =
-                    listOf(
-                        rememberSaveableStateHolderNavEntryDecorator(),
-                        rememberViewModelStoreNavEntryDecorator(),
-                    ),
-                entryProvider = sanguSantriEntryProvider(topLevelBackStack),
-            )
-        }
+    // No Quran-specific containerColor any more: one app-wide theme means the Quran background and
+    // MaterialTheme's background are the same value (MainActivity owns the mode).
+    Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            if (topLevelBackStack.isAtTopLevelRoot) {
+                BottomNavigationBar(
+                    destinations = rootDestinations(),
+                    selectedKey = topLevelBackStack.topLevelKey,
+                    onSelect = topLevelBackStack::addTopLevel,
+                )
+            }
+        },
+    ) { innerPadding ->
+        NavDisplay(
+            backStack = topLevelBackStack.backStack,
+            modifier = Modifier.padding(innerPadding),
+            onBack = { topLevelBackStack.removeLast() },
+            entryDecorators =
+                listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                ),
+            entryProvider = sanguSantriEntryProvider(topLevelBackStack),
+        )
     }
 }
-
-private fun NavKey?.isQuranDestination(): Boolean =
-    this is QuranEntry ||
-        this is QuranHub ||
-        this is QuranReader ||
-        this is QuranSettings ||
-        this is QuranSource
 
 @Composable
 private fun rootDestinations(): List<RootDestination> =
@@ -298,8 +281,6 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
                 onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
                 actions =
                     SerambiActions(
-                        onSetelanClick = { topLevelBackStack.add(Setelan) },
-                        onAboutClick = { topLevelBackStack.add(About) },
                         onExploreClick = { topLevelBackStack.add(Explore) },
                         onPengingatClick = { topLevelBackStack.add(Pengingat) },
                         onBelajarClick = { topLevelBackStack.add(NahwuQuizLanding) },
@@ -317,6 +298,10 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
                         },
                         onContinueTasbih = { topLevelBackStack.addTopLevel(Tasbih) },
                         onHijriCalendarClick = { topLevelBackStack.add(KalenderHijriah) },
+                        onSholawatClick = { topLevelBackStack.add(SholawatList) },
+                        onPrayerScheduleClick = { topLevelBackStack.add(JadwalSholat) },
+                        // Kiblat lives inside Jadwal Sholat (handoff decision) — same destination.
+                        onKiblatClick = { topLevelBackStack.add(JadwalSholat) },
                     ),
             )
         }
@@ -331,17 +316,8 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
             TasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
         }
         readerEntries(topLevelBackStack)
-        entry<Setelan> {
-            PlaceholderScreen(
-                message = stringResource(R.string.setelan_placeholder_message),
-                onBack = { topLevelBackStack.removeLast() },
-            )
-        }
-        entry<About> {
-            PlaceholderScreen(
-                message = stringResource(R.string.about_placeholder_message),
-                onBack = { topLevelBackStack.removeLast() },
-            )
+        entry<JadwalSholat> {
+            JadwalSholatRoute(onBack = { topLevelBackStack.removeLast() })
         }
     }
 
@@ -359,6 +335,15 @@ private fun EntryProviderScope<NavKey>.standaloneEntries(topLevelBackStack: TopL
     }
     entry<KalenderHijriah> {
         HijriCalendarRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+    entry<SholawatList> {
+        SholawatListRoute(
+            onBack = { topLevelBackStack.removeLast() },
+            onSholawatSelected = { contentId -> topLevelBackStack.add(SholawatReader(contentId)) },
+        )
+    }
+    entry<SholawatReader> { key ->
+        SholawatReaderRoute(contentId = key.contentId, onBack = { topLevelBackStack.removeLast() })
     }
 }
 
@@ -525,38 +510,5 @@ private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLev
     }
     entry<ActivityQuranHistory> {
         ActivityQuranHistoryRoute(onBack = { topLevelBackStack.removeLast() })
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlaceholderScreen(
-    message: String,
-    onBack: () -> Unit,
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_back_content_description),
-                        )
-                    }
-                },
-            )
-        },
-    ) { innerPadding ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = message, style = MaterialTheme.typography.bodyMedium)
-        }
     }
 }

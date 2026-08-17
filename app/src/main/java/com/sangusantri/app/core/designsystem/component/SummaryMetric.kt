@@ -8,7 +8,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.sp
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -34,8 +36,11 @@ fun SummaryMetric(
         }
     Column(modifier = containerModifier, verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall)) {
         Text(
+            // Revamp handoff §9: stat numbers are large and light (22sp/300), never bold — the
+            // number carries the weight by size alone.
             text = value,
-            style = MaterialTheme.typography.headlineSmall,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Light,
             color =
                 if (emphasis == SummaryMetricEmphasis.HIGHLIGHTED) {
                     MaterialTheme.colorScheme.onPrimaryContainer
@@ -45,7 +50,7 @@ fun SummaryMetric(
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 11.5.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

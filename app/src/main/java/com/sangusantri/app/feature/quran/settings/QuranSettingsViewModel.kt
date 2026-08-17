@@ -2,9 +2,10 @@ package com.sangusantri.app.feature.quran.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
-import com.sangusantri.app.domain.model.QuranThemeMode
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.QuranRepository
 import com.sangusantri.app.feature.quran.reader.toReaderUiModel
@@ -42,7 +43,7 @@ constructor(
                 arabicLineSpacingMultiplier = settings.arabicLineSpacingMultiplier,
                 translationSizeSp = settings.translationSizeSp,
                 brightnessOverride = settings.brightnessOverride,
-                themeMode = settings.themeMode,
+                surahHeaderVariant = settings.surahHeaderVariant,
                 previewAyat = verses.firstOrNull()?.toReaderUiModel(surahName),
             )
         }.stateIn(
@@ -75,8 +76,12 @@ constructor(
         viewModelScope.launch { settingsRepository.setBrightnessOverride(value) }
     }
 
-    fun setThemeMode(mode: QuranThemeMode) {
+    fun setThemeMode(mode: AppThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
+    }
+
+    fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) {
+        viewModelScope.launch { settingsRepository.setSurahHeaderVariant(variant) }
     }
 
     private companion object {

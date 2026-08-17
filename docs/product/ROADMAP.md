@@ -159,10 +159,10 @@ architecture and accepted credential trade-off.
 * Official Kemenag source attribution, no account sync, analytics, audio,
   download manager, or Quran Foundation fallback.
 
-## `0.0.7` — Kalender Hijriah (approved product/design scope)
+## `0.0.7` — Kalender Hijriah
 
-Approved PRD: [`HIJRI_CALENDAR_PRD.md`](HIJRI_CALENDAR_PRD.md). Android
-implementation has not started and still requires an explicit milestone start.
+Approved PRD: [`HIJRI_CALENDAR_PRD.md`](HIJRI_CALENDAR_PRD.md). Implemented
+and manually verified on-device (2026-08-09) — see `docs/PROGRESS.md`.
 
 * Beranda entry; not a bottom-navigation destination.
 * Compact Sunday-first Gregorian month grid with full weekday names, calculated
@@ -180,6 +180,30 @@ implementation has not started and still requires an explicit milestone start.
   Kalender Hijriah Indonesia Kemenag or an official sidang-isbat decision.
 * No haul/pesantren events, reminders, event creation, sharing, manual Hijri
   adjustment, Maghrib rollover, or selectable calculation method.
+
+## `0.0.8` — Sholawat dan Artinya
+
+Approved PRD: [`SHOLAWAT_PRD.md`](SHOLAWAT_PRD.md); progress tracked in its
+own [`SHOLAWAT_PROGRESS.md`](SHOLAWAT_PROGRESS.md), not this file (product
+owner instruction: new features get their own PRD + progress doc).
+
+* Beranda entry (supporting-feature shortcut); not a bottom-navigation
+  destination, not listed inside Jelajahi Amaliyah for this milestone.
+* A list/library screen of sholawat titles, each opening its own dedicated
+  reading page — not the existing Full/Guided Amaliyah reader.
+* Indonesian translation only; reuses the existing content schema and
+  offline-first sync pipeline unchanged (ADR 0012/0014) — no backend or
+  sync-client code change, only new catalog/package JSON once content exists.
+* Opens Arabic-only (large font) by default; one toggle switches to a
+  compact Arabic + translation layout. Stateless: no bookmarks, no resume
+  position.
+* Standard public amaliyah governance tier (product-owner editorial
+  acceptance, no mandatory kyai sign-off) — see `docs/product/PRD.md` §3.1's
+  risk-based model. A dedicated `CONTENT_GOVERNANCE.md` section is deferred
+  to a later pass.
+* **Blocked on the product owner supplying the actual sholawat titles and
+  their published source** — this milestone ships the feature scaffolding
+  only; no real content is invented.
 
 ## `0.1.0` — Accounts
 

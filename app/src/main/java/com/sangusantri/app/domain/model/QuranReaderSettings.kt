@@ -8,6 +8,11 @@ package com.sangusantri.app.domain.model
  * (never overridden); once the user moves the brightness slider it holds `0f..1f` and is
  * re-applied every time the Quran window opens, restoring the prior window value on exit
  * (QUR-FR-015).
+ *
+ * [themeMode] is likewise `null` until the user picks a mode — the app follows the system setting
+ * until then. It is app-wide since the Beranda/Quran revamp, not a Quran-only surface setting; it
+ * still lives here because this is where it is already persisted, and a separate key would need a
+ * migration to buy nothing.
  */
 data class QuranReaderSettings(
     val displayMode: QuranDisplayMode = QuranDisplayMode.ARAB_ONLY,
@@ -16,14 +21,19 @@ data class QuranReaderSettings(
     val arabicLineSpacingMultiplier: Float = DEFAULT_ARABIC_LINE_SPACING,
     val translationSizeSp: Int = DEFAULT_TRANSLATION_SIZE_SP,
     val brightnessOverride: Float? = null,
-    val themeMode: QuranThemeMode = QuranThemeMode.DARK,
+    val themeMode: AppThemeMode? = null,
+    val surahHeaderVariant: QuranSurahHeaderVariant = QuranSurahHeaderVariant.TENANG,
 ) {
     companion object {
-        const val DEFAULT_ARABIC_SIZE_SP = 24
+        // 27sp / 2.4x are the revamp's reader defaults (handoff §Typography). The design lists a
+        // slightly larger 29sp / 2.55x for mushaf mode; that is deliberately collapsed onto this
+        // one user-controlled pair rather than splitting the size and line-spacing sliders per
+        // display mode, which would double the settings surface for a two-step difference.
+        const val DEFAULT_ARABIC_SIZE_SP = 27
         const val MIN_ARABIC_SIZE_SP = 14
         const val MAX_ARABIC_SIZE_SP = 52
 
-        const val DEFAULT_ARABIC_LINE_SPACING = 2.30f
+        const val DEFAULT_ARABIC_LINE_SPACING = 2.40f
         const val MIN_ARABIC_LINE_SPACING = 1.50f
         const val MAX_ARABIC_LINE_SPACING = 5.00f
 

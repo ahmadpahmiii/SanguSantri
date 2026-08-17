@@ -3,11 +3,13 @@ package com.sangusantri.app.feature.explore
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.repository.ContentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -21,8 +23,15 @@ constructor(
     private val query = savedStateHandle.getStateFlow(QUERY_KEY, "")
     private val selectedCategory = savedStateHandle.getStateFlow<String?>(CATEGORY_KEY, null)
 
+    // Sholawat (0.0.8) has its own list + reader (feature/sholawat), deliberately not Jelajahi
+    // Amaliyah — see docs/product/SHOLAWAT_PRD.md.
+    private val amaliyahContent =
+        contentRepository.observeActiveContent().map { items ->
+            items.filterNot { it.category == Content.SHOLAWAT_CATEGORY }
+        }
+
     val uiState: StateFlow<ExploreUiState> =
-        combine(contentRepository.observeActiveContent(), query, selectedCategory) { items, searchQuery, category ->
+        combine(amaliyahContent, query, selectedCategory) { items, searchQuery, category ->
             val categories = items.mapNotNull { it.category?.takeIf(String::isNotBlank) }.distinct()
             val effectiveCategory = category?.takeIf(categories::contains)
             val filteredItems =

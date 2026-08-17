@@ -1,22 +1,31 @@
+@file:Suppress("TooManyFunctions")
+
 package com.sangusantri.app.feature.reader
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,11 +42,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.component.ThemeToggleButton
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -139,9 +150,21 @@ private fun ReaderTopBar(
     onAction: (ReaderUiAction) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val title = (uiState as? ReaderUiState.ContentAvailable)?.title ?: stringResource(R.string.app_name)
+    val contentState = uiState as? ReaderUiState.ContentAvailable
+    val title = contentState?.title ?: stringResource(R.string.app_name)
     TopAppBar(
-        title = { Text(text = title) },
+        title = {
+            Column {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                contentState?.let {
+                    Text(
+                        text = stringResource(R.string.reader_full_mode_subtitle, it.steps.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
         expandedHeight = SanguSantriDimensions.compactTopAppBarHeight,
         navigationIcon = {
             IconButton(onClick = onBack) {
@@ -152,7 +175,14 @@ private fun ReaderTopBar(
             }
         },
         actions = {
-            if (uiState is ReaderUiState.ContentAvailable) {
+            ThemeToggleButton(onSelect = { onAction(ReaderUiAction.SetThemeMode(it)) })
+            if (contentState != null) {
+                // Handoff §7: switching to Panduan is the reader's primary alternate action, so it
+                // gets a visible tint pill rather than hiding inside the overflow menu.
+                ReaderModeSwitchPill(
+                    label = stringResource(R.string.reader_switch_to_guided_action),
+                    onClick = { onAction(ReaderUiAction.SwitchToGuided) },
+                )
                 ReaderOverflowMenu(
                     switchModeLabel = stringResource(R.string.reader_switch_to_guided_action),
                     actions =
@@ -160,11 +190,41 @@ private fun ReaderTopBar(
                             onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
                             onOpenSettings = onOpenSettings,
                         ),
-                    sourceName = uiState.sourceName,
+                    sourceName = contentState.sourceName,
                 )
             }
         },
     )
+}
+
+@Composable
+private fun ReaderModeSwitchPill(
+    label: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(ModeSwitchPillHeight / 2),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = Modifier.height(ModeSwitchPillHeight),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = SanguSantriSpacing.medium),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(start = SanguSantriSpacing.extraSmall),
+            )
+        }
+    }
 }
 
 @Composable
@@ -350,3 +410,5 @@ private fun ReaderScreenExpandedPreview() {
         )
     }
 }
+
+private val ModeSwitchPillHeight = 32.dp

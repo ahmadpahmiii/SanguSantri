@@ -54,6 +54,7 @@ import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
+import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 
 /**
  * The Al-Qur'an Kemenag entry gate opened from Beranda (QUR-FR-001/002, §6.1). [onReady] is only
@@ -73,14 +74,12 @@ fun QuranEntryRoute(
         if (uiState is QuranEntryUiState.Ready) onReady()
     }
 
-    QuranThemeBoundary {
-        QuranEntryScreen(
-            uiState = uiState,
-            onRetry = viewModel::retry,
-            onBack = onBack,
-            modifier = modifier,
-        )
-    }
+    QuranEntryScreen(
+        uiState = uiState,
+        onRetry = viewModel::retry,
+        onBack = onBack,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -190,7 +189,7 @@ private fun QuranPreparingState(state: QuranEntryUiState.Preparing) {
     )
 }
 
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "UnusedParameter")
 @Composable
 private fun QuranEntryMessage(
     title: String,
@@ -198,6 +197,9 @@ private fun QuranEntryMessage(
     actionLabel: String,
     icon: ImageVector,
     onAction: () -> Unit,
+    // Callers still pass the raw failure detail, but the block that renders it is commented out
+    // below. Suppressed rather than deleted so the intent — and the callers' argument — survive
+    // until someone decides whether that block comes back. Pre-existing; not part of the revamp.
     detail: String? = null,
 ) {
     QuranEntryStateLayout(
@@ -298,7 +300,7 @@ private fun QuranEntryStateVisual(
 @Preview(name = "Preparing")
 @Composable
 private fun QuranEntryPreparingPreview() {
-    QuranThemeBoundary {
+    SanguSantriTheme(darkTheme = true) {
         QuranEntryScreen(uiState = QuranEntryUiState.Preparing(42, 114), onRetry = {}, onBack = {})
     }
 }
@@ -306,7 +308,7 @@ private fun QuranEntryPreparingPreview() {
 @Preview(name = "Failed")
 @Composable
 private fun QuranEntryFailedPreview() {
-    QuranThemeBoundary {
+    SanguSantriTheme(darkTheme = true) {
         QuranEntryScreen(
             uiState = QuranEntryUiState.PreparationFailed(reason = "surah list network error: Unable to resolve host"),
             onRetry = {},
@@ -318,7 +320,7 @@ private fun QuranEntryFailedPreview() {
 @Preview(name = "Offline, no local data")
 @Composable
 private fun QuranEntryOfflinePreview() {
-    QuranThemeBoundary {
+    SanguSantriTheme(darkTheme = true) {
         QuranEntryScreen(uiState = QuranEntryUiState.OfflineNoLocalData, onRetry = {}, onBack = {})
     }
 }

@@ -1,20 +1,18 @@
 package com.sangusantri.app.feature.tasbih.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -23,13 +21,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 
+@Suppress("LongParameterList")
 /**
  * The Standalone Tasbih counter (0.0.2) — the single largest tappable element on the screen
  * (`docs/design/DESIGN_SYSTEM.md`'s Tasbih target hierarchy), min 220dp. Unlike
@@ -45,30 +44,29 @@ fun TasbihCounter(
     stateDescription: String,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
+    targetLabel: String? = null,
 ) {
     val haptics = LocalHapticFeedback.current
     val tapLabel = stringResource(R.string.tasbih_counter_tap_action)
-    val captionRes =
-        if (tone == TasbihCounterTone.TARGET_REACHED) {
-            R.string.tasbih_counter_caption_target_reached
-        } else {
-            R.string.tasbih_counter_caption_counting
-        }
-    val (containerColor, contentColor) = tasbihCounterColors(tone)
+    val reached = tone == TasbihCounterTone.TARGET_REACHED
+    // Revamp handoff §10: a surface-filled circle whose 1dp border is the only thing that changes at
+    // the target — outline while counting, primary once reached. The count itself is the element,
+    // so nothing else competes with it.
+    val borderColor =
+        if (reached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 
     Surface(
         onClick = {
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             onTap()
         },
-        shape = SanguSantriShapes.extraLarge,
-        color = containerColor,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, borderColor),
         modifier =
             modifier
-                .sizeIn(
-                    minWidth = SanguSantriDimensions.tasbihCounterMinSize,
-                    minHeight = SanguSantriDimensions.tasbihCounterMinSize,
-                ).semantics {
+                .size(SanguSantriDimensions.tasbihCounterSize)
+                .semantics {
                     contentDescription = tapLabel
                     this.stateDescription = stateDescription
                 },
@@ -81,39 +79,26 @@ fun TasbihCounter(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            if (tone == TasbihCounterTone.TARGET_REACHED) {
-                Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = contentColor)
-            }
             Text(
                 text = count.toString(),
-                fontSize = 72.sp,
-                lineHeight = 78.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = contentColor,
+                fontSize = COUNT_SIZE_SP.sp,
+                lineHeight = (COUNT_SIZE_SP + 4).sp,
+                fontWeight = FontWeight.Light,
+                letterSpacing = (-2).sp,
+                color = if (reached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = stringResource(captionRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor.copy(alpha = CAPTION_ALPHA),
-            )
+            if (targetLabel != null) {
+                Text(
+                    text = targetLabel,
+                    fontSize = 13.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun tasbihCounterColors(tone: TasbihCounterTone): Pair<Color, Color> =
-    when (tone) {
-        TasbihCounterTone.NEUTRAL ->
-            MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-
-        TasbihCounterTone.COUNTING ->
-            MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-
-        TasbihCounterTone.TARGET_REACHED ->
-            MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
-    }
-
-private const val CAPTION_ALPHA = 0.8f
+private const val COUNT_SIZE_SP = 74
 
 @PreviewLightDark
 @Composable

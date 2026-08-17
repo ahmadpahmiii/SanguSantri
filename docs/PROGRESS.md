@@ -6796,3 +6796,68 @@ spec's implementation pass (`NAHWU_QUIZ_ENGAGEMENT_PRD.md` §12: data model, sel
 session mechanics, streak query, Beranda indicator) using the 31 questions already shipped. Kalender
 Hijriah/Quran polish items noted in earlier entries remain otherwise unaffected.
 
+## Sholawat dan Artinya `0.0.8` — Scaffolding (2026-08-16)
+
+Own dedicated PRD and progress log (product owner instruction: new features get their own PRD +
+progress doc, not additions to this shared file) — see `docs/product/SHOLAWAT_PRD.md` and
+`docs/product/SHOLAWAT_PROGRESS.md` for the full entry. Summary: list + dedicated reader screens,
+Beranda entry point, and exclusion from Jelajahi Amaliyah/Beranda's generic Amaliyah surfaces are
+implemented and reuse the existing content pipeline unchanged; real sholawat content is a blocked,
+separate follow-up pending the product owner supplying titles and a source.
+
+## Beranda + Al-Qur'an revamp — Step 1, design tokens and app-wide theme (2026-08-16)
+
+Own progress log (same convention as Sholawat: an initiative gets its own doc, not additions here) —
+see `docs/design/BERANDA_QURAN_REVAMP_PROGRESS.md`. Summary: the
+`design_handoff_beranda_quran_revamp/`
+bundle's palette is now one app-wide set of colour roles that both `MaterialTheme.colorScheme` and
+the
+`Quran*` tokens resolve to, so every existing screen picked up the new warm-paper/raised-dark family
+without per-screen edits; the persisted theme mode is now app-wide (`QuranThemeMode` →
+`AppThemeMode`),
+resolved once in `MainActivity`, follows the system until the user first chooses, and
+`QuranThemeBoundary` is deleted. Steps 2–6 of the handoff (reader header, Beranda, Jadwal Sholat +
+Kiblat, Tampilan additions, remaining restyles) are not started. Note for anyone running the
+handoff's
+per-phase validation: `ktlintCheck` and `detekt` fail on unmodified committed code in this repo —
+see
+that doc's "Toolchain problem found".
+
+## Beranda + Al-Qur'an revamp — Steps 2-6 (2026-08-16)
+
+Continues the entry above; full detail in `docs/design/BERANDA_QURAN_REVAMP_PROGRESS.md`. The
+reader's tenang surah header (basmalah now read from Room, never hardcoded), mushaf immersion,
+Beranda's rebuild, a new `feature/prayertimes` Jadwal Sholat + Kiblat screen, the Kepala surah
+setting, and the Tasbih/guided-counter/Amaliyah/Aktivitas restyles are implemented. Two things to
+carry forward: **Jadwal Sholat has no prayer-time source** (release builds render nothing; debug
+builds show clearly-marked sample times behind a `BuildConfig.DEBUG` gate), and the handoff's
+**Murottal chip was not built** because Quran audio is off the roadmap — that needs a product
+decision.
+
+## Jadwal Sholat + Kiblat wired to myquran (2026-08-17)
+
+Detail in `docs/design/BERANDA_QURAN_REVAMP_PROGRESS.md` and ADR
+`docs/decisions/0018-myquran-for-prayer-times-and-qibla.md`. Prayer schedules and
+qibla now come from api.myquran.com; the schedule is keyed by kabupaten/kota so it
+needs no location permission, a month is cached at a time for offline use, and the
+debug-only sample schedule is gone. Kiblat adds the app's first runtime permission
+(`ACCESS_COARSE_LOCATION`, optional, on-demand only). Room goes to v6, which under
+the no-migrations policy **wipes the database** — every user re-downloads the Quran
+once. myquran's Quran audio/tafsir and its hijri calendar were evaluated and
+deliberately not adopted; the reasons and the measured hijri comparison are in the
+ADR.
+
+## Kalender Hijriah production sign-off + city detection fix (2026-08-17)
+
+**Kalender Hijriah is production-ready** on the app's own offline `java.time.chrono.HijrahDate`
+computation (product-owner decision). It follows Umm al-Qura, which lands a day before Kemenag/NU on
+1 Ramadan and Idul Fitri — accepted, recorded in ADR 0018 with the future option of a curated
+Kemenag
+date table over the Firebase Hosting content pipeline. The reminder scheduler uses the same
+computation, so calendar and reminders agree.
+
+Also fixed: granting location on first launch now fills the prayer-schedule city in automatically
+instead of still demanding a manual pick — three faults (geocoder on the main thread, no
+last-known fix immediately after a grant, and a name matcher that could not reconcile "Kota Jakarta
+Barat" with myquran's "KOTA JAKARTA"). Detail in
+`docs/design/BERANDA_QURAN_REVAMP_PROGRESS.md`.

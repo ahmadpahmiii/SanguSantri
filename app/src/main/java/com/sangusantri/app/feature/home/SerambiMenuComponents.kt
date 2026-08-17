@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Quiz
+import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -94,8 +95,8 @@ fun SerambiMainFeatures(
 @Composable
 fun SerambiSupportingFeatures(
     reminderDescription: String,
-    showNahwuQuiz: Boolean,
-    nahwuDescription: String,
+    nahwuDescription: String?,
+    showSholawat: Boolean,
     actions: SerambiActions,
     modifier: Modifier = Modifier,
 ) {
@@ -110,13 +111,23 @@ fun SerambiSupportingFeatures(
                     onClick = actions.onPengingatClick,
                 ),
             )
-            if (showNahwuQuiz) {
+            if (nahwuDescription != null) {
                 add(
                     SupportingFeatureSpec(
                         title = stringResource(R.string.serambi_belajar_card_title),
                         description = nahwuDescription,
                         icon = Icons.Outlined.Quiz,
                         onClick = actions.onBelajarClick,
+                    ),
+                )
+            }
+            if (showSholawat) {
+                add(
+                    SupportingFeatureSpec(
+                        title = stringResource(R.string.serambi_sholawat_feature_title),
+                        description = stringResource(R.string.serambi_sholawat_feature_description),
+                        icon = Icons.Outlined.VolunteerActivism,
+                        onClick = actions.onSholawatClick,
                     ),
                 )
             }

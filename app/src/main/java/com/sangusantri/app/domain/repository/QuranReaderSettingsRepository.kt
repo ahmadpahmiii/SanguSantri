@@ -1,9 +1,10 @@
 package com.sangusantri.app.domain.repository
 
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
-import com.sangusantri.app.domain.model.QuranThemeMode
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import kotlinx.coroutines.flow.Flow
 
 /** Quran reader appearance settings (QUR-FR-015), DataStore-backed like the existing
@@ -24,9 +25,12 @@ interface QuranReaderSettingsRepository {
 
     suspend fun setBrightnessOverride(value: Float)
 
-    suspend fun setThemeMode(mode: QuranThemeMode)
+    /** App-wide since the Beranda/Quran revamp, despite living in this Quran-namespaced store —
+     * see [com.sangusantri.app.domain.model.QuranReaderSettings.themeMode]. Callers always pass a
+     * concrete mode: the top-bar toggle reads the resolved
+     * [com.sangusantri.app.core.designsystem.theme.LocalAppThemeMode] and sends its opposite, which
+     * is also what turns an unset (system-following) value into an explicit choice. */
+    suspend fun setThemeMode(mode: AppThemeMode)
 
-    /** Flips DARK↔LIGHT atomically without the caller needing to know the current value first —
-     * used by the reader/hub top bar's one-tap toggle. */
-    suspend fun toggleThemeMode()
+    suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant)
 }

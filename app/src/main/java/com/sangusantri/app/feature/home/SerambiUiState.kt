@@ -1,8 +1,10 @@
 package com.sangusantri.app.feature.home
 
 import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.PrayerSchedule
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.Reminder
+import java.time.LocalTime
 
 /** Beranda state. Independent sections decide their own visibility from this genuine local data. */
 sealed interface SerambiUiState {
@@ -13,7 +15,14 @@ sealed interface SerambiUiState {
         val nearestReminder: Reminder? = null,
         val hasNahwuQuizContent: Boolean = false,
         val hasActiveNahwuQuiz: Boolean = false,
+        val hasSholawatContent: Boolean = false,
         val resumeItem: SerambiResumeItem? = null,
+        /** `null` until a prayer-time source is wired — the next-prayer block then does not render
+         * at all, rather than showing times nobody should pray by. */
+        val prayerSchedule: PrayerSchedule? = null,
+        /** Ticks once a minute so the countdown, the position line, and the highlighted prayer stay
+         * honest without the block recomposing every second. */
+        val now: LocalTime = LocalTime.MIDNIGHT,
     ) : SerambiUiState {
         val featuredItems: List<Content> get() = items.take(MAX_FEATURED_ITEMS)
 

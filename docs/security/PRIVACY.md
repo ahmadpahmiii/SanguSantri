@@ -74,3 +74,32 @@ describe the direct Kemenag network dependency and local Quran state. Quran
 content cache and devotional user-state tables must be explicitly reviewed
 for Android Auto Backup; personal devotional state must not silently migrate
 to another device under a public-content cache label.
+
+## Location (`ACCESS_COARSE_LOCATION`) — Arah Kiblat only
+
+Added 2026-08-17 with the myquran integration (ADR 0018). This is the app's first
+and only runtime permission.
+
+* **What it is used for, and nothing else:** computing the qibla bearing once.
+  Prayer times do **not** use it — myquran keys schedules by kabupaten/kota, so
+  the user picks their city and no location is involved.
+* **Coarse, never precise.** A qibla bearing varies by well under a degree across
+  a whole city, so precise location would buy nothing.
+* **No active location request.** The app reads the platform `LocationManager`'s
+  last known fix. It never starts a location update, never runs in the background,
+  and never registers a listener.
+* **Asked only on demand.** The prompt appears when the reader taps "Aktifkan arah
+  kiblat" on the Jadwal Sholat screen — never on launch, never on any other screen.
+* **Declared optional.** `uses-feature android:name="android.hardware.location"
+  android:required="false"`. Denying it leaves every other feature working; the
+  compass simply draws no needle rather than pointing somewhere arbitrary.
+* **What leaves the device:** one `GET /qibla/{lat},{lon}` to api.myquran.com
+  carrying the coarse coordinates. Nothing else — no identifier, no devotional
+  state, no reading position.
+* **What is stored:** the resulting bearing (a single float) in DataStore, so the
+  compass works offline afterwards. The coordinates themselves are not persisted.
+
+Before publication the Data Safety form must declare approximate location as
+collected-and-shared-with-a-third-party for this one purpose, alongside the
+existing Kemenag disclosure, and the privacy policy must name api.myquran.com as
+the prayer-schedule and qibla source.

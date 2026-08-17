@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.quran.hub
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
@@ -64,8 +65,8 @@ constructor(
         searchQuery.value = query
     }
 
-    fun toggleTheme() {
-        viewModelScope.launch { settingsRepository.toggleThemeMode() }
+    fun setThemeMode(mode: AppThemeMode) {
+        viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
     private fun buildUiState(

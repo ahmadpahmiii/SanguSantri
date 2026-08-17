@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.sangusantri.app.feature.quran.reader
 
 import android.animation.ValueAnimator
@@ -7,7 +9,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,8 +41,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.component.ThemeToggleButton
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.core.designsystem.theme.QuranError
@@ -65,11 +69,10 @@ import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.feature.quran.QuranBrightnessEffect
-import com.sangusantri.app.feature.quran.QuranThemeBoundary
-import com.sangusantri.app.feature.quran.QuranThemeToggleButton
 import com.sangusantri.app.feature.quran.toFontFamily
 import kotlinx.coroutines.launch
 
@@ -101,28 +104,26 @@ fun QuranReaderRoute(
 
     QuranBrightnessEffect((uiState as? QuranReaderUiState.Content)?.brightnessOverride)
 
-    QuranThemeBoundary {
-        QuranReaderScreen(
-            uiState = uiState,
-            tafsirUiState = tafsirUiState,
-            targetAyat = targetAyat,
-            onBack = onBack,
-            onOpenSettings = onOpenSettings,
-            actions =
-                QuranReaderBodyActions(
-                    onAyatLongPress = viewModel::onAyatLongPress,
-                    onDismissActionSheet = viewModel::onDismissActionSheet,
-                    onToggleBookmark = viewModel::onToggleBookmark,
-                    onMarkLastRead = viewModel::onMarkLastRead,
-                    onOpenTafsir = viewModel::onOpenTafsir,
-                    onDismissTafsirSheet = viewModel::onDismissTafsirSheet,
-                    onRetryTafsir = viewModel::onRetryTafsir,
-                    onVisiblePositionChanged = viewModel::onVisiblePositionChanged,
-                    onToggleTheme = viewModel::toggleTheme,
-                ),
-            modifier = modifier,
-        )
-    }
+    QuranReaderScreen(
+        uiState = uiState,
+        tafsirUiState = tafsirUiState,
+        targetAyat = targetAyat,
+        onBack = onBack,
+        onOpenSettings = onOpenSettings,
+        actions =
+            QuranReaderBodyActions(
+                onAyatLongPress = viewModel::onAyatLongPress,
+                onDismissActionSheet = viewModel::onDismissActionSheet,
+                onToggleBookmark = viewModel::onToggleBookmark,
+                onMarkLastRead = viewModel::onMarkLastRead,
+                onOpenTafsir = viewModel::onOpenTafsir,
+                onDismissTafsirSheet = viewModel::onDismissTafsirSheet,
+                onRetryTafsir = viewModel::onRetryTafsir,
+                onVisiblePositionChanged = viewModel::onVisiblePositionChanged,
+                onToggleTheme = viewModel::setThemeMode,
+            ),
+        modifier = modifier,
+    )
 }
 
 /** [QuranReaderBody]'s action callbacks, bundled to keep the composable's own parameter list short
@@ -136,7 +137,7 @@ data class QuranReaderBodyActions(
     val onDismissTafsirSheet: () -> Unit,
     val onRetryTafsir: (remoteAyatId: Long) -> Unit,
     val onVisiblePositionChanged: (Int) -> Unit,
-    val onToggleTheme: () -> Unit,
+    val onToggleTheme: (AppThemeMode) -> Unit,
 )
 
 @Suppress("LongParameterList")
@@ -163,11 +164,21 @@ fun QuranReaderScreen(
         uiState == QuranReaderUiState.Unavailable ||
             (readerContent != null && targetAyat != null && readerContent.ayats.none { it.ayatNumber == targetAyat })
 
+    // Mushaf immersion (handoff §5): a single tap on the page clears the chrome for a clean page,
+    // another restores it. The design drops the title bar entirely in this mode; it is kept here and
+    // folded into the same toggle instead, because the reader's only routes to settings, the theme
+    // toggle, and back live in that bar — dropping it with no replacement control bar would strand
+    // the reader. Chrome always returns when leaving Arab-only mode.
+    var chromeVisible by remember { mutableStateOf(true) }
+    val isMushafMode = readerContent?.displayMode == QuranDisplayMode.ARAB_ONLY
+    LaunchedEffect(isMushafMode) { if (!isMushafMode) chromeVisible = true }
+
     Scaffold(
         modifier = modifier,
         containerColor = QuranBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
+            if (!chromeVisible) return@Scaffold
             QuranReaderTopBar(
                 title =
                     if (targetUnresolved) {
@@ -196,6 +207,8 @@ fun QuranReaderScreen(
             snackbarHostState = snackbarHostState,
             actions = actions,
             onBack = onBack,
+            chromeVisible = chromeVisible,
+            onToggleChrome = { chromeVisible = !chromeVisible },
             modifier =
                 Modifier
                     .padding(innerPadding)
@@ -213,6 +226,8 @@ private fun QuranReaderBody(
     snackbarHostState: SnackbarHostState,
     actions: QuranReaderBodyActions,
     onBack: () -> Unit,
+    chromeVisible: Boolean,
+    onToggleChrome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -233,6 +248,8 @@ private fun QuranReaderBody(
                         targetAyat = targetAyat,
                         onAyatLongPress = actions.onAyatLongPress,
                         onVisiblePositionChanged = actions.onVisiblePositionChanged,
+                        chromeVisible = chromeVisible,
+                        onToggleChrome = onToggleChrome,
                     )
                 }
             }
@@ -353,7 +370,7 @@ private fun QuranReaderTopBar(
     position: String,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
-    onToggleTheme: () -> Unit,
+    onToggleTheme: (AppThemeMode) -> Unit,
 ) {
     val settingsContentDescription = stringResource(R.string.quran_settings_action_content_description)
     TopAppBar(
@@ -378,7 +395,7 @@ private fun QuranReaderTopBar(
             }
         },
         actions = {
-            QuranThemeToggleButton(onClick = onToggleTheme)
+            ThemeToggleButton(onSelect = onToggleTheme)
             IconButton(onClick = onOpenSettings) {
                 Text(
                     text = "aA",
@@ -404,11 +421,14 @@ private fun QuranReaderTopBar(
 private const val READER_LOADING_PLACEHOLDER_COUNT = 3
 
 @Composable
+@Suppress("LongParameterList", "LongMethod")
 private fun QuranReaderContent(
     state: QuranReaderUiState.Content,
     targetAyat: Int?,
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     onVisiblePositionChanged: (Int) -> Unit,
+    chromeVisible: Boolean,
+    onToggleChrome: () -> Unit,
 ) {
     val arabOnlyListState = rememberLazyListState()
     val translationListState = rememberLazyListState()
@@ -429,12 +449,20 @@ private fun QuranReaderContent(
         QuranReaderTrackVisiblePosition(activeListState, state, onVisiblePositionChanged)
     }
 
-    val header: @Composable () -> Unit = {
+    val header: @Composable (mushaf: Boolean) -> Unit = { mushaf ->
         QuranSurahStartHeader(
             surahNumber = state.surahNumber,
             category = state.category,
             surahDisplayName = state.surahName,
+            surahArabicName = state.surahArabicName,
             ayatCount = state.ayatCount,
+            basmalahArabic = state.basmalahArabic,
+            variant = state.surahHeaderVariant,
+            arabicFont = state.arabicFont,
+            // Handoff §5 sets the mushaf page's own surah name/basmalah two points smaller than
+            // the translation reader's, so the flowing page below stays the dominant element.
+            surahNameSizeSp = if (mushaf) MUSHAF_SURAH_NAME_SIZE_SP else TRANSLATION_SURAH_NAME_SIZE_SP,
+            basmalahSizeSp = if (mushaf) MUSHAF_BASMALAH_SIZE_SP else TRANSLATION_BASMALAH_SIZE_SP,
         )
     }
 
@@ -454,7 +482,8 @@ private fun QuranReaderContent(
                     arabicLineHeightSp = state.arabicLineHeightSp,
                     translationSizeSp = state.translationSizeSp,
                     arabicFont = state.arabicFont,
-                    headerContent = header,
+                    onAyatSelected = onAyatLongPress,
+                    headerContent = { header(false) },
                 )
 
             QuranDisplayMode.ARAB_ONLY ->
@@ -466,7 +495,9 @@ private fun QuranReaderContent(
                     arabicLineHeightSp = state.arabicLineHeightSp,
                     arabicFont = state.arabicFont,
                     listState = arabOnlyListState,
-                    header = header,
+                    chromeVisible = chromeVisible,
+                    onToggleChrome = onToggleChrome,
+                    header = { header(true) },
                 )
         }
     }
@@ -505,6 +536,8 @@ private fun QuranArabOnlyPages(
     arabicLineHeightSp: Int,
     arabicFont: QuranArabicFont,
     listState: LazyListState,
+    chromeVisible: Boolean,
+    onToggleChrome: () -> Unit,
     header: @Composable () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -524,10 +557,14 @@ private fun QuranArabOnlyPages(
                             vertical = SanguSantriSpacing.medium,
                         ),
                 ) {
+                    page.firstOrNull()?.let { firstAyat ->
+                        if (chromeVisible) QuranMushafJuzStrip(juz = firstAyat.juz, page = firstAyat.page)
+                    }
                     QuranFlowingPageText(
                         ayats = page,
                         selectedAyatId = selectedAyatId,
                         onAyatLongPress = onAyatLongPress,
+                        onTap = onToggleChrome,
                         arabicFont = arabicFont,
                         textStyle =
                             TextStyle(
@@ -538,30 +575,33 @@ private fun QuranArabOnlyPages(
                             ),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    page.firstOrNull()?.let { firstAyat ->
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = SanguSantriSpacing.default),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.quran_reader_juz, firstAyat.juz),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = QuranMutedText,
-                            )
-                            Text(
-                                text = firstAyat.page.toString(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = QuranPrimary,
-                            )
-                        }
-                    }
                 }
             }
         }
     }
 }
 
+/** Handoff §5's caps strip above the flowing page. The design also prints the hizb and a "DITANDAI"
+ * bookmark flag; neither is shown here — the Kemenag dataset this app stores carries juz and page
+ * per ayat but no hizb, and inventing a hizb number is not an option. */
+@Composable
+private fun QuranMushafJuzStrip(
+    juz: Int,
+    page: Int,
+) {
+    Text(
+        text = stringResource(R.string.quran_reader_mushaf_strip, juz, page).uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.6.sp),
+        color = QuranMutedText,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = SanguSantriSpacing.small),
+    )
+}
+
+private const val MUSHAF_SURAH_NAME_SIZE_SP = 31
+private const val MUSHAF_BASMALAH_SIZE_SP = 26
+private const val TRANSLATION_SURAH_NAME_SIZE_SP = 33
+private const val TRANSLATION_BASMALAH_SIZE_SP = 27
 private const val MODE_CROSSFADE_MILLIS = 180

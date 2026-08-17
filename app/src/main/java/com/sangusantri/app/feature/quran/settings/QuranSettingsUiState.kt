@@ -3,7 +3,7 @@ package com.sangusantri.app.feature.quran.settings
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
-import com.sangusantri.app.domain.model.QuranThemeMode
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.feature.quran.reader.QuranReaderAyatUiModel
 
 data class QuranSettingsUiState(
@@ -13,7 +13,7 @@ data class QuranSettingsUiState(
     val arabicLineSpacingMultiplier: Float = QuranReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
     val translationSizeSp: Int = QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP,
     val brightnessOverride: Float?,
-    val themeMode: QuranThemeMode = QuranThemeMode.DARK,
+    val surahHeaderVariant: QuranSurahHeaderVariant = QuranSurahHeaderVariant.TENANG,
     /** A real, currently locally stored verse (Al-Fatihah ayat 1 when available) used for the live
      * settings preview — never invented text (`docs/design/QURAN_DESIGN_SYSTEM.md` §4: "the exact
      * same verified Kemenag ayat fragment"). `null` before local preparation completes. */

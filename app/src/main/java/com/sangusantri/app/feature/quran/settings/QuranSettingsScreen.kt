@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.theme.LocalAppThemeMode
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
@@ -56,12 +57,12 @@ import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
-import com.sangusantri.app.domain.model.QuranThemeMode
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.feature.quran.QuranBrightnessEffect
-import com.sangusantri.app.feature.quran.QuranThemeBoundary
 import com.sangusantri.app.feature.quran.toFontFamily
 import com.sangusantri.app.feature.quran.withQuranFontFallback
 import java.util.Locale
@@ -77,24 +78,23 @@ fun QuranSettingsRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     QuranBrightnessEffect(uiState.brightnessOverride)
-    QuranThemeBoundary {
-        QuranSettingsScreen(
-            uiState = uiState,
-            onBack = onBack,
-            actions =
-                QuranSettingsActions(
-                    onDisplayModeChanged = viewModel::setDisplayMode,
-                    onArabicFontChanged = viewModel::setArabicFont,
-                    onArabicSizeChanged = viewModel::setArabicSize,
-                    onArabicLineSpacingChanged = viewModel::setArabicLineSpacing,
-                    onTranslationSizeChanged = viewModel::setTranslationSize,
-                    onBrightnessChanged = viewModel::setBrightness,
-                    onThemeModeChanged = viewModel::setThemeMode,
-                    onOpenSource = onOpenSource,
-                ),
-            modifier = modifier,
-        )
-    }
+    QuranSettingsScreen(
+        uiState = uiState,
+        onBack = onBack,
+        actions =
+            QuranSettingsActions(
+                onDisplayModeChanged = viewModel::setDisplayMode,
+                onArabicFontChanged = viewModel::setArabicFont,
+                onArabicSizeChanged = viewModel::setArabicSize,
+                onArabicLineSpacingChanged = viewModel::setArabicLineSpacing,
+                onTranslationSizeChanged = viewModel::setTranslationSize,
+                onBrightnessChanged = viewModel::setBrightness,
+                onThemeModeChanged = viewModel::setThemeMode,
+                onSurahHeaderVariantChanged = viewModel::setSurahHeaderVariant,
+                onOpenSource = onOpenSource,
+            ),
+        modifier = modifier,
+    )
 }
 
 data class QuranSettingsActions(
@@ -104,7 +104,8 @@ data class QuranSettingsActions(
     val onArabicLineSpacingChanged: (Float) -> Unit,
     val onTranslationSizeChanged: (Int) -> Unit,
     val onBrightnessChanged: (Float) -> Unit,
-    val onThemeModeChanged: (QuranThemeMode) -> Unit,
+    val onThemeModeChanged: (AppThemeMode) -> Unit,
+    val onSurahHeaderVariantChanged: (QuranSurahHeaderVariant) -> Unit,
     val onOpenSource: () -> Unit,
 )
 
@@ -182,7 +183,10 @@ private fun QuranSettingsBody(
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.large),
     ) {
         QuranLivePreview(uiState)
-        QuranThemeModeControl(uiState.themeMode, actions.onThemeModeChanged)
+        // The resolved app-wide mode, not a UiState field — while the user has never chosen one
+        // this shows what they are actually looking at, and tapping it makes that choice explicit.
+        AppThemeModeControl(LocalAppThemeMode.current, actions.onThemeModeChanged)
+        QuranSurahHeaderVariantControl(uiState.surahHeaderVariant, actions.onSurahHeaderVariantChanged)
         QuranFontSelector(
             selectedFont = uiState.arabicFont,
             sampleText = uiState.previewAyat?.arabicText,
@@ -356,12 +360,12 @@ private data class QuranSliderSpec(
 )
 
 /** Explicit Light/Dark control (2026-08-10 addition, ADR 0016 amendment) — the same choice as the
- * hub/reader top bar's quick [com.sangusantri.app.feature.quran.QuranThemeToggleButton], offered
+ * hub/reader top bar's quick [com.sangusantri.app.core.designsystem.component.ThemeToggleButton], offered
  * here too since not everyone notices or wants to use a top-bar icon. */
 @Composable
-private fun QuranThemeModeControl(
-    selected: QuranThemeMode,
-    onSelected: (QuranThemeMode) -> Unit,
+private fun AppThemeModeControl(
+    selected: AppThemeMode,
+    onSelected: (AppThemeMode) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small)) {
         Text(
@@ -378,14 +382,51 @@ private fun QuranThemeModeControl(
             Row(modifier = Modifier.padding(SanguSantriSpacing.extraSmall)) {
                 QuranDisplayModeSegment(
                     label = stringResource(R.string.quran_settings_theme_light),
-                    selected = selected == QuranThemeMode.LIGHT,
-                    onClick = { onSelected(QuranThemeMode.LIGHT) },
+                    selected = selected == AppThemeMode.LIGHT,
+                    onClick = { onSelected(AppThemeMode.LIGHT) },
                     modifier = Modifier.weight(1f),
                 )
                 QuranDisplayModeSegment(
                     label = stringResource(R.string.quran_settings_theme_dark),
-                    selected = selected == QuranThemeMode.DARK,
-                    onClick = { onSelected(QuranThemeMode.DARK) },
+                    selected = selected == AppThemeMode.DARK,
+                    onClick = { onSelected(AppThemeMode.DARK) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+/** Handoff §6's "Kepala surah" control. Tenang is the default; Band keeps the previous
+ * three-column metadata band and drawable basmalah for anyone who preferred it. */
+@Composable
+private fun QuranSurahHeaderVariantControl(
+    selected: QuranSurahHeaderVariant,
+    onSelected: (QuranSurahHeaderVariant) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small)) {
+        Text(
+            text = stringResource(R.string.quran_settings_surah_header_label),
+            color = QuranArabicText,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Surface(
+            color = QuranSurface,
+            border = BorderStroke(1.dp, QuranOutline),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(modifier = Modifier.padding(SanguSantriSpacing.extraSmall)) {
+                QuranDisplayModeSegment(
+                    label = stringResource(R.string.quran_settings_surah_header_tenang),
+                    selected = selected == QuranSurahHeaderVariant.TENANG,
+                    onClick = { onSelected(QuranSurahHeaderVariant.TENANG) },
+                    modifier = Modifier.weight(1f),
+                )
+                QuranDisplayModeSegment(
+                    label = stringResource(R.string.quran_settings_surah_header_band),
+                    selected = selected == QuranSurahHeaderVariant.BAND,
+                    onClick = { onSelected(QuranSurahHeaderVariant.BAND) },
                     modifier = Modifier.weight(1f),
                 )
             }

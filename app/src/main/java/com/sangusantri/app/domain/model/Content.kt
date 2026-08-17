@@ -16,4 +16,15 @@ data class Content(
     val isActive: Boolean,
     val sourceName: String,
     val sourceUrl: String,
-)
+) {
+    companion object {
+        /**
+         * [category] value identifying Sholawat content (`docs/engineering/CONTENT_MODEL.md`'s
+         * category taxonomy). Kept out of the generic Amaliyah surfaces (Beranda's featured
+         * section, Jelajahi Amaliyah) — read only by `feature/sholawat`'s own list screen — since
+         * Sholawat `0.0.8` deliberately ships with its own dedicated reader, not the Full/Guided
+         * Amaliyah reader.
+         */
+        const val SHOLAWAT_CATEGORY = "Shalawat"
+    }
+}

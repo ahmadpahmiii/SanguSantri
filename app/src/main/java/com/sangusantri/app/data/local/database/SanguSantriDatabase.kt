@@ -10,6 +10,7 @@ import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
 import com.sangusantri.app.data.local.dao.NahwuQuizAttemptDao
 import com.sangusantri.app.data.local.dao.NahwuQuizPackageDao
 import com.sangusantri.app.data.local.dao.NahwuQuizQuestionDao
+import com.sangusantri.app.data.local.dao.PrayerTimesDao
 import com.sangusantri.app.data.local.dao.QuranBookmarkDao
 import com.sangusantri.app.data.local.dao.QuranReadingSessionDao
 import com.sangusantri.app.data.local.dao.QuranReadingStateDao
@@ -29,6 +30,8 @@ import com.sangusantri.app.data.local.entity.GuidedReadingSessionEntity
 import com.sangusantri.app.data.local.entity.NahwuQuizAttemptEntity
 import com.sangusantri.app.data.local.entity.NahwuQuizPackageEntity
 import com.sangusantri.app.data.local.entity.NahwuQuizQuestionEntity
+import com.sangusantri.app.data.local.entity.PrayerCityEntity
+import com.sangusantri.app.data.local.entity.PrayerScheduleDayEntity
 import com.sangusantri.app.data.local.entity.QuranBookmarkEntity
 import com.sangusantri.app.data.local.entity.QuranReadingSessionEntity
 import com.sangusantri.app.data.local.entity.QuranReadingStateEntity
@@ -70,6 +73,12 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * `quran_tafsir`/`quran_bookmarks`/`quran_reading_state`/`quran_reading_sessions` — a separate
  * bounded context from the amaliyah content model (ADR 0016), purely additive, no `MIGRATION_4_5`
  * for the same pre-release schema-freeze reason as version 4.
+ *
+ * Version 6 adds `prayer_cities`/`prayer_schedule_days` for Jadwal Sholat's myquran integration.
+ * Also additive, and also without a migration: the standing policy is
+ * `fallbackToDestructiveMigration(dropAllTables = true)`, so this bump **drops every table** —
+ * including the downloaded Quran, which each user re-downloads once. Bundled amaliyah content
+ * bootstraps itself again. Accepted by the product owner when this integration was scoped.
  */
 @Database(
     entities = [
@@ -92,8 +101,10 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         QuranBookmarkEntity::class,
         QuranReadingStateEntity::class,
         QuranReadingSessionEntity::class,
+        PrayerCityEntity::class,
+        PrayerScheduleDayEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.
@@ -136,6 +147,8 @@ abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun quranReadingStateDao(): QuranReadingStateDao
 
     abstract fun quranReadingSessionDao(): QuranReadingSessionDao
+
+    abstract fun prayerTimesDao(): PrayerTimesDao
 
     companion object {
         const val DATABASE_NAME = "sangusantri.db"

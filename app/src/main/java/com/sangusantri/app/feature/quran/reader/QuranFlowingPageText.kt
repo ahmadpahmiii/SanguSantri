@@ -51,6 +51,7 @@ fun QuranFlowingPageText(
     selectedAyatId: Long?,
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     modifier: Modifier = Modifier,
+    onTap: () -> Unit = {},
     arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     textStyle: TextStyle =
         TextStyle(
@@ -85,8 +86,11 @@ fun QuranFlowingPageText(
                 modifier
                     .fillMaxWidth()
                     .semantics { customActions = accessibilityActions }
-                    .pointerInput(annotatedPage, ayats) {
+                    .pointerInput(annotatedPage, ayats, onTap) {
                         detectTapGestures(
+                            // Mushaf immersion (handoff §5): one tap clears the chrome for a clean
+                            // page, another restores it.
+                            onTap = { onTap() },
                             onLongPress = { position ->
                                 val layout = textLayoutResult ?: return@detectTapGestures
                                 if (annotatedPage.isEmpty()) return@detectTapGestures
@@ -117,7 +121,7 @@ fun QuranFlowingPageText(
 
 /** [buildPageText] runs outside composition, so the Light/Dark-aware colour roles it needs are
  * resolved here (composable context) and passed in as plain [Color] values — included in the
- * `remember` keys so a live [com.sangusantri.app.core.designsystem.theme.LocalQuranThemeMode]
+ * `remember` keys so a live [com.sangusantri.app.core.designsystem.theme.LocalAppThemeMode]
  * toggle rebuilds the annotated string's baked-in span colours. */
 @Composable
 private fun rememberQuranAnnotatedPage(

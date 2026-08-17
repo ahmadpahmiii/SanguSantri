@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.quran.reader
 
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 
 sealed interface QuranReaderUiState {
     data object Loading : QuranReaderUiState
@@ -13,6 +14,10 @@ sealed interface QuranReaderUiState {
     data class Content(
         val surahNumber: Int,
         val surahName: String,
+        val surahArabicName: String,
+        /** Al-Fatihah ayat 1 as stored — the tenang header's basmalah. Blank when unavailable. */
+        val basmalahArabic: String,
+        val surahHeaderVariant: QuranSurahHeaderVariant,
         val category: String,
         val ayatCount: Int,
         val displayMode: QuranDisplayMode,

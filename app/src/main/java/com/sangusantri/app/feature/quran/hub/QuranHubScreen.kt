@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.component.ThemeToggleButton
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranBackground
 import com.sangusantri.app.core.designsystem.theme.QuranContinueCardGradientStart
@@ -50,8 +51,6 @@ import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranSurface
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
-import com.sangusantri.app.feature.quran.QuranThemeBoundary
-import com.sangusantri.app.feature.quran.QuranThemeToggleButton
 
 /** Quran hub aligned to the approved 360×800 local reference: calm two-line app bar, restrained
  * last-read card, three fixed tabs, and inset flat content lists backed by Room. */
@@ -67,23 +66,21 @@ fun QuranHubRoute(
     viewModel: QuranHubViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    QuranThemeBoundary {
-        QuranHubScreen(
-            uiState = uiState,
-            actions =
-                QuranHubActions(
-                    onBack = onBack,
-                    onOpenSettings = onOpenSettings,
-                    onOpenSource = onOpenSource,
-                    onToggleTheme = viewModel::toggleTheme,
-                    onTabSelected = viewModel::selectTab,
-                    onSearchQueryChanged = viewModel::updateSearchQuery,
-                    onSurahSelected = onSurahSelected,
-                    onAyatSelected = onAyatSelected,
-                ),
-            modifier = modifier,
-        )
-    }
+    QuranHubScreen(
+        uiState = uiState,
+        actions =
+            QuranHubActions(
+                onBack = onBack,
+                onOpenSettings = onOpenSettings,
+                onOpenSource = onOpenSource,
+                onToggleTheme = viewModel::setThemeMode,
+                onTabSelected = viewModel::selectTab,
+                onSearchQueryChanged = viewModel::updateSearchQuery,
+                onSurahSelected = onSurahSelected,
+                onAyatSelected = onAyatSelected,
+            ),
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,7 +118,7 @@ private fun QuranHubTopBar(actions: QuranHubActions) {
             }
         },
         actions = {
-            QuranThemeToggleButton(onClick = actions.onToggleTheme)
+            ThemeToggleButton(onSelect = actions.onToggleTheme)
             IconButton(onClick = actions.onOpenSettings) {
                 Icon(
                     imageVector = Icons.Outlined.Settings,

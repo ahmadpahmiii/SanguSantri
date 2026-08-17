@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
@@ -14,7 +15,7 @@ import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArab
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArabicSize
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceBrightness
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceTranslationSize
-import com.sangusantri.app.domain.model.QuranThemeMode
+import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -50,7 +51,10 @@ constructor(
                             preferences[TRANSLATION_SIZE_SP] ?: QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP,
                         ),
                     brightnessOverride = preferences[BRIGHTNESS_OVERRIDE]?.let(::coerceBrightness),
-                    themeMode = preferences[THEME_MODE]?.let(::parseThemeMode) ?: QuranThemeMode.DARK,
+                    themeMode = preferences[THEME_MODE]?.let(::parseThemeMode),
+                    surahHeaderVariant =
+                        preferences[SURAH_HEADER_VARIANT]?.let(::parseSurahHeaderVariant)
+                            ?: QuranSurahHeaderVariant.TENANG,
                 )
             }
 
@@ -78,16 +82,12 @@ constructor(
         dataStore.edit { it[BRIGHTNESS_OVERRIDE] = coerceBrightness(value) }
     }
 
-    override suspend fun setThemeMode(mode: QuranThemeMode) {
+    override suspend fun setThemeMode(mode: AppThemeMode) {
         dataStore.edit { it[THEME_MODE] = mode.name }
     }
 
-    override suspend fun toggleThemeMode() {
-        dataStore.edit { preferences ->
-            val current = preferences[THEME_MODE]?.let(::parseThemeMode) ?: QuranThemeMode.DARK
-            val next = if (current == QuranThemeMode.DARK) QuranThemeMode.LIGHT else QuranThemeMode.DARK
-            preferences[THEME_MODE] = next.name
-        }
+    override suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) {
+        dataStore.edit { it[SURAH_HEADER_VARIANT] = variant.name }
     }
 
     private fun parseDisplayMode(value: String): QuranDisplayMode? =
@@ -96,8 +96,11 @@ constructor(
     private fun parseArabicFont(value: String): QuranArabicFont? =
         runCatching { QuranArabicFont.valueOf(value) }.getOrNull()
 
-    private fun parseThemeMode(value: String): QuranThemeMode? =
-        runCatching { QuranThemeMode.valueOf(value) }.getOrNull()
+    private fun parseThemeMode(value: String): AppThemeMode? =
+        runCatching { AppThemeMode.valueOf(value) }.getOrNull()
+
+    private fun parseSurahHeaderVariant(value: String): QuranSurahHeaderVariant? =
+        runCatching { QuranSurahHeaderVariant.valueOf(value) }.getOrNull()
 
     private companion object {
         val DISPLAY_MODE = stringPreferencesKey("quran_display_mode")
@@ -107,5 +110,6 @@ constructor(
         val TRANSLATION_SIZE_SP = intPreferencesKey("quran_translation_size_sp")
         val BRIGHTNESS_OVERRIDE = floatPreferencesKey("quran_brightness_override")
         val THEME_MODE = stringPreferencesKey("quran_theme_mode")
+        val SURAH_HEADER_VARIANT = stringPreferencesKey("quran_surah_header_variant")
     }
 }

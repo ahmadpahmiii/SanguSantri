@@ -479,6 +479,12 @@ private fun EntryProviderScope<NavKey>.quranEntries(topLevelBackStack: TopLevelB
             targetAyat = key.targetAyat,
             onBack = { topLevelBackStack.removeLast() },
             onOpenSettings = { topLevelBackStack.add(QuranSettings) },
+            // Murottal crossed into the next surah while this reader was the one being followed, so
+            // the page follows it. `replaceLast` rather than `add`: an hour of continuous listening
+            // must not leave a surah-deep back stack to walk out of.
+            onFollowAudioToSurah = { surahNumber, ayatNumber ->
+                topLevelBackStack.replaceLast(QuranReader(surahNumber, targetAyat = ayatNumber))
+            },
         )
     }
     entry<QuranSource> {

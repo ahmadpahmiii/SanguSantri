@@ -16,12 +16,12 @@ import com.sangusantri.app.domain.model.PrayerSchedule
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranDisplayMode
+import com.sangusantri.app.domain.model.QuranMurottalSpeed
 import com.sangusantri.app.domain.model.QuranPreparationResult
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.domain.model.QuranReadingSession
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
-import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.model.QuranTafsir
 import com.sangusantri.app.domain.model.QuranTafsirResult
 import com.sangusantri.app.domain.model.QuranVerse
@@ -316,7 +316,11 @@ private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository 
 
     override suspend fun setThemeMode(mode: AppThemeMode) = Unit
 
-    override suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) = Unit
+    override suspend fun setMurottalSpeed(speed: QuranMurottalSpeed) = Unit
+
+    override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) = Unit
+
+    override suspend fun setMurottalKeepScreenOn(enabled: Boolean) = Unit
 }
 
 /** No city chosen, so no schedule — the next-prayer block is a section like any other and simply

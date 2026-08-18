@@ -324,10 +324,8 @@
   <string name="quran_action_show_position">Informasi Juz dan halaman</string>
   <string name="quran_action_close">Tutup tindakan ayat</string>
   <string name="quran_fixture_prototype_label">[FIXTURE] Prototype interaksi nonproduksi</string>
-  <string name="quran_surah_ayat_count">%1$d Ayat</string>
   <string name="quran_surah_header_description">%1$s, %2$s, %3$d ayat</string>
   <string name="quran_surah_header_caps_line">%1$s · %2$s · %3$d AYAT</string>
-  <string name="quran_basmalah_content_description">Basmalah</string>
 
   <!-- Al-Qur'an Kemenag Beranda entry (`0.0.6`, QUR-FR-001) -->
   <string name="serambi_quran_card_title">Al-Qur\'an Kemenag</string>
@@ -467,6 +465,93 @@
   <string name="quran_reader_mushaf_strip">Juz %1$d · Hal %2$d</string>
   <string name="quran_action_position_info_format">Juz %1$d • Halaman %2$d</string>
 
+  <!-- Murottal per ayat & unduhan audio (design handoff turn 4, `4a`–`4f`). Audio comes from
+       api.myquran.com's CDN; the Quran text itself remains Kemenag's (ADR 0016 §2). -->
+  <string name="quran_murottal_reciter">Syaikh Misyari Rasyid Al-\'Afasi</string>
+  <string name="quran_murottal_now_playing">Sedang diputar</string>
+  <string name="quran_murottal_up_next">Berikutnya</string>
+  <string name="quran_murottal_preparing_ayat">Menyiapkan audio…</string>
+  <string name="quran_murottal_preparing_title">Menyiapkan %1$s : %2$d</string>
+  <string name="quran_murottal_preparing_downloading">Mengunduh · disimpan offline</string>
+  <string name="quran_murottal_cancel">Batal</string>
+  <string name="quran_murottal_ayat_label">%1$s : %2$d</string>
+  <string name="quran_murottal_continue_to_ayat">Lanjut ke ayat %1$d</string>
+  <!-- The last ayah of a surah is only "Akhir surah" when nothing follows it: with "Lanjut otomatis
+       antarsurah" on, the next surah does, and saying otherwise contradicts what happens next. -->
+  <string name="quran_murottal_continue_to_surah">Lanjut ke %1$s</string>
+  <string name="quran_murottal_end_of_surah">Akhir surah</string>
+  <string name="quran_murottal_error">Audio ayat ini belum dapat dimuat</string>
+  <string name="quran_murottal_error_action">Coba lagi</string>
+  <string name="quran_murottal_play_ayat">Putar ayat %1$d</string>
+  <string name="quran_murottal_play_pause">Putar atau jeda murottal</string>
+  <string name="quran_murottal_skip_previous">Ayat sebelumnya</string>
+  <string name="quran_murottal_skip_next">Ayat berikutnya</string>
+  <string name="quran_murottal_close">Tutup pemutar</string>
+  <string name="quran_murottal_open_panel">Buka pengaturan murottal</string>
+  <string name="quran_murottal_following_audio">Mengikuti audio</string>
+
+  <!-- Ayat action sheet play rows (`4b`) -->
+  <string name="quran_action_play_from_here">Putar dari ayat ini</string>
+  <string name="quran_action_play_from_here_detail">Lanjut otomatis sampai akhir surah</string>
+  <string name="quran_action_play_single">Putar ayat ini saja</string>
+  <string name="quran_action_play_single_detail">Berhenti di akhir ayat</string>
+  <string name="quran_action_repeat_ayat">Ulangi ayat ini</string>
+  <string name="quran_action_repeat_ayat_chip">3×</string>
+
+  <!-- Murottal panel (`4c`) -->
+  <string name="quran_murottal_panel_title">Murottal</string>
+  <string name="quran_murottal_panel_qari_label">Qari</string>
+  <string name="quran_murottal_panel_speed_label">Kecepatan</string>
+  <string name="quran_murottal_speed_slow">0,75×</string>
+  <string name="quran_murottal_speed_normal">1×</string>
+  <string name="quran_murottal_speed_fast">1,25×</string>
+  <string name="quran_murottal_panel_continue_title">Lanjut otomatis antarsurah</string>
+  <string name="quran_murottal_panel_continue_subtitle">Setelah surah ini, lanjut ke %1$s</string>
+  <string name="quran_murottal_panel_continue_subtitle_last">Surah terakhir dalam mushaf</string>
+  <string name="quran_murottal_panel_keep_screen_on">Layar tetap menyala</string>
+  <string name="quran_murottal_panel_queue">Antrean: %1$s</string>
+  <string name="quran_murottal_panel_close">Tutup panel murottal</string>
+
+  <!-- Per-surah audio download (`4c`/`4d`). Every label says *audio*: a bare download control here
+       would read as downloading the surah text, which is already stored. -->
+  <string name="quran_audio_download_title">Unduh audio surah ini</string>
+  <string name="quran_audio_download_subtitle">Murottal %1$s · dengar tanpa jaringan</string>
+  <string name="quran_audio_download_subtitle_sized">Murottal %1$s · %2$s · dengar tanpa jaringan</string>
+  <string name="quran_audio_download_action">Unduh</string>
+  <string name="quran_audio_downloading_title">Mengunduh audio %1$s</string>
+  <string name="quran_audio_downloading_detail">%1$s dari %2$s · %3$d%%</string>
+  <string name="quran_audio_downloading_detail_counting">Ayat %1$d dari %2$d · %3$d%%</string>
+  <string name="quran_audio_download_cancel">Batalkan</string>
+  <string name="quran_audio_stored_pill">Audio %1$s · tersimpan</string>
+  <!-- A fully downloaded surah offers playback straight from the hub list, so the reader need not be
+       opened just to start a recitation. -->
+  <string name="quran_audio_play_surah">Putar</string>
+  <string name="quran_audio_play_surah_content_description">Putar audio surah %1$s, tersimpan di perangkat</string>
+  <string name="quran_audio_stored_partial">Audio sebagian · %1$d dari %2$d ayat</string>
+  <string name="quran_audio_download_surah_content_description">Unduh audio surah %1$s</string>
+
+  <!-- Hub audio blocks (`4d`) -->
+  <string name="quran_hub_now_playing_label">Sedang diputar</string>
+  <!-- Names what actually happens next instead of counting a queue: with "Lanjut otomatis
+       antarsurah" on, playback continues to the end of the mushaf, so any fixed number would be
+       wrong. -->
+  <string name="quran_hub_now_playing_meta_next">%1$s · lanjut ke %2$s</string>
+  <string name="quran_hub_now_playing_meta_single">%1$s</string>
+  <string name="quran_hub_audio_stored_summary">Audio terunduh · %1$d surah · %2$s</string>
+  <string name="quran_hub_audio_manage">Penyimpanan</string>
+
+  <!-- Storage sheet opened from the summary line. The entry point is named "Penyimpanan", not
+       "Kelola": the only action here removes audio, and a label promising management would mislead
+       anyone who taps it expecting per-surah controls. -->
+  <string name="quran_audio_storage_title">Penyimpanan audio</string>
+  <string name="quran_audio_storage_close">Tutup penyimpanan audio</string>
+  <string name="quran_audio_storage_amount">%1$d surah · %2$s</string>
+  <string name="quran_audio_storage_amount_detail">Murottal %1$s tersimpan di perangkat ini</string>
+  <string name="quran_audio_storage_explainer">Menghapus audio tidak menghapus teks, terjemahan, atau tafsir Al-Qur\'an — semuanya tetap bisa dibaca tanpa jaringan. Audio dapat diunduh lagi kapan saja saat ada internet.</string>
+  <string name="quran_audio_storage_delete_all">Hapus semua audio (%1$s)</string>
+  <string name="quran_audio_storage_deleting">Menghapus audio…</string>
+  <string name="quran_audio_storage_empty">Belum ada audio yang tersimpan.</string>
+
   <!-- Al-Qur'an Kemenag tafsir sheet (`0.0.6`, QUR-FR-013) -->
   <string name="quran_tafsir_sheet_title">%1$s • Ayat %2$d</string>
   <string name="quran_tafsir_source_line">Tafsir Kemenag • Kementerian Agama RI</string>
@@ -506,9 +591,6 @@
   <string name="quran_settings_theme_label">Tema</string>
   <string name="quran_settings_theme_light">Terang</string>
   <string name="quran_settings_theme_dark">Gelap</string>
-  <string name="quran_settings_surah_header_label">Kepala surah</string>
-  <string name="quran_settings_surah_header_tenang">Tenang</string>
-  <string name="quran_settings_surah_header_band">Band</string>
   <string name="quran_settings_brightness_label">Kecerahan Quran</string>
   <string name="quran_settings_preview_unavailable">Pratinjau belum tersedia.</string>
   <string name="quran_settings_font_section_title">Font Arab</string>

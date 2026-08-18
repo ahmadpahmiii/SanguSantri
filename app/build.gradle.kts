@@ -300,6 +300,11 @@ dependencies {
     debugImplementation(libs.chucker.library)
     releaseImplementation(libs.chucker.library.no.op)
 
+    // Murottal per-ayat playback (turn-4 addendum). ExoPlayer plays the per-ayah MP3s; media3-session
+    // hosts them in a MediaSessionService so recitation continues after the reader is left.
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.session)
+
     // Background sync
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)

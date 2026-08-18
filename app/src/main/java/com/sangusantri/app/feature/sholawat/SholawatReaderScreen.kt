@@ -142,9 +142,10 @@ private fun SholawatReaderStepList(
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = SanguSantriDimensions.readerContentMaxWidth),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = SanguSantriDimensions.readerContentMaxWidth),
             contentPadding = PaddingValues(SanguSantriSpacing.default),
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.large),
         ) {

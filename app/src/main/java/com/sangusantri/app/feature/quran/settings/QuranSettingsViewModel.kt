@@ -2,14 +2,15 @@ package com.sangusantri.app.feature.quran.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.data.audio.QuranAudioStore
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
-import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.QuranRepository
 import com.sangusantri.app.feature.quran.reader.toReaderUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -27,14 +28,19 @@ class QuranSettingsViewModel
 @Inject
 constructor(
     private val settingsRepository: QuranReaderSettingsRepository,
+    private val audioStore: QuranAudioStore,
     quranRepository: QuranRepository,
 ) : ViewModel() {
+    private val audioStorageSheetVisible = MutableStateFlow(false)
+
     val uiState: StateFlow<QuranSettingsUiState> =
         combine(
             settingsRepository.observe(),
             quranRepository.observeVersesBySurah(AL_FATIHAH_SURAH_NUMBER),
             quranRepository.observeSurahs(),
-        ) { settings, verses, surahs ->
+            audioStore.library,
+            audioStorageSheetVisible,
+        ) { settings, verses, surahs, library, storageSheetVisible ->
             val surahName = surahs.firstOrNull { it.number == AL_FATIHAH_SURAH_NUMBER }?.latinName.orEmpty()
             QuranSettingsUiState(
                 displayMode = settings.displayMode,
@@ -43,7 +49,9 @@ constructor(
                 arabicLineSpacingMultiplier = settings.arabicLineSpacingMultiplier,
                 translationSizeSp = settings.translationSizeSp,
                 brightnessOverride = settings.brightnessOverride,
-                surahHeaderVariant = settings.surahHeaderVariant,
+                storedAudioSurahCount = library.surahCount,
+                storedAudioBytes = library.totalBytes,
+                audioStorageSheetVisible = storageSheetVisible,
                 previewAyat = verses.firstOrNull()?.toReaderUiModel(surahName),
             )
         }.stateIn(
@@ -80,8 +88,26 @@ constructor(
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
-    fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) {
-        viewModelScope.launch { settingsRepository.setSurahHeaderVariant(variant) }
+    fun openAudioStorage() {
+        audioStorageSheetVisible.value = true
+    }
+
+    fun dismissAudioStorage() {
+        audioStorageSheetVisible.value = false
+    }
+
+    /**
+     * Clears the whole stored murottal library — reachable only from the storage sheet, which
+     * states the amount and that Quran text is unaffected before offering it.
+     *
+     * Still whole-library rather than per-surah: a per-surah management list is not part of the
+     * approved frames, and inventing one would be scope the design has not specified.
+     */
+    fun deleteAllAudio() {
+        viewModelScope.launch {
+            audioStore.deleteAll()
+            audioStorageSheetVisible.value = false
+        }
     }
 
     private companion object {

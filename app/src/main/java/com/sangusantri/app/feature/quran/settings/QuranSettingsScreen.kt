@@ -61,7 +61,6 @@ import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranReaderSettings
-import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.feature.quran.QuranBrightnessEffect
 import com.sangusantri.app.feature.quran.toFontFamily
 import com.sangusantri.app.feature.quran.withQuranFontFallback
@@ -90,7 +89,9 @@ fun QuranSettingsRoute(
                 onTranslationSizeChanged = viewModel::setTranslationSize,
                 onBrightnessChanged = viewModel::setBrightness,
                 onThemeModeChanged = viewModel::setThemeMode,
-                onSurahHeaderVariantChanged = viewModel::setSurahHeaderVariant,
+                onOpenAudioStorage = viewModel::openAudioStorage,
+                onDismissAudioStorage = viewModel::dismissAudioStorage,
+                onDeleteAllAudio = viewModel::deleteAllAudio,
                 onOpenSource = onOpenSource,
             ),
         modifier = modifier,
@@ -105,7 +106,12 @@ data class QuranSettingsActions(
     val onTranslationSizeChanged: (Int) -> Unit,
     val onBrightnessChanged: (Float) -> Unit,
     val onThemeModeChanged: (AppThemeMode) -> Unit,
-    val onSurahHeaderVariantChanged: (QuranSurahHeaderVariant) -> Unit,
+    /** "Penyimpanan" on the downloaded-audio line — opens the storage sheet; it deletes nothing
+     * itself. */
+    val onOpenAudioStorage: () -> Unit,
+    val onDismissAudioStorage: () -> Unit,
+    /** The storage sheet's one destructive action, taken only from inside that sheet. */
+    val onDeleteAllAudio: () -> Unit,
     val onOpenSource: () -> Unit,
 )
 
@@ -166,6 +172,14 @@ fun QuranSettingsScreen(
             )
         }
     }
+    if (uiState.audioStorageSheetVisible) {
+        QuranAudioStorageSheet(
+            surahCount = uiState.storedAudioSurahCount,
+            totalBytes = uiState.storedAudioBytes,
+            onDeleteAll = actions.onDeleteAllAudio,
+            onDismiss = actions.onDismissAudioStorage,
+        )
+    }
 }
 
 @Composable
@@ -186,7 +200,6 @@ private fun QuranSettingsBody(
         // The resolved app-wide mode, not a UiState field — while the user has never chosen one
         // this shows what they are actually looking at, and tapping it makes that choice explicit.
         AppThemeModeControl(LocalAppThemeMode.current, actions.onThemeModeChanged)
-        QuranSurahHeaderVariantControl(uiState.surahHeaderVariant, actions.onSurahHeaderVariantChanged)
         QuranFontSelector(
             selectedFont = uiState.arabicFont,
             sampleText = uiState.previewAyat?.arabicText,
@@ -195,6 +208,13 @@ private fun QuranSettingsBody(
         QuranTextSettings(uiState = uiState, actions = actions)
         QuranDisplayModeControl(uiState.displayMode, actions.onDisplayModeChanged)
         QuranBrightnessSetting(uiState.brightnessOverride, actions.onBrightnessChanged)
+        if (uiState.storedAudioSurahCount > 0) {
+            QuranStoredAudioSummary(
+                surahCount = uiState.storedAudioSurahCount,
+                totalBytes = uiState.storedAudioBytes,
+                onOpenStorage = actions.onOpenAudioStorage,
+            )
+        }
         QuranSourceLink(actions.onOpenSource)
         Spacer(modifier = Modifier.height(SanguSantriSpacing.default))
     }
@@ -390,43 +410,6 @@ private fun AppThemeModeControl(
                     label = stringResource(R.string.quran_settings_theme_dark),
                     selected = selected == AppThemeMode.DARK,
                     onClick = { onSelected(AppThemeMode.DARK) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-/** Handoff §6's "Kepala surah" control. Tenang is the default; Band keeps the previous
- * three-column metadata band and drawable basmalah for anyone who preferred it. */
-@Composable
-private fun QuranSurahHeaderVariantControl(
-    selected: QuranSurahHeaderVariant,
-    onSelected: (QuranSurahHeaderVariant) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small)) {
-        Text(
-            text = stringResource(R.string.quran_settings_surah_header_label),
-            color = QuranArabicText,
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Surface(
-            color = QuranSurface,
-            border = BorderStroke(1.dp, QuranOutline),
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(modifier = Modifier.padding(SanguSantriSpacing.extraSmall)) {
-                QuranDisplayModeSegment(
-                    label = stringResource(R.string.quran_settings_surah_header_tenang),
-                    selected = selected == QuranSurahHeaderVariant.TENANG,
-                    onClick = { onSelected(QuranSurahHeaderVariant.TENANG) },
-                    modifier = Modifier.weight(1f),
-                )
-                QuranDisplayModeSegment(
-                    label = stringResource(R.string.quran_settings_surah_header_band),
-                    selected = selected == QuranSurahHeaderVariant.BAND,
-                    onClick = { onSelected(QuranSurahHeaderVariant.BAND) },
                     modifier = Modifier.weight(1f),
                 )
             }

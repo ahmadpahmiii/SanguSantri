@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,6 +16,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -53,6 +55,23 @@ fun QuranFlowingPageText(
     modifier: Modifier = Modifier,
     onTap: () -> Unit = {},
     arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
+    /** The ayah being recited, highlighted inline within the flowing paragraph (`4f`). */
+    playingAyatNumber: Int? = null,
+    /**
+     * Reports where an ayah starts vertically inside this page, in pixels from the text's own top,
+     * once it has been measured. Called only by the page that actually holds [playingAyatNumber], and
+     * only with a measured result — pages without that ayah stay silent rather than reporting `null`,
+     * so several composed pages cannot overwrite each other.
+     *
+     * The ayah number is reported alongside the offset because the two must travel together: a caller
+     * holding an offset without knowing which ayah it belongs to will happily apply the previous
+     * ayah's position to the next page and scroll far too far.
+     *
+     * This is what lets follow-scrolling stay accurate at any Arabic size: the offset comes from the
+     * real [TextLayoutResult], so a page three screens tall at 52sp positions its ayat as precisely as
+     * a short one at 14sp.
+     */
+    onPlayingAyatOffset: (ayatNumber: Int, offsetPx: Float) -> Unit = { _, _ -> },
     textStyle: TextStyle =
         TextStyle(
             fontFamily = QuranLpmqFontFamily,
@@ -62,19 +81,18 @@ fun QuranFlowingPageText(
         ),
 ) {
     val arabicTextColor = QuranArabicText
-    val annotatedPage = rememberQuranAnnotatedPage(ayats, selectedAyatId, arabicFont)
+    val annotatedPage = rememberQuranAnnotatedPage(ayats, selectedAyatId, arabicFont, playingAyatNumber)
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    QuranReportPlayingAyatOffset(
+        annotatedPage = annotatedPage,
+        layout = textLayoutResult,
+        ayats = ayats,
+        playingAyatNumber = playingAyatNumber,
+        onPlayingAyatOffset = onPlayingAyatOffset,
+    )
     val hapticFeedback = LocalHapticFeedback.current
-    val accessibilityActions =
-        ayats.map { ayat ->
-            val label =
-                androidx.compose.ui.res
-                    .stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
-            CustomAccessibilityAction(label) {
-                onAyatLongPress(ayat)
-                true
-            }
-        }
+    val accessibilityActions = rememberQuranAyatAccessibilityActions(ayats, onAyatLongPress)
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         BasicText(
@@ -119,6 +137,63 @@ fun QuranFlowingPageText(
     }
 }
 
+/** One "open ayat N" action per ayah on the page, so a screen reader can reach every ayah's actions
+ * without depending on a long-press landing on the right glyph in a single flowing paragraph. */
+@Composable
+private fun rememberQuranAyatAccessibilityActions(
+    ayats: List<QuranReaderAyatUiModel>,
+    onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
+): List<CustomAccessibilityAction> =
+    ayats.map { ayat ->
+        val label = stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
+        CustomAccessibilityAction(label) {
+            onAyatLongPress(ayat)
+            true
+        }
+    }
+
+/** Publishes the recited ayah's measured position, re-running when the layout changes so adjusting the
+ * Arabic size or line spacing mid-recitation immediately yields a fresh, correct offset. Silent unless
+ * this page holds that ayah and the text has been measured. */
+@Composable
+private fun QuranReportPlayingAyatOffset(
+    annotatedPage: AnnotatedString,
+    layout: TextLayoutResult?,
+    ayats: List<QuranReaderAyatUiModel>,
+    playingAyatNumber: Int?,
+    onPlayingAyatOffset: (ayatNumber: Int, offsetPx: Float) -> Unit,
+) {
+    LaunchedEffect(layout, playingAyatNumber, annotatedPage) {
+        val ayat = playingAyatNumber ?: return@LaunchedEffect
+        val offset = annotatedPage.ayatTopOffset(layout, ayats, ayat) ?: return@LaunchedEffect
+        onPlayingAyatOffset(ayat, offset)
+    }
+}
+
+/**
+ * Vertical position of [playingAyatNumber]'s first line within this measured page, or `null` when the
+ * ayah is not on this page or the text has not been laid out yet.
+ *
+ * The ayah's character range is already recorded as an annotation for long-press hit-testing, so the
+ * same annotation answers "where does this ayah begin" — no second index of positions to keep in step
+ * with the text.
+ */
+private fun AnnotatedString.ayatTopOffset(
+    layout: TextLayoutResult?,
+    ayats: List<QuranReaderAyatUiModel>,
+    playingAyatNumber: Int?,
+): Float? {
+    val resolvedLayout = layout ?: return null
+    return ayats
+        .firstOrNull { it.ayatNumber == playingAyatNumber }
+        ?.let { ayat ->
+            getStringAnnotations(AYAT_ANNOTATION_TAG, 0, length)
+                .firstOrNull { it.item == ayat.remoteId.toString() }
+        }?.let { annotation ->
+            runCatching { resolvedLayout.getLineTop(resolvedLayout.getLineForOffset(annotation.start)) }.getOrNull()
+        }
+}
+
 /** [buildPageText] runs outside composition, so the Light/Dark-aware colour roles it needs are
  * resolved here (composable context) and passed in as plain [Color] values — included in the
  * `remember` keys so a live [com.sangusantri.app.core.designsystem.theme.LocalAppThemeMode]
@@ -128,19 +203,36 @@ private fun rememberQuranAnnotatedPage(
     ayats: List<QuranReaderAyatUiModel>,
     selectedAyatId: Long?,
     arabicFont: QuranArabicFont,
+    playingAyatNumber: Int?,
 ): AnnotatedString {
     val primaryColor = QuranPrimary
     val onPrimaryContainerColor = QuranOnPrimaryContainer
     val primaryContainerColor = QuranPrimaryContainer
-    return remember(ayats, selectedAyatId, arabicFont, primaryColor, onPrimaryContainerColor, primaryContainerColor) {
-        buildPageText(ayats, selectedAyatId, primaryColor, onPrimaryContainerColor, primaryContainerColor)
-            .withQuranFontFallback(arabicFont)
+    return remember(
+        ayats,
+        selectedAyatId,
+        arabicFont,
+        playingAyatNumber,
+        primaryColor,
+        onPrimaryContainerColor,
+        primaryContainerColor,
+    ) {
+        buildPageText(
+            ayats,
+            selectedAyatId,
+            playingAyatNumber,
+            primaryColor,
+            onPrimaryContainerColor,
+            primaryContainerColor,
+        ).withQuranFontFallback(arabicFont)
     }
 }
 
+@Suppress("LongParameterList")
 private fun buildPageText(
     ayats: List<QuranReaderAyatUiModel>,
     selectedAyatId: Long?,
+    playingAyatNumber: Int?,
     primaryColor: Color,
     onPrimaryContainerColor: Color,
     primaryContainerColor: Color,
@@ -162,7 +254,9 @@ private fun buildPageText(
                 rangeEnd - arabicNumberFormat.format(ayat.ayatNumber).length - 2,
                 rangeEnd,
             )
-            if (ayat.remoteId == selectedAyatId) {
+            // Selection and recitation share the tint: only one of them applies to a given ayah at a
+            // time in practice, and the design gives both the same treatment inside the paragraph.
+            if (ayat.remoteId == selectedAyatId || ayat.ayatNumber == playingAyatNumber) {
                 addStyle(
                     SpanStyle(
                         color = onPrimaryContainerColor,

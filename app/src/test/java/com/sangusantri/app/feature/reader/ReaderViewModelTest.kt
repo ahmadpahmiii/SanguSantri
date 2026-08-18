@@ -8,8 +8,8 @@ import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
+import com.sangusantri.app.domain.model.QuranMurottalSpeed
 import com.sangusantri.app.domain.model.QuranReaderSettings
-import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
@@ -411,5 +411,9 @@ private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository 
 
     override suspend fun setThemeMode(mode: AppThemeMode) = Unit
 
-    override suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) = Unit
+    override suspend fun setMurottalSpeed(speed: QuranMurottalSpeed) = Unit
+
+    override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) = Unit
+
+    override suspend fun setMurottalKeepScreenOn(enabled: Boolean) = Unit
 }

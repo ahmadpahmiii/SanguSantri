@@ -22,7 +22,11 @@ data class QuranReaderSettings(
     val translationSizeSp: Int = DEFAULT_TRANSLATION_SIZE_SP,
     val brightnessOverride: Float? = null,
     val themeMode: AppThemeMode? = null,
-    val surahHeaderVariant: QuranSurahHeaderVariant = QuranSurahHeaderVariant.TENANG,
+    val murottalSpeed: QuranMurottalSpeed = QuranMurottalSpeed.NORMAL,
+    /** "Lanjut otomatis antarsurah" — on by default, per the murottal panel's design. */
+    val murottalContinueAcrossSurah: Boolean = true,
+    /** "Layar tetap menyala" while a recitation is playing. */
+    val murottalKeepScreenOn: Boolean = false,
 ) {
     companion object {
         // 27sp / 2.4x are the revamp's reader defaults (handoff §Typography). The design lists a

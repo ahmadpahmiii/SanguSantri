@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
@@ -54,9 +55,8 @@ fun QuranHubTabContent(
     when (uiState.selectedTab) {
         QuranHubTab.SURAH ->
             QuranSurahList(
-                surahs = uiState.surahs,
-                isLoading = uiState.isLoading,
-                onSurahSelected = actions.onSurahSelected,
+                uiState = uiState,
+                actions = actions,
             )
         QuranHubTab.JUZ ->
             QuranJuzList(rows = uiState.juzRows, isLoading = uiState.isLoading, onAyatSelected = actions.onAyatSelected)
@@ -66,12 +66,11 @@ fun QuranHubTabContent(
 
 @Composable
 private fun QuranSurahList(
-    surahs: List<QuranSurah>,
-    isLoading: Boolean,
-    onSurahSelected: (Int) -> Unit,
+    uiState: QuranHubUiState,
+    actions: QuranHubActions,
 ) {
-    if (surahs.isEmpty()) {
-        if (isLoading) {
+    if (uiState.surahs.isEmpty()) {
+        if (uiState.isLoading) {
             QuranLoadingTabState()
         } else {
             QuranEmptyTabState(
@@ -82,17 +81,32 @@ private fun QuranSurahList(
         return
     }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(items = surahs, key = { it.number }) { surah ->
-            QuranSurahRow(surah = surah, onClick = { onSurahSelected(surah.number) })
+        items(items = uiState.surahs, key = { it.number }) { surah ->
+            QuranSurahRow(
+                surah = surah,
+                audioState = uiState.surahAudioStates[surah.number] ?: QuranSurahAudioState.NONE,
+                downloadFraction =
+                    uiState.downloadingFraction.takeIf { uiState.downloadingSurahNumber == surah.number },
+                onClick = { actions.onSurahSelected(surah.number) },
+                onDownloadAudio = { actions.onDownloadSurahAudio(surah.number) },
+                onCancelDownload = actions.onCancelSurahAudioDownload,
+                onPlayAudio = { actions.onPlaySurahAudio(surah.number) },
+            )
             HorizontalDivider(color = QuranOutline)
         }
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun QuranSurahRow(
     surah: QuranSurah,
+    audioState: QuranSurahAudioState,
+    downloadFraction: Float?,
     onClick: () -> Unit,
+    onDownloadAudio: () -> Unit,
+    onCancelDownload: () -> Unit,
+    onPlayAudio: () -> Unit,
 ) {
     QuranListRow(onClick = onClick) {
         QuranNumberBadge(number = surah.number)
@@ -121,12 +135,18 @@ private fun QuranSurahRow(
             fontFamily = QuranLpmqFontFamily,
             color = QuranPrimary,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(0.7f),
+            modifier = Modifier.weight(0.6f),
         )
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = QuranMutedText,
+        // `4d` gives the trailing slot to audio state. It replaces the chevron rather than sitting
+        // beside it: the whole row is already clickable, so the chevron carried no information the
+        // audio control does not.
+        QuranSurahAudioControl(
+            surahName = surah.latinName,
+            audioState = audioState,
+            downloadFraction = downloadFraction,
+            onDownloadAudio = onDownloadAudio,
+            onCancelDownload = onCancelDownload,
+            onPlayAudio = onPlayAudio,
         )
     }
 }

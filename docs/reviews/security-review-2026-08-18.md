@@ -2,6 +2,7 @@
 
 Scope: whole-repository review at `master` (the commit titled "quran audio", 2026-08-17
 — hashes below the history rewrite of 2026-08-18 no longer resolve), weighted toward security
+Scope: whole-repository review at `master` (`ba42f62`), weighted toward security
 and content security as requested, plus the pull-request CI that did not exist
 before this pass. Reviewed the manifest and component export surface, all four
 OkHttp stacks, the Kemenag credential boundary (ADR 0016), the content
@@ -48,6 +49,9 @@ Severity is about impact on this app's users and content integrity, not CVSS.
 `.gitignore` carried no rule for signing material. **The repository is public**, so
 for roughly three weeks the release signing key was downloadable by anyone. Anyone
 who cloned it in that window still has it.
+`sangusantri.jks` is tracked, added in commit `1d232ed` ("jks"), and `.gitignore`
+carried no rule for signing material. Anyone who has ever cloned this repository
+— or who obtains it later, since it is in history — has the release signing key.
 
 This is worse here than in a typical app because ADR 0016's entire Kemenag
 credential protection is built on the release signing certificate: the native

@@ -28,6 +28,7 @@ env:
 jobs:
   # Cheapest job, runs first and independently: catches the class of mistake that put a release
   # keystore into this repository's history in the first place (2026-07-26, since purged).
+  # keystore in this repository's history in the first place (commit 1d232ed).
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest

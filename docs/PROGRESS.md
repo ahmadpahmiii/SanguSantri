@@ -6889,7 +6889,8 @@ content touched. Full finding-by-finding detail, severity, and the decisions lef
 open: `docs/reviews/security-review-2026-08-18.md`.
 
 **One item is not closed and needs the product owner.** The release keystore
-`sangusantri.jks` was committed in `1d232ed` and had no `.gitignore` rule. It is
+`sangusantri.jks` was committed on 2026-07-26 into a **public** repository and had
+no `.gitignore` rule. It is
 now untracked and CI rejects any pull request that tracks key material, but the
 key must still be treated as compromised: reset the Play upload key, rotate the
 Kemenag credential and `SANGU_QURAN_RELEASE_SHA256`, and purge the blob from

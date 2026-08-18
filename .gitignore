@@ -82,8 +82,8 @@ tools/content-importer/**/__pycache__/
 /app/release/app-release.aab
 
 # Signing material — never in version control (docs/security/SECURITY_BASELINE.md).
-# The release keystore was committed in 1d232ed; see docs/reviews/security-review-2026-08-18.md
-# for the required key rotation and history purge.
+# The release keystore was committed on 2026-07-26 and purged from history on 2026-08-18;
+# see docs/reviews/security-review-2026-08-18.md for the rotation that is still required.
 *.jks
 *.keystore
 keystore.properties

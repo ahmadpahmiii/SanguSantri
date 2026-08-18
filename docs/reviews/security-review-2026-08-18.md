@@ -1,6 +1,7 @@
 # Security and architecture review — 2026-08-18
 
-Scope: whole-repository review at `master` (`ba42f62`), weighted toward security
+Scope: whole-repository review at `master` (the commit titled "quran audio", 2026-08-17
+— hashes below the history rewrite of 2026-08-18 no longer resolve), weighted toward security
 and content security as requested, plus the pull-request CI that did not exist
 before this pass. Reviewed the manifest and component export surface, all four
 OkHttp stacks, the Kemenag credential boundary (ADR 0016), the content
@@ -43,9 +44,10 @@ Severity is about impact on this app's users and content integrity, not CVSS.
 
 ### 1. Release keystore committed to git — Critical
 
-`sangusantri.jks` is tracked, added in commit `1d232ed` ("jks"), and `.gitignore`
-carried no rule for signing material. Anyone who has ever cloned this repository
-— or who obtains it later, since it is in history — has the release signing key.
+`sangusantri.jks` was tracked, added 2026-07-26 by the commit titled "jks", and
+`.gitignore` carried no rule for signing material. **The repository is public**, so
+for roughly three weeks the release signing key was downloadable by anyone. Anyone
+who cloned it in that window still has it.
 
 This is worse here than in a typical app because ADR 0016's entire Kemenag
 credential protection is built on the release signing certificate: the native
@@ -58,20 +60,38 @@ accept as an update to SanguSantri.
 `.gitignore`, and `git rm --cached sangusantri.jks` (the file is untouched on
 disk). A CI job now fails any pull request that tracks key material.
 
+**History purge — done 2026-08-18.** `git filter-repo --invert-paths --path
+sangusantri.jks --force` over all refs. Verified afterwards: the blob is absent
+from every reachable object, no commit on any branch carries a `.jks`/`.keystore`
+path, and the pre-rewrite commits no longer resolve locally. 60 commits remain of
+61 — the commit titled "jks" added nothing else, so removing the file left it
+empty and it was pruned. Nine local Codex checkpoint refs that pinned the blob
+were deleted first. Both `master` and `release/0.0.4` were rewritten; both carried
+it. Full pre-rewrite state is recoverable from
+`~/Documents/project/SanguSantri-BACKUP-2026-08-18/full-history.bundle`.
+
+A rewrite changes every commit hash from 2026-07-26 onward, so any hash cited in
+these documents before that date is dead; references were converted to dates.
+
 **Still required, and only the product owner can do it:**
 
-1. Treat the key as compromised. Generate a new upload key and complete Google
-   Play's upload-key reset. (Play App Signing means the *app signing* key is held
-   by Google and is not in this repository — that is a genuine mitigation, and the
-   reason this is recoverable at all. The upload key still must be replaced.)
-2. Rotate `SANGU_QURAN_API_USERNAME` / `SANGU_QURAN_API_TOKEN` with LPMQ Kemenag,
-   and update `SANGU_QURAN_RELEASE_SHA256` for the new certificate.
-3. Purge the blob from history (`git filter-repo --path sangusantri.jks
-   --invert-paths`) and force-push. Coordinate first — this rewrites every commit
-   hash. Removing it from `HEAD` alone does not remove it from history.
-
-Do not skip step 1 on the grounds that the repository is private. Private
-repositories get forked, backed up, and made public by accident.
+1. **Rotate the upload key.** Generate a new one and complete Google Play's
+   upload-key reset. Play App Signing means the *app signing* key is held by
+   Google and was never in this repository — that is the genuine mitigation and
+   the reason this is recoverable. The upload key still must be replaced.
+   *The purge does not substitute for this.* The key was public for roughly three
+   weeks; anyone who took a copy still has it, and no amount of history rewriting
+   reaches them.
+2. Ask GitHub Support to purge the cached/dangling objects. Force-pushing makes
+   the old commits unreachable, but GitHub keeps them fetchable by direct SHA
+   until it garbage-collects, and only Support can force that. The repository has
+   **0 forks**, which is what makes this worth doing at all — a single fork would
+   have retained the objects permanently and outside anyone's control.
+3. `SANGU_QURAN_RELEASE_SHA256` must be updated once the signing certificate
+   changes, or release builds will fail closed at the credential check. The
+   Kemenag credential itself was **never committed** — verified across all 61
+   original commits — so rotating it is prudent hygiene rather than a response to
+   a known leak.
 
 ### 2. Catalog `contentUrl` was an unbounded fetch instruction — High
 

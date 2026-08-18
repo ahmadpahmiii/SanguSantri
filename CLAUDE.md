@@ -82,18 +82,31 @@ pesantren-specific amaliyah.
   which amends ADR 0014's "no new Firebase product beyond Hosting" rule
   with this one narrowly-scoped exception.
 * SanguSantri is currently a **non-commercial application**: no advertising,
-  subscriptions, Quran Foundation integration, or Quran audio is on the
-  roadmap (`docs/product/ROADMAP.md`). The Kemenag integration approved for
-  `0.0.6` is the sole standalone-Quran exception.
+  subscriptions, or Quran Foundation integration is on the roadmap
+  (`docs/product/ROADMAP.md`). The Kemenag integration approved for `0.0.6` is the
+  sole standalone-Quran exception. **Quran audio is no longer excluded** — murottal
+  per-ayat playback and per-surah audio download shipped 2026-08-17 (see the myquran
+  bullet below); the rest of the non-commercial stance is unchanged.
 * Jadwal Sholat + Kiblat is wired to **api.myquran.com** (ADR
   [0018](docs/decisions/0018-myquran-for-prayer-times-and-qibla.md), 2026-08-17):
   prayer schedules keyed by kabupaten/kota (no location permission), qibla via
   `ACCESS_COARSE_LOCATION` — the app's first runtime permission, optional and
-  on-demand. That service also publishes Quran text, per-ayah/per-surah audio,
-  extra tafsir and a hijri calendar; **none of it is used**. Kemenag remains the
-  only Quran-content API (ADR 0016 §2) and hijri dates stay the app's own offline
-  `HijrahDate` computation. Do not wire any of those without a product decision —
-  the evidence and the deferred options are recorded in ADR 0018.
+  on-demand. That service also publishes Quran text, extra tafsir and a hijri
+  calendar; **none of that is used**. Kemenag remains the only Quran-content API
+  (ADR 0016 §2) and hijri dates stay the app's own offline `HijrahDate` computation.
+  Do not wire any of those without a product decision — the evidence and the
+  deferred options are recorded in ADR 0018.
+* **Murottal audio** is the one myquran Quran resource that *is* used, adopted
+  2026-08-17 by product-owner decision (ADR 0018's 2026-08-17 amendment, which
+  reverses that ADR's own audio deferral). The boundary is **audio bytes only** —
+  no text, translation, tafsir or hijri date from myquran. Per-ayah/per-surah URLs
+  are computed arithmetically (`data/audio/QuranAudioSource`), so there is no API
+  call, no DTO and no Room table for audio: downloaded ayat are **files** under
+  `filesDir/murottal/`, deliberately outside Room so the standing
+  `fallbackToDestructiveMigration(dropAllTables = true)` policy cannot delete them.
+  Playback is a foreground `MediaSessionService` over one shared `ExoPlayer`
+  (`data/audio/`, `feature/quran/murottal/`). Read
+  `docs/PROGRESS.md` §Murottal and the ADR amendment before changing any of it.
 
 Do not implement the entire PRD unless explicitly requested. Implement only
 the milestone actually asked for.

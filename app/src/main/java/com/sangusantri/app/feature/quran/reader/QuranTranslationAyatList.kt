@@ -1,6 +1,7 @@
 package com.sangusantri.app.feature.quran.reader
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -19,10 +21,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +39,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -44,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.QuranArabicText
 import com.sangusantri.app.core.designsystem.theme.QuranMutedText
+import com.sangusantri.app.core.designsystem.theme.QuranOnPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranOutline
 import com.sangusantri.app.core.designsystem.theme.QuranPrimary
 import com.sangusantri.app.core.designsystem.theme.QuranPrimaryContainer
@@ -77,6 +84,8 @@ fun QuranTranslationAyatList(
     translationSizeSp: Int = DEFAULT_TRANSLATION_SIZE_SP,
     arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     onAyatSelected: (QuranReaderAyatUiModel) -> Unit = onAyatLongPress,
+    playback: QuranAyatPlaybackState = QuranAyatPlaybackState(),
+    onPlayAyat: (QuranReaderAyatUiModel) -> Unit = {},
     headerContent: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -97,6 +106,8 @@ fun QuranTranslationAyatList(
                     selected = ayat.remoteId == selectedAyatId,
                     onLongPress = { onAyatLongPress(ayat) },
                     onMore = { onAyatSelected(ayat) },
+                    onPlay = { onPlayAyat(ayat) },
+                    playback = playback,
                     typography =
                         QuranAyatTypography(
                             arabicSizeSp = arabicSizeSp,
@@ -119,22 +130,29 @@ private data class QuranAyatTypography(
     val arabicFont: QuranArabicFont,
 )
 
+@Suppress("LongParameterList")
 @Composable
 private fun QuranTranslationAyatItem(
     ayat: QuranReaderAyatUiModel,
     selected: Boolean,
     onLongPress: () -> Unit,
     onMore: () -> Unit,
+    onPlay: () -> Unit,
+    playback: QuranAyatPlaybackState,
     typography: QuranAyatTypography,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val semanticsLabel = stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
+    val isPlaying = playback.playingAyatNumber == ayat.ayatNumber
+    val isPreparing = playback.preparingAyatNumber == ayat.ayatNumber
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .then(
-                    if (selected) {
+                    // The playing ayah carries the same tint as a selected one — the design bleeds it
+                    // 10dp past the text, which the negative inset below reproduces.
+                    if (selected || isPlaying) {
                         Modifier.background(QuranPrimaryContainer, RoundedCornerShape(SelectedAyatCornerRadius))
                     } else {
                         Modifier
@@ -156,22 +174,18 @@ private fun QuranTranslationAyatItem(
                 }
                 .padding(vertical = AyatVerticalPadding),
     ) {
-        QuranAyatMetaRow(ayat = ayat, selected = selected, onMore = onMore)
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            // TextAlign.End resolves to the *left* edge once layout direction is Rtl (End is
-            // logical, relative to direction) — Right is the physical alignment this needs.
-            Text(
-                text = ayat.arabicText.withQuranFontFallback(typography.arabicFont),
-                style =
-                    TextStyle(
-                        fontFamily = typography.arabicFont.toFontFamily(),
-                        fontSize = typography.arabicSizeSp.sp,
-                        lineHeight = typography.arabicLineHeightSp.sp,
-                        textAlign = TextAlign.Right,
-                    ),
-                color = QuranArabicText,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        QuranAyatMetaRow(
+            ayat = ayat,
+            selected = selected,
+            onMore = onMore,
+            onPlay = onPlay,
+            playback = playback,
+        )
+        QuranAyatArabicText(ayat = ayat, typography = typography)
+        // `4a`: a 2dp line between the Arabic and the translation showing position *inside* this
+        // ayah. It replaces the progress bar the review removed from above the player bar.
+        if (isPlaying) {
+            QuranAyatPositionLine(fraction = playback.positionFraction)
         }
         Text(
             text = ayat.translation,
@@ -191,6 +205,46 @@ private fun QuranTranslationAyatItem(
     }
 }
 
+@Composable
+private fun QuranAyatArabicText(
+    ayat: QuranReaderAyatUiModel,
+    typography: QuranAyatTypography,
+) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        // TextAlign.End resolves to the *left* edge once layout direction is Rtl (End is
+        // logical, relative to direction) — Right is the physical alignment this needs.
+        Text(
+            text = ayat.arabicText.withQuranFontFallback(typography.arabicFont),
+            style =
+                TextStyle(
+                    fontFamily = typography.arabicFont.toFontFamily(),
+                    fontSize = typography.arabicSizeSp.sp,
+                    lineHeight = typography.arabicLineHeightSp.sp,
+                    textAlign = TextAlign.Right,
+                ),
+            color = QuranArabicText,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** Position inside the ayah being recited (`4a`). */
+@Composable
+private fun QuranAyatPositionLine(fraction: Float) {
+    LinearProgressIndicator(
+        progress = { fraction },
+        color = QuranPrimary,
+        trackColor = QuranOutline,
+        gapSize = 0.dp,
+        drawStopIndicator = {},
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(AyatProgressHeight)
+                .padding(top = SanguSantriSpacing.medium),
+    )
+}
+
 /** The design's ayat header line: a tint circle holding the ayah number beside its juz/page origin,
  * with bookmark and overflow affordances trailing. `more_horiz` opens the same action sheet a
  * long-press does — a discoverable route to it for anyone who never tries long-pressing. */
@@ -199,7 +253,12 @@ private fun QuranAyatMetaRow(
     ayat: QuranReaderAyatUiModel,
     selected: Boolean,
     onMore: () -> Unit,
+    onPlay: () -> Unit,
+    playback: QuranAyatPlaybackState,
 ) {
+    val isPlaying = playback.playingAyatNumber == ayat.ayatNumber
+    val isPreparing = playback.preparingAyatNumber == ayat.ayatNumber
+    val isNext = playback.nextAyatNumber == ayat.ayatNumber
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -212,23 +271,24 @@ private fun QuranAyatMetaRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier =
-                    Modifier
-                        .size(AyatNumberCircleSize)
-                        .background(QuranPrimaryContainer, RoundedCornerShape(AyatNumberCircleSize / 2)),
-            ) {
-                Text(
-                    text = ayat.ayatNumber.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = QuranPrimary,
+            QuranAyatNumberChip(
+                ayatNumber = ayat.ayatNumber,
+                isPlaying = isPlaying,
+                isPreparing = isPreparing,
+                onPlay = onPlay,
+            )
+            if (isPlaying || isPreparing) {
+                Icon(
+                    imageVector = Icons.Outlined.GraphicEq,
+                    contentDescription = null,
+                    tint = QuranPrimary,
+                    modifier = Modifier.size(AyatActionIconSize),
                 )
             }
             Text(
-                text = stringResource(R.string.quran_reader_ayat_origin, ayat.juz, ayat.page),
+                text = quranAyatMetaLabel(ayat, isPreparing, isPlaying, isNext),
                 style = MaterialTheme.typography.labelSmall,
-                color = QuranMutedText,
+                color = if (isPlaying || isPreparing) QuranPrimary else QuranMutedText,
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -246,6 +306,63 @@ private fun QuranAyatMetaRow(
                     modifier = Modifier.size(AyatActionIconSize),
                 )
             }
+        }
+    }
+}
+
+/** Playback replaces the ayah's juz/page origin line while it is the current, next, or preparing
+ * ayah — the design's `Sedang diputar` / `Berikutnya` / `Menyiapkan audio…` states. */
+@Composable
+private fun quranAyatMetaLabel(
+    ayat: QuranReaderAyatUiModel,
+    isPreparing: Boolean,
+    isPlaying: Boolean,
+    isNext: Boolean,
+): String =
+    when {
+        isPreparing -> stringResource(R.string.quran_murottal_preparing_ayat)
+        isPlaying -> stringResource(R.string.quran_murottal_now_playing)
+        isNext -> stringResource(R.string.quran_murottal_up_next)
+        else -> stringResource(R.string.quran_reader_ayat_origin, ayat.juz, ayat.page)
+    }
+
+/**
+ * The ayah number, and the headline gesture of the turn-4 addendum: tapping it plays that ayah and
+ * auto-continues from there. While the audio is being fetched the number is replaced by a spinner
+ * (`4e`); while it plays, the tint circle becomes a filled primary one (`4a`).
+ */
+@Composable
+private fun QuranAyatNumberChip(
+    ayatNumber: Int,
+    isPlaying: Boolean,
+    isPreparing: Boolean,
+    onPlay: () -> Unit,
+) {
+    val playContentDescription = stringResource(R.string.quran_murottal_play_ayat, ayatNumber)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            Modifier
+                .size(AyatNumberCircleSize)
+                .background(
+                    color = if (isPlaying) QuranPrimary else QuranPrimaryContainer,
+                    shape = RoundedCornerShape(AyatNumberCircleSize / 2),
+                )
+                .clickable(onClick = onPlay)
+                .semantics { contentDescription = playContentDescription },
+    ) {
+        if (isPreparing) {
+            CircularProgressIndicator(
+                color = QuranPrimary,
+                strokeWidth = AyatSpinnerStrokeWidth,
+                modifier = Modifier.size(AyatSpinnerSize),
+            )
+        } else {
+            Text(
+                text = ayatNumber.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isPlaying) QuranOnPrimary else QuranPrimary,
+            )
         }
     }
 }
@@ -272,6 +389,9 @@ private val AyatVerticalPadding = 17.dp
 private val AyatNumberCircleSize = 25.dp
 private val AyatActionIconSize = 18.dp
 private val SelectedAyatCornerRadius = 8.dp
+private val AyatProgressHeight = 2.dp
+private val AyatSpinnerSize = 14.dp
+private val AyatSpinnerStrokeWidth = 1.5.dp
 
 private const val DEFAULT_ARABIC_SIZE_SP = QuranReaderSettings.DEFAULT_ARABIC_SIZE_SP
 private const val DEFAULT_ARABIC_LINE_HEIGHT_SP = 65

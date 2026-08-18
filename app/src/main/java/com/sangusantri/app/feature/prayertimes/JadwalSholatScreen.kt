@@ -627,9 +627,10 @@ private fun CompassFace(
             text = stringResource(R.string.kiblat_compass_north),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = SanguSantriSpacing.small),
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = SanguSantriSpacing.small),
         )
         if (animated != null) {
             Canvas(modifier = Modifier.size(CompassSize)) {
@@ -820,9 +821,10 @@ private fun CityPickerResults(
         uiState.isRefreshing && uiState.cities.isEmpty() ->
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(SectionGap),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(SectionGap),
             ) { CircularProgressIndicator() }
 
         uiState.errorMessage == PrayerScheduleError.CITY_LIST_UNAVAILABLE && uiState.cities.isEmpty() ->

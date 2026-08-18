@@ -75,6 +75,9 @@ a decision on whether audio joins the roadmap at all — `ROADMAP.md` currently
 states it does not, which is also why the revamp's "Murottal" chip was left
 unbuilt.
 
+> **Superseded by the 2026-08-17 amendment below.** The product owner has since
+> taken that decision: murottal audio is adopted, from this source, audio only.
+
 **Extra tafsir (quraish, jalalayn).** Would require calling myquran's Quran
 endpoints — a second Quran-content API, which ADR 0016 §2 forbids — plus a schema
 bump and per-work attribution in the tafsir sheet. Deferred.
@@ -149,3 +152,70 @@ approach that can match an isbat result, and it needs no API.
   chosen — without it the block is hidden and Jadwal Sholat has no entry point.
 * The debug-only sample schedule, its `BuildConfig.DEBUG` gate, `isSample`, and
   every "CONTOH" marker are deleted.
+
+## Amendment (2026-08-17) — murottal audio is adopted, audio only
+
+**Status:** Accepted. Product-owner decision, taken in the session that implemented
+the design handoff's turn-4 addendum (`4a`–`4f`).
+
+The "Considered and deferred" note above is now settled in the other direction:
+myquran **is** the murottal source. The boundary is narrow and unchanged elsewhere —
+**audio bytes only**. Kemenag remains the sole Quran *content* API (ADR 0016 §2):
+no text, no translation, no tafsir, and no hijri date is read from myquran.
+
+### What this changes
+
+* `ROADMAP.md`'s and `CLAUDE.md`'s "no Quran audio" statements no longer hold.
+  Everything else in the non-commercial stance stands: no ads, no subscriptions,
+  no Quran Foundation integration.
+* The deferral's prediction held exactly: **no schema change, no DTO, no sync
+  change, and no API call**. `QuranAudioSource` computes both URL forms
+  arithmetically, so the app never asks an endpoint for a link it can derive.
+* One new dependency pair, `androidx.media3` `media3-exoplayer` + `media3-session`.
+
+### Storage: files, not Room
+
+Downloaded ayah audio lives in `filesDir/murottal/{surah:000}{ayah:000}.mp3`, and
+the on-device library is derived by listing that directory — there is no audio
+table. The addendum's wording ("write it to the local DB") was deliberately read as
+"persist locally", for two reasons:
+
+* MP3 blobs would bloat the database — a whole-surah Al-Baqarah is tens of MB.
+* The standing `fallbackToDestructiveMigration(dropAllTables = true)` policy means
+  the next schema bump **deletes every table**. Audio in Room would be destroyed
+  with the corpus on every future version bump; files survive it.
+
+The file name already encodes surah and ayah, so a directory listing answers every
+question an index table would have. Partial writes go to a `.part` sibling and are
+renamed on success, so a file's presence always means "playable offline".
+
+### Reciter attribution
+
+The service publishes exactly one recitation and documents **no reciter anywhere**
+in its OpenAPI description. The name shown in the UI — Syaikh Misyari Rasyid
+Al-'Afasi — is the **product owner's own attribution**, not something the API
+asserts, and it lives in one constant (`QuranAudioSource.RECITER_NAME`) so it can be
+corrected in one place. The design mock's qari picker is rendered as a static value
+rather than a chevron opening a list of one.
+
+### Consequences
+
+* **No Room version bump**, and therefore no data loss from this work.
+* Playback is a foreground media service (`QuranMurottalService`, a
+  `MediaSessionService` publishing the app's single `ExoPlayer`), so recitation
+  continues after the reader is left and is controllable from the system
+  notification — the behaviour that makes the hub's "Sedang diputar" block
+  meaningful.
+* The service is **not exported**. Media3's samples export it so Android Auto/Wear
+  can browse; SanguSantri offers no browsable media library and targets neither, so
+  exporting would widen the IPC surface for nothing
+  (`docs/security/SECURITY_BASELINE.md`).
+* `POST_NOTIFICATIONS` is now also requested from the reader, at first playback,
+  because the media notification is suppressed without it on API 33+. Denial is not
+  fatal: in-app playback still works.
+* A fourth OkHttp client (`@QuranAudioHttpClient`) carries no auth interceptor, for
+  the same structural reason as the myquran schedule client: the Kemenag credential
+  must never reach a non-Kemenag origin (ADR 0016 §5).
+* The CDN ignores range requests and sends no `Accept-Ranges`, so downloads are not
+  resumable — a cancelled ayah restarts. At ≤2.3 MB per ayah (Al-Baqarah 282, the
+  largest measured) that is cheaper than resumption bookkeeping.

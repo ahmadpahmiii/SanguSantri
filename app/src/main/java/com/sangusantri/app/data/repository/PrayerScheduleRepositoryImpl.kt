@@ -150,7 +150,8 @@ constructor(
         return resolved ?: CityDetection.Ambiguous(candidates.first().pickerQuery())
     }
 
-    override fun observeLocationPromptShown(): Flow<Boolean> = preferences.map { it[LOCATION_PROMPT_SHOWN] ?: false }
+    override fun observeLocationPromptShown(): Flow<Boolean> =
+        preferences.map { it[LOCATION_PROMPT_SHOWN] ?: false }
 
     override suspend fun markLocationPromptShown() {
         dataStore.edit { it[LOCATION_PROMPT_SHOWN] = true }

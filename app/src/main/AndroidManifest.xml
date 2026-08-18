@@ -18,6 +18,10 @@
   <!-- Pengingat Amaliyah (0.0.4): lets ReminderBootReceiver re-arm alarms after reboot — AlarmManager
        alarms do not otherwise survive a device restart (ROADMAP.md's "Rescheduling after reboot"). -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <!-- Murottal per-ayat: recitation keeps playing after the reader is left, which requires a
+       foreground media-playback service and its own typed permission on API 34+. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
   <application
     android:name=".SanguSantriApplication"
@@ -42,6 +46,24 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+
+    <!-- Murottal playback host: keeps recitation running, with the system media notification and
+         lock-screen/media-button controls, after the reader is left.
+
+         Not exported. Media3's samples export this service so external controllers (Android Auto,
+         Wear, Assistant) can bind and browse a media library; SanguSantri offers no browsable media
+         library and targets none of those surfaces, so exporting it would only widen the app's IPC
+         surface for nothing (docs/security/SECURITY_BASELINE.md). In-app controllers, the foreground
+         notification and hardware media buttons all work without it — those reach the MediaSession
+         through the framework rather than by binding to this service. -->
+    <service
+      android:name=".data.audio.QuranMurottalService"
+      android:exported="false"
+      android:foregroundServiceType="mediaPlayback">
+      <intent-filter>
+        <action android:name="androidx.media3.session.MediaSessionService" />
+      </intent-filter>
+    </service>
 
     <!-- Pengingat Amaliyah (0.0.4): both system-only broadcasts, never sent by another app, so
          neither needs to be exported. -->

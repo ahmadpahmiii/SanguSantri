@@ -78,6 +78,12 @@ fun QuranHubRoute(
                 onSearchQueryChanged = viewModel::updateSearchQuery,
                 onSurahSelected = onSurahSelected,
                 onAyatSelected = onAyatSelected,
+                onDownloadSurahAudio = viewModel::downloadSurahAudio,
+                onCancelSurahAudioDownload = viewModel::cancelSurahAudioDownload,
+                onPlaySurahAudio = viewModel::playSurahAudio,
+                onTogglePlayPause = viewModel::togglePlayPause,
+                onSkipPrevious = viewModel::skipPrevious,
+                onSkipNext = viewModel::skipNext,
             ),
         modifier = modifier,
     )
@@ -156,11 +162,26 @@ private fun QuranHubBody(
                     .fillMaxSize()
                     .padding(horizontal = SanguSantriSpacing.default),
         ) {
-            uiState.continueReading?.let { continueReading ->
-                QuranContinueReadingPanel(
-                    continueReading = continueReading,
-                    onClick = { actions.onAyatSelected(continueReading.surahNumber, continueReading.ayatNumber) },
+            // `4d`: while audio runs, "Sedang diputar" takes the block that otherwise carries
+            // "Terakhir dibaca" — the two never appear together.
+            if (uiState.murottal.isActive) {
+                QuranNowPlayingPanel(
+                    state = uiState.murottal,
+                    nextSurahName = uiState.murottalNextSurahName,
+                    actions = actions,
+                    onOpenReader = {
+                        val surah = uiState.murottal.surahNumber
+                        val ayat = uiState.murottal.ayahNumber
+                        if (surah != null && ayat != null) actions.onAyatSelected(surah, ayat)
+                    },
                 )
+            } else {
+                uiState.continueReading?.let { continueReading ->
+                    QuranContinueReadingPanel(
+                        continueReading = continueReading,
+                        onClick = { actions.onAyatSelected(continueReading.surahNumber, continueReading.ayatNumber) },
+                    )
+                }
             }
             QuranHubTabRow(selectedTab = uiState.selectedTab, onTabSelected = actions.onTabSelected)
             if (uiState.selectedTab == QuranHubTab.SURAH) {

@@ -6861,3 +6861,22 @@ instead of still demanding a manual pick — three faults (geocoder on the main 
 last-known fix immediately after a grant, and a name matcher that could not reconcile "Kota Jakarta
 Barat" with myquran's "KOTA JAKARTA"). Detail in
 `docs/design/BERANDA_QURAN_REVAMP_PROGRESS.md`.
+
+## Murottal per ayat + unduhan audio (design handoff turn 4, 2026-08-17)
+
+**Status:** Implemented and verified on a booted emulator. Turn 4 of the
+Beranda/Al-Qur'an revamp handoff (`4a`–`4f`): tapping an ayah number plays it and
+auto-continues, per-surah audio download, murottal panel, hub "Sedang diputar"
+block, mushaf follow-scroll, and a foreground media service so playback survives
+leaving the reader.
+
+Murottal audio now comes from **myquran's CDN, audio bytes only** — Kemenag remains
+the sole Quran *content* API. This reverses ADR 0018's own "Quran audio — deferred"
+note and makes the previous "no Quran audio" statements in `CLAUDE.md` and
+`ROADMAP.md` obsolete (both updated). No Room version bump and no data loss: audio is
+stored as **files** under `filesDir/murottal/`, deliberately outside Room.
+
+Full detail, deliberate deviations from the addendum, commands run (including the
+pre-existing `ktlintCheck` failure this work did not cause), and on-device
+verification: `docs/design/QURAN_MUROTTAL_PROGRESS.md` and the 2026-08-17 amendment
+in `docs/decisions/0018-myquran-for-prayer-times-and-qibla.md`.

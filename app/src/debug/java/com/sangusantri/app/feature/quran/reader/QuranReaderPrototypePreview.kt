@@ -87,7 +87,7 @@ private fun QuranFlowingPrototype() {
                     surahDisplayName = "[FIXTURE] Surah",
                     surahArabicName = "[FIXTURE]",
                     ayatCount = prototypeFixtureAyats.size,
-                    // Never a real basmalah in a fixture preview — the tenang header draws none
+                    // Never a real basmalah in a fixture preview — the header draws none
                     // when this is blank, which is exactly what this debug-only screen should show.
                     basmalahArabic = "",
                 )
@@ -107,6 +107,9 @@ private fun QuranFlowingPrototype() {
                 isBookmarked = false,
                 actions =
                     QuranAyatActionSheetActions(
+                        onPlayFromHere = {},
+                        onPlaySingle = {},
+                        onRepeatAyat = {},
                         onToggleBookmark = {},
                         onOpenTafsir = {},
                         onMarkLastRead = {},

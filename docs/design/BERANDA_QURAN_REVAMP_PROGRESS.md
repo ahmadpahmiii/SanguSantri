@@ -121,9 +121,10 @@ Step 2 — the reader's "tenang" surah header + basmalah, and the mushaf flowing
 
 ### Step 2 — Reader
 
-- **Tenang surah header** is now the default (`QuranSurahStartHeader.kt`): the surah name set in the
-  reader's own Arabic face at 33sp/1.95, one muted caps line, a 52×1dp hairline, then the basmalah.
-  The previous three-column band survives as `QuranSurahHeaderVariant.BAND`, selectable in Tampilan.
+- **Surah header** (`QuranSurahStartHeader.kt`): the surah name set in the reader's own Arabic face
+  at 33sp/1.95, one muted caps line, a 52×1dp hairline, then the basmalah. This is the only
+  treatment — the previous three-column metadata band, its `QuranSurahHeaderVariant` enum and the
+  "Kepala surah" control in Tampilan were removed on the product owner's decision (2026-08-17).
 - **The basmalah is read from Room** — Al-Fatihah ayat 1, the exact stored Kemenag string — not
   hardcoded and not the old SVG. When the dataset is not prepared the header draws no basmalah at
   all rather than substituting anything.

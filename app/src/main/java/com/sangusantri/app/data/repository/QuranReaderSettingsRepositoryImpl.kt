@@ -2,6 +2,7 @@ package com.sangusantri.app.data.repository
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -10,12 +11,12 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranDisplayMode
+import com.sangusantri.app.domain.model.QuranMurottalSpeed
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArabicLineSpacing
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceArabicSize
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceBrightness
 import com.sangusantri.app.domain.model.QuranReaderSettings.Companion.coerceTranslationSize
-import com.sangusantri.app.domain.model.QuranSurahHeaderVariant
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -52,9 +53,10 @@ constructor(
                         ),
                     brightnessOverride = preferences[BRIGHTNESS_OVERRIDE]?.let(::coerceBrightness),
                     themeMode = preferences[THEME_MODE]?.let(::parseThemeMode),
-                    surahHeaderVariant =
-                        preferences[SURAH_HEADER_VARIANT]?.let(::parseSurahHeaderVariant)
-                            ?: QuranSurahHeaderVariant.TENANG,
+                    murottalSpeed =
+                        preferences[MUROTTAL_SPEED]?.let(::parseMurottalSpeed) ?: QuranMurottalSpeed.NORMAL,
+                    murottalContinueAcrossSurah = preferences[MUROTTAL_CONTINUE_ACROSS_SURAH] ?: true,
+                    murottalKeepScreenOn = preferences[MUROTTAL_KEEP_SCREEN_ON] ?: false,
                 )
             }
 
@@ -86,9 +88,20 @@ constructor(
         dataStore.edit { it[THEME_MODE] = mode.name }
     }
 
-    override suspend fun setSurahHeaderVariant(variant: QuranSurahHeaderVariant) {
-        dataStore.edit { it[SURAH_HEADER_VARIANT] = variant.name }
+    override suspend fun setMurottalSpeed(speed: QuranMurottalSpeed) {
+        dataStore.edit { it[MUROTTAL_SPEED] = speed.name }
     }
+
+    override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) {
+        dataStore.edit { it[MUROTTAL_CONTINUE_ACROSS_SURAH] = enabled }
+    }
+
+    override suspend fun setMurottalKeepScreenOn(enabled: Boolean) {
+        dataStore.edit { it[MUROTTAL_KEEP_SCREEN_ON] = enabled }
+    }
+
+    private fun parseMurottalSpeed(value: String): QuranMurottalSpeed? =
+        runCatching { QuranMurottalSpeed.valueOf(value) }.getOrNull()
 
     private fun parseDisplayMode(value: String): QuranDisplayMode? =
         runCatching { QuranDisplayMode.valueOf(value) }.getOrNull()
@@ -99,9 +112,6 @@ constructor(
     private fun parseThemeMode(value: String): AppThemeMode? =
         runCatching { AppThemeMode.valueOf(value) }.getOrNull()
 
-    private fun parseSurahHeaderVariant(value: String): QuranSurahHeaderVariant? =
-        runCatching { QuranSurahHeaderVariant.valueOf(value) }.getOrNull()
-
     private companion object {
         val DISPLAY_MODE = stringPreferencesKey("quran_display_mode")
         val ARABIC_FONT = stringPreferencesKey("quran_arabic_font")
@@ -110,6 +120,8 @@ constructor(
         val TRANSLATION_SIZE_SP = intPreferencesKey("quran_translation_size_sp")
         val BRIGHTNESS_OVERRIDE = floatPreferencesKey("quran_brightness_override")
         val THEME_MODE = stringPreferencesKey("quran_theme_mode")
-        val SURAH_HEADER_VARIANT = stringPreferencesKey("quran_surah_header_variant")
+        val MUROTTAL_SPEED = stringPreferencesKey("quran_murottal_speed")
+        val MUROTTAL_CONTINUE_ACROSS_SURAH = booleanPreferencesKey("quran_murottal_continue_across_surah")
+        val MUROTTAL_KEEP_SCREEN_ON = booleanPreferencesKey("quran_murottal_keep_screen_on")
     }
 }

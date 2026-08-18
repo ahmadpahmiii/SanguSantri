@@ -26,11 +26,6 @@ object SanguSantriDimensions {
     val sheetTopCornerRadius = 26.dp
 
     // Standalone Al-Qur'an reader (`0.0.6`).
-    val quranSurahHeaderMinHeight = 48.dp
-
-    // design-export/quran/09-flowing-reader-arab-only-page.html `.basmalah img{width:210px}` in a
-    // 360dp logical frame.
-    val quranBasmalahMaxWidth = 210.dp
     val quranHubContentMaxWidth = 640.dp
     val quranSheetMaxHeight = 610.dp
     val quranSheetCornerRadius = 26.dp

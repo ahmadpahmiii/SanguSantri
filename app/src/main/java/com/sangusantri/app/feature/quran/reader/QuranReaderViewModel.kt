@@ -2,14 +2,20 @@ package com.sangusantri.app.feature.quran.reader
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.data.audio.QuranAudioDownloadManager
+import com.sangusantri.app.data.audio.QuranAudioStore
+import com.sangusantri.app.data.audio.QuranMurottalPlayer
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.QuranBookmark
+import com.sangusantri.app.domain.model.QuranMurottalSpeed
+import com.sangusantri.app.domain.model.QuranMurottalState
 import com.sangusantri.app.domain.model.QuranReaderSettings
 import com.sangusantri.app.domain.model.QuranSurah
 import com.sangusantri.app.domain.model.QuranTafsirResult
 import com.sangusantri.app.domain.model.QuranVerse
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.QuranRepository
+import com.sangusantri.app.feature.quran.murottal.QuranMurottalPanelUiState
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -39,6 +45,9 @@ constructor(
     @Assisted private val surahNumber: Int,
     private val quranRepository: QuranRepository,
     private val settingsRepository: QuranReaderSettingsRepository,
+    private val murottalPlayer: QuranMurottalPlayer,
+    private val audioStore: QuranAudioStore,
+    private val audioDownloadManager: QuranAudioDownloadManager,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -47,6 +56,7 @@ constructor(
 
     private val selectedAyatId = MutableStateFlow<Long?>(null)
     private val tafsirSheetOpen = MutableStateFlow(false)
+    private val murottalPanelOpen = MutableStateFlow(false)
     private var startAyatNumber: Int? = null
     private var lastVisibleAyatNumber: Int? = null
     private var sessionRecorded = false
@@ -83,6 +93,125 @@ constructor(
             SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
             QuranReaderUiState.Loading,
         )
+
+    /** Playback state is its own flow rather than a field of [QuranReaderUiState.Content]: the
+     * in-ayah position ticks five times a second, and folding that into the surah state would
+     * rebuild every ayat model on each tick. */
+    val murottalState: StateFlow<QuranMurottalState> = murottalPlayer.state
+
+    val murottalPanelUiState: StateFlow<QuranMurottalPanelUiState?> =
+        combine(
+            murottalPanelOpen,
+            settingsRepository.observe(),
+            audioStore.library,
+            audioDownloadManager.progress,
+            quranRepository.observeSurahs(),
+        ) { panelOpen, settings, library, download, surahs ->
+            if (!panelOpen) return@combine null
+            val surah = surahs.firstOrNull { it.number == surahNumber } ?: return@combine null
+            val player = murottalPlayer.state.value
+            // The queue must read from whatever is actually being recited, which is not necessarily
+            // the surah this reader is open on.
+            val playingSurahName =
+                player.surahNumber
+                    ?.let { playing -> surahs.firstOrNull { it.number == playing }?.latinName }
+                    .orEmpty()
+            QuranMurottalPanelUiState(
+                surahNumber = surahNumber,
+                surahName = surah.latinName,
+                ayatCount = surah.ayatCount,
+                nextSurahName = surahs.firstOrNull { it.number == surahNumber + 1 }?.latinName,
+                speed = settings.murottalSpeed,
+                continueAcrossSurah = settings.murottalContinueAcrossSurah,
+                keepScreenOn = settings.murottalKeepScreenOn,
+                storedAyahCount = library.storedAyahCount(surahNumber),
+                storedBytes = library.bytes(surahNumber),
+                download = download?.takeIf { it.surahNumber == surahNumber },
+                queueDisplayNames =
+                    if (playingSurahName.isBlank()) {
+                        emptyList()
+                    } else {
+                        listOf(playingSurahName) + player.queuedSurahNames
+                    },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), null)
+
+    init {
+        audioStore.ensureDirectory()
+        viewModelScope.launch { audioStore.refresh() }
+        // The player owns playback across screens, so persisted murottal preferences are pushed into
+        // it here rather than read by it — it has no scope of its own to observe DataStore in.
+        viewModelScope.launch {
+            settingsRepository.observe().collect { settings ->
+                murottalPlayer.continueAcrossSurah = settings.murottalContinueAcrossSurah
+                if (murottalPlayer.state.value.speed != settings.murottalSpeed) {
+                    murottalPlayer.setSpeed(settings.murottalSpeed)
+                }
+            }
+        }
+    }
+
+    /** Tapping an ayah number: play it, then continue through the surah (addendum item 1). */
+    fun onPlayAyat(ayat: QuranReaderAyatUiModel) {
+        murottalPlayer.play(surahNumber, ayat.ayatNumber)
+    }
+
+    fun onPlayFromHere(ayat: QuranReaderAyatUiModel) {
+        murottalPlayer.play(surahNumber, ayat.ayatNumber)
+        onDismissActionSheet()
+    }
+
+    fun onPlaySingleAyat(ayat: QuranReaderAyatUiModel) {
+        murottalPlayer.play(surahNumber, ayat.ayatNumber, singleAyahOnly = true)
+        onDismissActionSheet()
+    }
+
+    fun onRepeatAyat(ayat: QuranReaderAyatUiModel) {
+        murottalPlayer.play(surahNumber, ayat.ayatNumber, repeatCount = REPEAT_AYAT_COUNT)
+        onDismissActionSheet()
+    }
+
+    fun onTogglePlayPause() = murottalPlayer.togglePlayPause()
+
+    fun onSkipToNextAyat() = murottalPlayer.skipToNext()
+
+    fun onSkipToPreviousAyat() = murottalPlayer.skipToPrevious()
+
+    /** Both "Batal" during preparation and "close" on the player bar — either way playback ends. */
+    fun onStopPlayback() = murottalPlayer.stop()
+
+    fun onRetryPlayback() {
+        val current = murottalPlayer.state.value
+        val ayah = current.ayahNumber ?: return
+        murottalPlayer.play(current.surahNumber ?: surahNumber, ayah)
+    }
+
+    fun onOpenMurottalPanel() {
+        murottalPanelOpen.value = true
+    }
+
+    fun onDismissMurottalPanel() {
+        murottalPanelOpen.value = false
+    }
+
+    fun onSelectMurottalSpeed(speed: QuranMurottalSpeed) {
+        viewModelScope.launch { settingsRepository.setMurottalSpeed(speed) }
+    }
+
+    fun onToggleContinueAcrossSurah(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setMurottalContinueAcrossSurah(enabled) }
+    }
+
+    fun onToggleKeepScreenOn(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setMurottalKeepScreenOn(enabled) }
+    }
+
+    fun onDownloadSurahAudio() {
+        val ayatCount = (uiState.value as? QuranReaderUiState.Content)?.ayatCount ?: return
+        audioDownloadManager.start(surahNumber, ayatCount)
+    }
+
+    fun onCancelSurahAudioDownload() = audioDownloadManager.cancel()
 
     fun onAyatLongPress(ayat: QuranReaderAyatUiModel) {
         selectedAyatId.value = ayat.remoteId
@@ -203,7 +332,6 @@ constructor(
             surahName = surah.latinName,
             surahArabicName = surah.arabicName,
             basmalahArabic = data.basmalahArabic,
-            surahHeaderVariant = settings.surahHeaderVariant,
             category = surah.category,
             ayatCount = surah.ayatCount,
             displayMode = settings.displayMode,
@@ -223,6 +351,9 @@ constructor(
     private companion object {
         const val AL_FATIHAH_SURAH_NUMBER = 1
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
+
+        /** "Ulangi 3×" — the count the design's chip states. */
+        const val REPEAT_AYAT_COUNT = 3
         val TAFSIR_STALE_THRESHOLD_MILLIS = TimeUnit.DAYS.toMillis(7)
     }
 }

@@ -9,8 +9,10 @@ being built prematurely.
 SanguSantri is currently a **non-commercial application**. There is no
 advertising, subscription, or monetisation roadmap item, and none should be
 added without an explicit product decision. Standalone **Al-Qur'an Kemenag**
-is approved for `0.0.6` under ADR 0016. Quran Foundation integration and Quran
-audio remain unplanned. Tahlil and Istighosah may still contain Quran verses
+is approved for `0.0.6` under ADR 0016. Quran Foundation integration remains
+unplanned. **Quran audio is no longer unplanned:** murottal per-ayat playback and
+per-surah audio download shipped 2026-08-17 from myquran's CDN, audio bytes only
+(ADR 0018's 2026-08-17 amendment). Tahlil and Istighosah may still contain Quran verses
 as part of their original reading text (an ordinary reading step, ADR 0015 —
 there is no separate step type for this); that amaliyah content pipeline stays
 separate from the standalone Kemenag data boundary — see
@@ -156,8 +158,10 @@ architecture and accepted credential trade-off.
 * Arabic font/size/line-height settings with live preview. LPMQ Isep Misbah is
   the preferred default candidate; Amiri Quran and King Fahd remain gated by
   redistribution and glyph-compatibility checks.
-* Official Kemenag source attribution, no account sync, analytics, audio,
-  download manager, or Quran Foundation fallback.
+* Official Kemenag source attribution, no account sync, analytics, or Quran
+  Foundation fallback. Audio and a per-surah audio download manager were out of
+  scope for `0.0.6` as written, and were added afterwards by a separate
+  product decision (ADR 0018's 2026-08-17 amendment) — myquran CDN, audio only.
 
 ## `0.0.7` — Kalender Hijriah
 

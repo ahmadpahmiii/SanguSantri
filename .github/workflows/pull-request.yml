@@ -1,0 +1,166 @@
+name: Pull request
+
+# Debug-only by design: a release assembly needs the Kemenag credential and signing digest
+# (ADR 0016), which are org secrets that GitHub does not expose to pull requests from forks. Every
+# job below therefore runs on the debug variant, which app/build.gradle.kts is explicitly built to
+# compile with no secrets configured.
+on:
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+# Least privilege. Nothing here writes to the repository; a compromised action or dependency gets a
+# read-only token rather than push rights (docs/security/SECURITY_BASELINE.md).
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # gradle/gradle-daemon-jvm.properties pins toolchainVersion=21.
+  JAVA_VERSION: '21'
+  # Must match app/build.gradle.kts's ndkVersion — the Quran credential boundary is a native library
+  # (ADR 0016), so even a debug assembly runs CMake.
+  NDK_VERSION: '27.1.12297006'
+
+jobs:
+  # Cheapest job, runs first and independently: catches the class of mistake that put a release
+  # keystore in this repository's history in the first place (commit 1d232ed).
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Reject committed signing material
+        run: |
+          set -euo pipefail
+          matches=$(git ls-files | grep -Ei '\.(jks|keystore|p12|pfx|pem|key)$' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Signing/key material must never be committed. Found:"
+            echo "$matches"
+            exit 1
+          fi
+          echo "No signing material tracked."
+
+      - name: Reject Kemenag credentials in tracked files
+        run: |
+          set -euo pipefail
+          # The real credential only ever reaches the build as an environment variable or an
+          # untracked Gradle property (ADR 0016). A tracked file assigning one is a leak.
+          if git grep -nEI 'SANGU_QURAN_(API_USERNAME|API_TOKEN|DEBUG_API_USERNAME|DEBUG_API_TOKEN)[[:space:]]*=[[:space:]]*[^[:space:]$]' \
+               -- . ':(exclude).github/workflows/*'; then
+            echo "::error::A Kemenag credential appears to be assigned a literal value in a tracked file."
+            exit 1
+          fi
+          echo "No tracked credential assignments."
+
+  # Content security (docs/operations/CONTENT_GOVERNANCE.md, ADR 0015). The app's own
+  # ContentValidator fails closed on a bad catalog at runtime, which protects readers but turns a bad
+  # deploy into a silent content outage. This turns it into a red pull request instead.
+  content-check:
+    name: Content catalog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate bundled and hosted catalogs
+        run: python3 tools/ci/validate_content.py
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: detekt
+        run: ./gradlew detekt --no-daemon
+
+      # Not blocking yet, deliberately. `master` currently carries ~3,300 standard:indent violations
+      # against the pinned ktlint 1.5.0 engine, because two different constructor-indentation styles
+      # coexist in the source tree — see docs/reviews/security-review-2026-08-18.md. Clearing that
+      # needs one repository-wide `./gradlew ktlintFormat` commit, which is a formatting decision for
+      # the product owner, not something a pull-request gate should force. Flip continue-on-error to
+      # false the moment that commit lands.
+      - name: ktlint
+        continue-on-error: true
+        run: ./gradlew ktlintCheck --no-daemon
+
+      - name: Upload static-analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            app/build/reports/detekt/
+            app/build/reports/ktlint/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: testDebugUnitTest
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build:
+    name: Android Lint and debug build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install pinned NDK
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;${NDK_VERSION}" "cmake;3.22.1"
+
+      - name: lint
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+          retention-days: 7

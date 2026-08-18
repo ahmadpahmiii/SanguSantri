@@ -312,6 +312,11 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // JVM-side coverage for ResponseSizeLimitInterceptor — the response-size cap
+    // (docs/security/SECURITY_BASELINE.md) is a pure OkHttp control with no Android dependency, so
+    // it belongs in the fast unit-test suite CI runs on every pull request rather than only in the
+    // emulator-bound instrumented suite.
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

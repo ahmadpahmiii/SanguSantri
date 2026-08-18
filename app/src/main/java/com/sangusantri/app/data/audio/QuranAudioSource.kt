@@ -1,5 +1,9 @@
 package com.sangusantri.app.data.audio
 
+import com.sangusantri.app.data.audio.QuranAudioSource.RECITER_NAME
+import com.sangusantri.app.data.audio.QuranAudioSource.parseFileName
+import java.util.Locale
+
 /**
  * Where one ayah's recitation lives, remotely and locally.
  *
@@ -31,11 +35,19 @@ object QuranAudioSource {
         ayahNumber: Int,
     ): String = "${positionalKey(surahNumber, ayahNumber)}$MP3_SUFFIX"
 
-    /** `89`, `4` → `089004`. */
+    /**
+     * `89`, `4` → `089004`.
+     *
+     * [Locale.ROOT], not the device default: `%d` renders through the default locale's numbering
+     * system, so on a device set to a locale with non-ASCII digits (Persian and several Arabic
+     * locales default to Arabic-Indic numerals — a realistic setting for this app's readers) the key
+     * would come out `٠٨٩٠٠٤`. Every CDN request would 404 and no stored file name would ever match
+     * [parseFileName], leaving murottal quietly broken on exactly those devices.
+     */
     private fun positionalKey(
         surahNumber: Int,
         ayahNumber: Int,
-    ): String = "%03d%03d".format(surahNumber, ayahNumber)
+    ): String = String.format(Locale.ROOT, "%03d%03d", surahNumber, ayahNumber)
 
     /** Parses a stored file name back to its surah/ayah pair, or `null` when the name is not one of
      * ours — a stray file in the directory must not be counted as downloaded audio. */

@@ -6880,3 +6880,68 @@ Full detail, deliberate deviations from the addendum, commands run (including th
 pre-existing `ktlintCheck` failure this work did not cause), and on-device
 verification: `docs/design/QURAN_MUROTTAL_PROGRESS.md` and the 2026-08-17 amendment
 in `docs/decisions/0018-myquran-for-prayer-times-and-qibla.md`.
+
+## Security review, unit-test pass, and pull-request CI (2026-08-18)
+
+**Status:** Review complete, fixes implemented, unit tests green locally, CI
+workflow added. Not a numbered milestone — no feature shipped, no religious
+content touched. Full finding-by-finding detail, severity, and the decisions left
+open: `docs/reviews/security-review-2026-08-18.md`.
+
+**One item is not closed and needs the product owner.** The release keystore
+`sangusantri.jks` was committed in `1d232ed` and had no `.gitignore` rule. It is
+now untracked and CI rejects any pull request that tracks key material, but the
+key must still be treated as compromised: reset the Play upload key, rotate the
+Kemenag credential and `SANGU_QURAN_RELEASE_SHA256`, and purge the blob from
+history. Removing it from `HEAD` does not remove it from history. ADR 0016's
+credential protection is gated on the release signing certificate, which is what
+makes this urgent rather than routine.
+
+**Fixed.** Catalog `contentUrl` is now pinned to an origin-relative path under
+`/content/` in `ContentValidator` — it previously reached Retrofit as an `@Url`,
+where an absolute value replaces the base URL outright, so a tampered catalog
+could have imported amaliyah text from any origin under the attribution the
+catalog claims; the same guard closes `..` traversal in the bundled asset path,
+since both pipelines run `validateCatalog` before any read. `imageUrl` is now
+restricted to https. The content OkHttp client no longer follows redirects (the
+other three already did not). The qibla request now sends coordinates truncated
+to two decimals — `ACCESS_COARSE_LOCATION` bounds the platform's fix, not the
+digits the app transmits. Two locale defects found while testing that: murottal
+file names/URLs and the prayer-times date formatters used the default locale's
+numbering system, so both features broke silently on Arabic-Indic-digit locales;
+both pinned to `Locale.ROOT`. `PRIVACY.md` was corrected where it contradicted
+the shipped location behaviour — it is the stated input to the Play Data Safety
+declaration.
+
+**Tests.** 47 new JVM unit cases, no new test infrastructure: the catalog URL
+rules, `ResponseSizeLimitInterceptor` (a security control installed on all four
+OkHttp clients that had no coverage at all), `coarseCoordinate`,
+`QuranAudioSource`, `ReminderScheduleCalculator`, and `validateCustomTarget`.
+Three pre-existing `SerambiViewModelTest` failures were repaired — three stacked
+problems, each hidden by the one in front: a collector cancelled outside
+`backgroundScope` leaving `SharingStarted.WhileSubscribed`'s stop-timeout on
+`runTest`'s scheduler; then `advanceUntilIdle()` never returning at all, because
+`uiState` combines an endless one-tick-a-minute clock (use `runCurrent()`, and
+note this applies to anything else combining that clock); and underneath both,
+whole-object equality assertions that could not have passed since `Loaded` gained
+its `now` field. Suite wall time drops from ~5 min to ~35 s. `detekt` was red on
+`master` too — `QuranTranslationAyatItem` at exactly 60/60 `LongMethod`; its
+`Modifier` chain is now extracted, with no behaviour change. Gating CI on
+already-red checks would have been pointless.
+
+**CI.** `.github/workflows/pull-request.yml` runs five jobs on every PR to
+`master`: secret scan, content-catalog validation
+(`tools/ci/validate_content.py`, mirroring `ContentValidator`/`ContentImporter`
+over both content trees), `detekt` + `ktlintCheck`, `testDebugUnitTest`, and
+`lintDebug` + `assembleDebug`. Debug-only — a release assembly needs the ADR 0016
+secrets, which GitHub does not expose to fork pull requests. The `ktlint` step is
+the one non-blocking step: `master` carries ~3,358 `standard:indent` violations
+against the already-pinned ktlint 1.5.0 (two constructor-indent styles coexist in
+the tree). `./gradlew ktlintFormat` fixes it in one command but rewrites ~60 files
+— a formatting decision for the product owner, after which one line in the
+workflow flips to blocking.
+
+**Note on the temporary "do not add tests" constraint** in `CLAUDE.md`: that
+section scopes itself to the design product-alignment phases and says to remove it
+once the user says otherwise. This pass was an explicit request for unit tests, so
+it applies here.

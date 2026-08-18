@@ -44,9 +44,8 @@ import com.sangusantri.app.domain.repository.TasbihRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -67,18 +66,36 @@ class SerambiViewModelTest {
             assertEquals(SerambiUiState.Loading, viewModel.uiState.value)
         }
 
+    /*
+     * Two things make collecting this particular StateFlow awkward, and both bite silently:
+     *
+     * 1. `uiState` combines an endless one-tick-a-minute clock flow, so `advanceUntilIdle()` never
+     *    returns — it keeps advancing virtual time through ticks that never stop being scheduled,
+     *    and spins the test thread at 100% CPU where not even runTest's timeout can interrupt it.
+     *    `runCurrent()` is the right primitive: every emission these tests assert on is scheduled at
+     *    virtual time zero, so draining that one instant is both sufficient and terminating.
+     *
+     * 2. The collector belongs in `backgroundScope`. Cancelling a plain `launch`ed collector makes
+     *    `SharingStarted.WhileSubscribed` schedule its stop-timeout inside `viewModelScope`, which
+     *    shares this scheduler but is not a child of the test coroutine — so runTest waits out its
+     *    full 60-second limit for work it cannot advance. backgroundScope is torn down unawaited.
+     *
+     * `uiState.value` is what gets asserted rather than a collected list: a StateFlow always carries
+     * its current value, so the collector exists only to make WhileSubscribed start the pipeline.
+     */
     @Test
     fun uiStateBecomesLoadedWithRepositoryContent() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
                 createViewModel(FakeContentRepository(flowOf(listOf(tahlil, istighosah))))
 
-            val collected = mutableListOf<SerambiUiState>()
-            val job = launch { viewModel.uiState.toList(collected) }
-            advanceUntilIdle()
-            job.cancel()
+            backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
 
-            assertEquals(SerambiUiState.Loaded(listOf(tahlil, istighosah)), collected.last())
+            // Field-wise, not whole-object: Loaded also carries `now` from a live clock, so equality
+            // against a Loaded built with default values could never hold.
+            val state = viewModel.uiState.value as SerambiUiState.Loaded
+            assertEquals(listOf(tahlil, istighosah), state.items)
         }
 
     @Test
@@ -87,12 +104,11 @@ class SerambiViewModelTest {
             val viewModel =
                 createViewModel(FakeContentRepository(flowOf(emptyList())))
 
-            val collected = mutableListOf<SerambiUiState>()
-            val job = launch { viewModel.uiState.toList(collected) }
-            advanceUntilIdle()
-            job.cancel()
+            backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
 
-            assertEquals(SerambiUiState.Loaded(emptyList()), collected.last())
+            val state = viewModel.uiState.value as SerambiUiState.Loaded
+            assertEquals(emptyList<Content>(), state.items)
         }
 
     @Test
@@ -101,12 +117,10 @@ class SerambiViewModelTest {
             val viewModel =
                 createViewModel(FakeContentRepository(flowOf(listOf(tahlil, sholawatNariyah))))
 
-            val collected = mutableListOf<SerambiUiState>()
-            val job = launch { viewModel.uiState.toList(collected) }
-            advanceUntilIdle()
-            job.cancel()
+            backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
 
-            val state = collected.last() as SerambiUiState.Loaded
+            val state = viewModel.uiState.value as SerambiUiState.Loaded
             assertEquals(listOf(tahlil), state.items)
             assertEquals(true, state.hasSholawatContent)
         }

@@ -241,9 +241,16 @@ constructor(
         const val TAG = "PrayerSchedule"
         val SELECTED_CITY_ID = stringPreferencesKey("prayer_selected_city_id")
         val LOCATION_PROMPT_SHOWN = booleanPreferencesKey("prayer_location_prompt_shown")
-        val ISO_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val ISO_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
-        val PUBLISHED_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+        // All three are machine-facing, never displayed: Room row keys, myquran path segments, and
+        // the parser for myquran's own "HH:mm" strings. A bare ofPattern binds the *default*
+        // locale's DecimalStyle, so on a device using Arabic-Indic numerals these would write
+        // non-ASCII digits into primary keys and request paths, and PUBLISHED_TIME would fail to
+        // parse the ASCII times the API actually returns — silently emptying the schedule, since
+        // toPrayerTime swallows a parse failure. Locale.ROOT pins them to ASCII digits.
+        val ISO_DATE: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+        val ISO_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM", Locale.ROOT)
+        val PUBLISHED_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT)
         const val CITY_PAGE_LIMIT = 600
         const val SOURCE_NAME = "myquran.com"
     }

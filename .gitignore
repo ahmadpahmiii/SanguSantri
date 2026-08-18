@@ -80,3 +80,10 @@ tools/content-importer/snapshots/
 tools/content-importer/output/
 tools/content-importer/**/__pycache__/
 /app/release/app-release.aab
+
+# Signing material — never in version control (docs/security/SECURITY_BASELINE.md).
+# The release keystore was committed in 1d232ed; see docs/reviews/security-review-2026-08-18.md
+# for the required key rotation and history purge.
+*.jks
+*.keystore
+keystore.properties

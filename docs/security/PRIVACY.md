@@ -85,17 +85,29 @@ and only runtime permission.
   the user picks their city and no location is involved.
 * **Coarse, never precise.** A qibla bearing varies by well under a degree across
   a whole city, so precise location would buy nothing.
-* **No active location request.** The app reads the platform `LocationManager`'s
-  last known fix. It never starts a location update, never runs in the background,
-  and never registers a listener.
+* **At most one fix, in the foreground, on demand.** The app prefers the platform
+  `LocationManager`'s last known fix and only falls back to a single
+  `getCurrentLocation` call — with a 10-second timeout, coarse providers only, GPS
+  never — when no cached fix exists at all, which is the normal state right after
+  the permission is first granted. It never registers a listener, never requests a
+  stream of updates, and never reads location in the background.
+
+  *(Corrected 2026-08-18: this bullet previously read "never starts a location
+  update", which stopped being true when `DeviceLocationSource.requestSingleFix`
+  was added to fix city detection silently failing on a freshly granted permission.
+  The behaviour is deliberate; the documentation had simply not caught up.)*
 * **Asked only on demand.** The prompt appears when the reader taps "Aktifkan arah
   kiblat" on the Jadwal Sholat screen — never on launch, never on any other screen.
 * **Declared optional.** `uses-feature android:name="android.hardware.location"
   android:required="false"`. Denying it leaves every other feature working; the
   compass simply draws no needle rather than pointing somewhere arbitrary.
 * **What leaves the device:** one `GET /qibla/{lat},{lon}` to api.myquran.com
-  carrying the coarse coordinates. Nothing else — no identifier, no devotional
-  state, no reading position.
+  carrying the coordinates **truncated to two decimal places** (~1.1 km) by
+  `coarseCoordinate` in `data/repository/KiblatRepositoryImpl.kt`. A coarse
+  permission bounds the accuracy of the fix, not the number of digits the app
+  transmits, so the truncation is what actually keeps the shared position
+  city-level. Nothing else leaves — no identifier, no devotional state, no reading
+  position.
 * **What is stored:** the resulting bearing (a single float) in DataStore, so the
   compass works offline afterwards. The coordinates themselves are not persisted.
 

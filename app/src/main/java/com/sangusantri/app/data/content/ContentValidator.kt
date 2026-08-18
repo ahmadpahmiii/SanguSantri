@@ -39,10 +39,49 @@ object ContentValidator {
                 item.title.isBlank() -> "item ${item.id}: title must not be blank"
                 item.description.isBlank() -> "item ${item.id}: description must not be blank"
                 item.contentUrl.isBlank() -> "item ${item.id}: contentUrl must not be blank"
+                !isOriginRelativeContentPath(item.contentUrl) ->
+                    "item ${item.id}: contentUrl must be an origin-relative path under $CONTENT_PATH_PREFIX"
+
+                !isAllowedImageUrl(item.imageUrl) -> "item ${item.id}: imageUrl must be an https URL"
                 else -> null
             }
         }
     }
+
+    /**
+     * Origin pinning for the one catalog field that decides where the app fetches religious content
+     * from.
+     *
+     * [com.sangusantri.app.data.remote.api.ContentApiService.getContent] takes this value as a
+     * Retrofit `@Url`, and Retrofit resolves an *absolute* `@Url` against nothing — it replaces the
+     * configured base URL outright. A catalog naming `https://elsewhere.example/tahlil.json` would
+     * therefore have the app import amaliyah text from an origin nobody vetted. The bundled pipeline
+     * feeds the same field to `AssetManager.open` after stripping the prefix
+     * ([com.sangusantri.app.data.local.content.BundledContentBootstrapper]). Restricting it here, in
+     * the one validator both pipelines run before any read, is what keeps content on the deployed
+     * Firebase Hosting origin and inside the bundled asset directory.
+     *
+     * Also rejects a protocol-relative `//host/...` (which likewise leaves the origin), any `..`
+     * segment, and backslashes or whitespace that path handling downstream could normalise
+     * differently.
+     */
+    fun isOriginRelativeContentPath(contentUrl: String): Boolean =
+        contentUrl.startsWith(CONTENT_PATH_PREFIX) &&
+                !contentUrl.contains("//") &&
+                !contentUrl.contains('\\') &&
+                contentUrl.none(Char::isWhitespace) &&
+                contentUrl.split('/').none { it == ".." }
+
+    /** Catalog images are handed straight to Coil, so a tampered catalog must not be able to point
+     * the app at an arbitrary tracker, a cleartext host, or a `file:`/`content:` URI. Absent is
+     * always fine — the field is optional. */
+    fun isAllowedImageUrl(imageUrl: String?): Boolean =
+        imageUrl == null ||
+                (
+                        imageUrl.startsWith(HTTPS_SCHEME) &&
+                                imageUrl.length > HTTPS_SCHEME.length &&
+                                imageUrl.none(Char::isWhitespace)
+                        )
 
     fun validateContentFile(file: ContentFileDto): ContentValidation {
         val reason = validateFileIdentifiers(file) ?: validateSteps(file)
@@ -81,4 +120,7 @@ object ContentValidator {
             step.repeatTarget < 1 -> "repeatTarget must be at least 1"
             else -> null
         }
+
+    private const val CONTENT_PATH_PREFIX = "/content/"
+    private const val HTTPS_SCHEME = "https://"
 }

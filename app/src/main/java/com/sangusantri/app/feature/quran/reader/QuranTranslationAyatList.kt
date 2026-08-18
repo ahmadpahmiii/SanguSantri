@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -130,6 +131,50 @@ private data class QuranAyatTypography(
     val arabicFont: QuranArabicFont,
 )
 
+/**
+ * The background, semantics and long-press surface for one ayah row.
+ *
+ * Lifted out of [QuranTranslationAyatItem] because the chain had grown longer than the content it
+ * wrapped — which also put that composable over detekt's LongMethod threshold. Behaviour is
+ * unchanged; [highlighted] is the previous `selected || isPlaying`, since both states paint the
+ * identical tint.
+ *
+ * `@Composable` because [QuranPrimaryContainer] is a theme-aware composable getter — the tint has to
+ * be read in composition, not computed outside it.
+ */
+@Composable
+private fun Modifier.ayatItemSurface(
+    remoteId: Long,
+    highlighted: Boolean,
+    semanticsLabel: String,
+    hapticFeedback: HapticFeedback,
+    onLongPress: () -> Unit,
+): Modifier =
+    fillMaxWidth()
+        .then(
+            // The design bleeds the tint 10dp past the text, which the negative inset reproduces.
+            if (highlighted) {
+                Modifier.background(QuranPrimaryContainer, RoundedCornerShape(SelectedAyatCornerRadius))
+            } else {
+                Modifier
+            },
+        )
+        .semantics {
+            onLongClick(label = semanticsLabel) {
+                onLongPress()
+                true
+            }
+        }
+        .pointerInput(remoteId) {
+            detectTapGestures(
+                onLongPress = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongPress()
+                },
+            )
+        }
+        .padding(vertical = AyatVerticalPadding)
+
 @Suppress("LongParameterList")
 @Composable
 private fun QuranTranslationAyatItem(
@@ -147,32 +192,13 @@ private fun QuranTranslationAyatItem(
     val isPreparing = playback.preparingAyatNumber == ayat.ayatNumber
     Column(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .then(
-                    // The playing ayah carries the same tint as a selected one — the design bleeds it
-                    // 10dp past the text, which the negative inset below reproduces.
-                    if (selected || isPlaying) {
-                        Modifier.background(QuranPrimaryContainer, RoundedCornerShape(SelectedAyatCornerRadius))
-                    } else {
-                        Modifier
-                    },
-                )
-                .semantics {
-                    onLongClick(label = semanticsLabel) {
-                        onLongPress()
-                        true
-                    }
-                }
-                .pointerInput(ayat.remoteId) {
-                    detectTapGestures(
-                        onLongPress = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onLongPress()
-                        },
-                    )
-                }
-                .padding(vertical = AyatVerticalPadding),
+            Modifier.ayatItemSurface(
+                remoteId = ayat.remoteId,
+                highlighted = selected || isPlaying,
+                semanticsLabel = semanticsLabel,
+                hapticFeedback = hapticFeedback,
+                onLongPress = onLongPress,
+            ),
     ) {
         QuranAyatMetaRow(
             ayat = ayat,

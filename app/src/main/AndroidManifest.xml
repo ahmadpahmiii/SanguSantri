@@ -78,6 +78,38 @@
       </intent-filter>
     </receiver>
 
+    <!-- Jadwal Sholat home-screen widget. Exported because the launcher (a different app) is what
+         sends it ACTION_APPWIDGET_UPDATE — an app-widget provider that is not exported is never
+         offered in the widget picker. It accepts no data from the intent beyond the framework's own
+         widget ids. -->
+    <receiver
+      android:name=".feature.prayertimes.widget.PrayerTimesWidgetProvider"
+      android:exported="true"
+      android:label="@string/widget_prayer_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/prayer_times_widget_info" />
+    </receiver>
+
+    <!-- Second picker entry, the horizontal band. Same provider logic (it subclasses the one
+         above and adds nothing); only the appwidget-provider XML differs. -->
+    <receiver
+      android:name=".feature.prayertimes.widget.PrayerTimesWideWidgetProvider"
+      android:exported="true"
+      android:label="@string/widget_prayer_wide_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/prayer_times_wide_widget_info" />
+    </receiver>
+
     <!--
          SanguSantriApplication implements Configuration.Provider (custom HiltWorkerFactory),
          so WorkManager's default androidx-startup initializer must be removed — otherwise

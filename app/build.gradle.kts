@@ -35,7 +35,7 @@ android {
         // the project buildable with no real backend configured — a non-routable TLD per RFC 2606.
         val contentApiBaseUrl =
             (project.findProperty("SANGU_CONTENT_API_BASE_URL") as String?)
-                ?: "https://content-api.sangusantri.invalid/"
+                ?: "https://sangusantri-content-api-v4.vercel.app/"
         buildConfigField("String", "CONTENT_API_BASE_URL", "\"$contentApiBaseUrl\"")
 
         // Official LPMQ Kemenag Quran API base URL (0.0.6, ADR 0016) — fixed and publicly

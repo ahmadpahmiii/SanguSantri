@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "tahlil",
+  "version": 2,
+  "sourceName": "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
+  "sourceUrl": "https://nu.or.id/nasional/bacaan-tahlil-singkat-lengkap-dengan-doa-dan-terjemahannya-UJz9F",
+  "steps": [
+    {
+      "id": "tahlil-1",
+      "arabicText": "اِلَى حَضْرَةِ النَّبِيِّ صَلَّى اللهُ عَلَيهِ وَسَلَّمَ وَاَلِهِ وإِخْوَانِهِ مِنَ الأَنْبِيَاءِ وَالمُرْسَلِيْنَ وَالأَوْلِيَاءِ وَالشُّهَدَاءِ وَالصَّالِحِيْنَ وَالصَّحَابَةِ وَالتَّابِعِيْنَ وَالعُلَمَاءِ العَامِلِيْنَ وَالمُصَنِّفِيْنَ المُخْلِصِيْنَ وَجَمِيْعِ المَلَائِكَةِ المُقَرَّبِيْنَ، ثُمَّ اِلَى جَمِيْعِ أَهْلِ القُبُوْرِ مِنَ المُسْلِمِيْنَ وَالمُسْلِمَاتِ وَالمُؤْمِنِيْنَ وَالمُؤْمِنَاتِ مِنْ مَشَارِقِ الأَرْضِ إِلَى مَغَارِبِهَا بَرِّهَا وَبَحْرِهَا خُصُوْصًا إِلَى آبَائِنَا وَأُمَّهَاتِنَا وَأَجْدَادِنَا وَجَدَّاتِنَا وَمَشَايِخِنَا وَمَشَايِخِ مَشَايِخِنَا وَأَسَاتِذَتِنَا وَأَسَاتِذَةِ أَسَاتِذَتِنَا وَلِمَنْ أَحْسَنَ إِلَيْنَا وَلِمَنْ اجْتَمَعْنَا هَهُنَا بِسَبَبِهِ شَيْءٌ لِلهِ لَهُمُ الْفَاتِحَةُ",
+      "translation": "Untuk yang terhormat Nabi Muhammad SAW, segenap keluarga, dan saudaranya dari kalangan pada nabi, rasul, wali, syuhada, orang-orang saleh, sahabat, tabi'in, ulama al-amilin, ulama penulis yang ikhlas, semua malaikat Muqarrabin, kemudian semua ahli kubur Muslimin, Muslimat, Mukminin, Mukminat dari Timur ke Barat, baik di laut dan di darat, khususnya bapak kami, ibu kami, kakek kami, nenek kami, guru kami, pengajar dari guru kami, ustadz kami, pengajar ustadz kami, mereka yang telah berbuat baik kepada kami, dan bagi ahli kubur/arwah yang menjadi sebab kami berkumpul di sini. Bacaan Al-Fatihah ini kami tujukan kepada Allah dan pahalanya untuk mereka semua. Al-Fatihah…",
+      "repeatTarget": 1
+    },
+    {
+      "id": "tahlil-2",
+      "arabicText": "بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيْمِ. اَلْحَمْدُ لِلهِ رَبِّ الْعَالَمِيْنَ. اَلرَّحْمَنِ الرَّحِيْمِ. مَالِكِ يَوْمِ الدِّيْنِ. اِيَّاكَ نَعْبُدُ وَاِيَّاكَ نَسْتَعِيْنُ. اِهْدِنَا الصِّرَاطَ الَّمُسْتَقِيْمَ. صِرَاطَ الَّذِ يْنَ اَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوْبِ عَلَيْهِمْ وَلَا الضَّالِّيْنَ. اَمِينْ",
+      "translation": "Aku berlindung kepada Allah dari setan yang terlontar. Dengan menyebut nama Allah yang maha pengasih lagi maha penyayang. Segala puji bagi Allah, Tuhan semesta alam. Yang maha pengasih lagi maha penyayang. Yang menguasai hari pembalasan. Hanya kepada-Mu kami menyembah. Hanya kepada-Mu pula kami memohon pertolongan. Tunjukkanlah kami ke jalan yang lurus, yaitu jalan orang-orang yang telah Kauanugerahi nikmat kepada mereka, bukan jalan mereka yang dimurkai dan bukan pula jalan mereka yang sesat. Semoga Kaukabulkan permohonan kami.",
+      "repeatTarget": null
+    }
+  ]
+}

@@ -56,11 +56,15 @@ internal fun GuidedStepContent(
     }
 }
 
-/** Prominent repeat target (decision E) — shown above the reading card, not only inside it. */
+/**
+ * Prominent repeat target (decision E) — shown above the reading card, not only inside it.
+ * Renders nothing for a step with no target; there is no count to state.
+ */
 @Composable
 internal fun GuidedStepStatusRow(step: ContentStep) {
+    val target = step.effectiveRepeatTarget ?: return
     Text(
-        text = stringResource(R.string.guided_reader_step_target_label, step.repeatTarget),
+        text = stringResource(R.string.guided_reader_step_target_label, target),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
     )

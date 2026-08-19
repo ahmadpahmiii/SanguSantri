@@ -27,5 +27,6 @@ data class ContentStepEntity(
     val position: Int,
     val arabicText: String,
     val translation: String,
-    val repeatTarget: Int,
+    /** `null` = no tasbih counter for this step. See `ContentStepDto.repeatTarget`. */
+    val repeatTarget: Int?,
 )

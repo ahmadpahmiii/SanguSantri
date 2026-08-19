@@ -325,7 +325,7 @@ constructor(
         val selectedAyat = ayats.firstOrNull { it.remoteId == selectedAyatId }
         val isSelectedBookmarked =
             selectedAyat != null &&
-                data.bookmarks.any { it.surahNumber == surahNumber && it.ayatNumber == selectedAyat.ayatNumber }
+                    data.bookmarks.any { it.surahNumber == surahNumber && it.ayatNumber == selectedAyat.ayatNumber }
 
         return QuranReaderUiState.Content(
             surahNumber = surah.number,
@@ -338,6 +338,7 @@ constructor(
             arabicFont = settings.arabicFont,
             ayats = ayats,
             pages = ayats.groupBy { it.page }.values.toList(),
+            nextSurahName = data.surahs.firstOrNull { it.number == surahNumber + 1 }?.latinName,
             selectedAyat = selectedAyat,
             isSelectedBookmarked = isSelectedBookmarked,
             arabicSizeSp = settings.arabicSizeSp,

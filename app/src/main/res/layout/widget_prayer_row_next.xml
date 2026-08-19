@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?><!-- One prayer in the narrow (2x2) list: name left, time right. The next prayer's variant: accent text on the
+     highlight tint, so the one that matters is legible at a glance.
+
+     Inflated by PrayerTimesWidgetProvider (RemoteViews.addView), never referenced from another
+     layout. Colours live here rather than being set with setTextColor: a colour pushed from code is
+     baked into the RemoteViews at render time and keeps the theme it was rendered under, so the
+     panel goes unreadable the moment the system flips light/dark. Resource references are resolved
+     by the launcher at inflation, so they follow. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_row"
+  android:layout_width="match_parent"
+  android:layout_height="0dp"
+  android:layout_weight="1"
+  android:background="@drawable/widget_highlight"
+  android:gravity="center_vertical"
+  android:orientation="horizontal"
+  android:paddingHorizontal="6dp">
+
+  <TextView
+    android:id="@+id/widget_row_name"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:ellipsize="end"
+    android:maxLines="1"
+    android:textColor="@color/widget_accent"
+    android:textSize="12sp" />
+
+  <TextView
+    android:id="@+id/widget_row_time"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:maxLines="1"
+    android:textColor="@color/widget_accent"
+    android:textSize="12sp" />
+</LinearLayout>

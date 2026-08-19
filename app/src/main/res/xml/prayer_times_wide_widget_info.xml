@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  The horizontal entry: four cells across, one tall. On a 5x4 portrait grid that is roughly
+  276x102dp ((73n-16) x (118m-16)), which fits the city line, the hairline and the six prayers.
+
+  minResizeHeight is 50dp rather than the vertical entry's 110dp — one row is what makes this shape
+  reachable at all, and 50dp is the platform's own guidance for a one-row-tall widget (a single
+  landscape cell). Squeezed that far the provider drops the city line and renders the bare strip.
+  minResizeWidth stays wide enough that the six columns are never crushed into a 2x1.
+
+  Everything else — the update period, the boundary alarm, the glass panel — is
+  PrayerTimesWidgetProvider's, shared with the vertical entry.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:description="@string/widget_prayer_wide_description"
+  android:initialLayout="@layout/widget_prayer_times"
+  android:maxResizeWidth="500dp"
+  android:maxResizeHeight="200dp"
+  android:minWidth="250dp"
+  android:minHeight="50dp"
+  android:minResizeWidth="250dp"
+  android:minResizeHeight="50dp"
+  android:previewLayout="@layout/widget_prayer_times_preview"
+  android:resizeMode="horizontal|vertical"
+  android:targetCellWidth="4"
+  android:targetCellHeight="1"
+  android:updatePeriodMillis="1800000"
+  android:widgetCategory="home_screen" />

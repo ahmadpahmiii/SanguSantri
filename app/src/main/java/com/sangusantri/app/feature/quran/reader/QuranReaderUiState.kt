@@ -22,6 +22,9 @@ sealed interface QuranReaderUiState {
         val arabicFont: QuranArabicFont,
         val ayats: List<QuranReaderAyatUiModel>,
         val pages: List<List<QuranReaderAyatUiModel>>,
+        /** Latin name of surah [surahNumber] + 1, or `null` on An-Nas. Mushaf mode appends one extra
+         * pager page offering it, so swiping past the surah's last page continues reading. */
+        val nextSurahName: String?,
         val selectedAyat: QuranReaderAyatUiModel?,
         val isSelectedBookmarked: Boolean,
         /** `true` once "Tafsir Kemenag" is chosen from the action sheet for [selectedAyat] — the

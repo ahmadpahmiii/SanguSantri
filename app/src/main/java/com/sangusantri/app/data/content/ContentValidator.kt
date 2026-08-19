@@ -40,7 +40,7 @@ object ContentValidator {
                 item.description.isBlank() -> "item ${item.id}: description must not be blank"
                 item.contentUrl.isBlank() -> "item ${item.id}: contentUrl must not be blank"
                 !isOriginRelativeContentPath(item.contentUrl) ->
-                    "item ${item.id}: contentUrl must be an origin-relative path under $CONTENT_PATH_PREFIX"
+                    "item ${item.id}: contentUrl must be an origin-relative path under one of $CONTENT_PATH_PREFIXES"
 
                 !isAllowedImageUrl(item.imageUrl) -> "item ${item.id}: imageUrl must be an https URL"
                 else -> null
@@ -66,7 +66,7 @@ object ContentValidator {
      * differently.
      */
     fun isOriginRelativeContentPath(contentUrl: String): Boolean =
-        contentUrl.startsWith(CONTENT_PATH_PREFIX) &&
+        CONTENT_PATH_PREFIXES.any(contentUrl::startsWith) &&
                 !contentUrl.contains("//") &&
                 !contentUrl.contains('\\') &&
                 contentUrl.none(Char::isWhitespace) &&
@@ -117,10 +117,18 @@ object ContentValidator {
         when {
             step.arabicText.isBlank() -> "arabicText must not be blank"
             step.translation.isBlank() -> "translation must not be blank"
-            step.repeatTarget < 1 -> "repeatTarget must be at least 1"
+            // null is legitimate — it means "no counter". Only a present-but-nonsensical
+            // value is a content error.
+            step.repeatTarget != null && step.repeatTarget < 1 -> "repeatTarget must be at least 1 when present"
             else -> null
         }
 
-    private const val CONTENT_PATH_PREFIX = "/content/"
+    /**
+     * The two shapes a legitimate `contentUrl` takes. `/content/` is the bundled asset directory
+     * (`app/src/main/assets/content/packages/...`); `/api/v1/content/` is the CMS API's own route
+     * (`cms/api`, deployed on Vercel), which emits this path relative rather than absolute for
+     * exactly the reason documented above. Both stay on the configured origin.
+     */
+    private val CONTENT_PATH_PREFIXES = listOf("/content/", "/api/v1/content/")
     private const val HTTPS_SCHEME = "https://"
 }

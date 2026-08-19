@@ -906,8 +906,11 @@ private fun CityRow(
 }
 
 /** "Senin, 17 Agustus 2026 · 5 Rabiulawal 1448" — gregorian from the device locale, hijri from the
- * app's own offline computation, with the month names the rest of the app already uses. */
-private fun LocalDate.formatWithHijri(hijriMonthNames: List<String>): String {
+ * app's own offline computation, with the month names the rest of the app already uses.
+ *
+ * `internal` rather than private because the home-screen widget prints the same line, and a second
+ * copy of this format is how the two would drift apart. */
+internal fun LocalDate.formatWithHijri(hijriMonthNames: List<String>): String {
     val hijri = HijrahDate.from(this)
     val hijriMonth = hijri.get(ChronoField.MONTH_OF_YEAR)
     val monthName = hijriMonthNames.getOrNull(hijriMonth - 1).orEmpty()

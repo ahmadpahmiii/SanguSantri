@@ -463,6 +463,7 @@
   <string name="quran_reader_ayat_context">Ayat %1$d · Juz %2$d · Halaman %3$d</string>
   <string name="quran_reader_ayat_origin">Juz %1$d · Hal %2$d</string>
   <string name="quran_reader_mushaf_strip">Juz %1$d · Hal %2$d</string>
+  <string name="quran_reader_next_surah_label">Lanjut ke surah berikutnya</string>
   <string name="quran_action_position_info_format">Juz %1$d • Halaman %2$d</string>
 
   <!-- Murottal per ayat & unduhan audio (design handoff turn 4, `4a`–`4f`). Audio comes from
@@ -689,4 +690,13 @@
     <item>Wage</item>
     <item>Kliwon</item>
   </string-array>
+
+  <!-- Home-screen widget (feature/prayertimes/widget). Reuses beranda_prayer_next_label,
+       beranda_prayer_tomorrow and the prayer_* names — the widget is the Beranda block, not a
+       second wording of it. -->
+  <string name="widget_prayer_label">Jadwal Sholat</string>
+  <string name="widget_prayer_description">Enam waktu sholat dalam satu kolom</string>
+  <string name="widget_prayer_wide_label">Jadwal Sholat (lebar)</string>
+  <string name="widget_prayer_wide_description">Enam waktu sholat dalam satu baris</string>
+  <string name="widget_prayer_empty_message">Pilih kota Anda</string>
 </resources>

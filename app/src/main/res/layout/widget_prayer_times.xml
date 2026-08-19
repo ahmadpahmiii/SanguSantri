@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  One glass panel, two arrangements, and no rows written out by hand: the six prayers are inflated
+  into [widget_list] or [widget_strip] at render time from widget_prayer_row/widget_prayer_column
+  (RemoteViews.addView). A hand-written 6-row list plus a 6-column strip would be twenty-four
+  TextViews in this file, all needing ids, all kept in step by hand.
+
+  Narrow (2x2) shows the vertical list, wide shows the horizontal strip; short-and-wide drops the
+  date line so the strip still fits. PrayerTimesWidgetProvider decides from the reported size, which
+  works identically on API 26 and 31+.
+
+  `@android:id/background` on the root is what lets Android 12+ clip the panel to the launcher's own
+  widget corner radius.
+
+  No countdown and no progress line on purpose: both would need minute-by-minute updates to stay
+  honest. Everything here stays true until the next prayer, and the provider re-renders exactly at
+  that boundary.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@android:id/background"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/widget_background"
+  android:orientation="vertical"
+  android:padding="@dimen/widget_padding">
+
+  <LinearLayout
+    android:id="@+id/widget_header"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageView
+      android:id="@+id/widget_location_icon"
+      android:layout_width="12dp"
+      android:layout_height="12dp"
+      android:contentDescription="@null"
+      android:src="@drawable/ic_widget_location" />
+
+    <TextView
+      android:id="@+id/widget_location"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="5dp"
+      android:layout_weight="1"
+      android:ellipsize="end"
+      android:letterSpacing="0.04"
+      android:maxLines="1"
+      android:textColor="@color/widget_dim"
+      android:textSize="11sp" />
+  </LinearLayout>
+
+  <ImageView
+    android:id="@+id/widget_divider_top"
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    android:layout_marginTop="9dp"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null" />
+
+  <TextView
+    android:id="@+id/widget_date"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="9dp"
+    android:layout_weight="1"
+    android:ellipsize="end"
+    android:gravity="center_vertical"
+    android:maxLines="1"
+    android:textColor="@color/widget_accent"
+    android:textSize="11sp"
+    android:visibility="gone" />
+
+  <ImageView
+    android:id="@+id/widget_divider_middle"
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    android:layout_marginTop="9dp"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null"
+    android:visibility="gone" />
+
+  <!-- Exactly one of these two is populated and shown; both stay empty until the provider fills
+       them, which is also what the empty state renders as. -->
+  <LinearLayout
+    android:id="@+id/widget_list"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="4dp"
+    android:layout_weight="1"
+    android:orientation="vertical"
+    android:visibility="gone" />
+
+  <LinearLayout
+    android:id="@+id/widget_strip"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="8dp"
+    android:layout_weight="1"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:visibility="gone" />
+
+  <!-- Shown in place of both when no city has been chosen or nothing is cached yet. -->
+  <TextView
+    android:id="@+id/widget_empty"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="8dp"
+    android:layout_weight="1"
+    android:ellipsize="end"
+    android:gravity="center_vertical"
+    android:maxLines="2"
+    android:text="@string/widget_prayer_empty_message"
+    android:textColor="@color/widget_strong"
+    android:textSize="14sp"
+    android:visibility="gone" />
+</LinearLayout>

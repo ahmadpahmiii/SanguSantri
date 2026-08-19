@@ -14,6 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,8 +25,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,12 +61,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -108,7 +114,7 @@ fun QuranReaderRoute(
     targetAyat: Int?,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
-    onFollowAudioToSurah: (surahNumber: Int, ayatNumber: Int) -> Unit = { _, _ -> },
+    onOpenSurah: (surahNumber: Int, ayatNumber: Int?) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     viewModel: QuranReaderViewModel =
         hiltViewModel<QuranReaderViewModel, QuranReaderViewModel.Factory>(
@@ -129,7 +135,7 @@ fun QuranReaderRoute(
         brightnessOverride = (uiState as? QuranReaderUiState.Content)?.brightnessOverride,
         keepScreenOn = murottalPanelUiState?.keepScreenOn == true && murottalState.isActive,
         murottalState = murottalState,
-        onFollowAudioToSurah = onFollowAudioToSurah,
+        onOpenSurah = onOpenSurah,
     )
 
     QuranReaderScreen(
@@ -138,6 +144,7 @@ fun QuranReaderRoute(
         targetAyat = targetAyat,
         onBack = onBack,
         onOpenSettings = onOpenSettings,
+        onOpenNextSurah = { onOpenSurah(surahNumber + 1, null) },
         actions = viewModel.bodyActions(),
         murottalState = murottalState,
         murottalPanelUiState = murottalPanelUiState,
@@ -193,7 +200,7 @@ private fun QuranReaderSideEffects(
     brightnessOverride: Float?,
     keepScreenOn: Boolean,
     murottalState: QuranMurottalState,
-    onFollowAudioToSurah: (surahNumber: Int, ayatNumber: Int) -> Unit,
+    onOpenSurah: (surahNumber: Int, ayatNumber: Int?) -> Unit,
 ) {
     QuranBrightnessEffect(brightnessOverride)
     QuranKeepScreenOnEffect(enabled = keepScreenOn)
@@ -201,7 +208,7 @@ private fun QuranReaderSideEffects(
     QuranFollowAudioAcrossSurahEffect(
         readerSurahNumber = surahNumber,
         murottalState = murottalState,
-        onFollowAudioToSurah = onFollowAudioToSurah,
+        onOpenSurah = onOpenSurah,
     )
 }
 
@@ -221,7 +228,7 @@ private fun QuranReaderSideEffects(
 private fun QuranFollowAudioAcrossSurahEffect(
     readerSurahNumber: Int,
     murottalState: QuranMurottalState,
-    onFollowAudioToSurah: (surahNumber: Int, ayatNumber: Int) -> Unit,
+    onOpenSurah: (surahNumber: Int, ayatNumber: Int?) -> Unit,
 ) {
     var wasFollowing by remember(readerSurahNumber) { mutableStateOf(false) }
     val playingSurah = murottalState.surahNumber
@@ -232,7 +239,7 @@ private fun QuranFollowAudioAcrossSurahEffect(
             playingSurah != null && playingAyat != null && wasFollowing -> {
                 // Cleared first so a re-composition before navigation settles cannot fire twice.
                 wasFollowing = false
-                onFollowAudioToSurah(playingSurah, playingAyat)
+                onOpenSurah(playingSurah, playingAyat)
             }
         }
     }
@@ -302,6 +309,7 @@ fun QuranReaderScreen(
     targetAyat: Int?,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenNextSurah: () -> Unit,
     actions: QuranReaderBodyActions,
     murottalState: QuranMurottalState,
     murottalPanelUiState: QuranMurottalPanelUiState?,
@@ -311,8 +319,12 @@ fun QuranReaderScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val readerContent = uiState as? QuranReaderUiState.Content
+    // The title bar's "Halaman N · Juz N" follows the reading position rather than the ayat the
+    // reader was opened on: turning mushaf pages moves through several halaman without the target
+    // ayat ever changing, which otherwise left the bar reporting the opening page indefinitely.
+    var visibleAyatNumber by remember(readerContent?.surahNumber) { mutableStateOf<Int?>(null) }
     val currentAyat =
-        readerContent?.ayats?.firstOrNull { it.ayatNumber == targetAyat }
+        readerContent?.ayats?.firstOrNull { it.ayatNumber == (visibleAyatNumber ?: targetAyat) }
             ?: readerContent?.ayats?.firstOrNull()
     // design-export/quran/18-reader-invalid-target.html keeps the back/settings chrome but replaces
     // the surah title/position with a generic "Al-Qur'an" / "Posisi tidak tersedia" pair — never a
@@ -351,8 +363,15 @@ fun QuranReaderScreen(
             tafsirUiState = tafsirUiState,
             targetAyat = targetAyat,
             snackbarHostState = snackbarHostState,
-            actions = actions,
+            actions =
+                actions.copy(
+                    onVisiblePositionChanged = { ayatNumber ->
+                        visibleAyatNumber = ayatNumber
+                        actions.onVisiblePositionChanged(ayatNumber)
+                    },
+                ),
             onBack = onBack,
+            onOpenNextSurah = onOpenNextSurah,
             chromeVisible = chromeVisible,
             onToggleChrome = { chromeVisible = !chromeVisible },
             murottalState = murottalState,
@@ -402,6 +421,7 @@ private fun QuranReaderBody(
     snackbarHostState: SnackbarHostState,
     actions: QuranReaderBodyActions,
     onBack: () -> Unit,
+    onOpenNextSurah: () -> Unit,
     chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
     murottalState: QuranMurottalState,
@@ -425,6 +445,7 @@ private fun QuranReaderBody(
                         targetAyat = targetAyat,
                         onAyatLongPress = actions.onAyatLongPress,
                         onVisiblePositionChanged = actions.onVisiblePositionChanged,
+                        onOpenNextSurah = onOpenNextSurah,
                         chromeVisible = chromeVisible,
                         onToggleChrome = onToggleChrome,
                         onPlayAyat = actions.onPlayAyat,
@@ -609,28 +630,32 @@ private fun QuranReaderContent(
     targetAyat: Int?,
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     onVisiblePositionChanged: (Int) -> Unit,
+    onOpenNextSurah: () -> Unit,
     chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
     onPlayAyat: (QuranReaderAyatUiModel) -> Unit,
     murottalState: QuranMurottalState,
 ) {
-    val arabOnlyListState = rememberLazyListState()
     val translationListState = rememberLazyListState()
-    val activeListState =
-        when (state.displayMode) {
-            QuranDisplayMode.ARAB_ONLY -> arabOnlyListState
-            QuranDisplayMode.ARAB_TRANSLATION -> translationListState
-        }
+    // One pager page per Kemenag `halaman`, plus a trailing page offering the next surah when there is
+    // one — swiping past a surah's last page is how reading continues into the next.
+    val mushafPagerState =
+        rememberPagerState(pageCount = { state.pages.size + if (state.nextSurahName != null) 1 else 0 })
 
     val positionSynchronized =
         QuranReaderSynchronizePosition(
             state = state,
             targetAyat = targetAyat,
-            arabOnlyListState = arabOnlyListState,
+            mushafPagerState = mushafPagerState,
             translationListState = translationListState,
         )
     if (positionSynchronized) {
-        QuranReaderTrackVisiblePosition(activeListState, state, onVisiblePositionChanged)
+        QuranReaderTrackVisiblePosition(
+            state = state,
+            mushafPagerState = mushafPagerState,
+            translationListState = translationListState,
+            onVisiblePositionChanged = onVisiblePositionChanged,
+        )
     }
 
     val playback =
@@ -649,16 +674,33 @@ private fun QuranReaderContent(
         } else {
             QuranAyatPlaybackState()
         }
-    // Reported by whichever mushaf page holds the recited ayah, once it has been measured. Carried
-    // with its ayah number and resolved below, because a measurement belonging to the *previous* ayah
-    // must never be applied to the next page — doing so scrolled far past the new page's first ayah.
-    var measuredAyatOffset by remember { mutableStateOf<QuranMeasuredAyatOffset?>(null) }
-    QuranReaderFollowAudio(
-        playingAyatNumber = playback.playingAyatNumber,
-        state = state,
-        listState = activeListState,
-        ayatOffsetInPage = measuredAyatOffset?.takeIf { it.ayatNumber == playback.playingAyatNumber }?.offsetPx,
+
+    QuranMushafFollowAudio(
+        playingAyatNumber = playback.playingAyatNumber.takeIf { state.displayMode == QuranDisplayMode.ARAB_ONLY },
+        pages = state.pages,
+        pagerState = mushafPagerState,
     )
+    // Translation mode is one continuous list, so the recited ayah is followed by scrolling it here.
+    // Mushaf mode splits the job: the pager turns the page (above) and the page scrolls itself within
+    // that page (see QuranMushafPage), because only that page knows where the ayah was measured.
+    QuranFollowScrollEffect(
+        playingAyatNumber =
+            playback.playingAyatNumber.takeIf {
+                state.displayMode == QuranDisplayMode.ARAB_TRANSLATION
+            },
+        itemIndex =
+            state.ayats
+                .indexOfFirst { it.ayatNumber == playback.playingAyatNumber }
+                .takeIf { it >= 0 }
+                ?.plus(1),
+        offsetInItem = 0f,
+        listState = translationListState,
+    )
+    // Settling on the trailing page opens the next surah. It is only reachable by a deliberate
+    // full-page swipe past the surah's last page — audio page turns target real pages only.
+    LaunchedEffect(mushafPagerState.settledPage, state.pages.size) {
+        if (mushafPagerState.settledPage >= state.pages.size) onOpenNextSurah()
+    }
 
     val header: @Composable (mushaf: Boolean) -> Unit = { mushaf ->
         QuranSurahStartHeader(
@@ -701,21 +743,34 @@ private fun QuranReaderContent(
             QuranDisplayMode.ARAB_ONLY ->
                 QuranArabOnlyPages(
                     pages = state.pages,
+                    pagerState = mushafPagerState,
+                    nextSurahName = state.nextSurahName,
                     selectedAyatId = state.selectedAyat?.remoteId,
                     onAyatLongPress = onAyatLongPress,
                     arabicSizeSp = state.arabicSizeSp,
                     arabicLineHeightSp = state.arabicLineHeightSp,
                     arabicFont = state.arabicFont,
-                    listState = arabOnlyListState,
                     chromeVisible = chromeVisible,
                     onToggleChrome = onToggleChrome,
                     playingAyatNumber = playback.playingAyatNumber,
-                    onPlayingAyatOffset = { ayatNumber, offsetPx ->
-                        measuredAyatOffset = QuranMeasuredAyatOffset(ayatNumber, offsetPx)
-                    },
                     header = { header(true) },
                 )
         }
+    }
+}
+
+/** Turns the mushaf to whichever page holds the recited ayah, so the reader keeps up with the
+ * recitation without swiping. Scrolling *within* the reached page is the page's own job. */
+@Composable
+private fun QuranMushafFollowAudio(
+    playingAyatNumber: Int?,
+    pages: List<List<QuranReaderAyatUiModel>>,
+    pagerState: PagerState,
+) {
+    LaunchedEffect(playingAyatNumber, pages) {
+        val ayat = playingAyatNumber ?: return@LaunchedEffect
+        val target = pages.indexOfFirst { page -> page.any { it.ayatNumber == ayat } }
+        if (target >= 0 && target != pagerState.currentPage) pagerState.animateScrollToPage(target)
     }
 }
 
@@ -723,17 +778,16 @@ private fun QuranReaderContent(
  * Keeps the ayah being recited in view (`4f`), positioned against the actual viewport rather than by
  * whole list items.
  *
- * Item-level scrolling was not enough in either mode. In mushaf mode one list item is a whole *page*
- * of flowing text: with a large Arabic size that page is several screens tall, so every ayah after the
- * first scrolled nowhere and the recitation ran off the bottom — the taller the font, the worse it
- * got. In translation mode `animateScrollToItem(index)` pinned each ayah flush against the top edge,
- * with no context above it.
+ * Item-level scrolling was not enough in either mode. In mushaf mode the flowing page of one Kemenag
+ * `halaman` can be several screens tall at a large Arabic size, so every ayah after the first scrolled
+ * nowhere and the recitation ran off the bottom. In translation mode `animateScrollToItem(index)`
+ * pinned each ayah flush against the top edge, with no context above it.
  *
- * So the target is computed in pixels: the item's own offset, plus [ayatOffsetInPage] for where the
- * ayah actually sits inside a measured page of text, minus a lead of [FOLLOW_LEAD_FRACTION] of the
- * viewport so the ayah lands a little below the top with its previous line still visible. Both inputs
- * come from real measurement, so the result adapts to font size, line spacing and screen height
- * without knowing any of them.
+ * So the target is computed in pixels: the item's own offset, plus [offsetInItem] for where the ayah
+ * actually sits inside a measured page of text, minus a lead of [FOLLOW_LEAD_FRACTION] of the viewport
+ * so the ayah lands a little below the top with its previous line still visible. Both inputs come from
+ * real measurement, so the result adapts to font size, line spacing and screen height without knowing
+ * any of them.
  *
  * It also holds still when it can: if the ayah is already inside a comfortable band of the viewport,
  * nothing scrolls. Short ayat would otherwise re-centre the page every few seconds.
@@ -743,31 +797,20 @@ private fun QuranReaderContent(
  * next ayah begins.
  */
 @Composable
-private fun QuranReaderFollowAudio(
+private fun QuranFollowScrollEffect(
     playingAyatNumber: Int?,
-    state: QuranReaderUiState.Content,
+    itemIndex: Int?,
+    offsetInItem: Float,
     listState: LazyListState,
-    ayatOffsetInPage: Float?,
 ) {
-    // Keyed on the offset's *value*: crossing onto a page that has not been composed yet arrives here
-    // with no measurement, scrolls to that page's top, and then re-runs to refine once the page
-    // reports where the ayah actually sits. Keying on mere presence made the first, coarse pass final.
-    LaunchedEffect(playingAyatNumber, state.displayMode, ayatOffsetInPage) {
-        val ayat = playingAyatNumber ?: return@LaunchedEffect
-        val contentIndex =
-            when (state.displayMode) {
-                QuranDisplayMode.ARAB_TRANSLATION -> state.ayats.indexOfFirst { it.ayatNumber == ayat }
-                QuranDisplayMode.ARAB_ONLY -> state.pages.indexOfFirst { page -> page.any { it.ayatNumber == ayat } }
-            }
-        if (contentIndex < 0) return@LaunchedEffect
-        // +1 for the surah-start header, which occupies index 0 of both lists.
-        val itemIndex = contentIndex + 1
+    // Keyed on the offset's *value*: a page composed only once the recitation reaches it arrives here
+    // with no measurement, scrolls to the item's top, and then re-runs to refine once the page reports
+    // where the ayah actually sits. Keying on mere presence made the first, coarse pass final.
+    LaunchedEffect(playingAyatNumber, itemIndex, offsetInItem, listState) {
+        if (playingAyatNumber == null || itemIndex == null) return@LaunchedEffect
         val viewportHeight = listState.layoutInfo.viewportSize.height
         if (viewportHeight <= 0) return@LaunchedEffect
 
-        // In mushaf mode the ayah sits somewhere inside the page item; in translation mode the item
-        // *is* the ayah, so its own top is the target.
-        val offsetInItem = if (state.displayMode == QuranDisplayMode.ARAB_ONLY) ayatOffsetInPage ?: 0f else 0f
         val visibleItem = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == itemIndex }
         if (visibleItem != null) {
             val ayatTop = visibleItem.offset + offsetInItem
@@ -780,91 +823,204 @@ private fun QuranReaderFollowAudio(
     }
 }
 
-/** Derives the currently visible ayat from scroll position for last-read/reading-session tracking
+/** Derives the currently visible ayat from reading position for last-read/reading-session tracking
  * (QUR-FR-011/017) — ayat-precise in Arab+translation mode, page-precise in Arab-only mode (see
  * [QuranReaderSynchronizePosition]'s same limitation). */
 @Composable
 private fun QuranReaderTrackVisiblePosition(
-    listState: LazyListState,
     state: QuranReaderUiState.Content,
+    mushafPagerState: PagerState,
+    translationListState: LazyListState,
     onVisiblePositionChanged: (Int) -> Unit,
 ) {
-    LaunchedEffect(listState, state.displayMode, state.pages, state.ayats) {
-        snapshotFlow { listState.firstVisibleItemIndex }.collect { index ->
-            val contentIndex = (index - 1).coerceAtLeast(0)
-            val visiblePage = state.pages.getOrNull(contentIndex)
-            val ayatNumber =
-                when (state.displayMode) {
-                    QuranDisplayMode.ARAB_TRANSLATION -> state.ayats.getOrNull(contentIndex)?.ayatNumber
-                    QuranDisplayMode.ARAB_ONLY -> visiblePage?.lastOrNull()?.ayatNumber
+    LaunchedEffect(state.displayMode, state.pages, state.ayats) {
+        when (state.displayMode) {
+            // The trailing next-surah page resolves to no page, so landing on it records nothing.
+            QuranDisplayMode.ARAB_ONLY ->
+                snapshotFlow { mushafPagerState.currentPage }.collect { index ->
+                    val ayatNumber =
+                        state.pages
+                            .getOrNull(index)
+                            ?.lastOrNull()
+                            ?.ayatNumber
+                    if (ayatNumber != null) onVisiblePositionChanged(ayatNumber)
                 }
-            if (ayatNumber != null) onVisiblePositionChanged(ayatNumber)
+
+            QuranDisplayMode.ARAB_TRANSLATION ->
+                snapshotFlow { translationListState.firstVisibleItemIndex }.collect { index ->
+                    val contentIndex = (index - 1).coerceAtLeast(0)
+                    val ayatNumber = state.ayats.getOrNull(contentIndex)?.ayatNumber
+                    if (ayatNumber != null) onVisiblePositionChanged(ayatNumber)
+                }
         }
     }
 }
 
+/**
+ * Mushaf mode as an actual mushaf: one Kemenag `halaman` per swipe, ordered right-to-left so a
+ * left-to-right swipe turns to the *next* page the way a printed mushaf is turned. A page taller than
+ * the screen — which any generous Arabic size produces — scrolls vertically first; the swipe is only
+ * what crosses the page boundary.
+ *
+ * Only the page *order* is mushaf-handed. Each page's content is composed back in the app's own layout
+ * direction, because the Arabic already establishes its own RTL context inside [QuranFlowingPageText]
+ * and the juz strip is chrome, not scripture.
+ */
 @Suppress("LongParameterList")
 @Composable
 private fun QuranArabOnlyPages(
     pages: List<List<QuranReaderAyatUiModel>>,
+    pagerState: PagerState,
+    nextSurahName: String?,
     selectedAyatId: Long?,
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
     arabicSizeSp: Int,
     arabicLineHeightSp: Int,
     arabicFont: QuranArabicFont,
-    listState: LazyListState,
     chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
     playingAyatNumber: Int?,
-    onPlayingAyatOffset: (ayatNumber: Int, offsetPx: Float) -> Unit,
     header: @Composable () -> Unit,
 ) {
+    val appLayoutDirection = LocalLayoutDirection.current
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        HorizontalPager(
+            state = pagerState,
+            key = { index -> pages.getOrNull(index)?.firstOrNull()?.page ?: NEXT_SURAH_PAGE_KEY },
+            modifier = Modifier.fillMaxSize(),
+        ) { index ->
+            CompositionLocalProvider(LocalLayoutDirection provides appLayoutDirection) {
+                val page = pages.getOrNull(index)
+                if (page == null) {
+                    QuranNextSurahPage(surahName = nextSurahName.orEmpty())
+                } else {
+                    QuranMushafPage(
+                        page = page,
+                        isFirstPage = index == 0,
+                        selectedAyatId = selectedAyatId,
+                        onAyatLongPress = onAyatLongPress,
+                        arabicSizeSp = arabicSizeSp,
+                        arabicLineHeightSp = arabicLineHeightSp,
+                        arabicFont = arabicFont,
+                        chromeVisible = chromeVisible,
+                        onToggleChrome = onToggleChrome,
+                        playingAyatNumber = playingAyatNumber,
+                        header = header,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One Kemenag `halaman`, scrollable on its own when the Arabic size makes it taller than the screen.
+ *
+ * The page owns its scroll state rather than the screen hoisting one per page: the only thing that
+ * ever scrolls a page other than the reader's thumb is the recitation running through it, and the page
+ * holding the recited ayah is by definition the composed one. Keeping both the measured ayah offset
+ * and the scroll state here is also what stops one page's measurement being applied to another's
+ * scroll — the bug the previous single hoisted offset had to guard against by hand.
+ */
+@Suppress("LongParameterList")
+@Composable
+private fun QuranMushafPage(
+    page: List<QuranReaderAyatUiModel>,
+    isFirstPage: Boolean,
+    selectedAyatId: Long?,
+    onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
+    arabicSizeSp: Int,
+    arabicLineHeightSp: Int,
+    arabicFont: QuranArabicFont,
+    chromeVisible: Boolean,
+    onToggleChrome: () -> Unit,
+    playingAyatNumber: Int?,
+    header: @Composable () -> Unit,
+) {
+    val listState = rememberLazyListState()
+    var measuredAyatOffset by remember { mutableStateOf<QuranMeasuredAyatOffset?>(null) }
+    val recitedHere = playingAyatNumber?.takeIf { number -> page.any { it.ayatNumber == number } }
+    val textItemIndex = (if (isFirstPage) 1 else 0) + (if (chromeVisible) 1 else 0)
+
+    QuranFollowScrollEffect(
+        playingAyatNumber = recitedHere,
+        itemIndex = textItemIndex,
+        offsetInItem = measuredAyatOffset?.takeIf { it.ayatNumber == recitedHere }?.offsetPx ?: 0f,
+        listState = listState,
+    )
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
             state = listState,
+            contentPadding = PaddingValues(vertical = SanguSantriSpacing.medium),
             modifier =
                 Modifier
                     .widthIn(max = SanguSantriDimensions.readerContentMaxWidth)
                     .fillMaxSize(),
         ) {
-            item(key = "surah-header") { header() }
-            itemsIndexed(items = pages, key = { _, page -> "page-${page.firstOrNull()?.page}" }) { _, page ->
-                Column(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = SanguSantriDimensions.readerHorizontalPadding,
-                            vertical = SanguSantriSpacing.medium,
-                        ),
-                ) {
-                    page.firstOrNull()?.let { firstAyat ->
-                        if (chromeVisible) {
-                            QuranMushafJuzStrip(
-                                juz = firstAyat.juz,
-                                page = firstAyat.page,
-                                followingAudio = playingAyatNumber != null,
-                            )
-                        }
-                    }
-                    QuranFlowingPageText(
-                        ayats = page,
-                        selectedAyatId = selectedAyatId,
-                        onAyatLongPress = onAyatLongPress,
-                        onTap = onToggleChrome,
-                        arabicFont = arabicFont,
-                        playingAyatNumber = playingAyatNumber,
-                        onPlayingAyatOffset = onPlayingAyatOffset,
-                        textStyle =
-                            TextStyle(
-                                fontFamily = arabicFont.toFontFamily(),
-                                fontSize = arabicSizeSp.sp,
-                                lineHeight = arabicLineHeightSp.sp,
-                                textAlign = TextAlign.Justify,
-                            ),
-                        modifier = Modifier.fillMaxWidth(),
+            // The surah header carries its own horizontal padding; the items below do not.
+            if (isFirstPage) item(key = "surah-header") { header() }
+            if (chromeVisible) {
+                item(key = "juz-strip") {
+                    QuranMushafJuzStrip(
+                        juz = page.first().juz,
+                        page = page.first().page,
+                        followingAudio = playingAyatNumber != null,
+                        modifier = Modifier.padding(horizontal = SanguSantriDimensions.readerHorizontalPadding),
                     )
                 }
             }
+            item(key = "page-text") {
+                QuranFlowingPageText(
+                    ayats = page,
+                    selectedAyatId = selectedAyatId,
+                    onAyatLongPress = onAyatLongPress,
+                    onTap = onToggleChrome,
+                    arabicFont = arabicFont,
+                    playingAyatNumber = recitedHere,
+                    onPlayingAyatOffset = { ayatNumber, offsetPx ->
+                        measuredAyatOffset = QuranMeasuredAyatOffset(ayatNumber, offsetPx)
+                    },
+                    textStyle =
+                        TextStyle(
+                            fontFamily = arabicFont.toFontFamily(),
+                            fontSize = arabicSizeSp.sp,
+                            lineHeight = arabicLineHeightSp.sp,
+                            textAlign = TextAlign.Justify,
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SanguSantriDimensions.readerHorizontalPadding),
+                )
+            }
         }
+    }
+}
+
+/** The page past the surah's last one. Settling here opens the next surah, so it is a short
+ * confirmation of where the swipe is going rather than a screen to act on. */
+@Composable
+private fun QuranNextSurahPage(surahName: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(SanguSantriSpacing.large),
+    ) {
+        Text(
+            text = stringResource(R.string.quran_reader_next_surah_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = QuranMutedText,
+        )
+        Text(
+            text = surahName,
+            style = MaterialTheme.typography.headlineSmall,
+            color = QuranArabicText,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -877,12 +1033,13 @@ private fun QuranMushafJuzStrip(
     juz: Int,
     page: Int,
     followingAudio: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .padding(bottom = SanguSantriSpacing.small),
     ) {
@@ -919,6 +1076,10 @@ private const val MUSHAF_BASMALAH_SIZE_SP = 26
 private const val TRANSLATION_SURAH_NAME_SIZE_SP = 33
 private const val TRANSLATION_BASMALAH_SIZE_SP = 27
 private const val MODE_CROSSFADE_MILLIS = 180
+
+/** Pager key for the trailing next-surah page. Kemenag `halaman` numbers are positive, so a
+ * negative key can never collide with a real page. */
+private const val NEXT_SURAH_PAGE_KEY = -1
 
 /**
  * A measured ayah position inside a mushaf page, kept with the ayah it belongs to.

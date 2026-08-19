@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "tahlil",
+      "title": "Tahlil",
+      "description": "Rangkaian bacaan tahlil, doa, dan terjemahannya secara lengkap.",
+      "category": "Tahlil dan Doa",
+      "version": 2,
+      "contentUrl": "/api/v1/content/tahlil",
+      "order": 1,
+      "isActive": true
+    },
+    {
+      "id": "istighosah",
+      "title": "Istighosah",
+      "description": "Rangkaian bacaan istighosah dan terjemahannya.",
+      "category": "Tahlil dan Doa",
+      "version": 2,
+      "contentUrl": "/api/v1/content/istighosah",
+      "order": 2,
+      "isActive": true
+    }
+  ]
+}

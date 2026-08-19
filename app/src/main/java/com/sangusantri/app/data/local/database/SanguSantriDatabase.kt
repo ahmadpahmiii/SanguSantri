@@ -79,6 +79,12 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * `fallbackToDestructiveMigration(dropAllTables = true)`, so this bump **drops every table** —
  * including the downloaded Quran, which each user re-downloads once. Bundled amaliyah content
  * bootstraps itself again. Accepted by the product owner when this integration was scoped.
+ *
+ * Version 7 makes `content_steps.repeatTarget` nullable — NULL is how the CMS says "this step has
+ * no tasbih counter", which in turn is how content without any counted step (Sholawat) loses its
+ * Panduan mode. A column-type change, not additive, and it follows the same standing
+ * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4–6: no production
+ * installs to protect, bundled amaliyah content bootstraps itself again, and the catalog re-syncs.
  */
 @Database(
     entities = [
@@ -104,7 +110,7 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         PrayerCityEntity::class,
         PrayerScheduleDayEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.

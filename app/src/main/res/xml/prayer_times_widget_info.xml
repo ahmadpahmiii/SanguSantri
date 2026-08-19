@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  The vertical entry: 2x2 by default, the six prayers as a list. Resizable up to a full-width
+  panel, where the provider switches to the strip on its own. minResizeHeight keeps this entry at
+  two rows — the list needs them; the one-row band is the separate
+  `prayer_times_wide_widget_info.xml` entry.
+
+  updatePeriodMillis is the 30-minute floor the platform allows, used only as a safety net: the
+  provider itself re-renders on an alarm at the exact next prayer boundary, so nothing here polls
+  and there is no per-minute countdown to keep alive.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:description="@string/widget_prayer_description"
+  android:initialLayout="@layout/widget_prayer_times"
+  android:maxResizeWidth="400dp"
+  android:maxResizeHeight="200dp"
+  android:minWidth="110dp"
+  android:minHeight="110dp"
+  android:minResizeWidth="110dp"
+  android:minResizeHeight="110dp"
+  android:previewLayout="@layout/widget_prayer_times_preview"
+  android:resizeMode="horizontal|vertical"
+  android:targetCellWidth="2"
+  android:targetCellHeight="2"
+  android:updatePeriodMillis="1800000"
+  android:widgetCategory="home_screen" />

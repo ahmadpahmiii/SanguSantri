@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  The home-screen widget's glass palette, light variant.
+
+  A widget cannot blur what is behind it — there is no backdrop-blur API for RemoteViews, which are
+  inflated in the launcher's process. What reads as "glass" is a translucent *neutral* panel with a
+  hairline edge: neutral so it sits against any wallpaper, translucent so the wallpaper shows
+  through, and edged so the panel does not melt into it. Opacity is held at ~88% rather than the
+  60-70% a blurred design could afford, because without blur that is what keeps 11sp text legible
+  over a busy photo.
+
+  Hues are the app's own (`core/designsystem/theme/Color.kt`): ivory surface, SantriNeutral10 ink,
+  SantriGreen40 accent. Light/dark follows the *system* setting, not the app's in-app sun/moon
+  override — a widget sits among the launcher's own surfaces and matching them is what keeps it
+  from clashing.
+-->
+<resources>
+  <color name="widget_glass">#D6FFFDF8</color>
+  <color name="widget_glass_border">#1F1A1C19</color>
+  <color name="widget_divider">#141A1C19</color>
+  <color name="widget_strong">#FF1A1C19</color>
+  <color name="widget_dim">#FF6B7268</color>
+  <color name="widget_accent">#FF0B6E3B</color>
+  <!-- Behind the next prayer only. Tint, not fill: a solid chip would punch a hole in the glass. -->
+  <color name="widget_highlight">#1F0B6E3B</color>
+</resources>

@@ -8,6 +8,7 @@ import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.ReadingPosition
+import com.sangusantri.app.domain.model.hasGuidedMode
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
@@ -252,6 +253,7 @@ class ReaderViewModel
                             initialItemIndex = restoredPosition.itemIndex,
                             initialItemOffset = restoredPosition.itemOffset,
                             sourceName = detail.content.sourceName,
+                            hasGuidedMode = detail.steps.hasGuidedMode(),
                         )
                 }
         }

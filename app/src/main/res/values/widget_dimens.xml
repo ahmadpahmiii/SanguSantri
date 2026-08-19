@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Overridden on API 31+ by the platform's own widget radius, so the panel lines up with every
+       other widget on the home screen. -->
+  <dimen name="widget_corner_radius">24dp</dimen>
+  <!-- Deliberately NOT system_app_widget_inner_radius: that is 20dp, and on a ~28dp row it rounds
+       the highlight into a stadium. 8dp keeps it a chip. -->
+  <dimen name="widget_highlight_radius">8dp</dimen>
+  <dimen name="widget_padding">14dp</dimen>
+</resources>

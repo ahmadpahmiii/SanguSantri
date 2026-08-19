@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.ReaderMode
+import com.sangusantri.app.domain.model.hasGuidedMode
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import dagger.assisted.Assisted
@@ -49,19 +50,9 @@ class ReaderEntryViewModel
         @Suppress("TooGenericExceptionCaught", "SwallowedException")
         private fun resolve() {
             viewModelScope.launch {
-                val title =
+                val detail =
                     try {
-                        val detail = contentRepository.getContentDetail(contentId)
-                        if (detail == null || detail.steps.isEmpty()) {
-                            Log.w(
-                                TAG,
-                                "Content unavailable for id=$contentId: " +
-                                    "contentFound=${detail != null}, stepCount=${detail?.steps?.size ?: 0}",
-                            )
-                            null
-                        } else {
-                            detail.content.title
-                        }
+                        contentRepository.getContentDetail(contentId)?.takeIf { it.steps.isNotEmpty() }
                     } catch (cancellation: CancellationException) {
                         throw cancellation
                     } catch (unexpected: Exception) {
@@ -69,8 +60,16 @@ class ReaderEntryViewModel
                         null
                     }
 
-                if (title == null) {
+                if (detail == null) {
+                    Log.w(TAG, "Content unavailable or has no steps for id=$contentId")
                     _uiState.value = ReaderEntryUiState.ContentUnavailable
+                    return@launch
+                }
+
+                // Content where nothing is counted has no Panduan mode, so there is no choice to
+                // offer and no remembered choice to honour — it always opens in Bacaan Lengkap.
+                if (!detail.steps.hasGuidedMode()) {
+                    _uiState.value = ReaderEntryUiState.Resolved(ReaderMode.FULL)
                     return@launch
                 }
 
@@ -79,7 +78,7 @@ class ReaderEntryViewModel
                     if (rememberedMode != null) {
                         ReaderEntryUiState.Resolved(rememberedMode)
                     } else {
-                        ReaderEntryUiState.ModeChooser(title)
+                        ReaderEntryUiState.ModeChooser(detail.content.title)
                     }
             }
         }

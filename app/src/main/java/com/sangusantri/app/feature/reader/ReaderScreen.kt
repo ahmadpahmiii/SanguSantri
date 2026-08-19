@@ -54,6 +54,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.ReaderSettings
+import com.sangusantri.app.domain.model.hasGuidedMode
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
 import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
@@ -178,13 +179,18 @@ private fun ReaderTopBar(
             ThemeToggleButton(onSelect = { onAction(ReaderUiAction.SetThemeMode(it)) })
             if (contentState != null) {
                 // Handoff §7: switching to Panduan is the reader's primary alternate action, so it
-                // gets a visible tint pill rather than hiding inside the overflow menu.
-                ReaderModeSwitchPill(
-                    label = stringResource(R.string.reader_switch_to_guided_action),
-                    onClick = { onAction(ReaderUiAction.SwitchToGuided) },
-                )
+                // gets a visible tint pill rather than hiding inside the overflow menu — but only
+                // for content that has a Panduan mode at all (see ReaderUiState.hasGuidedMode).
+                if (contentState.hasGuidedMode) {
+                    ReaderModeSwitchPill(
+                        label = stringResource(R.string.reader_switch_to_guided_action),
+                        onClick = { onAction(ReaderUiAction.SwitchToGuided) },
+                    )
+                }
                 ReaderOverflowMenu(
-                    switchModeLabel = stringResource(R.string.reader_switch_to_guided_action),
+                    switchModeLabel =
+                        stringResource(R.string.reader_switch_to_guided_action)
+                            .takeIf { contentState.hasGuidedMode },
                     actions =
                         ReaderOverflowActions(
                             onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
@@ -348,16 +354,22 @@ private val previewSteps =
         ),
     )
 
-private fun previewContentState(settings: ReaderSettings = ReaderSettings()) =
-    ReaderUiState.ContentAvailable(
-        title = "Tahlil",
-        contentId = "preview-content",
-        steps = previewSteps,
-        settings = settings,
-        initialItemIndex = 0,
-        initialItemOffset = 0,
-        sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
-    )
+private fun previewContentState(
+    settings: ReaderSettings = ReaderSettings(),
+    steps: List<ContentStep> = previewSteps,
+) = ReaderUiState.ContentAvailable(
+    title = "Tahlil",
+    contentId = "preview-content",
+    steps = steps,
+    settings = settings,
+    initialItemIndex = 0,
+    initialItemOffset = 0,
+    sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
+    hasGuidedMode = steps.hasGuidedMode(),
+)
+
+/** Sholawat-style content: nothing counted, so no Panduan pill and no overflow mode switch. */
+private val previewUncountedSteps = previewSteps.map { it.copy(repeatTarget = null) }
 
 @PreviewLightDark
 @Composable
@@ -365,6 +377,19 @@ private fun ReaderScreenContentPreview() {
     SanguSantriTheme {
         ReaderScreen(
             uiState = previewContentState(),
+            settings = ReaderSettings(),
+            onAction = {},
+            onBack = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun ReaderScreenNoGuidedModePreview() {
+    SanguSantriTheme {
+        ReaderScreen(
+            uiState = previewContentState(steps = previewUncountedSteps),
             settings = ReaderSettings(),
             onAction = {},
             onBack = {},

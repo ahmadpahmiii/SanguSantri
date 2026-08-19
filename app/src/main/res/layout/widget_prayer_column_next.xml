@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><!-- One prayer in the wide strip: name over time. The next prayer's variant: accent text on the
+     highlight tint, so the one that matters is legible at a glance.
+
+     Inflated by PrayerTimesWidgetProvider. See widget_prayer_row.xml for why the colours are
+     declared here instead of being pushed from code. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_row"
+  android:layout_width="0dp"
+  android:layout_height="wrap_content"
+  android:layout_weight="1"
+  android:background="@drawable/widget_highlight"
+  android:gravity="center_horizontal"
+  android:orientation="vertical"
+  android:paddingVertical="5dp">
+
+  <TextView
+    android:id="@+id/widget_row_name"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:maxLines="1"
+    android:textColor="@color/widget_accent"
+    android:textSize="11sp" />
+
+  <TextView
+    android:id="@+id/widget_row_time"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="2dp"
+    android:maxLines="1"
+    android:textColor="@color/widget_accent"
+    android:textSize="13sp" />
+</LinearLayout>

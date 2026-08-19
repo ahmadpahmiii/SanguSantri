@@ -28,5 +28,10 @@ data class ContentStepDto(
     val id: String,
     val arabicText: String,
     val translation: String,
-    val repeatTarget: Int,
+    /**
+     * `null` (or absent) when the step has no repetition count: no tasbih counter for the step, and
+     * when no step in the item has one, no Panduan mode for the item at all. Sholawat is the
+     * motivating case — verses are read straight through, not counted.
+     */
+    val repeatTarget: Int? = null,
 )

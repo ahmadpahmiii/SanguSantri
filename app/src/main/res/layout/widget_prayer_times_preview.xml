@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  Widget-picker preview (API 31+). Deliberately the widget's real first-run state — a location line
+  and the "pick your city" message — rather than sample prayer times: a made-up schedule in the
+  picker could be read as a real one, and this app never shows a time it has not been given.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/widget_background"
+  android:orientation="vertical"
+  android:padding="@dimen/widget_padding">
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:letterSpacing="0.04"
+    android:maxLines="1"
+    android:text="@string/widget_prayer_label"
+    android:textColor="@color/widget_dim"
+    android:textSize="11sp" />
+
+  <ImageView
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    android:layout_marginTop="9dp"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null" />
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="8dp"
+    android:layout_weight="1"
+    android:gravity="center_vertical"
+    android:maxLines="2"
+    android:text="@string/widget_prayer_empty_message"
+    android:textColor="@color/widget_strong"
+    android:textSize="14sp" />
+</LinearLayout>

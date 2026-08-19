@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.home
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -253,17 +254,20 @@ private fun BlockChip(
 }
 
 @Composable
-internal fun PrayerName.label(): String =
-    stringResource(
-        when (this) {
-            PrayerName.IMSAK -> R.string.prayer_imsak
-            PrayerName.SUBUH -> R.string.prayer_subuh
-            PrayerName.ZUHUR -> R.string.prayer_zuhur
-            PrayerName.ASAR -> R.string.prayer_asar
-            PrayerName.MAGRIB -> R.string.prayer_magrib
-            PrayerName.ISYA -> R.string.prayer_isya
-        },
-    )
+internal fun PrayerName.label(): String = stringResource(labelRes())
+
+/** The same mapping outside a composition — the home-screen widget builds `RemoteViews`, which has
+ * no `stringResource`, and a second copy of this `when` is exactly how the two would drift apart. */
+@StringRes
+internal fun PrayerName.labelRes(): Int =
+    when (this) {
+        PrayerName.IMSAK -> R.string.prayer_imsak
+        PrayerName.SUBUH -> R.string.prayer_subuh
+        PrayerName.ZUHUR -> R.string.prayer_zuhur
+        PrayerName.ASAR -> R.string.prayer_asar
+        PrayerName.MAGRIB -> R.string.prayer_magrib
+        PrayerName.ISYA -> R.string.prayer_isya
+    }
 
 /** Indonesian clock convention: a dot, not a colon. */
 internal fun LocalTime.formatAsClock(): String = "%02d.%02d".format(hour, minute)

@@ -43,7 +43,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderOverflowMenu(
-    switchModeLabel: String,
+    switchModeLabel: String?,
     actions: ReaderOverflowActions,
     sourceName: String,
     modifier: Modifier = Modifier,
@@ -77,7 +77,7 @@ fun ReaderOverflowMenu(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReaderOverflowDropdown(
-    switchModeLabel: String,
+    switchModeLabel: String?,
     actions: ReaderOverflowActions,
     expanded: Boolean,
     onDismiss: () -> Unit,
@@ -90,9 +90,13 @@ private fun ReaderOverflowDropdown(
         shape = SanguSantriShapes.large,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        ReaderMenuItem(switchModeLabel, Icons.AutoMirrored.Filled.ArrowForward) {
-            onDismiss()
-            actions.onSwitchMode()
+        // null when the content has no Panduan mode to switch to (no step has a repeat target),
+        // in which case the item is absent rather than disabled — there is nothing to explain.
+        if (switchModeLabel != null) {
+            ReaderMenuItem(switchModeLabel, Icons.AutoMirrored.Filled.ArrowForward) {
+                onDismiss()
+                actions.onSwitchMode()
+            }
         }
         ReaderMenuItem(stringResource(R.string.reader_open_settings_action), Icons.Default.Settings) {
             onDismiss()

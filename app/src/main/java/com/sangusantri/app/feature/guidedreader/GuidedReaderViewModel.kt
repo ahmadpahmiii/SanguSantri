@@ -232,7 +232,9 @@ class GuidedReaderViewModel
         private fun onIncrement() {
             val detail = availableDetail() ?: return
             val step = detail.steps.getOrNull(currentStepIndex.value) ?: return
-            val target = step.repeatTarget
+            // No target means no counter is rendered for this step, so an increment can only be a
+            // stale event from a step that just changed under the tap.
+            val target = step.effectiveRepeatTarget ?: return
             val current = stepCounts.value[step.id] ?: 0
             if (current >= target) return
 
@@ -396,11 +398,18 @@ class GuidedReaderViewModel
         }
     }
 
-/** A step's counter must reach its target before continuing past it. */
+/**
+ * A step's counter must reach its target before continuing past it. A step with no target has no
+ * counter to reach, so it never blocks — that is also what makes completion reachable for content
+ * where only some steps are counted.
+ */
 private fun isStepContinueEnabled(
     step: ContentStep,
     counts: Map<String, Int>,
-): Boolean = (counts[step.id] ?: 0) >= step.repeatTarget
+): Boolean {
+    val target = step.effectiveRepeatTarget ?: return true
+    return (counts[step.id] ?: 0) >= target
+}
 
 /** FR-007: completion requires every step's own counter to have reached its target. */
 private fun allRequiredCountersComplete(

@@ -201,6 +201,8 @@ fun SanguSantriNavHost(
     modifier: Modifier = Modifier,
     deepLinkContentId: String? = null,
     onDeepLinkConsumed: () -> Unit = {},
+    openPrayerSchedule: Boolean = false,
+    onPrayerScheduleConsumed: () -> Unit = {},
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
 
@@ -211,6 +213,15 @@ fun SanguSantriNavHost(
         if (deepLinkContentId != null) {
             topLevelBackStack.add(ReaderGate(deepLinkContentId))
             onDeepLinkConsumed()
+        }
+    }
+
+    // Same rule for the home-screen widget's tap: push [JadwalSholat] on top of wherever the user
+    // was, never reset a tab's back stack.
+    LaunchedEffect(openPrayerSchedule) {
+        if (openPrayerSchedule) {
+            topLevelBackStack.add(JadwalSholat)
+            onPrayerScheduleConsumed()
         }
     }
 
@@ -479,10 +490,11 @@ private fun EntryProviderScope<NavKey>.quranEntries(topLevelBackStack: TopLevelB
             targetAyat = key.targetAyat,
             onBack = { topLevelBackStack.removeLast() },
             onOpenSettings = { topLevelBackStack.add(QuranSettings) },
-            // Murottal crossed into the next surah while this reader was the one being followed, so
-            // the page follows it. `replaceLast` rather than `add`: an hour of continuous listening
-            // must not leave a surah-deep back stack to walk out of.
-            onFollowAudioToSurah = { surahNumber, ayatNumber ->
+            // Continuous reading moving into another surah — murottal crossing a surah
+            // boundary while this reader was following it, or a swipe past the last mushaf page.
+            // `replaceLast` rather than `add`: an hour of either must not leave a surah-deep back
+            // stack to walk out of.
+            onOpenSurah = { surahNumber, ayatNumber ->
                 topLevelBackStack.replaceLast(QuranReader(surahNumber, targetAyat = ayatNumber))
             },
         )

@@ -21,6 +21,7 @@ import com.sangusantri.app.MainActivity.Companion.EXTRA_REMINDER_CONTENT_ID
 import com.sangusantri.app.core.designsystem.theme.LocalAppThemeMode
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AppThemeMode
+import com.sangusantri.app.feature.prayertimes.widget.PrayerTimesWidgetProvider
 import com.sangusantri.app.navigation.SanguSantriNavHost
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -31,12 +32,16 @@ class MainActivity : ComponentActivity() {
     // the same setContent tree.
     private val deepLinkContentId = mutableStateOf<String?>(null)
 
+    /** Same holder pattern for the home-screen widget's tap (feature/prayertimes/widget). */
+    private val openPrayerSchedule = mutableStateOf(false)
+
     private val themeViewModel: AppThemeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         deepLinkContentId.value = intent.reminderContentIdExtra()
+        openPrayerSchedule.value = intent.prayerScheduleExtra()
         setContent {
             // One theme for the whole app (Beranda/Quran revamp) — resolved here, once, rather
             // than by the Quran destination alone as before. A null persisted mode means the user
@@ -57,6 +62,8 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         deepLinkContentId = deepLinkContentId.value,
                         onDeepLinkConsumed = { deepLinkContentId.value = null },
+                        openPrayerSchedule = openPrayerSchedule.value,
+                        onPrayerScheduleConsumed = { openPrayerSchedule.value = false },
                     )
                 }
             }
@@ -85,11 +92,24 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkContentId.value = intent.reminderContentIdExtra()
+        openPrayerSchedule.value = intent.prayerScheduleExtra()
+    }
+
+    /** The widget shows what Room holds, so anything the user changed in here — the city, a freshly
+     * synced month — only reaches it if something pushes. Leaving the app is that push: one
+     * broadcast, no observer left running, and no knowledge of widgets anywhere in the data layer. */
+    override fun onStop() {
+        super.onStop()
+        PrayerTimesWidgetProvider.refresh(this)
     }
 
     private fun Intent?.reminderContentIdExtra(): String? = this?.getStringExtra(EXTRA_REMINDER_CONTENT_ID)
 
+    private fun Intent?.prayerScheduleExtra(): Boolean =
+        this?.getBooleanExtra(EXTRA_OPEN_PRAYER_SCHEDULE, false) == true
+
     companion object {
         const val EXTRA_REMINDER_CONTENT_ID = "reminder_content_id"
+        const val EXTRA_OPEN_PRAYER_SCHEDULE = "open_prayer_schedule"
     }
 }

@@ -15,6 +15,11 @@ sealed interface ReaderUiState {
         val initialItemIndex: Int,
         val initialItemOffset: Int,
         val sourceName: String,
+        /**
+         * False when no step has a repeat target — Panduan mode is the tasbih walk-through, so
+         * there is nothing to switch to and both mode-switch affordances are hidden.
+         */
+        val hasGuidedMode: Boolean,
     ) : ReaderUiState
 
     /** No content for the id, or it has no steps. */

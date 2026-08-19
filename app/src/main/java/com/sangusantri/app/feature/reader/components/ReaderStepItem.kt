@@ -48,6 +48,10 @@ private val StepVerticalPadding = 22.dp
  * the exact same field layout with an interactive tasbih counter swapped in for
  * [repetitionContent] instead of the Full Reader's `ReaderRepetitionShortcut` (FR-018) — one
  * canonical step layout, per `CODING_STANDARD.md`'s no-duplication rule.
+ *
+ * [repetitionContent] is only invoked for a step that actually has a repeat target; a step without
+ * one renders as Arabic + translation alone. Gating it here rather than in each caller is what
+ * keeps the Full Reader's shortcut pill and the Guided Reader's counter consistently absent.
  */
 @Composable
 internal fun ReaderStepFields(
@@ -64,7 +68,7 @@ internal fun ReaderStepFields(
         if (settings.showTranslation) {
             ReaderTranslationBlock(step.translation, settings)
         }
-        repetitionContent(step.repeatTarget)
+        step.effectiveRepeatTarget?.let { target -> repetitionContent(target) }
     }
 }
 
@@ -79,6 +83,12 @@ private val previewStep =
         arabicText = "[FIXTURE-AR] بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
         translation = "[FIXTURE] Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
         repeatTarget = 1,
+    )
+
+private val previewUncountedStep =
+    previewStep.copy(
+        id = "preview-uncounted",
+        repeatTarget = null,
     )
 
 private val previewLongStep =
@@ -103,6 +113,8 @@ private fun ReaderStepItemNormalPreview() {
         Column(modifier = Modifier.padding(SanguSantriSpacing.default)) {
             ReaderStepItem(previewStep, previewSettings, onOpenGuidedAtStep = {})
             ReaderStepItem(previewRepeatedStep, previewSettings, onOpenGuidedAtStep = {})
+            // No repeat target: no shortcut pill at all (Sholawat-style content).
+            ReaderStepItem(previewUncountedStep, previewSettings, onOpenGuidedAtStep = {})
         }
     }
 }

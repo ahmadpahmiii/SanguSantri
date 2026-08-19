@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><!-- Dark variant of `values/widget_colors.xml`. Same glass recipe, inverted: a near-black neutral
+     with the faintest green cast, and a light hairline that reads as the edge catching light. -->
+<resources>
+  <color name="widget_glass">#D1121512</color>
+  <color name="widget_glass_border">#26FFFFFF</color>
+  <color name="widget_divider">#1FFFFFFF</color>
+  <color name="widget_strong">#FFE8E5DA</color>
+  <color name="widget_dim">#FF8A938B</color>
+  <color name="widget_accent">#FF6FA88A</color>
+  <color name="widget_highlight">#2E6FA88A</color>
+</resources>

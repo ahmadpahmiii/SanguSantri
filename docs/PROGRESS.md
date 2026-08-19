@@ -6946,3 +6946,137 @@ workflow flips to blocking.
 section scopes itself to the design product-alignment phases and says to remove it
 once the user says otherwise. This pass was an explicit request for unit tests, so
 it applies here.
+
+## Widget Jadwal Sholat — glass home-screen widget, vertical and horizontal (2026-08-19)
+
+**Status:** Implemented and verified on a booted emulator (Pixel 9, API 37) — both picker entries,
+both system themes, the empty → populated transition, and repeated boundary flips across a real
+afternoon. Not a numbered milestone — no religious content touched, no Room schema change, no new
+dependency.
+
+**Two entries, one renderer.** The widget picker offers **Jadwal Sholat** (2x2, the six prayers as a
+vertical list) and **Jadwal Sholat (lebar)** (4x1, the same six across one band). They are two
+`<receiver>` declarations because the picker shows one entry per receiver;
+`PrayerTimesWideWidgetProvider` subclasses `PrayerTimesWidgetProvider` and adds **nothing**, since
+the provider already lays itself out from the reported size. The two differ only in what their
+`appwidget-provider` XML declares — default cells, resize envelope, label, description — so resizing
+either entry still gives whichever arrangement fits. The subclass is deliberately *not* annotated
+`@AndroidEntryPoint`: the annotation on the superclass generates the injecting base and injects the
+inherited `repository` field just the same (verified on device).
+
+Each provider keys its boundary alarm on `javaClass.name.hashCode()`, so the two entries keep
+separate alarms rather than overwriting each other through a shared request code, and
+`refresh(context)` broadcasts to both.
+
+**Arrangement, by reported size.** Narrow (<200dp) is the vertical list; wide is the horizontal
+strip. Below 120dp tall the hijri date line and its divider drop; below 70dp tall even the city
+header goes, leaving the bare strip — which is what a one-row band has room for on a landscape home
+screen. Imsak is dropped from the strip below 300dp wide, exactly as Beranda's block drops it.
+
+**The size options are orientations, not extremes.** `OPTION_APPWIDGET_MIN_*`/`MAX_*` are the widget
+in landscape and in portrait, not its smallest and largest. Reading `MIN_HEIGHT` unconditionally
+measured a 4x1 at its ~51dp *landscape* height even on a portrait home screen, which hid the city
+line that fits comfortably in the ~102dp it actually had. `panelSizeDp` now picks MIN_WIDTH/
+MAX_HEIGHT in portrait and MAX_WIDTH/MIN_HEIGHT in landscape.
+
+**One row is reachable only if you let it be.** A portrait row is `118m - 16` = ~102dp, so the
+vertical entry's `minResizeHeight="110dp"` had been forcing two rows. The wide entry declares
+`minHeight`/`minResizeHeight` of 50dp — the platform's own guidance for a one-row-tall widget — with
+`minResizeWidth="250dp"` so the six columns are never crushed into a 2x1.
+
+**Glass, not blur.** There is no backdrop-blur API for RemoteViews — they are inflated in the
+*launcher's* process, which never hands a widget what is behind it, and `RenderEffect`/
+`Window.setBackgroundBlurRadius` are not reachable from one. What reads as glass is a translucent
+**neutral** panel with a hairline edge: neutral so it sits against any wallpaper, translucent (~84%
+light / ~82% dark) so the wallpaper reads through, edged so it does not melt into it. Opacity is
+held higher than a blurred design could afford, because without blur that is what keeps 11sp text
+legible over a busy photo. Hues are the app's own — ivory surface, `SantriNeutral10` ink,
+`SantriGreen40`/`SantriPrimaryDark` accent. Light/dark follows the **system** setting rather than
+the
+app's in-app sun/moon toggle: a widget sits among the launcher's own surfaces, and matching them is
+what keeps it from clashing.
+
+Panel radius is `@android:dimen/system_app_widget_background_radius` on API 31+. The next-prayer
+highlight deliberately does **not** use `system_app_widget_inner_radius`: that is 20dp, and on a
+~28dp-tall row it rounds the chip into a stadium. A fixed 8dp keeps it a chip.
+
+**Two RemoteViews traps this hit, both caught on device and both worth remembering:**
+
+1. *A colour pushed from code is frozen at render time.* `setTextColor` bakes an `int` into the
+   RemoteViews, so the panel kept the theme it was last rendered under and went unreadable the
+   moment the system flipped light/dark. Every colour now lives in XML — the row/column items exist
+   in a plain and a `_next` variant (`widget_prayer_row{,_next}.xml`,
+   `widget_prayer_column{,_next}.xml`) and the provider picks a layout rather than a colour.
+   Resource references are resolved by the launcher at inflation, so they follow with no re-render.
+2. *A launcher reapplies actions onto the views it is already showing.* Layout XML
+   `android:visibility` defaults are **not** restored between renders, so the wide strip stayed on
+   screen underneath the 2x2 list after a resize. Every view whose visibility varies is now set
+   explicitly on every render (`RemoteViews.applyArrangement`), and both containers are emptied even
+   though only one is filled, because `addView` appends to whatever is already there.
+
+**No countdown, deliberately.** A ticking widget must be redrawn every minute for the rest of the
+day. This one shows only values that stay true until the next prayer and re-renders once at that
+boundary, from a single inexact, non-waking `setAndAllowWhileIdle` alarm at
+`min(next prayer, next midnight)` — midnight because `observeToday()` is keyed on today's date.
+Roughly six wake-ups a day instead of ~1,400. The alarm reuses `ACTION_APPWIDGET_UPDATE` rather than
+a private action, so `AppWidgetProvider.onReceive` routes it to `onUpdate` and no `onReceive`
+override is needed (overriding it under `@AndroidEntryPoint` is where injection ordering goes
+wrong). `updatePeriodMillis` is the platform's 30-minute floor, present only as a safety net — it is
+also what re-renders after a device reboot, which alarms do not survive. `MainActivity.onStop` sends
+one refresh broadcast so a city chosen in-app reaches the widgets immediately; the repository keeps
+no knowledge that a widget exists.
+
+**Data.** Reads the existing `PrayerScheduleRepository.observeToday()` — Room only, never a network
+DTO — inside `goAsync()`. No city chosen or nothing cached renders the empty state ("Pilih kota
+Anda"); no time is ever invented. The **next** prayer carries the highlight, not the current one:
+Beranda's block shows both (a headline for the next, a strip marking the current) and this panel has
+no headline. The date line is the app's own offline `HijrahDate` computation, reusing
+`JadwalSholatScreen`'s `formatWithHijri` (widened from `private` to `internal`), never the
+prayer-times service's hijri calendar (ADR 0018).
+
+**Six prayers, inflated not written.** `RemoteViews.addView` builds the rows/columns from
+`widget_prayer_row*`/`widget_prayer_column*`, which is what keeps a 6-row list plus a 6-column strip
+from becoming twenty-four hand-maintained TextViews in the panel layout.
+
+**Files added:** `feature/prayertimes/widget/PrayerTimesWidgetProvider.kt`,
+`PrayerTimesWideWidgetProvider.kt`, `res/layout/widget_prayer_times.xml`,
+`widget_prayer_times_preview.xml`, `widget_prayer_row.xml`, `widget_prayer_row_next.xml`,
+`widget_prayer_column.xml`, `widget_prayer_column_next.xml`,
+`res/xml/prayer_times_widget_info.xml`, `prayer_times_wide_widget_info.xml`,
+`res/drawable/widget_background.xml`, `widget_highlight.xml`, `ic_widget_location.xml`,
+`res/values/widget_colors.xml`, `res/values-night/widget_colors.xml`,
+`res/values/widget_dimens.xml`, `res/values-v31/widget_dimens.xml`.
+**Modified:** `AndroidManifest.xml` (two exported receivers — a non-exported app-widget provider
+never appears in the picker), `MainActivity.kt`, `SanguSantriNavHost.kt`, `JadwalSholatScreen.kt`,
+`res/values/strings.xml`, and `feature/home/BerandaPrayerBlock.kt`, where the prayer-name `when` was
+split into a non-composable `PrayerName.labelRes()` that the composable `label()` now delegates to —
+`RemoteViews` has no `stringResource`, and a second copy of that mapping is exactly how the two
+would drift apart.
+
+**Validation.** `detekt`, `lintDebug`, `assembleDebug`, `installDebug` all pass. `ktlintCheck` fails
+on 57 pre-existing files and **none** of the files in this change — the same `standard:indent` drift
+this document records above, whose `ktlintFormat` fix rewrites ~60 unrelated files and is a
+formatting decision left to the product owner. Android lint flagged widget text below 11sp; every
+size was raised to >=11sp. `PrayerTimesWidgetProvider` carries `@Suppress("TooManyFunctions")` (12
+vs
+the 11 threshold) — a provider has to cover the AppWidgetProvider lifecycle, panel building, the
+alarm and two PendingIntents, and splitting those across files would only relocate the same short
+functions; `PrayerScheduleRepositoryImpl` carries the same suppression for the same reason.
+
+**On-device verification.** Both entries appear in the picker at the right cell sizes
+("Jadwal Sholat" 2x2, "Jadwal Sholat (lebar)" 4x1) with their own previews; both placed and rendered
+side by side; Hilt injects through the subclass; empty state before a city was chosen and again
+after `pm clear` on a populated widget (trap 2); city chosen in-app reached both widgets on leaving
+the app; the system theme flip light↔dark repaints both **with no re-render** (trap 1); the tap
+opens
+Jadwal Sholat; `dumpsys alarm` shows one alarm per placed provider at the next prayer boundary. Over
+a real afternoon the highlight advanced Zuhur → Asar → Magrib → Isya → tomorrow's Imsak on its own,
+and an emulator restart past a boundary re-rendered and rescheduled correctly.
+
+**Known limitations.** The sub-70dp branch (city header dropped, bare strip) was **not exercised on
+device** — the Pixel launcher does not rotate its home screen, and a portrait one-row band is ~
+102dp,
+so that branch only fires on a landscape home screen. Widgets follow the system theme, not the app's
+own light/dark toggle (see Glass above). No lockscreen/keyguard category. Between the boundary alarm
+and the 30-minute safety net a widget can be at most ~30 minutes stale if the alarm is deferred in
+Doze — nobody is looking at the home screen then, and it re-renders on wake.

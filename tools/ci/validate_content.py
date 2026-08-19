@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Pre-merge check for both content trees (ADR 0015, docs/operations/CONTENT_GOVERNANCE.md).
+"""Pre-merge check for the bundled content tree (ADR 0015, docs/operations/CONTENT_GOVERNANCE.md).
 
 Mirrors the rules `data/content/ContentValidator.kt` and `data/content/ContentImporter.kt` apply on
 device. The app fails closed on a bad catalog, so a mistake here does not put wrong text in front of
 a reader — it makes content silently stop updating instead. Catching it on the pull request is the
 difference between a red check and a quiet outage nobody notices for a week.
 
-Checks both trees because they are meant to be the same contract served from two places:
+Only one tree lives in this repository now:
 
-  app/src/main/assets/content/      bundled baseline, ships inside the APK
-  content-hosting/public/content/   Firebase Hosting, what remote sync fetches
+  app/src/main/assets/content/   bundled baseline, ships inside the APK
+
+What remote sync fetches is no longer a checked-in file tree — it is the CMS API
+(`../cms/api`, deployed on Vercel), whose own responses are covered by its Go handler tests and by
+`app/src/test/.../CmsApiContractTest.kt`, which runs this same validator's Kotlin twin over
+captured API responses.
 """
 
 from __future__ import annotations
@@ -22,10 +26,7 @@ SUPPORTED_SCHEMA_VERSION = 1
 CONTENT_PATH_PREFIX = "/content/"
 HTTPS_SCHEME = "https://"
 
-TREES = (
-    Path("app/src/main/assets/content"),
-    Path("content-hosting/public/content"),
-)
+TREES = (Path("app/src/main/assets/content"),)
 
 errors: list[str] = []
 
@@ -155,23 +156,14 @@ def check_tree(tree: Path) -> dict | None:
 
 
 def main() -> int:
-    catalogs = {tree: check_tree(tree) for tree in TREES}
+    for tree in TREES:
+        check_tree(tree)
 
-    # The two trees serve the same contract, and remote sync never downgrades. A hosted entry older
-    # than the bundled one for the same id would import on a fresh install and then be permanently
-    # skipped by every sync — a state that is confusing to debug and easy to create by editing one
-    # tree and forgetting the other.
-    bundled, hosted = (catalogs[TREES[0]], catalogs[TREES[1]])
-    if bundled and hosted:
-        bundled_versions = {i["id"]: i.get("version") for i in bundled.get("items", []) if "id" in i}
-        for item in hosted.get("items", []):
-            bundled_version = bundled_versions.get(item.get("id"))
-            if bundled_version is not None and item.get("version", 0) < bundled_version:
-                fail(
-                    "catalog consistency",
-                    f"item {item['id']}: hosted version {item.get('version')} is older than the bundled "
-                    f"version {bundled_version}, so remote sync would never apply it",
-                )
+    # There used to be a bundled-vs-hosted version parity check here, because remote sync never
+    # downgrades: a remote entry older than the bundled one imports on a fresh install and is then
+    # permanently skipped by every sync. That hazard is unchanged, but the remote side is now the
+    # CMS database rather than a second tree in this repository, so it cannot be checked from a
+    # pull request without a network call. Keep bundled asset versions at or below the CMS's.
 
     if errors:
         for error in errors:

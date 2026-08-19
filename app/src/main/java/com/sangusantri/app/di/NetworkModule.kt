@@ -29,7 +29,7 @@ object NetworkModule {
             .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             // Matches the Quran, myquran, and murottal clients. ContentValidator pins every
             // contentUrl to an origin-relative path so content can only come from the configured
-            // Firebase Hosting origin; following a redirect would hand that decision back to
+            // content API origin; following a redirect would hand that decision back to
             // whatever the host answered with, defeating the pin.
             .followRedirects(false)
             .followSslRedirects(false)

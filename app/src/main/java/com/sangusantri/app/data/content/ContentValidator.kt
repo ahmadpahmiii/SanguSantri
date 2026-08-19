@@ -59,7 +59,7 @@ object ContentValidator {
      * feeds the same field to `AssetManager.open` after stripping the prefix
      * ([com.sangusantri.app.data.local.content.BundledContentBootstrapper]). Restricting it here, in
      * the one validator both pipelines run before any read, is what keeps content on the deployed
-     * Firebase Hosting origin and inside the bundled asset directory.
+     * configured content-API origin and inside the bundled asset directory.
      *
      * Also rejects a protocol-relative `//host/...` (which likewise leaves the origin), any `..`
      * segment, and backslashes or whitespace that path handling downstream could normalise

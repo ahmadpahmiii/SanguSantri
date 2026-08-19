@@ -13,7 +13,7 @@ import retrofit2.http.Path
  *
  * Reached through its own unauthenticated client (`di/PrayerTimesNetworkModule.kt`), never the
  * Quran client: ADR 0016 §5 forbids sending Kemenag credentials to any non-Kemenag origin, and this
- * is a different origin entirely. Also not the Firebase Hosting content client (ADR 0014).
+ * is a different origin entirely. Also not the CMS content client (ADR 0015).
  *
  * The service publishes Quran text, audio, tafsir and a hijri calendar too; none of that is
  * consumed here. Kemenag remains the only Quran-content API (ADR 0016 §2) and the hijri calendar

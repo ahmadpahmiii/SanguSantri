@@ -19,7 +19,7 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * One complete remote content-sync execution against static Firebase Hosting content (ADR 0015):
+ * One complete remote content-sync execution against the CMS API (ADR 0015):
  * fetch the catalog, compare every item against Room's local versions, fetch and import only
  * genuinely newer/changed content, and return one [SyncResult]. All writes still go through
  * [ContentImporter] — this class never touches a content table directly. Response-size limiting

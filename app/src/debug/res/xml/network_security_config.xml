@@ -4,7 +4,7 @@
     standard source-set resource override — this file replaces the main one only for debug
     builds; release packaging never sees it). Permits cleartext so instrumented tests
     (ContentSyncManagerTest) can talk to a local MockWebServer instance over plain HTTP; production
-    Firebase Hosting traffic is always HTTPS regardless of this override.
+    CMS API traffic is always HTTPS regardless of this override.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />

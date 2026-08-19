@@ -3,12 +3,13 @@
 Defines the canonical dynamic-catalog JSON format (PRD 12.2, FR-001, FR-010,
 ADR [0015](decisions/0015-simplified-dynamic-catalog-content-model.md))
 consumed identically by two producers: bundled Android assets
-(`app/src/main/assets/content/`) and static files served from
-`content-hosting/public/content/` via Firebase Hosting (ADR
-[0014](decisions/0014-firebase-hosting-static-content-delivery.md)) — there
-is no dynamic publication pipeline; both producers are hand-authored JSON
-files, CI-validated (`content-hosting/scripts/validate-content.mjs`) before
-being committed/deployed. `ContentValidator`/`ContentImporter`
+(`app/src/main/assets/content/`), hand-authored JSON validated in CI
+(`tools/ci/validate_content.py`) before being committed; and the CMS API
+(`../../cms/api`, deployed on Vercel), which serves the same shapes from the
+Supabase database the CMS writes to. The static Firebase Hosting tree that
+ADR [0014](decisions/0014-firebase-hosting-static-content-delivery.md)
+introduced is gone — see `../../cms/docs/engineering/API.md` for the live
+request/response reference. `ContentValidator`/`ContentImporter`
 (`data/content/`) are the one shared validation/import boundary for both —
 there is no bundled-only or remote-only copy of this schema. This is the
 only place Arabic/Indonesian amaliyah text may live — never inside Kotlin
@@ -16,8 +17,8 @@ source (PRD 12.2, CLAUDE.md).
 
 ## One catalog, one content-file contract
 
-Two file kinds, identical whether they come from bundled assets or
-Firebase Hosting:
+Two payload kinds, identical whether they come from bundled assets or the
+CMS API:
 
 * **`catalog.json`** (`ContentCatalogDto`) — lists every content item's
   display metadata plus where to fetch its content file. Never carries
@@ -29,7 +30,13 @@ There is no separate bundled-vs-remote manifest shape any more (ADR 0015
 superseded the previous two-manifest design, ADR 0012) — the same
 `catalog.json` format is read by `BundledContentBootstrapper` from
 `app/src/main/assets/content/catalog.json` and by `ContentSyncManager` from
-Firebase Hosting's `content/catalog.json`.
+the CMS API's `GET /api/v1/catalog`.
+
+The one shape difference is where a content file *lives*: bundled
+`contentUrl`s point into the asset tree (`/content/packages/tahlil-v1.json`),
+the API's point at its own route (`/api/v1/content/tahlil`). Both are
+origin-relative, which is what `ContentValidator` pins — an absolute
+`contentUrl` would let a tampered catalog pull amaliyah text from any host.
 
 ## Layout and debug/release split (introduced Milestone 4.5, published Milestone 6)
 
@@ -50,11 +57,6 @@ app/src/debug/assets/content/    # currently empty — reserved for a future
                                   # package still being drafted/reviewed,
                                   # not yet accepted for publication
 ```
-
-`content-hosting/public/content/` (Firebase Hosting, ADR 0014) mirrors this
-same layout under its own `public/` root: `content/catalog.json`,
-`content/packages/*.json`, `content/images/` (empty — no bundled amaliyah
-has an image yet).
 
 Tahlil and Istighosah moved from `debug/` to `main/` in Milestone 6: both
 are now the product owner's accepted, published `0.0.1` content baseline

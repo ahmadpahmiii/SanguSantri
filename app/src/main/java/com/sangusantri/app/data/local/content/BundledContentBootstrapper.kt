@@ -10,6 +10,7 @@ import com.sangusantri.app.data.content.decideContentVersionAction
 import com.sangusantri.app.data.content.dto.ContentCatalogDto
 import com.sangusantri.app.data.content.dto.ContentCatalogItemDto
 import com.sangusantri.app.data.content.dto.ContentFileDto
+import com.sangusantri.app.data.local.content.BundledContentBootstrapper.Companion.CONTENT_ASSET_DIR
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +20,7 @@ import javax.inject.Inject
 /**
  * Reads bundled content straight from [android.content.res.AssetManager] (no source-abstraction
  * interface — this is the only bundled-storage implementation there is) and imports it through
- * the shared [ContentImporter], using exactly the same catalog contract Firebase Hosting serves
+ * the shared [ContentImporter], using exactly the same catalog contract the CMS API serves
  * (ADR 0015) — `app/src/main/assets/content/catalog.json` plus its `packages/` content files.
  * Guarantees offline
  * content on a fresh install, recovers content if remote hosting has never been reached, and
@@ -90,7 +91,7 @@ class BundledContentBootstrapper
             }
 
         /**
-         * `contentUrl` is always rooted at "/content/..." (the Firebase Hosting public path
+         * `contentUrl` is always rooted at "/content/..." (the bundled asset path
          * convention, ADR 0015); bundled assets are already rooted at [CONTENT_ASSET_DIR], so the
          * leading segment is stripped to resolve the equivalent asset-relative path.
          */

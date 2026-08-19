@@ -14,8 +14,8 @@ is a map of what exists, not a reading order.
 ## Engineering
 
 * [`engineering/ARCHITECTURE.md`](engineering/ARCHITECTURE.md) — stack,
-  package structure, layer rules, modularisation triggers, Firebase Hosting
-  static content delivery shape.
+  package structure, layer rules, modularisation triggers, content delivery
+  shape.
 * [`engineering/CODING_STANDARD.md`](engineering/CODING_STANDARD.md) —
   Compose rules, prohibited patterns, working method, reference policy.
 * [`engineering/CONTENT_MODEL.md`](engineering/CONTENT_MODEL.md) — content
@@ -26,9 +26,10 @@ is a map of what exists, not a reading order.
   scenarios by layer.
 * [`engineering/RELEASE_ENGINEERING.md`](engineering/RELEASE_ENGINEERING.md)
   — CI/CD design, quality commands, release build configuration.
-* [`engineering/MCP_TOOLING.md`](engineering/MCP_TOOLING.md) — Firebase MCP
-  as development/CI tooling for `content-hosting/`, and its boundaries with
-  the Android app.
+* [`engineering/MCP_TOOLING.md`](engineering/MCP_TOOLING.md) — MCP servers as
+  development/CI tooling only, and their boundaries with the Android app.
+  (The Firebase Hosting content tree it was written for is gone — content now
+  comes from the CMS API; see `../../cms/docs/engineering/API.md`.)
 
 ## Design
 

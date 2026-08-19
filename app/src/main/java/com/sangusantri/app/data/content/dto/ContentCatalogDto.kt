@@ -4,8 +4,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * The dynamic catalog (`catalog.json`, ADR 0015) — shared verbatim between bundled assets
- * (`app/src/main/assets/content/catalog.json`) and Firebase Hosting
- * (`content-hosting/public/content/catalog.json`). Lists every content item's display metadata
+ * (`app/src/main/assets/content/catalog.json`) and the CMS API's
+ * `GET /api/v1/catalog`. Lists every content item's display metadata
  * plus where to fetch its content file; it never carries step data itself.
  */
 @Serializable

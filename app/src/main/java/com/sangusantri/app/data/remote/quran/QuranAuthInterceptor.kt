@@ -9,7 +9,7 @@ import javax.inject.Inject
 /**
  * Attaches the Kemenag `username`/`token` headers (ADR 0016 §9). This interceptor is added only to
  * the dedicated Quran OkHttp client (`di/QuranNetworkModule.kt`) — it is never installed on
- * [com.sangusantri.app.di.NetworkModule]'s shared Firebase Hosting content client. As a second,
+ * [com.sangusantri.app.di.NetworkModule]'s shared CMS content client. As a second,
  * defensive layer it also refuses to attach credentials to a request whose host is not exactly
  * [QURAN_API_HOST], so headers can never leak to a redirect target on a different origin.
  */

@@ -2,7 +2,16 @@
 
 ## Status
 
-Accepted. Partially superseded by ADR
+**Superseded (2026-08-19)** — the delivery mechanism this ADR chose is no longer in use. Content
+is now served by a small Go read-only API (`../../../cms/api`, deployed on Vercel) reading the
+Supabase database that the CMS (`../../../cms/web`) writes to; the `content-hosting/` directory
+and its Firebase Hosting site have been deleted. The wire contract is unchanged — the app still
+fetches a `catalog.json`-shaped payload and per-item content files, still origin-relative, still
+through `ContentValidator`/`ContentImporter` — so this ADR's *contract* reasoning still reads
+true; only "static files on Firebase Hosting" does not. Firebase Crashlytics, App Distribution
+and Remote Config are unaffected and remain in use. See `../../../cms/docs/engineering/API.md`.
+
+Previously: Accepted. Partially superseded by ADR
 [0015](0015-simplified-dynamic-catalog-content-model.md) (2026-08-03): this ADR's decision to use
 Firebase Hosting for static delivery stands, but its claim that the existing manifest/package
 contract (`variantId`/`versionId`/`checksumSha256`, "no Android code change") would be preserved

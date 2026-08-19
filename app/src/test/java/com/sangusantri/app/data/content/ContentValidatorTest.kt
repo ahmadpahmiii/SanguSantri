@@ -100,8 +100,8 @@ class ContentValidatorTest {
 
     @Test
     fun catalogProductionContentUrlShapeIsAccepted() {
-        // The exact shape both app/src/main/assets/content/catalog.json and
-        // content-hosting/public/content/catalog.json ship — the pin must not reject real content.
+        // The exact shape app/src/main/assets/content/catalog.json ships — the
+        // pin must not reject real content.
         val result = ContentValidator.validateCatalog(catalogWith(contentUrl = "/content/packages/tahlil-v1.json"))
 
         assertTrue(result is ContentValidation.Valid)

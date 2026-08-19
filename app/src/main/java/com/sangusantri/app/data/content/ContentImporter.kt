@@ -11,7 +11,7 @@ import javax.inject.Inject
 /**
  * Canonical transactional Room operation for one catalog item (ADR 0015). Does not know whether
  * [importContentFile]'s bytes came from bundled assets
- * ([com.sangusantri.app.data.local.content.BundledContentBootstrapper]) or Firebase Hosting
+ * ([com.sangusantri.app.data.local.content.BundledContentBootstrapper]) or the CMS API
  * ([com.sangusantri.app.data.sync.ContentSyncManager]) — both call this class.
  *
  * Two independent operations: [refreshCatalogMetadata] always updates the cheap, catalog-only

@@ -2,8 +2,10 @@ package com.sangusantri.app.feature.prayertimes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.data.prayeralarm.PrayerAlarmScheduler
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.PrayerName
+import com.sangusantri.app.domain.model.PrayerNotificationMode
 import com.sangusantri.app.domain.repository.KiblatRepository
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +39,10 @@ class JadwalSholatViewModel
 constructor(
     private val prayerScheduleRepository: PrayerScheduleRepository,
     private val kiblatRepository: KiblatRepository,
+    // Called directly rather than through a use case, unlike `data/reminder/`'s scheduler: this one
+    // takes no arguments and recomputes the single next alarm from whatever is currently persisted,
+    // so there is no pair of writes to keep in step and calling it once too often costs nothing.
+    private val prayerAlarmScheduler: PrayerAlarmScheduler,
 ) : ViewModel() {
     private val screenState = MutableStateFlow(ScreenState())
 
@@ -56,21 +62,22 @@ constructor(
         combine(
             prayerScheduleRepository.observeToday(),
             prayerScheduleRepository.observeSelectedCity(),
-            kiblatRepository.observeBearing(),
+            kiblatRepository.observeDirection(),
             clock,
             combine(screenState, cities) { state, list -> state to list },
-        ) { schedule, city, bearing, now, (state, cityList) ->
+        ) { schedule, city, kiblat, now, (state, cityList) ->
             JadwalSholatUiState(
                 schedule = schedule,
                 selectedCity = city,
                 now = now,
                 today = LocalDate.now(),
-                kiblatBearing = bearing,
+                kiblat = kiblat,
                 isRefreshing = state.isRefreshing,
                 errorMessage = state.error,
                 cityPickerVisible = state.cityPickerVisible,
                 cityQuery = state.cityQuery,
                 cities = cityList,
+                notificationSheetPrayer = state.notificationSheetPrayer,
             )
         }.stateIn(
             viewModelScope,
@@ -88,6 +95,8 @@ constructor(
         viewModelScope.launch {
             screenState.update { it.copy(isRefreshing = true, error = null) }
             val result = prayerScheduleRepository.ensureScheduleCached(LocalDate.now())
+            // A newly fetched month, or a different city, changes what the next alarm is.
+            prayerAlarmScheduler.rearm()
             screenState.update {
                 it.copy(
                     isRefreshing = false,
@@ -123,6 +132,8 @@ constructor(
             prayerScheduleRepository.selectCity(cityId)
             screenState.update { it.copy(cityPickerVisible = false, cityQuery = "", isRefreshing = true) }
             val result = prayerScheduleRepository.ensureScheduleCached(LocalDate.now())
+            // A newly fetched month, or a different city, changes what the next alarm is.
+            prayerAlarmScheduler.rearm()
             screenState.update {
                 it.copy(
                     isRefreshing = false,
@@ -136,7 +147,7 @@ constructor(
     fun refreshKiblat() {
         viewModelScope.launch {
             screenState.update { it.copy(isRefreshing = true, error = null) }
-            val result = kiblatRepository.refreshBearing()
+            val result = kiblatRepository.refreshDirection()
             screenState.update {
                 it.copy(
                     isRefreshing = false,
@@ -154,6 +165,7 @@ constructor(
             when (val detected = prayerScheduleRepository.detectAndSelectCity()) {
                 is CityDetection.Detected -> {
                     prayerScheduleRepository.ensureScheduleCached(LocalDate.now())
+                    prayerAlarmScheduler.rearm()
                     screenState.update { it.copy(isRefreshing = false, error = null) }
                 }
 
@@ -178,15 +190,28 @@ constructor(
         }
     }
 
-    fun setNotificationEnabled(
+    fun openNotificationSheet(prayer: PrayerName) {
+        screenState.update { it.copy(notificationSheetPrayer = prayer) }
+    }
+
+    fun dismissNotificationSheet() {
+        screenState.update { it.copy(notificationSheetPrayer = null) }
+    }
+
+    fun setNotificationMode(
         prayer: PrayerName,
-        enabled: Boolean,
+        mode: PrayerNotificationMode,
     ) {
-        viewModelScope.launch { prayerScheduleRepository.setNotificationEnabled(prayer, enabled) }
+        screenState.update { it.copy(notificationSheetPrayer = null) }
+        viewModelScope.launch {
+            prayerScheduleRepository.setNotificationMode(prayer, mode)
+            prayerAlarmScheduler.rearm()
+        }
     }
 
     private data class ScreenState(
         val cityPickerVisible: Boolean = false,
+        val notificationSheetPrayer: PrayerName? = null,
         val cityQuery: String = "",
         val isRefreshing: Boolean = false,
         val error: PrayerScheduleError? = null,

@@ -12,6 +12,8 @@ import com.sangusantri.app.data.content.ContentImportOutcome
 import com.sangusantri.app.data.local.content.BundledContentBootstrapper
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapOutcome
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapper
+import com.sangusantri.app.data.prayeralarm.PrayerAlarmScheduler
+import com.sangusantri.app.data.prayeralarm.PrayerNotificationChannels
 import com.sangusantri.app.data.reminder.ReminderNotificationChannel
 import com.sangusantri.app.data.sync.ContentSyncScheduler
 import com.sangusantri.app.data.sync.quran.QuranUpdateScheduler
@@ -40,6 +42,9 @@ class SanguSantriApplication :
     lateinit var quranUpdateScheduler: QuranUpdateScheduler
 
     @Inject
+    lateinit var prayerAlarmScheduler: PrayerAlarmScheduler
+
+    @Inject
     lateinit var hiltWorkerFactory: HiltWorkerFactory
 
     override val workManagerConfiguration: Configuration
@@ -52,6 +57,7 @@ class SanguSantriApplication :
         // Cheap and synchronous (creating an already-existing channel is a no-op) — safe to call
         // on every launch, unlike the network-touching work below.
         ReminderNotificationChannel.ensureCreated(this)
+        PrayerNotificationChannels.ensureCreated(this)
         // Idempotent and non-blocking (PRD 8.1): Beranda observes Room reactively and renders as
         // soon as rows exist, so neither bootstrap nor sync scheduling may gate the first frame.
         applicationScope.launch {
@@ -75,6 +81,12 @@ class SanguSantriApplication :
             // version is newer than an already-complete local Quran dataset.
             runCatching { quranUpdateScheduler.enqueueIfUpdateAvailable() }
                 .onFailure { Log.w(TAG, "Quran version update scheduling failed", it) }
+
+            // Re-arms the next adzan on every cold start. The alarm chain re-arms itself as it
+            // fires, so this only matters after the process was killed with nothing pending — but
+            // that is also the case where nothing else would ever put it back.
+            runCatching { prayerAlarmScheduler.rearm() }
+                .onFailure { Log.w(TAG, "prayer alarm rearm failed", it) }
         }
     }
 

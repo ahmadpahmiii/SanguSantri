@@ -3,6 +3,7 @@
 package com.sangusantri.app.feature.prayertimes
 
 import android.Manifest
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
@@ -13,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,11 +22,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,10 +38,11 @@ import androidx.compose.material.icons.outlined.Brightness5
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,16 +70,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -83,7 +93,9 @@ import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.BlockColors
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
+import com.sangusantri.app.domain.model.KiblatDirection
 import com.sangusantri.app.domain.model.PrayerName
+import com.sangusantri.app.domain.model.PrayerNotificationMode
 import com.sangusantri.app.domain.model.PrayerSchedule
 import com.sangusantri.app.domain.model.PrayerTime
 import com.sangusantri.app.feature.home.formatAsClock
@@ -95,6 +107,9 @@ import java.time.chrono.HijrahDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoField
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 @Composable
 fun JadwalSholatRoute(
@@ -112,12 +127,26 @@ fun JadwalSholatRoute(
             if (!granted) return@rememberLauncherForActivityResult
             if (kiblatRequested) viewModel.refreshKiblat() else viewModel.detectCity()
         }
+    // Asked for only when a row is actually switched on, never on open. A denial is not fatal: the
+    // adzan still plays (it runs on a foreground service), only its notification is withheld — and
+    // with it the button to cut the adzan short, which is why this asks at all.
+    val notificationPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     JadwalSholatScreen(
         uiState = uiState,
         onBack = onBack,
         actions =
             JadwalSholatActions(
-                onNotificationToggle = viewModel::setNotificationEnabled,
+                onNotificationIconClick = viewModel::openNotificationSheet,
+                onDismissNotificationSheet = viewModel::dismissNotificationSheet,
+                onNotificationModeSelected = { prayer, mode ->
+                    viewModel.setNotificationMode(prayer, mode)
+                    if (mode != PrayerNotificationMode.NONAKTIF &&
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    ) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
                 onOpenCityPicker = viewModel::openCityPicker,
                 onDismissCityPicker = viewModel::dismissCityPicker,
                 onCityQueryChanged = viewModel::updateCityQuery,
@@ -138,7 +167,9 @@ fun JadwalSholatRoute(
 /** [JadwalSholatScreen]'s callbacks, bundled to keep its parameter list short (same pattern as
  * `SerambiActions`/`QuranHubActions`). */
 data class JadwalSholatActions(
-    val onNotificationToggle: (PrayerName, Boolean) -> Unit,
+    val onNotificationIconClick: (PrayerName) -> Unit,
+    val onDismissNotificationSheet: () -> Unit,
+    val onNotificationModeSelected: (PrayerName, PrayerNotificationMode) -> Unit,
     val onOpenCityPicker: () -> Unit,
     val onDismissCityPicker: () -> Unit,
     val onCityQueryChanged: (String) -> Unit,
@@ -240,12 +271,12 @@ fun JadwalSholatScreen(
                 PrayerRows(
                     schedule = schedule,
                     now = uiState.now,
-                    onNotificationToggle = actions.onNotificationToggle,
+                    onNotificationIconClick = actions.onNotificationIconClick,
                     modifier = Modifier.padding(top = SectionGap),
                 )
             }
             KiblatCard(
-                bearing = uiState.kiblatBearing,
+                kiblat = uiState.kiblat,
                 onRequestKiblat = actions.onRequestKiblat,
                 modifier =
                     Modifier.padding(
@@ -255,6 +286,19 @@ fun JadwalSholatScreen(
                     ),
             )
         }
+    }
+    uiState.notificationSheetPrayer?.let { prayer ->
+        NotificationModeSheet(
+            prayer = prayer,
+            selected =
+                uiState.schedule
+                    ?.times
+                    ?.firstOrNull { it.name == prayer }
+                    ?.notificationMode
+                    ?: PrayerNotificationMode.NONAKTIF,
+            onSelect = { actions.onNotificationModeSelected(prayer, it) },
+            onDismiss = actions.onDismissNotificationSheet,
+        )
     }
     if (uiState.cityPickerVisible) {
         CityPickerSheet(uiState = uiState, actions = actions)
@@ -385,7 +429,7 @@ private fun CountdownBlock(
 private fun PrayerRows(
     schedule: PrayerSchedule,
     now: LocalTime,
-    onNotificationToggle: (PrayerName, Boolean) -> Unit,
+    onNotificationIconClick: (PrayerName) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val current = schedule.currentAt(now)?.name
@@ -394,7 +438,7 @@ private fun PrayerRows(
             PrayerRow(
                 prayer = prayer,
                 isCurrent = prayer.name == current,
-                onNotificationToggle = { onNotificationToggle(prayer.name, it) },
+                onNotificationIconClick = { onNotificationIconClick(prayer.name) },
             )
             if (prayer.name != current) {
                 HorizontalDivider(
@@ -413,7 +457,7 @@ private fun PrayerRows(
 private fun PrayerRow(
     prayer: PrayerTime,
     isCurrent: Boolean,
-    onNotificationToggle: (Boolean) -> Unit,
+    onNotificationIconClick: () -> Unit,
 ) {
     val rowModifier =
         if (isCurrent) {
@@ -461,34 +505,156 @@ private fun PrayerRow(
             fontWeight = rowWeight,
             color = leadingColor,
         )
-        IconButton(onClick = { onNotificationToggle(!prayer.notificationEnabled) }) {
+        IconButton(onClick = onNotificationIconClick) {
             Icon(
-                imageVector =
-                    if (prayer.notificationEnabled) {
-                        Icons.Outlined.NotificationsActive
-                    } else {
-                        Icons.Outlined.NotificationsOff
-                    },
+                imageVector = prayer.notificationMode.icon(),
                 contentDescription =
-                    stringResource(
-                        if (prayer.notificationEnabled) {
-                            R.string.jadwal_sholat_notification_on
-                        } else {
-                            R.string.jadwal_sholat_notification_off
-                        },
-                        prayer.name.label(),
-                    ),
+                    stringResource(R.string.jadwal_sholat_notification_action, prayer.name.label()),
                 tint =
-                    if (prayer.notificationEnabled) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
+                    if (prayer.notificationMode == PrayerNotificationMode.NONAKTIF) {
                         MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.primary
                     },
                 modifier = Modifier.size(20.dp),
             )
         }
     }
 }
+
+private fun PrayerNotificationMode.icon(): ImageVector =
+    when (this) {
+        PrayerNotificationMode.ADZAN -> Icons.Outlined.VolumeUp
+        PrayerNotificationMode.BAWAAN -> Icons.Outlined.Notifications
+        PrayerNotificationMode.NONAKTIF -> Icons.Outlined.NotificationsOff
+    }
+
+/**
+ * How one row announces itself. Three choices, not a toggle: "with adzan" and "the device's own
+ * notification" are genuinely different things, and there still has to be a way to say neither.
+ *
+ * The supporting line under "dengan adzan" differs per row because what plays differs per row —
+ * Imsak has no adzan of its own and gets the tarhim twice, and Subuh is preceded by the tarhim only
+ * when Imsak is switched off.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotificationModeSheet(
+    prayer: PrayerName,
+    selected: PrayerNotificationMode,
+    onSelect: (PrayerNotificationMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape =
+            RoundedCornerShape(
+                topStart = SanguSantriDimensions.sheetTopCornerRadius,
+                topEnd = SanguSantriDimensions.sheetTopCornerRadius,
+            ),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(R.string.jadwal_sholat_notification_sheet_title, prayer.label()),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(horizontal = ScreenPadding),
+            )
+            Text(
+                text = stringResource(R.string.jadwal_sholat_notification_sheet_supporting),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier =
+                    Modifier.padding(
+                        start = ScreenPadding,
+                        end = ScreenPadding,
+                        bottom = SanguSantriSpacing.medium,
+                    ),
+            )
+            PrayerNotificationMode.entries.forEach { mode ->
+                NotificationModeRow(
+                    mode = mode,
+                    prayer = prayer,
+                    isSelected = mode == selected,
+                    onClick = { onSelect(mode) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationModeRow(
+    mode: PrayerNotificationMode,
+    prayer: PrayerName,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = ScreenPadding, vertical = SanguSantriSpacing.medium),
+    ) {
+        Icon(
+            imageVector = mode.icon(),
+            contentDescription = null,
+            tint =
+                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(horizontal = SanguSantriSpacing.medium),
+        ) {
+            Text(
+                text = stringResource(mode.titleRes()),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(mode.supportingRes(prayer)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Outlined.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+private fun PrayerNotificationMode.titleRes(): Int =
+    when (this) {
+        PrayerNotificationMode.ADZAN -> R.string.jadwal_sholat_notification_mode_adzan
+        PrayerNotificationMode.BAWAAN -> R.string.jadwal_sholat_notification_mode_bawaan
+        PrayerNotificationMode.NONAKTIF -> R.string.jadwal_sholat_notification_mode_off
+    }
+
+private fun PrayerNotificationMode.supportingRes(prayer: PrayerName): Int =
+    when (this) {
+        PrayerNotificationMode.ADZAN ->
+            when (prayer) {
+                PrayerName.IMSAK -> R.string.jadwal_sholat_notification_adzan_imsak
+                PrayerName.SUBUH -> R.string.jadwal_sholat_notification_adzan_subuh
+                else -> R.string.jadwal_sholat_notification_adzan_other
+            }
+
+        PrayerNotificationMode.BAWAAN -> R.string.jadwal_sholat_notification_bawaan_supporting
+        PrayerNotificationMode.NONAKTIF -> R.string.jadwal_sholat_notification_off_supporting
+    }
 
 @Suppress("LongMethod")
 /**
@@ -498,13 +664,17 @@ private fun PrayerRow(
  */
 @Composable
 private fun KiblatCard(
-    bearing: Float?,
+    kiblat: KiblatDirection?,
     onRequestKiblat: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Auto-calibrating: the heading is read live from the device, so the needle tracks the phone
     // without the reader doing anything. Null on a device with no rotation-vector sensor.
     val heading = rememberDeviceHeading()
+    // Standing inside the Haram, the app's own coarse coordinate is worth more error than the angle
+    // it produces, so the compass steps aside instead of pointing confidently at the wrong corner.
+    val atKaaba = kiblat?.isTooCloseForCompass == true
+    val bearing = kiblat?.bearingDegrees?.takeUnless { atKaaba }
     Column(
         modifier =
             modifier
@@ -528,7 +698,7 @@ private fun KiblatCard(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
-            if (bearing != null) {
+            if (kiblat != null) {
                 Text(
                     text = stringResource(R.string.kiblat_recompute_action),
                     style = MaterialTheme.typography.labelMedium,
@@ -541,22 +711,33 @@ private fun KiblatCard(
             horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
             modifier = Modifier.padding(top = SanguSantriSpacing.medium),
         ) {
-            CompassFace(bearing = bearing, heading = heading)
+            CompassFace(bearing = bearing, heading = heading, atKaaba = atKaaba)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text =
-                        bearing
-                            ?.let { stringResource(R.string.kiblat_bearing_degrees, it.toInt()) }
-                            ?: stringResource(R.string.kiblat_bearing_unknown),
+                        when {
+                            atKaaba -> stringResource(R.string.kiblat_near_kaaba)
+                            bearing != null -> stringResource(R.string.kiblat_bearing_degrees, bearing.toInt())
+                            else -> stringResource(R.string.kiblat_bearing_unknown)
+                        },
                     fontSize = if (bearing != null) BearingSize else 20.sp,
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+                kiblat?.formattedDistance()?.let { distance ->
+                    Text(
+                        text = stringResource(R.string.kiblat_distance, distance),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
+                    )
+                }
                 Text(
                     text =
                         stringResource(
                             when {
-                                bearing == null -> R.string.kiblat_unavailable_description
+                                atKaaba -> R.string.kiblat_near_kaaba_hint
+                                kiblat == null -> R.string.kiblat_unavailable_description
                                 heading == null -> R.string.kiblat_calibration_hint
                                 heading.needsCalibration -> R.string.kiblat_calibrate_hint
                                 else -> R.string.kiblat_heading_hint
@@ -566,7 +747,7 @@ private fun KiblatCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
                 )
-                if (bearing == null) {
+                if (kiblat == null) {
                     TextButton(
                         onClick = onRequestKiblat,
                         contentPadding = PaddingValues(0.dp),
@@ -576,6 +757,24 @@ private fun KiblatCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * "7.915 km" or "850 m", grouped for an Indonesian reader. `null` for a bearing cached before
+ * distances were stored — the card then simply omits the line rather than inventing a figure.
+ */
+@Composable
+private fun KiblatDirection.formattedDistance(): String? {
+    if (distanceMetres == Float.MAX_VALUE) return null
+    val locale = Locale.forLanguageTag("id")
+    return if (distanceMetres < METRES_PER_KILOMETRE) {
+        stringResource(R.string.kiblat_distance_metres, String.format(locale, "%,d", distanceMetres.toLong()))
+    } else {
+        stringResource(
+            R.string.kiblat_distance_kilometres,
+            String.format(locale, "%,d", (distanceMetres / METRES_PER_KILOMETRE).toLong()),
+        )
     }
 }
 
@@ -595,12 +794,16 @@ private fun Duration?.formatCountdown(): String {
 }
 
 /**
- * A live qibla compass. The needle points at the qibla **relative to how the phone is currently
- * held** — `qibla - deviceHeading` — so turning the device turns the needle, which is what people
- * expect from a kiblat and what makes it usable rather than decorative.
+ * A live qibla compass. The dial turns with the device, so the cardinal letters stay pinned to the
+ * real world the way they do on a physical compass, and the needle — with the Ka'bah riding its tip
+ * — points at the qibla **relative to how the phone is held** (`qibla - deviceHeading`). Turning
+ * the phone turns the needle, which is what makes a kiblat usable rather than decorative.
  *
- * Without a rotation-vector sensor (many emulators, some tablets) it falls back to the absolute
- * bearing from north and says so, rather than leaving a needle that never moves.
+ * Without a rotation-vector sensor (many emulators, some tablets) the dial sits still with north at
+ * the top and the needle shows the absolute bearing, rather than leaving a needle that never moves.
+ *
+ * [atKaaba] is the standing-in-the-Haram case: no needle at all, the Ka'bah in the middle of the
+ * dial, because at that range the bearing is noise.
  *
  * The rotation is animated, and the animation crosses 0°/360° the short way — otherwise the needle
  * whips a full turn every time the reader walks past north.
@@ -609,8 +812,10 @@ private fun Duration?.formatCountdown(): String {
 private fun CompassFace(
     bearing: Float?,
     heading: DeviceHeading?,
+    atKaaba: Boolean,
 ) {
     val needleColor = MaterialTheme.colorScheme.primary
+    val dialColor = MaterialTheme.colorScheme.surfaceVariant
     val outlineColor = MaterialTheme.colorScheme.outline
     val target = if (bearing == null) null else (bearing - (heading?.azimuthDegrees ?: 0f)).normalizeDegrees()
     val animated = rememberShortestPathAngle(target)
@@ -620,40 +825,120 @@ private fun CompassFace(
         modifier =
             Modifier
                 .size(CompassSize)
-                .clip(RoundedCornerShape(CompassSize / 2))
-                .border(1.dp, outlineColor, RoundedCornerShape(CompassSize / 2)),
+                .clip(CircleShape)
+                .border(1.dp, outlineColor, CircleShape),
     ) {
-        Text(
-            text = stringResource(R.string.kiblat_compass_north),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier =
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = SanguSantriSpacing.small),
+        CompassDial(
+            rotationDegrees = -(heading?.azimuthDegrees ?: 0f),
+            dialColor = dialColor,
+            outlineColor = outlineColor,
         )
-        if (animated != null) {
-            Canvas(modifier = Modifier.size(CompassSize)) {
-                val centre = Offset(size.width / 2f, size.height / 2f)
-                val radius = size.minDimension / 2f - NeedleInset.toPx()
-                // Degrees clockwise from the top of the dial; screen y grows downward, so north is -y.
-                val radians = Math.toRadians(animated.toDouble())
-                val tip =
-                    Offset(
-                        x = centre.x + (radius * kotlin.math.sin(radians)).toFloat(),
-                        y = centre.y - (radius * kotlin.math.cos(radians)).toFloat(),
-                    )
-                drawLine(
-                    color = needleColor,
-                    start = centre,
-                    end = tip,
-                    strokeWidth = NeedleStroke.toPx(),
-                    cap = StrokeCap.Round,
-                )
-                drawCircle(color = needleColor, radius = NeedleHubRadius.toPx(), center = centre)
-            }
+        if (animated != null) CompassNeedle(angleDegrees = animated, color = needleColor)
+        // Upright at every angle: a rotating Ka'bah reads as a broken image, not as a landmark.
+        if (animated != null || atKaaba) {
+            val orbit = if (atKaaba) 0f else with(LocalDensity.current) { (CompassSize / 2 - KaabaOrbitInset).toPx() }
+            val radians = Math.toRadians((animated ?: 0f).toDouble())
+            Icon(
+                painter = painterResource(R.drawable.ic_kaaba),
+                contentDescription = null,
+                tint = needleColor,
+                modifier =
+                    Modifier
+                        .size(if (atKaaba) KaabaSizeCentred else KaabaSize)
+                        .offset {
+                            IntOffset(
+                                x = (orbit * sin(radians)).roundToInt(),
+                                y = (-orbit * cos(radians)).roundToInt(),
+                            )
+                        },
+            )
         }
     }
+}
+
+/** The turning face: a tinted disc, eight rim ticks and the four Indonesian cardinal letters. */
+@Composable
+private fun BoxScope.CompassDial(
+    rotationDegrees: Float,
+    dialColor: Color,
+    outlineColor: Color,
+) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .rotate(rotationDegrees)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val centre = Offset(size.width / 2f, size.height / 2f)
+            val rim = size.minDimension / 2f - DialInset.toPx()
+            drawCircle(color = dialColor, radius = rim, center = centre)
+            repeat(TICK_COUNT) { index ->
+                val unit = unitVectorAt(index * FULL_TURN / TICK_COUNT)
+                drawLine(
+                    color = outlineColor,
+                    start = centre + unit * rim,
+                    end = centre + unit * (rim - TickLength.toPx()),
+                    strokeWidth = TickStroke.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+        }
+        CardinalLabel(R.string.kiblat_compass_north, Alignment.TopCenter, emphasised = true)
+        CardinalLabel(R.string.kiblat_compass_east, Alignment.CenterEnd)
+        CardinalLabel(R.string.kiblat_compass_south, Alignment.BottomCenter)
+        CardinalLabel(R.string.kiblat_compass_west, Alignment.CenterStart)
+    }
+}
+
+/**
+ * A tapered blade rather than a plain line: it still reads as a needle at a glance once the Ka'bah
+ * at its tip is competing for the eye.
+ */
+@Composable
+private fun CompassNeedle(
+    angleDegrees: Float,
+    color: Color,
+) {
+    Canvas(modifier = Modifier.size(CompassSize)) {
+        val centre = Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension / 2f - NeedleInset.toPx()
+        val unit = unitVectorAt(angleDegrees)
+        val flank = Offset(-unit.y, unit.x) * NeedleHalfWidth.toPx()
+        drawPath(
+            path =
+                Path().apply {
+                    moveTo(centre.x + unit.x * radius, centre.y + unit.y * radius)
+                    lineTo(centre.x + flank.x, centre.y + flank.y)
+                    lineTo(centre.x - unit.x * NeedleTail.toPx(), centre.y - unit.y * NeedleTail.toPx())
+                    lineTo(centre.x - flank.x, centre.y - flank.y)
+                    close()
+                },
+            color = color,
+        )
+        drawCircle(color = color, radius = NeedleHubRadius.toPx(), center = centre)
+    }
+}
+
+/** Degrees clockwise from the top of the dial; screen y grows downward, so north is -y. */
+private fun unitVectorAt(degrees: Float): Offset {
+    val radians = Math.toRadians(degrees.toDouble())
+    return Offset(sin(radians).toFloat(), -cos(radians).toFloat())
+}
+
+/** One dial letter, pinned to the rim of the rotating dial. */
+@Composable
+private fun BoxScope.CardinalLabel(
+    textRes: Int,
+    alignment: Alignment,
+    emphasised: Boolean = false,
+) {
+    Text(
+        text = stringResource(textRes),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = if (emphasised) FontWeight.Medium else FontWeight.Normal,
+        color = if (emphasised) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .align(alignment)
+            .padding(CardinalInset),
+    )
 }
 
 /** Animates to [target] the short way round the dial. Feeding a raw 359°→1° step to
@@ -920,16 +1205,26 @@ internal fun LocalDate.formatWithHijri(hijriMonthNames: List<String>): String {
 
 private val SearchFieldCornerRadius = 16.dp
 private val CityRowMinHeight = 56.dp
-private val NeedleInset = 10.dp
-private val NeedleStroke = 2.dp
+private val NeedleInset = 34.dp
+private val NeedleHalfWidth = 4.dp
+private val NeedleTail = 9.dp
 private val NeedleHubRadius = 4.dp
+private val DialInset = 4.dp
+private val TickLength = 5.dp
+private val TickStroke = 1.dp
+private val CardinalInset = 7.dp
+private val KaabaSize = 18.dp
+private val KaabaSizeCentred = 28.dp
+private val KaabaOrbitInset = 22.dp
 private val ScreenPadding = 20.dp
 private val SectionGap = 22.dp
 private val BlockCornerRadius = 24.dp
 private val BlockPadding = 18.dp
 private val CardPadding = 18.dp
-private val CompassSize = 104.dp
+private val CompassSize = 132.dp
 private val CurrentRowBleed = 14.dp
 private val CurrentRowCornerRadius = 16.dp
 private val CountdownSize = 44.sp
 private val BearingSize = 32.sp
+private const val TICK_COUNT = 8
+private const val METRES_PER_KILOMETRE = 1_000f

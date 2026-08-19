@@ -16,6 +16,7 @@ import com.sangusantri.app.data.remote.prayertimes.dto.PrayerScheduleEntryDto
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.PrayerCity
 import com.sangusantri.app.domain.model.PrayerName
+import com.sangusantri.app.domain.model.PrayerNotificationMode
 import com.sangusantri.app.domain.model.PrayerSchedule
 import com.sangusantri.app.domain.model.PrayerTime
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
@@ -178,11 +179,18 @@ constructor(
         }
     }
 
-    override suspend fun setNotificationEnabled(
+    override suspend fun setNotificationMode(
         prayer: PrayerName,
-        enabled: Boolean,
+        mode: PrayerNotificationMode,
     ) {
-        dataStore.edit { it[notificationKey(prayer)] = enabled }
+        dataStore.edit { it[notificationKey(prayer)] = mode.name }
+    }
+
+    override suspend fun scheduleOn(date: LocalDate): PrayerSchedule? {
+        val prefs = preferences.first()
+        val cityId = prefs[SELECTED_CITY_ID] ?: return null
+        val day = dao.observeDay(cityId, date.format(ISO_DATE)).first() ?: return null
+        return day.toSchedule(dao.observeCity(cityId).first()?.name ?: "", prefs)
     }
 
     private fun PrayerScheduleDayEntity.toSchedule(
@@ -209,11 +217,14 @@ constructor(
         prefs: Preferences,
     ): PrayerTime? {
         val time = runCatching { LocalTime.parse(published, PUBLISHED_TIME) }.getOrNull() ?: return null
-        val default = name != PrayerName.IMSAK
+        val stored = prefs[notificationKey(name)]
+        val mode = PrayerNotificationMode.entries.firstOrNull { it.name == stored }
         return PrayerTime(
             name = name,
             time = time,
-            notificationEnabled = prefs[notificationKey(name)] ?: default,
+            // Falls back to PrayerTime's own default when nothing is stored yet, or when the stored
+            // value is from a build whose enum had different names.
+            notificationMode = mode ?: PrayerTime(name, time).notificationMode,
         )
     }
 
@@ -235,7 +246,11 @@ constructor(
 
     private fun PrayerCityEntity.toDomain() = PrayerCity(id = id, name = name)
 
-    private fun notificationKey(prayer: PrayerName) = booleanPreferencesKey("prayer_notification_${prayer.name}")
+    /** A different key from `0.0.4`'s boolean one — the setting gained a third state, and reading a
+     * boolean back out of a string key throws rather than degrading. The old key is simply left
+     * behind; DataStore ignores it and it costs a few bytes once. */
+    private fun notificationKey(prayer: PrayerName) =
+        stringPreferencesKey("prayer_notification_mode_${prayer.name}")
 
     private companion object {
         const val TAG = "PrayerSchedule"

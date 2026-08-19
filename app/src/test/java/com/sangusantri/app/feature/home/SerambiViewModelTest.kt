@@ -12,6 +12,7 @@ import com.sangusantri.app.domain.model.NahwuQuizPackageSummary
 import com.sangusantri.app.domain.model.NahwuQuizQuestion
 import com.sangusantri.app.domain.model.PrayerCity
 import com.sangusantri.app.domain.model.PrayerName
+import com.sangusantri.app.domain.model.PrayerNotificationMode
 import com.sangusantri.app.domain.model.PrayerSchedule
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.QuranBookmark
@@ -358,8 +359,10 @@ private class FakePrayerScheduleRepository : PrayerScheduleRepository {
 
     override suspend fun ensureScheduleCached(month: LocalDate): Result<Unit> = Result.success(Unit)
 
-    override suspend fun setNotificationEnabled(
+    override suspend fun setNotificationMode(
         prayer: PrayerName,
-        enabled: Boolean,
+        mode: PrayerNotificationMode,
     ) = Unit
+
+    override suspend fun scheduleOn(date: LocalDate): PrayerSchedule? = null
 }

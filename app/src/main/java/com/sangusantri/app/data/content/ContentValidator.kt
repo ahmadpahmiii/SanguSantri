@@ -67,21 +67,21 @@ object ContentValidator {
      */
     fun isOriginRelativeContentPath(contentUrl: String): Boolean =
         CONTENT_PATH_PREFIXES.any(contentUrl::startsWith) &&
-                !contentUrl.contains("//") &&
-                !contentUrl.contains('\\') &&
-                contentUrl.none(Char::isWhitespace) &&
-                contentUrl.split('/').none { it == ".." }
+            !contentUrl.contains("//") &&
+            !contentUrl.contains('\\') &&
+            contentUrl.none(Char::isWhitespace) &&
+            contentUrl.split('/').none { it == ".." }
 
     /** Catalog images are handed straight to Coil, so a tampered catalog must not be able to point
      * the app at an arbitrary tracker, a cleartext host, or a `file:`/`content:` URI. Absent is
      * always fine — the field is optional. */
     fun isAllowedImageUrl(imageUrl: String?): Boolean =
         imageUrl == null ||
-                (
-                        imageUrl.startsWith(HTTPS_SCHEME) &&
-                                imageUrl.length > HTTPS_SCHEME.length &&
-                                imageUrl.none(Char::isWhitespace)
-                        )
+            (
+                imageUrl.startsWith(HTTPS_SCHEME) &&
+                    imageUrl.length > HTTPS_SCHEME.length &&
+                    imageUrl.none(Char::isWhitespace)
+                )
 
     fun validateContentFile(file: ContentFileDto): ContentValidation {
         val reason = validateFileIdentifiers(file) ?: validateSteps(file)

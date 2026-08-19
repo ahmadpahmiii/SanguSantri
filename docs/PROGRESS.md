@@ -7080,3 +7080,60 @@ so that branch only fires on a landscape home screen. Widgets follow the system 
 own light/dark toggle (see Glass above). No lockscreen/keyguard category. Between the boundary alarm
 and the 30-minute safety net a widget can be at most ~30 minutes stale if the alarm is deferred in
 Doze — nobody is looking at the home screen then, and it re-renders on wake.
+
+## Kiblat compass revision: Ka'bah needle + distance (2026-08-20)
+
+**Status:** Implemented and verified on a booted emulator. A design revision only —
+no change to how the bearing is sourced (still myquran `/qibla`, ADR 0018).
+
+`KiblatCard`'s compass grew from a plain line needle on a bare circle into a proper
+dial: a tinted face with eight rim ticks and the four Indonesian cardinal letters
+(U/T/S/B), turning with the device so the letters stay pinned to the real world; a
+tapered needle in the theme's primary green; and a **Ka'bah mark riding the needle's
+tip** (`res/drawable/ic_kaaba.xml`, a single monochrome path whose kiswah band and
+door are even-odd holes, so it takes one tint). The mark stays upright at every
+angle — a rotating Ka'bah reads as a broken image, not a landmark. Reference for the
+revision was a third-party qibla screen the product owner supplied; the layout idea
+was taken, the colours were not — the card stays on the app's own two-neutral +
+primary-green palette.
+
+**Distance to the Ka'bah** is new and is computed on-device with
+`Location.distanceBetween` from the same coarse fix the bearing already uses — no
+new API call, no new permission, no network, and it survives offline in DataStore
+next to the bearing (`kiblat_distance_metres`). `KiblatRepository` now speaks in a
+`KiblatDirection(bearingDegrees, distanceMetres)` rather than a bare `Float`.
+
+**The near-Ka'bah case.** Under 3 km the card stops drawing a needle, drops the
+degree readout, centres the Ka'bah on the dial and says "Kompas tidak diperlukan —
+Anda berada di sekitar Masjidil Haram, menghadaplah langsung ke Ka'bah" (wording
+chosen by the product owner from three drafts). This is not decoration: the app deliberately
+truncates the coordinate it sends to myquran to
+two decimals (~1.1 km, `coarseCoordinate`, a privacy measure), so within a few
+kilometres that truncation alone is worth tens of degrees of bearing error. Standing
+in the Haram the honest instruction is to face the Ka'bah you can see, not an angle
+the app cannot stand behind.
+
+A bearing cached before this change has no stored distance; it is read as
+`Float.MAX_VALUE`, which omits the distance line and leaves that reader's compass
+behaving exactly as before until the next recompute.
+
+**Commands run.** `ktlintFormat`, `ktlintCheck`, `detekt`, `lint`, `assembleDebug`,
+`installDebug`. `ktlintCheck` and `detekt` still fail on five and three findings
+respectively, all pre-existing in other files (`QuranMurottalPlayer`,
+`PrayerTimesWidgetProvider`, `QuranHubViewModel`, `QuranReaderSettingsRepository`,
+`QuranEntryScreen`; `PrayerScheduleRepository`/`Impl`, `AdzanPlaybackService`) and
+none touched by this work — the files changed here are clean under both.
+
+**On-device verification.** Dial, ticks, cardinal letters, tapered needle and the
+Ka'bah at its tip all render on the Jadwal Sholat card in dark theme; recomputing
+produced "± 13.222 km dari Ka'bah" with Indonesian digit grouping; the near-Ka'bah
+layout was exercised by temporarily widening the 3 km threshold, screenshotted, and
+the threshold restored.
+
+**Known limitations.** The emulator pins its GPS to the default Mountain View fix and
+ignored `adb emu geo fix`, so the near-Ka'bah branch was verified by widening the
+threshold rather than by moving the device to Mecca. The live needle motion itself is
+untestable on this emulator image: it has no `TYPE_ROTATION_VECTOR` sensor, so the
+dial sat still with U at the top and the needle showed the absolute bearing — the
+documented no-sensor fallback, which is what the screenshots show. Needle-follows-
+device still wants a check on real hardware.

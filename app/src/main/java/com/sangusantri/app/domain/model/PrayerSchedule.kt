@@ -14,11 +14,25 @@ enum class PrayerName {
     ISYA,
 }
 
+/**
+ * How one row announces itself when its time arrives.
+ *
+ * [ADZAN] plays a bundled recording over a foreground service on the alarm stream; [BAWAAN] posts an
+ * ordinary notification and lets the device's own notification profile decide sound and vibration.
+ */
+enum class PrayerNotificationMode {
+    ADZAN,
+    BAWAAN,
+    NONAKTIF,
+}
+
 data class PrayerTime(
     val name: PrayerName,
     val time: LocalTime,
-    /** Per-prayer reminder flag (handoff §2 — each row's bell toggles independently). */
-    val notificationEnabled: Boolean = name != PrayerName.IMSAK,
+    /** Per-prayer reminder setting (handoff §2 — each row's bell is independent). Imsak starts off:
+     * it is not a prayer, and its recording is the ten-minute tarhim. */
+    val notificationMode: PrayerNotificationMode =
+        if (name == PrayerName.IMSAK) PrayerNotificationMode.NONAKTIF else PrayerNotificationMode.BAWAAN,
 )
 
 /**

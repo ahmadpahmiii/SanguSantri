@@ -38,7 +38,7 @@ constructor(
 ) {
     fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
+                PackageManager.PERMISSION_GRANTED
 
     /**
      * A usable position, preferring whatever is already cached and asking for a fresh fix only when

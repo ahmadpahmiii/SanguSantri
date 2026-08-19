@@ -22,6 +22,16 @@
        foreground media-playback service and its own typed permission on API 34+. -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+  <!-- Adzan alarms. The rest of the app schedules inexactly on purpose (data/reminder/, the widget)
+       and says why; an adzan cannot — `setAndAllowWhileIdle` may hold an alarm for several minutes
+       in Doze, and an adzan minutes after the published time is a wrong one, not a late reminder.
+       USE_EXACT_ALARM is auto-granted and is the API for an app whose core function is announcing
+       times of day; SCHEDULE_EXACT_ALARM covers API 31-32, which predate it and grant it at
+       install. See docs/decisions/0019. -->
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+  <uses-permission
+    android:name="android.permission.SCHEDULE_EXACT_ALARM"
+    android:maxSdkVersion="32" />
 
   <application
     android:name=".SanguSantriApplication"
@@ -64,6 +74,19 @@
         <action android:name="androidx.media3.session.MediaSessionService" />
       </intent-filter>
     </service>
+
+    <!-- Jadwal Sholat's adzan. Not exported, no media session: it plays one to three bundled
+         recordings in order and stops, and offers no browsable library for an external controller
+         to reach. Separate from QuranMurottalService above by design — see the class KDoc. -->
+    <service
+      android:name=".data.prayeralarm.AdzanPlaybackService"
+      android:exported="false"
+      android:foregroundServiceType="mediaPlayback" />
+
+    <!-- The one prayer alarm, re-armed after every firing. System-only broadcast. -->
+    <receiver
+      android:name=".data.prayeralarm.PrayerAlarmReceiver"
+      android:exported="false" />
 
     <!-- Pengingat Amaliyah (0.0.4): both system-only broadcasts, never sent by another app, so
          neither needs to be exported. -->

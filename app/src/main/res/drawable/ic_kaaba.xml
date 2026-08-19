@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  Ka'bah mark for the kiblat needle: the black cube under its kiswah, with the hizam band and the
+  door cut out as holes so the whole glyph takes a single tint and reads at 20dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path
+    android:fillColor="#FF000000"
+    android:fillType="evenOdd"
+    android:pathData="M4,3.6 h16 v2.8 h-16 z M5.6,6.4 h12.8 v14 h-12.8 z M5.6,11 h12.8 v1.6 h-12.8 z M8,16 h3 v4.4 h-3 z" />
+</vector>

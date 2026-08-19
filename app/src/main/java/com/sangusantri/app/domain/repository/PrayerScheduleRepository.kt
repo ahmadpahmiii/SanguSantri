@@ -3,6 +3,7 @@ package com.sangusantri.app.domain.repository
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.PrayerCity
 import com.sangusantri.app.domain.model.PrayerName
+import com.sangusantri.app.domain.model.PrayerNotificationMode
 import com.sangusantri.app.domain.model.PrayerSchedule
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -51,9 +52,18 @@ interface PrayerScheduleRepository {
     /** Fetches [month]'s schedule for the selected city if it is not already cached. */
     suspend fun ensureScheduleCached(month: LocalDate): Result<Unit>
 
-    /** Per-prayer reminder flags — real user state, independent of where the times come from. */
-    suspend fun setNotificationEnabled(
+    /** Per-prayer reminder settings — real user state, independent of where the times come from. */
+    suspend fun setNotificationMode(
         prayer: PrayerName,
-        enabled: Boolean,
+        mode: PrayerNotificationMode,
     )
+
+    /**
+     * One day's schedule read straight out of Room, for the alarm scheduler.
+     *
+     * [observeToday] is keyed on today and cannot answer "what is tomorrow's Imsak?", which is
+     * exactly what has to be armed once the day's last prayer has passed. `null` when no city is
+     * chosen or that day is not cached.
+     */
+    suspend fun scheduleOn(date: LocalDate): PrayerSchedule?
 }

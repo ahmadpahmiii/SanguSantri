@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.content.getSystemService
@@ -20,7 +21,6 @@ import com.sangusantri.app.domain.model.PrayerTime
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
 import com.sangusantri.app.feature.home.formatAsClock
 import com.sangusantri.app.feature.home.labelRes
-import com.sangusantri.app.feature.prayertimes.formatWithHijri
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +30,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.chrono.HijrahDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoField
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -58,11 +62,12 @@ import javax.inject.Inject
  * translucent so the wallpaper reads through, edged so it does not melt into it. Light/dark comes
  * from resource qualifiers (`values-night/widget_colors.xml`), i.e. the *system* setting rather
  * than the app's in-app sun/moon override, for the same reason.
+ *
+ * `TooManyFunctions` is suppressed because a provider has to cover four things at once: the
+ * `AppWidgetProvider` lifecycle, building the panel, the boundary alarm, and the two
+ * `PendingIntent`s. Splitting them across files would only move the same short functions somewhere
+ * else — the equally cohesive `PrayerScheduleRepositoryImpl` carries the same suppression.
  */
-// One widget, but a provider has to cover four things at once: the AppWidgetProvider lifecycle,
-// building the panel, the boundary alarm, and the two PendingIntents. Splitting them across files
-// would only move the same twelve short functions somewhere else — same suppression the equally
-// cohesive PrayerScheduleRepositoryImpl carries.
 @Suppress("TooManyFunctions")
 @AndroidEntryPoint
 open class PrayerTimesWidgetProvider : AppWidgetProvider() {
@@ -102,12 +107,16 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val schedule = repository.observeToday().first()
+                val data =
+                    PanelData(
+                        schedule = repository.observeToday().first(),
+                        cityName = repository.observeSelectedCity().first()?.name,
+                    )
                 val now = LocalTime.now()
                 appWidgetIds.forEach { id ->
-                    appWidgetManager.updateAppWidget(id, buildViews(context, appWidgetManager, id, schedule, now))
+                    appWidgetManager.updateAppWidget(id, buildViews(context, appWidgetManager, id, data, now))
                 }
-                scheduleNextFlip(context, schedule, now)
+                scheduleNextFlip(context, data.schedule, now)
             } finally {
                 pendingResult.finish()
             }
@@ -125,9 +134,10 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
-        schedule: PrayerSchedule?,
+        data: PanelData,
         now: LocalTime,
     ): RemoteViews {
+        val schedule = data.schedule
         val views = RemoteViews(context.packageName, R.layout.widget_prayer_times)
         views.setOnClickPendingIntent(android.R.id.background, openScheduleIntent(context))
 
@@ -135,10 +145,11 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
 
         val prayers = schedule?.times.orEmpty()
         val wide = widthDp >= WIDE_MIN_WIDTH_DP
-        // What goes first as the panel gets shorter: the date line, then the city header. The
-        // schedule itself is what the widget is for, so it is the last thing standing — which is
-        // also what a one-row band on a landscape home screen (~51dp) leaves room for.
-        val showDate = prayers.isNotEmpty() && wide && heightDp >= DATE_LINE_MIN_HEIGHT_DP
+        // The date shares the header line with the city, so it is gated on width, not height: it
+        // needs room beside the city name, and below that the city alone is the more useful half.
+        // The header itself is what goes when the panel gets short — a one-row band on a landscape
+        // home screen (~51dp) has room for the times and nothing else.
+        val showDate = prayers.isNotEmpty() && widthDp >= DATE_MIN_WIDTH_DP
         val showHeader = heightDp >= HEADER_MIN_HEIGHT_DP
 
         views.applyArrangement(
@@ -148,18 +159,38 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
             showHeader = showHeader,
         )
 
+        // The chosen kabupaten/kota, not the app's name — and it comes from the selected city, not
+        // from the schedule, because those two are known at different moments. Picking a city by
+        // location detection selects it the instant detection resolves, while its month is still
+        // being fetched; reading the name off the schedule alone showed "JADWAL SHOLAT" for that
+        // whole window.
         views.setTextViewText(
             R.id.widget_location,
-            schedule?.location?.takeIf { it.isNotBlank() }?.uppercase()
+            (schedule?.location?.takeIf { it.isNotBlank() } ?: data.cityName)?.uppercase()
                 ?: context.getString(R.string.widget_prayer_label).uppercase(),
         )
-        if (prayers.isEmpty()) return views
+        if (prayers.isEmpty()) {
+            views.setTextViewText(
+                R.id.widget_empty,
+                context.getString(
+                    if (data.cityName == null) {
+                        R.string.widget_prayer_empty_message
+                    } else {
+                        R.string.widget_prayer_schedule_pending
+                    },
+                ),
+            )
+            return views
+        }
 
         if (showDate) {
-            // The app's own offline hijri computation, the same line Jadwal Sholat prints — never
-            // the prayer-times service's hijri calendar (ADR 0018).
+            // The app's own offline hijri computation — never the prayer-times service's hijri
+            // calendar (ADR 0018).
             val monthNames = context.resources.getStringArray(R.array.hijri_month_names).toList()
-            views.setTextViewText(R.id.widget_date, LocalDate.now().formatWithHijri(monthNames))
+            views.setTextViewText(
+                R.id.widget_header_date,
+                LocalDate.now().formatCompactWithHijri(monthNames),
+            )
         }
 
         // Imsak belongs to the schedule but is dropped from a cramped strip, exactly as Beranda's
@@ -167,13 +198,27 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         // not fit in that at a legible size. The full list at 2x2 always has room for all six.
         val container = if (wide) R.id.widget_strip else R.id.widget_list
         val next = schedule?.nextAfter(now)?.name
-        prayers
-            .filter { !wide || widthDp >= SIX_COLUMN_MIN_WIDTH_DP || it.name != PrayerName.IMSAK }
-            .forEach { prayer ->
-                views.addView(container, prayerItem(context, prayer, prayer.name == next, wide))
+        val shown =
+            prayers.filter {
+                !wide || widthDp >= SIX_COLUMN_MIN_WIDTH_DP || it.name != PrayerName.IMSAK
             }
+        val sizes = textSizesSp(widthDp, columns = if (wide) shown.size else 1)
+        shown.forEach { prayer ->
+            views.addView(container, prayerItem(context, prayer, prayer.name == next, wide, sizes))
+        }
         return views
     }
+
+    /**
+     * What one render needs from the repository.
+     *
+     * Two reads, not one, because the schedule and the chosen city become known at different
+     * moments — see the header comment in [buildViews].
+     */
+    private data class PanelData(
+        val schedule: PrayerSchedule?,
+        val cityName: String?,
+    )
 
     /**
      * The panel's width and height in dp for the orientation it is actually being shown in.
@@ -216,8 +261,7 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         setViewVisibility(R.id.widget_header, show(showHeader))
         setViewVisibility(R.id.widget_divider_top, show(showHeader))
         setViewVisibility(R.id.widget_empty, show(!hasSchedule))
-        setViewVisibility(R.id.widget_date, show(showDate))
-        setViewVisibility(R.id.widget_divider_middle, show(showDate))
+        setViewVisibility(R.id.widget_header_date, show(showDate))
         setViewVisibility(R.id.widget_list, show(hasSchedule && !wide))
         setViewVisibility(R.id.widget_strip, show(hasSchedule && wide))
         removeAllViews(R.id.widget_list)
@@ -233,15 +277,16 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
      * panel goes unreadable the moment the system flips light/dark before the next re-render. The
      * variant is chosen here; every colour in it is a resource the launcher resolves at inflation.
      *
-     * The *next* prayer is the highlighted one, not the current one. Beranda's block shows both — a
-     * headline for the next and a strip marking the current — and this panel has no headline, so
-     * the highlight is what carries "next".
+     * The *next* prayer is the highlighted one — the entry being counted down to, never the one
+     * that most recently passed. Jadwal Sholat and Beranda mark the same entry, so the three prayer
+     * surfaces always agree on which row is lit.
      */
     private fun prayerItem(
         context: Context,
         prayer: PrayerTime,
         highlighted: Boolean,
         wide: Boolean,
+        sizes: TextSizesSp,
     ): RemoteViews {
         val layout =
             when {
@@ -253,7 +298,56 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         val item = RemoteViews(context.packageName, layout)
         item.setTextViewText(R.id.widget_row_name, context.getString(prayer.name.labelRes()))
         item.setTextViewText(R.id.widget_row_time, prayer.time.formatAsClock())
+        item.setTextViewTextSize(R.id.widget_row_name, TypedValue.COMPLEX_UNIT_SP, sizes.name)
+        item.setTextViewTextSize(R.id.widget_row_time, TypedValue.COMPLEX_UNIT_SP, sizes.time)
         return item
+    }
+
+    /**
+     * Type that grows and shrinks with the space each entry actually gets, rather than one fixed
+     * size that only suits one widget size on one device.
+     *
+     * Pushed in `COMPLEX_UNIT_SP`, so the user's own font-scale setting still applies on top —
+     * shrinking here narrows the range, it never opts the widget out of accessibility sizing. The
+     * floor is what that range is really about: it is set at the smallest size Android's own lint
+     * accepts, so a cramped column truncates or the panel drops a column before the text becomes
+     * unreadable.
+     */
+    private fun textSizesSp(
+        widthDp: Int,
+        columns: Int,
+    ): TextSizesSp {
+        val available = (widthDp - PANEL_PADDING_DP * 2).coerceAtLeast(1)
+        // Shrinks only. Growing the type on a wide panel pushed the strip past the 102dp a 4x1
+        // actually has and clipped the times in half — the band's height is the binding constraint,
+        // and it does not grow with the width.
+        val scale = (available.toFloat() / columns / REFERENCE_COLUMN_DP).coerceIn(0.85f, 1f)
+        return TextSizesSp(
+            name = (BASE_NAME_SP * scale).coerceAtLeast(MIN_NAME_SP),
+            time = (BASE_TIME_SP * scale).coerceAtLeast(MIN_TIME_SP),
+        )
+    }
+
+    private data class TextSizesSp(
+        val name: Float,
+        val time: Float,
+    )
+
+    /**
+     * "Kam, 20 Agu · 7 Rabiul Awal" — the compact twin of `JadwalSholatScreen`'s `formatWithHijri`,
+     * which prints the full "Kamis, 20 Agustus 2026 · 7 Rabiul Awal 1448".
+     *
+     * Same `HijrahDate` computation and the same month-name array; only the presentation is shorter,
+     * because here the date shares one header line with the city name and the full form does not fit
+     * beside it at four cells. The hijri year goes for the same reason — the panel is a glance
+     * surface, and Jadwal Sholat carries the full line.
+     */
+    private fun LocalDate.formatCompactWithHijri(hijriMonthNames: List<String>): String {
+        val hijri = HijrahDate.from(this)
+        val monthName = hijriMonthNames.getOrNull(hijri.get(ChronoField.MONTH_OF_YEAR) - 1).orEmpty()
+        val gregorian =
+            format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.forLanguageTag("id-ID")))
+        return "$gregorian · ${hijri.get(ChronoField.DAY_OF_MONTH)} $monthName"
     }
 
     /**
@@ -357,8 +451,22 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         /** Only a strip this wide can carry Imsak as a sixth column without crowding. */
         private const val SIX_COLUMN_MIN_WIDTH_DP = 300
 
-        /** Below this the date line and its divider are dropped so the strip still fits. */
-        private const val DATE_LINE_MIN_HEIGHT_DP = 120
+        /** Below this the date has no room beside the city name and is dropped. */
+        private const val DATE_MIN_WIDTH_DP = 250
+
+        /** Matches `@dimen/widget_padding`; used only to estimate how much a column really gets. */
+        private const val PANEL_PADDING_DP = 14
+
+        /** The column width the base sizes were drawn for — a six-column strip at four cells. */
+        private const val REFERENCE_COLUMN_DP = 37f
+        private const val BASE_NAME_SP = 11f
+        private const val BASE_TIME_SP = 13f
+
+        /** Floors. The time keeps Android lint's 11sp minimum; the name is allowed one step under
+         * it, because a legible 10sp "Magrib" beats an 11sp "Magr…" and the name is the shorter-
+         * lived of the two. Below this the panel drops a column instead. */
+        private const val MIN_NAME_SP = 10f
+        private const val MIN_TIME_SP = 11f
 
         /** Below this even the city header goes, leaving the bare strip — the only thing that fits
          * a one-row band on a landscape home screen. */

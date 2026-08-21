@@ -9,22 +9,26 @@
   android:layout_weight="1"
   android:gravity="center_horizontal"
   android:orientation="vertical"
-  android:paddingVertical="5dp">
+  android:paddingVertical="@dimen/widget_column_padding_vertical">
 
   <TextView
     android:id="@+id/widget_row_name"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:ellipsize="end"
+    android:gravity="center_horizontal"
     android:maxLines="1"
     android:textColor="@color/widget_dim"
-    android:textSize="11sp" />
+    android:textSize="@dimen/widget_text_column_name" />
 
   <TextView
     android:id="@+id/widget_row_time"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="2dp"
+    android:layout_marginTop="@dimen/widget_column_time_spacing"
+    android:ellipsize="end"
+    android:gravity="center_horizontal"
     android:maxLines="1"
     android:textColor="@color/widget_strong"
-    android:textSize="13sp" />
+    android:textSize="@dimen/widget_text_column_time" />
 </LinearLayout>

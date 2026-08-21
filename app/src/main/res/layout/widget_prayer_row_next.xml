@@ -14,7 +14,7 @@
   android:background="@drawable/widget_highlight"
   android:gravity="center_vertical"
   android:orientation="horizontal"
-  android:paddingHorizontal="6dp">
+  android:paddingHorizontal="@dimen/widget_row_padding_horizontal">
 
   <TextView
     android:id="@+id/widget_row_name"
@@ -24,7 +24,7 @@
     android:ellipsize="end"
     android:maxLines="1"
     android:textColor="@color/widget_accent"
-    android:textSize="12sp" />
+    android:textSize="@dimen/widget_text_row" />
 
   <TextView
     android:id="@+id/widget_row_time"
@@ -32,5 +32,5 @@
     android:layout_height="wrap_content"
     android:maxLines="1"
     android:textColor="@color/widget_accent"
-    android:textSize="12sp" />
+    android:textSize="@dimen/widget_text_row" />
 </LinearLayout>

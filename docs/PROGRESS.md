@@ -7137,3 +7137,353 @@ untestable on this emulator image: it has no `TYPE_ROTATION_VECTOR` sensor, so t
 dial sat still with U at the top and the needle showed the absolute bearing — the
 documented no-sensor fallback, which is what the screenshots show. Needle-follows-
 device still wants a check on real hardware.
+
+## Widget + prayer-surface highlight revision (2026-08-20)
+
+Amends the widget section above; a concurrent session's Kiblat work sits between them.
+
+**The highlight is now the *next* entry everywhere.** Jadwal Sholat and Beranda were marking
+`currentAt` — the entry that most recently *passed* — while their own countdown named the next one,
+so from Isya until the small hours both sat on Isya while the header counted down to Imsak. Both now
+use `nextAfter`, matching the widget, which was already correct. `PrayerRow`'s `isCurrent` parameter
+is renamed `isNext`; `PrayerSchedule.currentAt` stays, still used by `elapsedFractionAt` for the
+progress line, which genuinely does need the previous entry.
+
+**Beranda's strip lists all six.** It reserved that row for the five prayers, so once the highlight
+became the next entry there was nothing to mark between Isya and tomorrow's Imsak — a nightly blank
+rather than an edge case. Imsak is now the sixth column (product-owner decision, superseding the
+handoff note).
+
+**The date moved into the header line.** The standalone accent date band and its divider are gone;
+`widget_header_date` shares the header row with the city, gated on width (>=250dp) rather than
+height. That is what leaves a 4x1 room to carry a date at all. It prints `formatCompactWithHijri` —
+"Kam, 20 Agu · 7 Rabiul Awal", the same `HijrahDate` computation and month-name array as
+`JadwalSholatScreen.formatWithHijri`, only shorter, with the hijri year dropped because the full
+form does not fit beside a city name at four cells.
+
+**The horizontal entry is 4x1 only.** `maxResizeHeight` is 110dp, so it cannot be dragged into the
+two-row shape the vertical entry already covers (product-owner decision: 4x2 horizontal is not
+supported).
+
+**Type scales with the space a column actually gets.** `textSizesSp` derives a scale from the
+reported width and column count and pushes it with `setTextViewTextSize` in `COMPLEX_UNIT_SP`, so
+the user's own font-scale setting still applies on top. It **shrinks only** — growing the type on a
+wide panel pushed the strip past the ~102dp a 4x1 has and clipped the times in half, because the
+band's height is the binding constraint and does not grow with its width. Floors are 10sp for the
+name and 11sp (lint's minimum) for the time; the strip columns are bounded-width with
+`ellipsize="end"` so a cramped column truncates rather than clipping mid-glyph.
+
+**The header shows the chosen kabupaten/kota, not the app name.** It now reads the selected city
+directly instead of taking the name off the schedule, because the two are known at different
+moments: choosing a city *by location detection* selects it the instant detection resolves, while
+its month is still being fetched — and for that whole window the widget showed "JADWAL SHOLAT". The
+empty body text also splits: "Pilih kota Anda" only when no city is chosen, "Jadwal belum tersedia"
+when one is chosen but its schedule has not landed.
+
+**Validation.** `lintDebug`, `assembleDebug`, `installDebug` pass. `detekt` reports 3 issues, all in
+a concurrent session's new `data/prayeralarm/` work, none in these files. `ktlintCheck` reports one
+issue in `BerandaPrayerBlock.kt` (a `Modifier` chain at line 73) that is **not** in this change's
+diff, plus the standing pre-existing drift; the widget package is clean.
+
+**On-device.** Verified at 01:2x, when the next entry is tomorrow's Imsak: Jadwal Sholat tints the
+Imsak row (previously Isya), Beranda's headline and its now-six-column strip both mark Imsak, and
+both widgets mark Imsak. The 4x1 band renders the single-line header and all six columns without
+clipping.
+
+**Open.** The header date currently uses the muted variant; the green-accent variant is a one-line
+colour swap on `widget_header_date` in `widget_prayer_times.xml`.
+
+## Widget tap re-derives city and qibla from the current location (2026-08-21)
+
+**What changed.** Tapping either home-screen widget now re-runs location detection: it re-selects
+the kabupaten/kota the schedule is keyed by, fetches that city's month, re-arms the next adzan, and
+recomputes the qibla bearing — so a reader who has travelled sees where they are, not where they
+were.
+
+**New:** `domain/usecase/RefreshFromCurrentLocationUseCase.kt` (the whole sequence),
+`feature/prayertimes/LocationRefreshViewModel.kt` (holds the request for the navigation host).
+**Modified:** `navigation/SanguSantriNavHost.kt`.
+
+**The trigger sits above the destination, not on Jadwal Sholat.** It was first wired into
+`JadwalSholatRoute`, which was wrong twice over: the refresh has to happen whether the tap lands on
+Jadwal Sholat or the reader is already on Beranda, and a flag carried on the `JadwalSholat` `NavKey`
+could not re-fire — tapping the widget while that screen was already open produced a key equal to
+the one on the stack, so nothing pushed and nothing re-triggered (observed on device: the second tap
+did nothing). It now runs in `SanguSantriNavHost`'s deep-link effect, against a nav-host-scoped
+`LocationRefreshViewModel`. Neither screen has to ask for it: both render the same Room flows, so
+whichever is showing updates as soon as the use case writes.
+
+**Permission is never requested here.** The effect only refreshes when `ACCESS_COARSE_LOCATION` is
+*already* granted. A widget tap is not consent — the reader tapped a schedule, not a prompt — and
+location stays optional and on-demand (`docs/security/PRIVACY.md`). Without it the app opens exactly
+as before, with Jadwal Sholat's "Izinkan lokasi" unchanged and still one tap away.
+
+**A wrong city is still worse than no change.** The use case calls
+`PrayerScheduleRepository.detectAndSelectCity` unchanged, so an ambiguous or unmatched place leaves
+the chosen city alone rather than guessing one and showing another city's prayer times. A failed
+bearing is silent by design: the cached one stays accurate to well under a degree across a city, and
+this refresh is automatic — it must not push an error over a detection that just succeeded.
+
+**Also fixed:** `TopLevelBackStack.add` appends unconditionally, so the deep-link effect now checks
+the top of the stack before pushing `JadwalSholat`; previously a widget tap taken while that screen
+was open stacked a second identical key on the same tab.
+
+**Validation.** `lintDebug`, `assembleDebug`, `installDebug` pass; `detekt` and `ktlintCheck` report
+nothing in any file this change touches (the standing pre-existing ktlint drift is unchanged).
+
+**On-device.** Permission revoked: the widget tap opens Jadwal Sholat with no permission dialog and
+nothing refreshed. Permission granted: the tap moved Arah Kiblat from "Belum tersedia" to
+"19° · ± 13.222 km dari Ka'bah" — Mountain View to Mecca, i.e. the bearing was recomputed from the
+device's own coarse fix. The city correctly stayed KOTA MALANG, because the emulator's Mountain View
+position matches no Indonesian kabupaten and detection returns `Unavailable` rather than guessing.
+
+**Not verified.** The city actually *changing* on detection. This emulator reports a fixed Mountain
+View fix and ignores `adb emu geo fix` (`OK`, but `dumpsys location` still shows 37.42,-122.08), so
+the `CityDetection.Detected` branch — the one a traveller inside Indonesia would hit — was never
+exercised. It wants a check on real hardware, or on an image whose location can actually be mocked.
+
+## Mushaf page swiping, both directions, and audio-driven page turns (2026-08-21)
+
+**Status:** Implemented and verified on a booted emulator. Arab-saja (mushaf) mode no
+longer scrolls a whole surah as one column: each Kemenag `halaman` is a page of a
+`HorizontalPager`, laid out right-to-left so a **left-to-right swipe turns to the next
+page**, the way a printed mushaf is turned. A page taller than the screen — which any
+generous Arabic size produces — scrolls vertically first; the swipe is only what
+crosses the page boundary. Arab+terjemahan is unchanged and stays one continuous ayat
+list, by product-owner decision: page breaks mid-translation read badly.
+
+**Both surah boundaries are swipeable.** The pager carries a leading previous-surah
+page and a trailing next-surah page, each present only when that surah exists, so the
+first page can be swiped backwards out of exactly as the last can be swiped forwards
+out of. Al-Fatihah has no leading page and An-Nas no trailing one. Settling on either
+navigates; no tap is needed in either direction.
+
+Forward opens the next surah at its beginning. Backwards lands on the previous surah's
+**last** page, not its first (product-owner decision): the target ayat handed to the
+reopened reader is that surah's final ayat, so it opens on whichever halaman holds it —
+the page physically adjacent to the one just swiped from. Backwards swiping therefore
+stays continuous instead of jumping to the far side of a long surah. Both directions
+reuse the reader's cross-surah entry point, renamed `onFollowAudioToSurah` →
+`onOpenSurah` now that continuous reading *and* continuous listening arrive through it,
+and keep its `replaceLast`: an hour of either must not leave a surah-deep back stack.
+
+**Murottal now turns the page.** Following the recitation was one pixel-accurate scroll
+of a single list; it is now split at the natural seam — the pager turns to the page
+holding the recited ayah, and that page scrolls itself to the ayah within it. Each page
+owns its `LazyListState` and its own measured ayah offset rather than the screen
+hoisting one of each, which structurally removes the bug the old single hoisted offset
+had to guard against by hand (the previous ayah's measurement being applied to the next
+page, scrolling clean past its opening ayah). The measurement path through
+`QuranFlowingPageText` is unchanged, so follow-scrolling stays accurate at any Arabic
+size.
+
+**Index discipline.** Two pager pages that are not scripture means "pager page 3" and
+"the surah's 3rd halaman" are different numbers. Every conversion goes through one
+`QuranMushafPaging` rather than being re-derived per call site, and `rememberPagerState`
+opens at `firstRealPage` — opening at 0 would settle straight onto the leading page and
+navigate the reader back out of the surah it was just asked to open.
+
+**Fixed in passing:** the title bar's "Halaman N · Juz N" was read from the ayat the
+reader was *opened* on, so it reported the opening page forever. Vertical scrolling hid
+this; turning pages made it plainly wrong. It now follows the tracked reading position
+in both modes.
+
+**Created:** `feature/quran/reader/QuranMushafPaging.kt`. **Modified:**
+`feature/quran/reader/QuranReaderScreen.kt`, `QuranReaderPosition.kt`,
+`QuranReaderUiState.kt` (`nextSurahName`, `previousSurahName`, `previousSurahLastAyat`),
+`QuranReaderViewModel.kt`, `navigation/SanguSantriNavHost.kt`, `res/values/strings.xml`.
+
+**No Room change, no content change.** No Arabic, translation or metadata is touched —
+presentation only, and pages come from the existing `halaman` grouping the reader
+already had.
+
+**One bug found and fixed during verification.** The title bar ran exactly one page
+ahead of the page strip (strip "HAL 2", title "Halaman 3"). Visible-position tracking
+was still indexing `pages` with the raw pager index instead of the content index,
+because `ktlintFormat` had already wrapped that expression across several lines and the
+edit meant to update it silently did not match. Both agree on every page now.
+
+**Validation.** `ktlintFormat`, `lint`, `assembleDebug`, `installDebug` pass. `detekt`
+reports 4 issues, all in in-progress prayer-times/adzan files untouched by this work
+(`JadwalSholatViewModel` and `PrayerScheduleRepository` TooManyFunctions,
+`PrayerScheduleRepositoryImpl.scheduleOn` and `AdzanPlaybackService.onStartCommand`
+ReturnCount). `ktlintCheck` fails on two pre-existing `no-consecutive-comments`
+violations in `data/audio/QuranMurottalPlayer.kt` and `feature/quran/hub/
+QuranHubViewModel.kt`, both present in `HEAD`. `ktlintFormat` again re-indented ~52
+unrelated files with the `standard:indent` drift recorded above; that collateral was
+reverted file-by-file after confirming each diff was whitespace-only. Per the temporary
+implementation-pass constraints no tests were added and `testDebugUnitTest` was not run.
+
+**On-device verification** (emulator-5554). Forward: one left-to-right swipe past
+Al-Fatihah's single page opened Al-Baqarah at Halaman 2; further swipes advanced HAL 2 →
+3 → 4 with the title bar tracking; page 4 confirmed taller than the viewport and
+vertically scrollable. Backwards: Al-Baqarah opened at its own first page rather than the
+leading page; right-to-left from there opened Al-Fatihah at HAL 1; a further backwards
+swipe at Al-Fatihah correctly did nothing. Ali 'Imran opened at HAL 50 and one backwards
+swipe landed on Al-Baqarah **HAL 49**, its last page; backwards continued 49 → 48 → 47
+and three forward swipes returned across the boundary into Ali 'Imran HAL 50. Audio:
+"Putar dari ayat ini" on ayat 20 (last on page 4) auto-turned the reader to HAL 5, lit
+the "MENGIKUTI AUDIO" flag, and scrolled within page 5 to the recited ayah as the mini
+player reached Al-Baqarah : 26.
+
+### Follow-up: page turns made crisp (2026-08-21)
+
+Page turning felt slow to the product owner. Measured rather than guessed: a frame captured
+mid-drag showed the incoming page **already fully rendered**, and `gfxinfo` over four swipes
+reported no frame above 18ms — so composition and text layout were not the bottleneck and
+pre-composing neighbours (`beyondViewportPageCount`) would have bought nothing.
+
+The delay was the settle. `HorizontalPager` defaults to `spring(Spring.StiffnessMediumLow)`,
+which keeps drifting after the thumb lifts — correct for a scrolling carousel, wrong for a
+page that should land. Replaced with a fixed `tween(180ms, FastOutSlowInEasing)` via
+`PagerDefaults.flingBehavior`, gated on `ValueAnimator.areAnimatorsEnabled()` like the
+display-mode crossfade. Verified: ~240ms after a flick the pager is fully settled on the next
+halaman with the title bar already in sync.
+
+### Follow-up: surah boundaries open instantly, with nothing shown (2026-08-21)
+
+Product-owner decision: crossing a surah boundary must be as immediate as the system allows,
+with no intermediate panel and no animation. Three changes, and the two boundary strings
+(`quran_reader_next_surah_label`, `quran_reader_previous_surah_label`) are deleted.
+
+* **The boundary pages draw nothing.** They still exist — they are what gives the pager
+  somewhere to move at each end of the surah — but render no content at all. Anything drawn
+  there would only be a panel flashing past on the way out.
+* **Navigation fires at the halfway point, not after the settle.** The trigger moved from
+  `settledPage` to `currentPage`, which flips as soon as the drag passes the point the pager
+  would snap from anyway. The surah swap therefore starts during the gesture rather than after
+  the 180ms settle finishes, and it cannot misfire: below halfway the pager snaps back and
+  `currentPage` never changes.
+* **The reader destination has no `NavDisplay` transition.** Per-entry metadata
+  (`transitionSpec`/`popTransitionSpec`/`predictivePopTransitionSpec` set to
+  `EnterTransition.None togetherWith ExitTransition.None`) rather than changing the app-wide
+  default, so only the Quran reader is affected. Without it NavDisplay played a screen
+  animation on top of a page turn that had already visually completed.
+
+Verified on emulator-5554: from Ali 'Imran HAL 50 a backwards swipe showed a blank incoming
+area mid-drag — no label — and landed on Al-Baqarah HAL 49.
+
+### Follow-up: juz/halaman moves into the title bar (2026-08-21)
+
+The `JUZ 30 · HAL 587` strip printed inside the page under the basmalah is removed
+(`QuranMushafJuzStrip` deleted, `quran_reader_mushaf_strip` deleted). It duplicated what the
+title bar already said and interrupted the run-up from the basmalah into the Arabic — a detail
+the reader glances at, not something to place in the reading column.
+
+The title bar is now **one line** sharing the row with the back icon: surah name, then juz and
+halaman in muted small text. `quran_reader_position` changed from `Halaman %1$d • Juz %2$d` to
+the shorter `Juz %1$d · Hal %2$d` (argument order swapped at the call site) so the line fits;
+the surah name takes `weight(1f, fill = false)` and ellipsises, because the page number is the
+part that changes.
+
+**Motion.** Both movements are eased rather than snapped, without becoming animation-heavy: the
+page settle is `tween(220ms, FastOutSlowInEasing)` (up from 180ms), and the bar's juz/halaman
+crossfades over 180ms instead of ticking over abruptly against a page that slides. Both honour
+`ValueAnimator.areAnimatorsEnabled()`. This does not touch the surah-boundary path, which stays
+immediate and animation-free by the previous decision.
+
+**"Mengikuti audio" moved with the strip** rather than being dropped: it is now a small tinted
+`GraphicEq` icon in the title bar's actions while the open surah is the one being recited.
+
+`chromeVisible` no longer reaches the page composables — with the strip gone the only thing it
+controlled was the title bar — so it was removed from `QuranArabOnlyPages`, `QuranMushafPage`,
+`QuranReaderContent` and `QuranReaderBody`, and the mushaf page's text-item index no longer
+depends on it. The tap-to-toggle-chrome gesture itself is unchanged.
+
+Verified on emulator-5554: title bar reads `← Al-Infitar  Juz 30 · Hal 587` on one line with no
+strip anywhere in the view hierarchy, and swiping advanced it 587 → 587 (crossing into
+Al-Mutaffifin, which begins on the same halaman) → 588 → 589.
+
+### Follow-up: the surah boundary shows the real adjacent page (2026-08-21)
+
+The previous pass made boundary crossing "instant" by navigating as soon as the drag passed
+halfway. That was the wrong trade and the product owner felt it as a glitch — correctly: the
+destination swapped while the thumb was still on the glass, so the screen hard-cut mid-gesture.
+No easing can smooth a cut.
+
+Fixed by making the crossing an ordinary page turn rather than a navigation event. The reader
+now loads the adjacent surah's touching page — the previous surah's **last**, the next surah's
+**first** — and draws it at the pager boundary as real content, surah-start header included so
+it looks exactly as it will once the reader opens there. Navigation moved back to `settledPage`:
+the reader is already looking at its destination while swiping, so waiting for the settle costs
+nothing visible, and both directions now open on that page's own first ayat
+(`QuranBoundaryPage.targetAyat`) so the surah opens showing the very page already on screen.
+
+`QuranReaderUiState.Content` drops `nextSurahName`/`previousSurahName`/`previousSurahLastAyat`
+for `nextBoundaryPage`/`previousBoundaryPage` (`QuranBoundaryPage`), which also carry what the
+pager needs to know a boundary exists at all. The ViewModel gained a `neighbourVerses` flow —
+guarded so surah 0 and 115 are never queried — combined alongside `roomData`. A surah short
+enough to fit one page shows its header when approached from behind too, because that page is
+also its first. Boundary pages never highlight a recited ayah or follow audio: they belong to
+another surah.
+
+Verified on emulator-5554: mid-drag forward out of Al-Fatihah shows Al-Baqarah's actual first
+page sliding in — alif-lam-mim, ayat markers, and the tail of its "286 AYAT" header — with the
+title bar still reading Al-Fatihah until the settle, after which it reads Juz 1 · Hal 2.
+Backwards is symmetric: Al-Fatihah's real page slides in from the right and lands on Hal 1.
+
+### Follow-up: two white-blink causes on surah crossings (2026-08-21)
+
+Reported as a white blink on swiping, in both light and dark mode. The screen recordings could
+not be decoded here — no ffmpeg, and the browser pane throttles a hidden page so video seeks and
+playback never complete, so no frame was ever actually read. The two causes below were found by
+inspection instead; both fire exactly when a swipe crosses a surah, and both are theme-independent.
+
+* **A skeleton flashed on every surah change.** Crossing a boundary builds a new ViewModel, whose
+  state starts at `QuranReaderUiState.Loading` before Room answers — which it does in a few
+  milliseconds. `QuranReaderLoadingState` was painted immediately, so each crossing flashed a screen
+  of placeholder blocks: `QuranSurface` is near-white in light mode and a lighter block in dark, a
+  blink either way. Now held back `LOADING_SKELETON_DELAY_MILLIS` (300ms), so a fast read draws
+  nothing and only a genuinely slow one reports itself.
+* **Backwards crossings opened on the wrong end of the surah.** The pager opened at
+  `firstRealPage` and `QuranReaderSynchronizePosition` then scrolled to the target, so swiping back
+  into Al-Baqarah showed its page 2 before snapping to page 49. `rememberPagerState` now takes its
+  `initialPage` from the page holding `targetAyat`, so the surah opens on the intended page with
+  nothing to correct. It still never resolves to pager index 0, which with a leading boundary page
+  would settle onto that page and navigate straight back out.
+
+Verified on emulator-5554: Ali 'Imran opens at Juz 3 · Hal 50 and one backwards swipe lands on
+Al-Baqarah Juz 3 · Hal 49 directly; Al-Baqarah backwards lands on Al-Fatihah Hal 1.
+
+**Confirmed by the product owner:** the blink happens only when a swipe crosses into a different
+surah, never inside one. Two further causes were then found, both specific to that crossing.
+
+### Follow-up: the surah crossing stops rebuilding the screen (2026-08-21)
+
+Crossing a boundary builds a whole new reader — new ViewModel, new screen state — and everything
+that reader kept to itself was being discarded mid-read. Three fixes, all so a crossing changes the
+page and nothing else:
+
+* **The pager was shifting by one page.** `mushafPaging()` derived `leadingPages` from whether the
+  neighbouring surah's verses had *arrived from Room*. The frame after a crossing has none, so there
+  was no leading page and every real page sat one index lower; when Room answered a moment later the
+  leading page appeared and moved the whole pager by one, landing on a different page than the one
+  being read. It now derives from which surahs *exist*, which cannot change while a surah is open.
+  The boundary page is blank until its verses load, which nobody can see — reaching it takes a
+  swipe.
+* **The first frame had no content.** A new ViewModel starts with nothing and waits for Room,
+  leaving
+  at least one frame with no page drawn — the blink itself, and why deleting the loading skeleton
+  was
+  not enough: it left a blank frame in the skeleton's place. The reader being left behind has
+  already
+  loaded the surah being entered, because it draws its neighbours' boundary pages, so that work is
+  now kept in `QuranReaderContinuity` and used as the new reader's initial state. Room replaces it
+  moments later with identical content.
+* **A hidden title bar reappeared on the swipe that crossed** — reported by the product owner.
+  `chromeVisible` was screen-local, so a fresh screen started it visible again; the bar popping back
+  also shifted the page beneath it. Mushaf immersion is a decision about how someone wants to read,
+  not about the surah open when they made it, so it moved into `QuranReaderContinuity` too.
+
+Verified on emulator-5554: with the header hidden, crossing from Ali 'Imran Hal 50 into Al-Baqarah
+Hal 49 leaves it hidden, and tapping restores it reading Juz 3 · Hal 49 · Al-Baqarah.
+
+**Created:** `feature/quran/reader/QuranReaderContinuity.kt`.
+
+**Known limitations.** Reading-position tracking in mushaf mode stays page-precise rather
+than ayat-precise, unchanged from before. Rendering the adjacent pages means the reader holds
+the neighbouring surahs' verses in memory as well as its own — Room-local and modest, but it is
+two extra surahs rather than one page each; worth revisiting only if a long surah pair shows up
+in profiling. Returning to a page composes it at its top
+rather than restoring where it was scrolled to, which matches how a mushaf page is picked
+up again.

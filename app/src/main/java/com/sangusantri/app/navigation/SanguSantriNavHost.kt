@@ -1,5 +1,10 @@
 package com.sangusantri.app.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -13,7 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -40,6 +48,7 @@ import com.sangusantri.app.feature.nahwuquiz.NahwuQuizPackagesRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizResultRoute
 import com.sangusantri.app.feature.nahwuquiz.NahwuQuizSessionRoute
 import com.sangusantri.app.feature.prayertimes.JadwalSholatRoute
+import com.sangusantri.app.feature.prayertimes.LocationRefreshViewModel
 import com.sangusantri.app.feature.quran.QuranEntryRoute
 import com.sangusantri.app.feature.quran.hub.QuranHubRoute
 import com.sangusantri.app.feature.quran.reader.QuranReaderRoute
@@ -206,6 +215,9 @@ fun SanguSantriNavHost(
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
 
+    val context = LocalContext.current
+    val locationRefreshViewModel: LocationRefreshViewModel = hiltViewModel()
+
     // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
     // reading-mode gate directly, on top of whatever the user was already doing — never replaces
     // the current tab's own back stack, matching how every other content selection navigates.
@@ -219,10 +231,25 @@ fun SanguSantriNavHost(
     // Same rule for the home-screen widget's tap: push [JadwalSholat] on top of wherever the user
     // was, never reset a tab's back stack.
     LaunchedEffect(openPrayerSchedule) {
-        if (openPrayerSchedule) {
+        if (!openPrayerSchedule) return@LaunchedEffect
+        // Guarded: `add` appends unconditionally, so tapping the widget while Jadwal Sholat is
+        // already showing would stack a second, identical key on the same tab.
+        if (topLevelBackStack.backStack.lastOrNull() != JadwalSholat) {
             topLevelBackStack.add(JadwalSholat)
-            onPrayerScheduleConsumed()
         }
+        // Above the destination on purpose: the tap must re-derive the city and the bearing whether
+        // the reader lands on Jadwal Sholat or is already sitting on Beranda. Both render the same
+        // Room flows, so neither has to run it — whichever is on screen updates when this writes.
+        //
+        // Only when the permission is already granted. A widget tap must never raise a permission
+        // dialog: the reader tapped a schedule, not a consent prompt, and location stays optional
+        // and on-demand (`docs/security/PRIVACY.md`). Without it the app opens exactly as before,
+        // with Jadwal Sholat's "Izinkan lokasi" still one tap away.
+        val granted =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+        if (granted) locationRefreshViewModel.refresh()
+        onPrayerScheduleConsumed()
     }
 
     // No Quran-specific containerColor any more: one app-wide theme means the Quran background and
@@ -484,7 +511,17 @@ private fun EntryProviderScope<NavKey>.quranEntries(topLevelBackStack: TopLevelB
             onOpenSource = { topLevelBackStack.add(QuranSource) },
         )
     }
-    entry<QuranReader> { key ->
+    // No transition on the reader: mushaf page turns swap the whole destination when reading crosses
+    // a surah boundary, and NavDisplay's default enter/exit would play a screen animation on top of a
+    // gesture that has already visually completed. The surah must simply be there.
+    entry<QuranReader>(
+        metadata =
+            NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
+                NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
+                NavDisplay.predictivePopTransitionSpec { _: Int ->
+                    EnterTransition.None togetherWith ExitTransition.None
+                },
+    ) { key ->
         QuranReaderRoute(
             surahNumber = key.surahNumber,
             targetAyat = key.targetAyat,

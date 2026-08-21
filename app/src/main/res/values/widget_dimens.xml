@@ -1,5 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?><!--
+  Every dp and sp the widget layouts use. They live here rather than inline so the panel can be
+  retuned in one place, and so a device bucket (values-sw600dp, values-land) can override the whole
+  set without touching six layouts.
+
+  Text sizes are the *pre-scale* defaults. PrayerTimesWidgetProvider pushes its own
+  COMPLEX_UNIT_SP sizes onto the row/column TextViews at render time, shrinking them to fit the
+  cells the launcher actually gave the panel; these are what a full-size cell renders at.
+-->
 <resources>
+  <!-- Panel -->
+
   <!-- Overridden on API 31+ by the platform's own widget radius, so the panel lines up with every
        other widget on the home screen. -->
   <dimen name="widget_corner_radius">24dp</dimen>
@@ -7,4 +17,32 @@
        the highlight into a stadium. 8dp keeps it a chip. -->
   <dimen name="widget_highlight_radius">8dp</dimen>
   <dimen name="widget_padding">14dp</dimen>
+  <!-- Hairline edge: what stops the translucent panel melting into a busy wallpaper. -->
+  <dimen name="widget_border_width">1dp</dimen>
+  <dimen name="widget_divider_height">1dp</dimen>
+
+  <!-- Header: location icon, city, optional date -->
+  <dimen name="widget_header_icon_size">12dp</dimen>
+  <dimen name="widget_header_icon_gap">5dp</dimen>
+  <dimen name="widget_header_date_gap">8dp</dimen>
+  <dimen name="widget_divider_spacing">7dp</dimen>
+
+  <!-- Gap between the divider and whichever content block is shown -->
+  <dimen name="widget_list_spacing">4dp</dimen>
+  <dimen name="widget_strip_spacing">5dp</dimen>
+  <dimen name="widget_empty_spacing">8dp</dimen>
+
+  <!-- Narrow (2x2) list row: name left, time right -->
+  <dimen name="widget_row_padding_horizontal">6dp</dimen>
+
+  <!-- Wide strip column: name over time -->
+  <dimen name="widget_column_padding_vertical">3dp</dimen>
+  <dimen name="widget_column_time_spacing">1dp</dimen>
+
+  <!-- Type -->
+  <dimen name="widget_text_label">11sp</dimen>
+  <dimen name="widget_text_empty">14sp</dimen>
+  <dimen name="widget_text_row">12sp</dimen>
+  <dimen name="widget_text_column_name">11sp</dimen>
+  <dimen name="widget_text_column_time">13sp</dimen>
 </resources>

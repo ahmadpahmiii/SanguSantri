@@ -25,6 +25,7 @@ internal fun QuranReaderSynchronizePosition(
     mushafPagerState: PagerState,
     translationListState: LazyListState,
 ): Boolean {
+    val paging = state.mushafPaging()
     var previousMode by remember(state.surahNumber) { mutableStateOf<QuranDisplayMode?>(null) }
     LaunchedEffect(state.surahNumber, targetAyat, state.displayMode) {
         val oldMode = previousMode
@@ -37,7 +38,7 @@ internal fun QuranReaderSynchronizePosition(
         when (state.displayMode) {
             QuranDisplayMode.ARAB_ONLY -> {
                 val page = state.pages.indexOfFirst { page -> page.any { it.ayatNumber == anchorAyat } }
-                if (page >= 0) mushafPagerState.scrollToPage(page)
+                if (page >= 0) mushafPagerState.scrollToPage(paging.pagerIndex(page))
             }
 
             QuranDisplayMode.ARAB_TRANSLATION -> {
@@ -61,7 +62,7 @@ private fun restoredOrRequestedAyat(
 ): Int? {
     val restored =
         when (state.displayMode) {
-            QuranDisplayMode.ARAB_ONLY -> mushafPagerState.currentPage > 0
+            QuranDisplayMode.ARAB_ONLY -> state.mushafPaging().contentIndex(mushafPagerState.currentPage) > 0
             QuranDisplayMode.ARAB_TRANSLATION ->
                 translationListState.firstVisibleItemIndex > 0 ||
                     translationListState.firstVisibleItemScrollOffset > 0
@@ -82,7 +83,7 @@ private fun visibleAyatForMode(
     when (mode) {
         QuranDisplayMode.ARAB_ONLY ->
             state.pages
-                .getOrNull(mushafPagerState.currentPage)
+                .getOrNull(state.mushafPaging().contentIndex(mushafPagerState.currentPage))
                 ?.firstOrNull()
                 ?.ayatNumber
 

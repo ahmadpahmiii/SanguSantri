@@ -32,8 +32,8 @@
 
     <ImageView
       android:id="@+id/widget_location_icon"
-      android:layout_width="12dp"
-      android:layout_height="12dp"
+        android:layout_width="@dimen/widget_header_icon_size"
+        android:layout_height="@dimen/widget_header_icon_size"
       android:contentDescription="@null"
       android:src="@drawable/ic_widget_location" />
 
@@ -41,44 +41,34 @@
       android:id="@+id/widget_location"
       android:layout_width="0dp"
       android:layout_height="wrap_content"
-      android:layout_marginStart="5dp"
+        android:layout_marginStart="@dimen/widget_header_icon_gap"
       android:layout_weight="1"
       android:ellipsize="end"
       android:letterSpacing="0.04"
       android:maxLines="1"
       android:textColor="@color/widget_dim"
-      android:textSize="11sp" />
+        android:textSize="@dimen/widget_text_label" />
+
+    <!-- Shares the header line with the location rather than taking a band of its own, which is
+         what leaves a 4x1 room for a date at all. Never weighted: the location truncates first. -->
+    <TextView
+        android:id="@+id/widget_header_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/widget_header_date_gap"
+        android:maxLines="1"
+        android:textColor="@color/widget_dim"
+        android:textSize="@dimen/widget_text_label"
+        android:visibility="gone" />
   </LinearLayout>
 
   <ImageView
     android:id="@+id/widget_divider_top"
     android:layout_width="match_parent"
-    android:layout_height="1dp"
-    android:layout_marginTop="9dp"
+      android:layout_height="@dimen/widget_divider_height"
+      android:layout_marginTop="@dimen/widget_divider_spacing"
     android:background="@color/widget_divider"
     android:contentDescription="@null" />
-
-  <TextView
-    android:id="@+id/widget_date"
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_marginTop="9dp"
-    android:layout_weight="1"
-    android:ellipsize="end"
-    android:gravity="center_vertical"
-    android:maxLines="1"
-    android:textColor="@color/widget_accent"
-    android:textSize="11sp"
-    android:visibility="gone" />
-
-  <ImageView
-    android:id="@+id/widget_divider_middle"
-    android:layout_width="match_parent"
-    android:layout_height="1dp"
-    android:layout_marginTop="9dp"
-    android:background="@color/widget_divider"
-    android:contentDescription="@null"
-    android:visibility="gone" />
 
   <!-- Exactly one of these two is populated and shown; both stay empty until the provider fills
        them, which is also what the empty state renders as. -->
@@ -86,7 +76,7 @@
     android:id="@+id/widget_list"
     android:layout_width="match_parent"
     android:layout_height="0dp"
-    android:layout_marginTop="4dp"
+      android:layout_marginTop="@dimen/widget_list_spacing"
     android:layout_weight="1"
     android:orientation="vertical"
     android:visibility="gone" />
@@ -95,7 +85,7 @@
     android:id="@+id/widget_strip"
     android:layout_width="match_parent"
     android:layout_height="0dp"
-    android:layout_marginTop="8dp"
+      android:layout_marginTop="@dimen/widget_strip_spacing"
     android:layout_weight="1"
     android:baselineAligned="false"
     android:gravity="center_vertical"
@@ -107,13 +97,13 @@
     android:id="@+id/widget_empty"
     android:layout_width="match_parent"
     android:layout_height="0dp"
-    android:layout_marginTop="8dp"
+      android:layout_marginTop="@dimen/widget_empty_spacing"
     android:layout_weight="1"
     android:ellipsize="end"
     android:gravity="center_vertical"
     android:maxLines="2"
     android:text="@string/widget_prayer_empty_message"
     android:textColor="@color/widget_strong"
-    android:textSize="14sp"
+      android:textSize="@dimen/widget_text_empty"
     android:visibility="gone" />
 </LinearLayout>

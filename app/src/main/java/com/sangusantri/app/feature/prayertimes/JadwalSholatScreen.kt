@@ -432,15 +432,19 @@ private fun PrayerRows(
     onNotificationIconClick: (PrayerName) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val current = schedule.currentAt(now)?.name
+    // The one being counted down to, not the one that most recently passed. The countdown block
+    // above this list already names the next entry, and marking the previous one left the two
+    // disagreeing all evening — after Isya the tint sat on Isya while the header counted down to
+    // Imsak.
+    val next = schedule.nextAfter(now)?.name
     Column(modifier = modifier.fillMaxWidth()) {
         schedule.times.forEach { prayer ->
             PrayerRow(
                 prayer = prayer,
-                isCurrent = prayer.name == current,
+                isNext = prayer.name == next,
                 onNotificationIconClick = { onNotificationIconClick(prayer.name) },
             )
-            if (prayer.name != current) {
+            if (prayer.name != next) {
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(horizontal = ScreenPadding),
@@ -451,16 +455,16 @@ private fun PrayerRows(
 }
 
 @Suppress("LongMethod")
-/** The current prayer's row is a filled tint block bled into the screen padding (handoff §2) — the
+/** The next prayer's row is a filled tint block bled into the screen padding (handoff §2) — the
  * one place on this screen where a row leaves the hairline rhythm. */
 @Composable
 private fun PrayerRow(
     prayer: PrayerTime,
-    isCurrent: Boolean,
+    isNext: Boolean,
     onNotificationIconClick: () -> Unit,
 ) {
     val rowModifier =
-        if (isCurrent) {
+        if (isNext) {
             Modifier
                 .padding(horizontal = ScreenPadding - CurrentRowBleed)
                 .clip(RoundedCornerShape(CurrentRowCornerRadius))
@@ -470,11 +474,11 @@ private fun PrayerRow(
             Modifier.padding(horizontal = ScreenPadding)
         }
     val leadingColor =
-        if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+        if (isNext) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     val nameColor =
-        if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onBackground
-    val rowFontSize = if (isCurrent) 16.sp else 15.sp
-    val rowWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal
+        if (isNext) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onBackground
+    val rowFontSize = if (isNext) 16.sp else 15.sp
+    val rowWeight = if (isNext) FontWeight.SemiBold else FontWeight.Normal
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier =
@@ -863,9 +867,12 @@ private fun BoxScope.CompassDial(
     dialColor: Color,
     outlineColor: Color,
 ) {
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .rotate(rotationDegrees)) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .rotate(rotationDegrees),
+    ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centre = Offset(size.width / 2f, size.height / 2f)
             val rim = size.minDimension / 2f - DialInset.toPx()
@@ -935,9 +942,10 @@ private fun BoxScope.CardinalLabel(
         style = MaterialTheme.typography.labelSmall,
         fontWeight = if (emphasised) FontWeight.Medium else FontWeight.Normal,
         color = if (emphasised) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .align(alignment)
-            .padding(CardinalInset),
+        modifier =
+            Modifier
+                .align(alignment)
+                .padding(CardinalInset),
     )
 }
 

@@ -482,12 +482,10 @@
   <string name="quran_reader_unavailable_description">Data mungkin telah diperbarui. Kembali ke daftar surah untuk memilih posisi lain.</string>
   <string name="quran_reader_unavailable_action">Kembali ke daftar</string>
   <string name="quran_reader_unavailable_subtitle">Posisi tidak tersedia</string>
-  <string name="quran_reader_position">Halaman %1$d • Juz %2$d</string>
+  <string name="quran_reader_position">Juz %1$d · Hal %2$d</string>
   <string name="quran_reader_juz">Juz %1$d</string>
   <string name="quran_reader_ayat_context">Ayat %1$d · Juz %2$d · Halaman %3$d</string>
   <string name="quran_reader_ayat_origin">Juz %1$d · Hal %2$d</string>
-  <string name="quran_reader_mushaf_strip">Juz %1$d · Hal %2$d</string>
-  <string name="quran_reader_next_surah_label">Lanjut ke surah berikutnya</string>
   <string name="quran_action_position_info_format">Juz %1$d • Halaman %2$d</string>
 
   <!-- Murottal per ayat & unduhan audio (design handoff turn 4, `4a`–`4f`). Audio comes from
@@ -723,4 +721,7 @@
   <string name="widget_prayer_wide_label">Jadwal Sholat (lebar)</string>
   <string name="widget_prayer_wide_description">Enam waktu sholat dalam satu baris</string>
   <string name="widget_prayer_empty_message">Pilih kota Anda</string>
+  <!-- A city is chosen but its month has not been fetched yet — never "pick a city", which would
+       send the user to do something they have already done. -->
+  <string name="widget_prayer_schedule_pending">Jadwal belum tersedia</string>
 </resources>

@@ -126,7 +126,7 @@ fun BerandaPrayerBlock(
         )
         PrayerTimesRow(
             schedule = schedule,
-            highlighted = schedule.currentAt(now)?.name ?: next.name,
+            highlighted = next.name,
             modifier = Modifier.padding(top = SanguSantriSpacing.default),
         )
         Row(
@@ -173,8 +173,14 @@ private fun PrayerProgressLine(
     }
 }
 
-/** The five daily prayers across the panel's foot; Imsak is part of the schedule but not of this
- * row, which the design reserves for the prayers themselves. */
+/**
+ * All six entries across the panel's foot.
+ *
+ * Imsak is listed here even though it is not a prayer, because [highlighted] is the entry being
+ * counted down to — the same one the headline above names — and between Isya and tomorrow's Imsak
+ * that entry *is* Imsak. Reserving this row for the five prayers alone, as it was, left the whole
+ * night with nothing marked.
+ */
 @Composable
 private fun PrayerTimesRow(
     schedule: PrayerSchedule,
@@ -196,28 +202,26 @@ private fun PrayerTimesRow(
                     .fillMaxWidth()
                     .padding(top = SanguSantriSpacing.medium),
         ) {
-            schedule.times
-                .filter { it.name != PrayerName.IMSAK }
-                .forEach { prayer ->
-                    val isCurrent = prayer.name == highlighted
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = prayer.name.label().uppercase(),
-                            fontSize = 10.sp,
-                            letterSpacing = 0.5.sp,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isCurrent) BlockColors.strong else BlockColors.dim,
-                            textAlign = TextAlign.Center,
-                        )
-                        Text(
-                            text = prayer.time.formatAsClock(),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isCurrent) BlockColors.strong else BlockColors.dim,
-                            modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
-                        )
-                    }
+            schedule.times.forEach { prayer ->
+                val isNext = prayer.name == highlighted
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = prayer.name.label().uppercase(),
+                        fontSize = 10.sp,
+                        letterSpacing = 0.5.sp,
+                        fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isNext) BlockColors.strong else BlockColors.dim,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = prayer.time.formatAsClock(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isNext) BlockColors.strong else BlockColors.dim,
+                        modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
+                    )
                 }
+            }
         }
     }
 }

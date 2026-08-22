@@ -6,8 +6,14 @@ package com.sangusantri.app.domain.model
  * reader mode (PRD 8.2: "the chosen mode may be saved as the default later") and the Guided Reader
  * progression preference (FR-005) — both preferences, so both belong in the same DataStore-backed
  * model rather than a second store. Persisted in DataStore, never Room (PRD 11.2).
+ *
+ * [arabicFont] is the one field here not sourced from this model's own DataStore key: it mirrors
+ * [QuranReaderSettings.themeMode] — a single app-wide font choice, shared with the Quran reader
+ * through [com.sangusantri.app.domain.repository.QuranReaderSettingsRepository], read into this
+ * model by the owning ViewModel rather than duplicated into a second store.
  */
 data class ReaderSettings(
+    val arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     val arabicFontSizeSp: Int = DEFAULT_ARABIC_FONT_SIZE_SP,
     val translationFontSizeSp: Int = DEFAULT_TRANSLATION_FONT_SIZE_SP,
     val arabicLineSpacingMultiplier: Float = DEFAULT_ARABIC_LINE_SPACING,

@@ -13,19 +13,18 @@ import androidx.compose.ui.unit.sp
  * cannot be deferred past the first reader screen"). Font size and line spacing are
  * user-configurable (FR-008), so these are functions rather than fixed [Typography] entries.
  *
- * [FontFamily.Default] is used deliberately: no approved Arabic typeface exists yet (a Blocking
- * Production Input, PRD 13.9/25.8) and downloading one at runtime is prohibited. Android already
- * substitutes a script-appropriate system fallback font for Arabic glyphs under a Latin primary
- * family, so harakat render correctly without bundling anything — this is a documented interim
- * choice, not a final answer; replace with the approved typeface once supplied.
+ * [fontFamily] defaults to [FontFamily.Default] for call sites with no user-selectable typeface
+ * (e.g. the Sholawat reader). The Full Reader and Guided Reader pass the shared
+ * `ReaderSettings.arabicFont` typeface instead — see `QuranArabicFont.toFontFamily()`.
  */
 fun arabicTextStyle(
     fontSizeSp: Int,
     lineSpacingMultiplier: Float,
     fontWeight: FontWeight = FontWeight.Normal,
+    fontFamily: FontFamily = FontFamily.Default,
 ): TextStyle =
     TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = fontFamily,
         fontWeight = fontWeight,
         fontSize = fontSizeSp.sp,
         lineHeight = lineSpacingMultiplier.em,

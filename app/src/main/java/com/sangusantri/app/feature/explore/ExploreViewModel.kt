@@ -3,7 +3,6 @@ package com.sangusantri.app.feature.explore
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.repository.ContentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,7 +26,7 @@ constructor(
     // Amaliyah — see docs/product/SHOLAWAT_PRD.md.
     private val amaliyahContent =
         contentRepository.observeActiveContent().map { items ->
-            items.filterNot { it.category == Content.SHOLAWAT_CATEGORY }
+            items.filterNot { it.isSholawat }
         }
 
     val uiState: StateFlow<ExploreUiState> =

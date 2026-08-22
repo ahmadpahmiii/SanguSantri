@@ -9,7 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 /** Quran reader appearance settings (QUR-FR-015), DataStore-backed like the existing
  * [ReaderSettingsRepository] but a separate preference namespace — Quran is a distinct feature
- * with its own default values and ranges, not a shared setting with the amaliyah reader. */
+ * with its own default values and ranges. [setArabicFont] and `setThemeMode` are the two
+ * exceptions: both are app-wide settings that also apply to the amaliyah reader
+ * ([com.sangusantri.app.domain.model.ReaderSettings]), read from here rather than duplicated into
+ * a second store. */
+
 // One setter per independently persisted preference is this interface's whole job; the murottal
 // additions follow the same one-key-one-method shape as the type and theme settings above.
 @Suppress("TooManyFunctions")

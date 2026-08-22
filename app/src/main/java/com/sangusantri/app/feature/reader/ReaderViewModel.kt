@@ -22,6 +22,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -67,8 +68,18 @@ class ReaderViewModel
         private val _switchToGuidedReady = MutableStateFlow(false)
         val switchToGuidedReady: StateFlow<Boolean> = _switchToGuidedReady
 
+    /** [ReaderSettings] with `arabicFont` overlaid from the shared [quranReaderSettingsRepository] —
+     * see that field's KDoc for why it isn't part of [readerSettingsRepository]'s own store. */
+    private val mergedSettings: Flow<ReaderSettings> =
+        combine(
+            readerSettingsRepository.observe(),
+            quranReaderSettingsRepository.observe(),
+        ) { settings, quranSettings ->
+            settings.copy(arabicFont = quranSettings.arabicFont)
+        }
+
         val uiState: StateFlow<ReaderUiState> =
-            combine(contentState, readerSettingsRepository.observe()) { content, settings ->
+            combine(contentState, mergedSettings) { content, settings ->
                 content.toUiState(settings)
             }.stateIn(
                 scope = viewModelScope,
@@ -81,7 +92,7 @@ class ReaderViewModel
          * real persisted values, even while content is loading, unavailable, or errored.
          */
         val settings: StateFlow<ReaderSettings> =
-            readerSettingsRepository.observe().stateIn(
+            mergedSettings.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
                 initialValue = ReaderSettings(),
@@ -99,6 +110,9 @@ class ReaderViewModel
             when (action) {
                 is ReaderUiAction.SetThemeMode ->
                     viewModelScope.launch { quranReaderSettingsRepository.setThemeMode(action.mode) }
+
+                is ReaderUiAction.SetArabicFont ->
+                    viewModelScope.launch { quranReaderSettingsRepository.setArabicFont(action.font) }
 
                 is ReaderUiAction.ScrollPositionChanged -> {
                     lastKnownItemIndex = action.itemIndex

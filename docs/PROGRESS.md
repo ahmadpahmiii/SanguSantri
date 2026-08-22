@@ -7553,3 +7553,91 @@ session and opens another as it passes into the next surah; long single-sitting 
 appear as several sessions rather than one. Reading-position tracking is page-precise in mushaf
 mode,
 as before.
+
+## Location refresh on every cold start (2026-08-21)
+
+**What changed.** `RefreshFromCurrentLocationUseCase` now also runs once on every cold start, not
+only on a widget tap: open the app after travelling and the schedule is already for where you are
+before you look at it.
+
+**Modified:** `domain/usecase/RefreshFromCurrentLocationUseCase.kt`,
+`feature/prayertimes/LocationRefreshViewModel.kt`, `navigation/SanguSantriNavHost.kt`.
+
+**"Once per cold start" is what being a ViewModel buys.** The refresh fires from
+`LocationRefreshViewModel.init`, and that view model is scoped to the navigation host — i.e. the
+Activity — so it survives rotation and a turn of the phone does not spend another location read and
+month fetch. A cold start *from* the widget would otherwise fire twice, `init` and the tap's own
+call landing within a frame of each other, so `refresh()` ignores a call while one is already in
+flight.
+
+**The permission check moved into the use case.** It is a precondition of the whole sequence and
+neither caller — a cold start, a widget tap — is an occasion to raise a dialog, so the use case
+checks `ACCESS_COARSE_LOCATION` itself and no-ops without it. That also let the nav host drop its
+own copy of the check. Jadwal Sholat's "Izinkan lokasi" remains the one place that asks. The use
+case now returns `Unit`: it used to return the `CityDetection` for a caller that might react to
+`Ambiguous`, and no caller ever did.
+
+**A cold start does not necessarily hit the network.** `ensureScheduleCached` fetches only when the
+month for the resolved city is not already cached, so the API call happens when the city actually
+changes (or the month rolls over) rather than on every launch. The qibla bearing is recomputed each
+time; it is one small call.
+
+**On-device — a real phone, which is what this needed.** Verified on a physical Samsung SM-A525F in
+Jakarta with the city set to Aceh beforehand: a cold start switched it to **KOTA JAKARTA** and
+showed Jakarta's times (Imsak 04.31, Subuh 04.41, Zuhur 11.59, Asar 15.19, Magrib 17.57, Isya
+19.07), with Zuhur marked as next. This is the `CityDetection.Detected` branch that no emulator run
+could reach — the previous entry records it as unverified precisely because the emulator reports a
+fixed Mountain View position and ignores `adb emu geo fix`. Jakarta resolved unambiguously, so the
+`Ambiguous` path (plausible for a place whose geocoder name spans several kabupaten/kota) is still
+unexercised.
+
+**Not verified.** The qibla bearing on that device — testing stopped before the Kiblat card was
+read.
+
+**Validation.** `lintDebug`, `assembleDebug`, `installDebug` pass. `detekt` reports 3 issues, all in
+a concurrent session's `data/prayeralarm/` and prayer-repository work, none in these files.
+`ktlintCheck` is clean for both new files, which are hand-formatted to the indent style ktlint 1.5.0
+wants for a multi-line `@Inject constructor` header — note that is *not* the style most of the tree
+currently carries, which is the standing pre-existing drift.
+
+## Amaliyah reader gains the Quran Arabic-font picker as one shared, app-wide setting (2026-08-22)
+
+**What changed.** `QuranArabicFont` (LPMQ Isep Misbah / Amiri Quran) is no longer a Quran-only
+preference: the Full Reader and Guided Reader (Tahlil, Istighosah) now render their Arabic text in
+the same user-selected typeface, and their settings sheet gained a "Font Arab" picker — the exact
+same `QuranFontSelector` component the "Tampilan Al-Qur'an" screen already used, not a second one.
+There is still exactly one preference value and one DataStore key
+(`QuranReaderSettingsRepository.setArabicFont`/`quran_arabic_font`); nothing new was added to
+persist it.
+
+**Modified:** `domain/model/ReaderSettings.kt` (new `arabicFont` field, sourced from the shared
+store, not this model's own DataStore key), `domain/model/QuranReaderSettings.kt` and
+`domain/repository/QuranReaderSettingsRepository.kt` (doc updates — the "not shared with the
+amaliyah reader" claim is no longer true, `arabicFont` now follows the same
+already-established app-wide-setting-in-a-Quran-namespaced-store pattern as `themeMode`),
+`core/designsystem/theme/ReaderTypography.kt` (`arabicTextStyle` takes an optional `fontFamily`,
+default `FontFamily.Default` for callers with no typeface choice, e.g. Sholawat), `feature/reader/
+components/ReaderArabicContentBlocks.kt` (passes `settings.arabicFont.toFontFamily()`),
+`feature/reader/ReaderUiAction.kt` (new `SetArabicFont` action), `feature/reader/ReaderViewModel.kt`
+and `feature/guidedreader/GuidedReaderViewModel.kt` (both already injected
+`QuranReaderSettingsRepository` for the shared `themeMode` toggle; now also merge its `arabicFont`
+into the `ReaderSettings` flow each exposes), `feature/reader/settings/ReaderSettingsSheet.kt`
+(renders `QuranFontSelector`, `sampleText = null` since this sheet has no live-preview ayat text).
+
+**Scope, by explicit product decision.** Only the font *typeface* is shared — not the whole
+"Tampilan Al-Qur'an" screen. Amaliyah's own arabic/translation size, line spacing, translation
+toggle, and progression-mode controls are unchanged; the Quran screen's brightness, display mode,
+murottal, and storage controls are not surfaced from Amaliyah. `QuranFontSelector` is `internal`
+(module-wide visibility, single Gradle module), so reuse needed no visibility change, and its
+colors already resolve against the app-wide theme (`QuranColorScheme.kt`), not a hardcoded dark
+palette, so it renders correctly in Amaliyah's light/dark reader too.
+
+**Not touched:** the Sholawat reader (`SholawatVerseBlock`) — it renders Arabic text via the same
+`arabicTextStyle` function but was out of the requested scope ("Istighosah atau Tahlil" only) and
+has no settings sheet to add a picker to.
+
+**Validation.** `ktlintCheck`, `detekt`, `lintDebug`, `assembleDebug` all pass for the changed
+files. The repository already fails `ktlintCheck`/`detekt` at `HEAD` on ~3,600 pre-existing
+violations across unrelated files (confirmed by running the checks against an untouched checkout);
+none of the changed files above are among them. Not manually verified on-device or emulator this
+pass — no build/emulator run was available in this session.

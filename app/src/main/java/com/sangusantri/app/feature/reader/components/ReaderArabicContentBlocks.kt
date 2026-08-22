@@ -21,6 +21,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.arabicTextStyle
 import com.sangusantri.app.core.designsystem.theme.translationTextStyle
 import com.sangusantri.app.domain.model.ReaderSettings
+import com.sangusantri.app.feature.quran.toFontFamily
 
 @Composable
 internal fun ReaderArabicBlock(
@@ -31,7 +32,12 @@ internal fun ReaderArabicBlock(
         SelectionContainer {
             Text(
                 text = text,
-                style = arabicTextStyle(settings.arabicFontSizeSp, settings.arabicLineSpacingMultiplier),
+                style =
+                    arabicTextStyle(
+                        fontSizeSp = settings.arabicFontSizeSp,
+                        lineSpacingMultiplier = settings.arabicLineSpacingMultiplier,
+                        fontFamily = settings.arabicFont.toFontFamily(),
+                    ),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -249,6 +249,16 @@ private class FakeQuranRepository : QuranRepository {
 
     override fun observeJuzStarts(): Flow<List<QuranVerse>> = flowOf(emptyList())
 
+    override fun observeVersesByPageRange(
+        fromPage: Int,
+        toPage: Int,
+    ): Flow<List<QuranVerse>> = flowOf(emptyList())
+
+    override suspend fun pageOf(
+        surahNumber: Int,
+        ayatNumber: Int,
+    ): Int? = null
+
     override fun observeBookmarks(): Flow<List<QuranBookmark>> = flowOf(emptyList())
 
     override fun observeIsBookmarked(

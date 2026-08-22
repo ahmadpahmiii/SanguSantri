@@ -13,6 +13,10 @@ package com.sangusantri.app.domain.model
  * until then. It is app-wide since the Beranda/Quran revamp, not a Quran-only surface setting; it
  * still lives here because this is where it is already persisted, and a separate key would need a
  * migration to buy nothing.
+ *
+ * [arabicFont] is the same kind of exception: a single app-wide typeface choice, also applied to
+ * the amaliyah reader's Arabic text (`ReaderSettings.arabicFont`), read from this store rather
+ * than duplicated into a second one.
  */
 data class QuranReaderSettings(
     val displayMode: QuranDisplayMode = QuranDisplayMode.ARAB_ONLY,

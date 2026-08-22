@@ -1,12 +1,20 @@
 package com.sangusantri.app.feature.reader
 
 import com.sangusantri.app.domain.model.AppThemeMode
+import com.sangusantri.app.domain.model.QuranArabicFont
 
 /** User-initiated intents the Full Reader sends to [ReaderViewModel] (unidirectional data flow). */
 sealed interface ReaderUiAction {
     /** The app-wide theme toggle now lives in this reader's top bar too (revamp handoff §7). */
     data class SetThemeMode(
         val mode: AppThemeMode,
+    ) : ReaderUiAction
+
+    /** Arabic typeface — shared with the Quran reader via
+     * [com.sangusantri.app.domain.repository.QuranReaderSettingsRepository], the same
+     * app-wide-setting-in-a-Quran-namespaced-store pattern [SetThemeMode] already uses. */
+    data class SetArabicFont(
+        val font: QuranArabicFont,
     ) : ReaderUiAction
 
     data class ScrollPositionChanged(

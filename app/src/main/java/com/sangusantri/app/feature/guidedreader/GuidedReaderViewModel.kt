@@ -14,6 +14,7 @@ import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.repository.ActivityRepository
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
+import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.feature.reader.ReaderUiAction
@@ -24,6 +25,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +46,7 @@ import kotlinx.coroutines.launch
  * artificial helper class introduced only to satisfy a lint metric, which `CODING_STANDARD.md`
  * warns against.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = GuidedReaderViewModel.Factory::class)
 class GuidedReaderViewModel
     @AssistedInject
@@ -55,6 +57,7 @@ class GuidedReaderViewModel
         private val readerSettingsRepository: ReaderSettingsRepository,
         private val readingPositionRepository: ReadingPositionRepository,
         private val activityRepository: ActivityRepository,
+        private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
     ) : ViewModel() {
         @AssistedFactory
         interface Factory {
@@ -75,13 +78,23 @@ class GuidedReaderViewModel
         private val _switchToFullReady = MutableStateFlow(false)
         val switchToFullReady: StateFlow<Boolean> = _switchToFullReady
 
+    /** [ReaderSettings] with `arabicFont` overlaid from the shared [quranReaderSettingsRepository] —
+     * mirrors [com.sangusantri.app.feature.reader.ReaderViewModel]'s identical merge. */
+    private val mergedSettings: Flow<ReaderSettings> =
+        combine(
+            readerSettingsRepository.observe(),
+            quranReaderSettingsRepository.observe(),
+        ) { settings, quranSettings ->
+            settings.copy(arabicFont = quranSettings.arabicFont)
+        }
+
         val uiState: StateFlow<GuidedReaderUiState> =
             combine(
                 contentState,
                 stepCounts,
                 currentStepIndex,
                 completedAtEpochMillis,
-                readerSettingsRepository.observe(),
+                mergedSettings,
             ) { content, counts, index, completedAt, settings ->
                 content.toUiState(counts, index, completedAt, settings)
             }.stateIn(
@@ -92,7 +105,7 @@ class GuidedReaderViewModel
 
         /** Observed independently so the shared settings sheet reflects real values even while loading. */
         val settings: StateFlow<ReaderSettings> =
-            readerSettingsRepository.observe().stateIn(
+            mergedSettings.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
                 initialValue = ReaderSettings(),
@@ -147,6 +160,9 @@ class GuidedReaderViewModel
             when (action) {
                 // Dispatched by the Full Reader's top bar, never by the settings sheet this handles.
                 is ReaderUiAction.SetThemeMode -> Unit
+
+                is ReaderUiAction.SetArabicFont ->
+                    viewModelScope.launch { quranReaderSettingsRepository.setArabicFont(action.font) }
 
                 is ReaderUiAction.SetArabicFontSize ->
                     viewModelScope.launch { readerSettingsRepository.setArabicFontSize(action.sp) }

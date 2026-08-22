@@ -1,7 +1,5 @@
 package com.sangusantri.app.navigation
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
@@ -18,9 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.EntryProviderScope
@@ -215,7 +211,6 @@ fun SanguSantriNavHost(
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(Serambi) }
 
-    val context = LocalContext.current
     val locationRefreshViewModel: LocationRefreshViewModel = hiltViewModel()
 
     // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
@@ -241,14 +236,10 @@ fun SanguSantriNavHost(
         // the reader lands on Jadwal Sholat or is already sitting on Beranda. Both render the same
         // Room flows, so neither has to run it — whichever is on screen updates when this writes.
         //
-        // Only when the permission is already granted. A widget tap must never raise a permission
-        // dialog: the reader tapped a schedule, not a consent prompt, and location stays optional
-        // and on-demand (`docs/security/PRIVACY.md`). Without it the app opens exactly as before,
-        // with Jadwal Sholat's "Izinkan lokasi" still one tap away.
-        val granted =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED
-        if (granted) locationRefreshViewModel.refresh()
+        // A cold start already refreshed via the view model's own init; this call is what makes a
+        // tap taken while the app is *already* running refresh again. It no-ops without the
+        // location permission, and never asks for it.
+        locationRefreshViewModel.refresh()
         onPrayerScheduleConsumed()
     }
 

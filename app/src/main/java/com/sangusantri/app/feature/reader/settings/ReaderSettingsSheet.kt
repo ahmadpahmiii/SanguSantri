@@ -35,6 +35,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.ReaderSettings
+import com.sangusantri.app.feature.quran.settings.QuranFontSelector
 import com.sangusantri.app.feature.reader.ReaderUiAction
 import java.util.Locale
 
@@ -47,11 +48,13 @@ private val SheetTopCornerRadius = 28.dp
  * rather than duplicated — [progressionModeControl] is non-null only when opened from the Guided
  * Reader, which adds one extra section for the automatic/manual progression preference (FR-005).
  *
- * Matches the revised design sheet (node `16:89`) exactly: a title + subtitle, three steppers
- * (Arabic font size, translation font size, Arabic line spacing — translation line spacing has no
+ * Matches the revised design sheet (node `16:89`): a title + subtitle, three steppers (Arabic
+ * font size, translation font size, Arabic line spacing — translation line spacing has no
  * dedicated control in the revised design, though the underlying preference and its DataStore
  * field remain unchanged for forward compatibility), the translation toggle, and a single primary
- * "Selesai" button rather than a header close action.
+ * "Selesai" button rather than a header close action. The Arabic typeface picker
+ * ([QuranFontSelector]) was added on top of that design as the app-wide font setting shared with
+ * the Quran reader — same component, same selection, no separate picker maintained here.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,6 +104,11 @@ private fun ReaderSettingsContent(
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
     ) {
         ReaderSettingsHeader(headingFocusRequester)
+        QuranFontSelector(
+            selectedFont = settings.arabicFont,
+            sampleText = null,
+            onFontSelected = { onAction(ReaderUiAction.SetArabicFont(it)) },
+        )
         ReaderSettingsFontSizeControls(settings, onAction)
         ReaderSettingsArabicLineSpacingControl(settings, onAction)
         ReaderSettingsTranslationToggleRow(settings, onAction)

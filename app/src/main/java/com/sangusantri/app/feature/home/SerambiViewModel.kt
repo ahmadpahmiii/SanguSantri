@@ -45,12 +45,12 @@ constructor(
     // it must never appear in `activeContent`, only be counted for `hasSholawatContent`'s gate.
     private val rawActiveContent = contentRepository.observeActiveContent()
     private val activeContent =
-        rawActiveContent.map { items -> items.filterNot { it.category == Content.SHOLAWAT_CATEGORY } }
+        rawActiveContent.map { items -> items.filterNot { it.isSholawat } }
 
     private val baseData: Flow<BaseData> =
         combine(
             activeContent,
-            rawActiveContent.map { items -> items.any { it.category == Content.SHOLAWAT_CATEGORY } },
+            rawActiveContent.map { items -> items.any { it.isSholawat } },
             reminderRepository.observeNearestEnabled(),
             nahwuQuizRepository.observePackageSummaries().map { it.isNotEmpty() },
             nahwuQuizRepository.observeActiveAttempt(),

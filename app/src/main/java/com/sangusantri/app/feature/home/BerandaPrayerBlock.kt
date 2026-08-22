@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Mosque
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,11 +35,18 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.domain.model.PrayerName
 import com.sangusantri.app.domain.model.PrayerSchedule
 import java.time.LocalTime
+import kotlin.math.roundToInt
 
-@Suppress("LongMethod")
+@Suppress("LongMethod", "LongParameterList")
 /**
- * Beranda's strongest element (handoff §1.2): the one dark green panel on the screen, and the entry
- * point to the full schedule and kiblat. The whole surface is tappable.
+ * Beranda's strongest element (handoff §1.2, slimmed in turn 5): the one dark green panel on the
+ * screen, and the entry point to the full schedule and kiblat. The whole surface is tappable.
+ *
+ * **Turn 5 shrank it to make room for the ayah header above.** The "Jadwal lengkap" chip went
+ * because the five-time row right below it already carries that information and the block surface
+ * already opens the schedule; kiblat moved out of the chip row into a pill in the header's
+ * top-right, which is also the only thing in the block that does not open Jadwal Sholat's list.
+ * The `mosque` icon and the chip row itself are gone with them.
  *
  * Rendered only when a schedule exists — Beranda's standing rule that a section with no data is not
  * rendered. Until the user picks their city, or while the first fetch is pending, there is no
@@ -54,6 +59,7 @@ fun BerandaPrayerBlock(
     onOpenSchedule: () -> Unit,
     onOpenKiblat: () -> Unit,
     modifier: Modifier = Modifier,
+    kiblatBearingDegrees: Float? = null,
 ) {
     val next = schedule.nextAfter(now) ?: return
     val border = BlockColors.border
@@ -71,55 +77,58 @@ fun BerandaPrayerBlock(
                     },
                 )
                 .clickable(onClick = onOpenSchedule)
-                .padding(BlockPadding),
+                .padding(horizontal = BlockPaddingHorizontal, vertical = BlockPaddingVertical),
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                text = stringResource(R.string.beranda_prayer_next_label),
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
-                fontWeight = FontWeight.Bold,
-                color = BlockColors.dim,
-            )
-            Icon(
-                imageVector = Icons.Outlined.Mosque,
-                contentDescription = null,
-                tint = BlockColors.dim,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
-            modifier = Modifier.padding(top = SanguSantriSpacing.small),
-        ) {
-            Text(
-                text = next.name.label(),
-                fontSize = PrayerHeadlineSize,
-                fontWeight = FontWeight.Medium,
-                color = BlockColors.strong,
-            )
-            Text(
-                text = next.time.formatAsClock(),
-                fontSize = PrayerHeadlineSize,
-                fontWeight = FontWeight.Light,
-                color = BlockColors.strong,
-            )
-            if (schedule.nextIsTomorrow(now)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.beranda_prayer_tomorrow),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = stringResource(R.string.beranda_prayer_next_label),
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.1.sp),
+                    fontWeight = FontWeight.Bold,
                     color = BlockColors.dim,
                 )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
+                    modifier = Modifier.padding(top = HeadlineTopPadding),
+                ) {
+                    Text(
+                        text = next.name.label(),
+                        fontSize = PrayerHeadlineSize,
+                        fontWeight = FontWeight.Medium,
+                        color = BlockColors.strong,
+                    )
+                    Text(
+                        text = next.time.formatAsClock(),
+                        fontSize = PrayerHeadlineSize,
+                        fontWeight = FontWeight.Light,
+                        color = BlockColors.strong,
+                    )
+                    if (schedule.nextIsTomorrow(now)) {
+                        Text(
+                            text = stringResource(R.string.beranda_prayer_tomorrow),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BlockColors.dim,
+                        )
+                    }
+                }
+                Text(
+                    text = schedule.remainingSummary(now),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BlockColors.text,
+                    modifier = Modifier.padding(top = SummaryTopPadding),
+                )
             }
+            KiblatPill(
+                bearingDegrees = kiblatBearingDegrees,
+                onClick = onOpenKiblat,
+                modifier = Modifier.padding(start = SanguSantriSpacing.small),
+            )
         }
-        Text(
-            text = schedule.remainingSummary(now),
-            style = MaterialTheme.typography.bodySmall,
-            color = BlockColors.text,
-        )
         PrayerProgressLine(
             fraction = schedule.elapsedFractionAt(now),
             modifier = Modifier.padding(top = SanguSantriSpacing.medium),
@@ -127,23 +136,53 @@ fun BerandaPrayerBlock(
         PrayerTimesRow(
             schedule = schedule,
             highlighted = next.name,
-            modifier = Modifier.padding(top = SanguSantriSpacing.default),
+            modifier = Modifier.padding(top = SanguSantriSpacing.medium),
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
-            modifier = Modifier.padding(top = SanguSantriSpacing.default),
-        ) {
-            BlockChip(
-                icon = Icons.Outlined.Schedule,
-                label = stringResource(R.string.beranda_prayer_full_schedule),
-                onClick = onOpenSchedule,
-                modifier = Modifier.weight(1f),
-            )
-            BlockChip(
-                icon = Icons.Outlined.Explore,
-                label = stringResource(R.string.beranda_prayer_kiblat),
-                onClick = onOpenKiblat,
-                modifier = Modifier.weight(1f),
+    }
+}
+
+/**
+ * Handoff turn 5 §2 — kiblat's whole presence on Beranda: the direction, and a tap into the kiblat
+ * section of Jadwal Sholat.
+ *
+ * **The `explore` icon is always here; the bearing is not.** The pill is the only route to kiblat
+ * from this screen, so hiding it until a bearing exists hid the feature from exactly the people who
+ * had not found it yet — and a bearing needs location permission, which most readers have not
+ * granted on first run. With no bearing computed the pill shows the icon alone and opens the kiblat
+ * card, where the compass explains itself and asks. What it must never do is show a number the app
+ * has not computed.
+ */
+@Composable
+private fun KiblatPill(
+    bearingDegrees: Float?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(KiblatPillIconGap),
+        modifier =
+            modifier
+                .height(KiblatPillHeight)
+                .clip(RoundedCornerShape(KiblatPillHeight / 2))
+                .background(BlockColors.chipBackground)
+                .clickable(onClick = onClick)
+                .padding(
+                    horizontal =
+                        if (bearingDegrees == null) KiblatPillIconOnlyPadding else KiblatPillHorizontalPadding,
+                ),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Explore,
+            contentDescription = stringResource(R.string.beranda_prayer_kiblat),
+            tint = BlockColors.chipText,
+            modifier = Modifier.size(KiblatPillIconSize),
+        )
+        if (bearingDegrees != null) {
+            Text(
+                text = stringResource(R.string.beranda_prayer_kiblat_bearing, bearingDegrees.roundToInt()),
+                fontSize = KiblatPillTextSize,
+                color = BlockColors.chipText,
             )
         }
     }
@@ -188,26 +227,16 @@ private fun PrayerTimesRow(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(BlockColors.track),
-        )
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = SanguSantriSpacing.medium),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             schedule.times.forEach { prayer ->
                 val isNext = prayer.name == highlighted
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = prayer.name.label().uppercase(),
-                        fontSize = 10.sp,
+                        fontSize = TimesRowLabelSize,
                         letterSpacing = 0.5.sp,
                         fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal,
                         color = if (isNext) BlockColors.strong else BlockColors.dim,
@@ -215,45 +244,14 @@ private fun PrayerTimesRow(
                     )
                     Text(
                         text = prayer.time.formatAsClock(),
-                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = TimesRowTimeSize,
                         fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal,
                         color = if (isNext) BlockColors.strong else BlockColors.dim,
-                        modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall),
+                        modifier = Modifier.padding(top = SanguSantriSpacing.extraSmall - 1.dp),
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun BlockChip(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.extraSmall, Alignment.CenterHorizontally),
-        modifier =
-            modifier
-                .height(ChipHeight)
-                .clip(RoundedCornerShape(ChipHeight / 2))
-                .background(BlockColors.chipBackground)
-                .clickable(onClick = onClick),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = BlockColors.chipText,
-            modifier = Modifier.size(17.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = BlockColors.chipText,
-        )
     }
 }
 
@@ -296,11 +294,23 @@ private fun PrayerSchedule.remainingSummary(now: LocalTime): String {
 }
 
 private const val MINUTES_PER_HOUR = 60
-private val BlockCornerRadius = 24.dp
-private val BlockPadding = 18.dp
+private val BlockCornerRadius = 20.dp
+private val BlockPaddingVertical = 14.dp
+private val BlockPaddingHorizontal = 15.dp
+private val HeadlineTopPadding = 5.dp
+private val SummaryTopPadding = 2.dp
 private val ProgressLineHeight = 2.dp
-private val ChipHeight = 36.dp
-private val PrayerHeadlineSize = 27.sp
+private val PrayerHeadlineSize = 22.sp
+private val KiblatPillHeight = 32.dp
+private val KiblatPillHorizontalPadding = 12.dp
+
+/** Icon alone wants an even inset, not the text pill's asymmetric one. */
+private val KiblatPillIconOnlyPadding = 8.dp
+private val KiblatPillIconGap = 5.dp
+private val KiblatPillIconSize = 16.dp
+private val KiblatPillTextSize = 12.sp
+private val TimesRowLabelSize = 9.5.sp
+private val TimesRowTimeSize = 12.sp
 
 /**
  * Shown in the block's place while no schedule exists yet.

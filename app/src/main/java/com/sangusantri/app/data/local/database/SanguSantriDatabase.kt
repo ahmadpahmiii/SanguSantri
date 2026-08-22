@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.sangusantri.app.data.local.dao.AmaliyahCompletionEventDao
 import com.sangusantri.app.data.local.dao.AppMetadataDao
+import com.sangusantri.app.data.local.dao.AyatHariIniDao
 import com.sangusantri.app.data.local.dao.ContentDao
 import com.sangusantri.app.data.local.dao.ContentStepDao
 import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
@@ -24,6 +25,7 @@ import com.sangusantri.app.data.local.dao.TasbihHistoryDao
 import com.sangusantri.app.data.local.dao.TasbihSessionDao
 import com.sangusantri.app.data.local.entity.AmaliyahCompletionEventEntity
 import com.sangusantri.app.data.local.entity.AppMetadataEntity
+import com.sangusantri.app.data.local.entity.AyatHariIniEntity
 import com.sangusantri.app.data.local.entity.ContentEntity
 import com.sangusantri.app.data.local.entity.ContentStepEntity
 import com.sangusantri.app.data.local.entity.GuidedReadingSessionEntity
@@ -85,6 +87,12 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * Panduan mode. A column-type change, not additive, and it follows the same standing
  * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4–6: no production
  * installs to protect, bundled amaliyah content bootstraps itself again, and the catalog re-syncs.
+ *
+ * Version 8 adds `ayat_hari_ini` — the editorially published ayat-of-the-day schedule, which
+ * replaced a selector that computed the day's ayat from the date itself
+ * (`docs/product/AYAT_HARI_INI.md`). Additive, and on the same standing destructive-fallback
+ * policy: the table refills from the CMS on the next launch, and it holds references only, so
+ * nothing dropped here is content the app cannot fetch again.
  */
 @Database(
     entities = [
@@ -109,14 +117,17 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         QuranReadingSessionEntity::class,
         PrayerCityEntity::class,
         PrayerScheduleDayEntity::class,
+        AyatHariIniEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.
 @Suppress("TooManyFunctions")
 abstract class SanguSantriDatabase : RoomDatabase() {
     abstract fun appMetadataDao(): AppMetadataDao
+
+    abstract fun ayatHariIniDao(): AyatHariIniDao
 
     abstract fun contentDao(): ContentDao
 

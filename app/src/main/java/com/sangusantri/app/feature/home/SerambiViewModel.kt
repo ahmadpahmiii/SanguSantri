@@ -3,11 +3,15 @@ package com.sangusantri.app.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.AppThemeMode
+import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.PrayerSchedule
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.Reminder
+import com.sangusantri.app.domain.repository.AyatHariIniRepository
 import com.sangusantri.app.domain.repository.ContentRepository
+import com.sangusantri.app.domain.repository.KiblatRepository
 import com.sangusantri.app.domain.repository.NahwuQuizRepository
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -28,7 +33,15 @@ import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
 
-/** Builds Beranda exclusively from local repositories; Room remains the source of truth. */
+/**
+ * Builds Beranda exclusively from local repositories; Room remains the source of truth.
+ *
+ * `LongParameterList` is suppressed because Beranda is the one screen that shows something from
+ * nearly every part of the app — content, reminders, quiz, prayer times, the Quran dataset, the
+ * qibla bearing, settings — and each of those is a repository it must read. Grouping them behind a
+ * façade would add an indirection that exists only to satisfy a count.
+ */
+@Suppress("LongParameterList")
 @HiltViewModel
 class SerambiViewModel
 @Inject
@@ -38,6 +51,8 @@ constructor(
     nahwuQuizRepository: NahwuQuizRepository,
     private val prayerScheduleRepository: PrayerScheduleRepository,
     private val settingsRepository: QuranReaderSettingsRepository,
+    private val ayatHariIniRepository: AyatHariIniRepository,
+    kiblatRepository: KiblatRepository,
     private val resumeCoordinator: SerambiResumeCoordinator,
 ) : ViewModel() {
     // Sholawat (0.0.8) deliberately has its own list + reader (feature/sholawat), not the
@@ -68,13 +83,30 @@ constructor(
             }
         }
 
+    /**
+     * The page header's values: the ayat of the day, the qibla bearing, and the Arabic typeface the
+     * ayah renders in.
+     *
+     * The ayat rides the same minute tick as the countdown rather than a ticker of its own —
+     * `distinctUntilChanged` on the *date* means Room is read once a day, at the midnight rollover,
+     * not once a minute. That rollover is also what re-reads the schedule after [refreshAyatHariIni]
+     * has fetched a new window.
+     */
+    private val headerData: Flow<HeaderData> =
+        combine(
+            clock.map { LocalDate.now() }.distinctUntilChanged().map { ayatHariIniRepository.forDate(it) },
+            kiblatRepository.observeDirection().map { it?.bearingDegrees },
+            settingsRepository.observe().map { it.arabicFont }.distinctUntilChanged(),
+        ) { ayat, bearing, arabicFont -> HeaderData(ayat, bearing, arabicFont) }
+
     val uiState: StateFlow<SerambiUiState> =
         combine(
             baseData,
             resumeCoordinator.observe(activeContent),
             prayerScheduleRepository.observeToday(),
             clock,
-        ) { base, resumeItem, prayerSchedule: PrayerSchedule?, now ->
+            headerData,
+        ) { base, resumeItem, prayerSchedule: PrayerSchedule?, now, header ->
             SerambiUiState.Loaded(
                 items = base.items,
                 nearestReminder = base.nearestReminder,
@@ -84,12 +116,31 @@ constructor(
                 resumeItem = resumeItem,
                 prayerSchedule = prayerSchedule,
                 now = now,
+                ayatHariIni = header.ayatHariIni,
+                kiblatBearingDegrees = header.kiblatBearingDegrees,
+                arabicFont = header.arabicFont,
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = SerambiUiState.Loading,
         )
+
+    init {
+        refreshAyatHariIni()
+    }
+
+    /**
+     * Asks the CMS for the published schedule, once per Beranda.
+     *
+     * Offline-first: this is a refresh, not a load. Beranda has already rendered from Room by the
+     * time it returns, and a failure is silent by design — the reader keeps the cached schedule and
+     * there is nothing for them to act on. The request itself is skipped entirely when Room already
+     * holds today's entry, so the common case costs no network at all.
+     */
+    private fun refreshAyatHariIni() {
+        viewModelScope.launch { ayatHariIniRepository.sync() }
+    }
 
     fun dismissResume(fingerprint: String) {
         viewModelScope.launch { resumeCoordinator.dismiss(fingerprint) }
@@ -131,6 +182,12 @@ constructor(
             _detectingCity.value = false
         }
     }
+
+    private data class HeaderData(
+        val ayatHariIni: AyatHariIni?,
+        val kiblatBearingDegrees: Float?,
+        val arabicFont: QuranArabicFont,
+    )
 
     private data class BaseData(
         val items: List<Content>,

@@ -147,6 +147,37 @@ every document for every task.
   logic.
 * Before adding a class, search the repository for an existing equivalent.
 
+### Room schema changes — destructive by policy (standing rule)
+
+Local Room data is disposable for the whole MVP. Any schema change — new
+table, dropped table, new/renamed/retyped/nullability-changed column, changed
+index or primary key — is handled by wiping the database, never by a
+migration.
+
+* Never write a `Migration` class or a migration chain, and never add one to
+  the builder. `DatabaseModule` keeps
+  `fallbackToDestructiveMigration(dropAllTables = true)` — that single line is
+  the entire migration policy (upgrade *and* downgrade).
+* **Always bump `version` in `@Database` in the same commit as any entity
+  change.** This is the only step that can still crash users: Room compares a
+  schema hash on open and throws *"Room cannot verify the data integrity"* on a
+  changed-but-unbumped schema, and destructive fallback does **not** rescue
+  that. Bumping is what turns the crash into a silent wipe.
+* Keep `exportSchema = true` and commit the generated `app/schemas/*.json` for
+  the new version — it is the cheap diff that shows what actually changed.
+* Add a short paragraph to the `SanguSantriDatabase` KDoc version log saying
+  what the version adds and what users lose.
+* Say plainly in the final response that all Room-backed local data is dropped:
+  bundled amaliyah content bootstraps again and the CMS catalog re-syncs, but
+  downloaded Quran text/tafsir and Quran bookmarks, tasbih history, amaliyah
+  progress and completion events, reminders, and quiz attempts are gone.
+* Data that must survive a wipe does not belong in Room — downloaded murottal
+  audio already lives as files under `filesDir/murottal/` for exactly this
+  reason. Follow that pattern rather than reaching for a migration.
+
+Revisit this rule only when there is a real production install base worth
+protecting; until then a migration chain is unrequested work.
+
 ## Content safety — absolute, no phase exception
 
 Claude must not:
@@ -208,11 +239,6 @@ work (`docs/design/DESIGN_HANDOFF.md`, Phases A–E) and are not a permanent
 change to engineering standards. Remove this section once that
 implementation initiative concludes or the user says otherwise.
 
-* Do not create Room migration classes or a migration chain. The product
-  owner explicitly accepts `fallbackToDestructiveMigration(dropAllTables =
-  true)` for unsupported schema transitions, including after public release.
-  State plainly that all Room-backed content and user state will be lost;
-  bundled content bootstraps again, while Quran must be downloaded again.
 * Do not add new unit, instrumented, or screenshot tests; do not spend the
   phase building test infrastructure; do not delete existing tests to
   avoid maintaining them; keep existing test sources compiling when

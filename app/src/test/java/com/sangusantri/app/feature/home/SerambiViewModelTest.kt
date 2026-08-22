@@ -1,10 +1,12 @@
 package com.sangusantri.app.feature.home
 
 import com.sangusantri.app.domain.model.AppThemeMode
+import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.GuidedReadingSession
+import com.sangusantri.app.domain.model.KiblatDirection
 import com.sangusantri.app.domain.model.NahwuQuizActiveAttempt
 import com.sangusantri.app.domain.model.NahwuQuizAttempt
 import com.sangusantri.app.domain.model.NahwuQuizPackage
@@ -32,9 +34,11 @@ import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.model.TasbihHistoryEntry
 import com.sangusantri.app.domain.model.TasbihSession
 import com.sangusantri.app.domain.model.TasbihTargetPreset
+import com.sangusantri.app.domain.repository.AyatHariIniRepository
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import com.sangusantri.app.domain.repository.HomePreferencesRepository
+import com.sangusantri.app.domain.repository.KiblatRepository
 import com.sangusantri.app.domain.repository.NahwuQuizRepository
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
@@ -133,6 +137,8 @@ class SerambiViewModelTest {
             nahwuQuizRepository = FakeNahwuQuizRepository(),
             prayerScheduleRepository = FakePrayerScheduleRepository(),
             settingsRepository = FakeQuranReaderSettingsRepository(),
+            ayatHariIniRepository = FakeAyatHariIniRepository(),
+            kiblatRepository = FakeKiblatRepository(),
             resumeCoordinator =
                 SerambiResumeCoordinator(
                     contentRepository = contentRepository,
@@ -296,6 +302,24 @@ private class FakeQuranRepository : QuranRepository {
     override suspend fun getCachedTafsir(remoteAyatId: Long): QuranTafsir? = null
 
     override suspend fun fetchTafsir(remoteAyatId: Long): QuranTafsirResult =
+        throw UnsupportedOperationException("not needed by SerambiViewModelTest")
+}
+
+/** Nothing published, so Beranda renders no ayah header — the same rule every other section
+ * follows. `sync` succeeds without doing anything: this test asserts on the catalogue, not on the
+ * schedule refresh. */
+private class FakeAyatHariIniRepository : AyatHariIniRepository {
+    override suspend fun forDate(date: LocalDate): AyatHariIni? = null
+
+    override suspend fun sync(): Result<Unit> = Result.success(Unit)
+}
+
+/** No bearing ever computed, so Beranda's prayer block shows no kiblat pill — the same rule as the
+ * schedule itself. */
+private class FakeKiblatRepository : KiblatRepository {
+    override fun observeDirection(): Flow<KiblatDirection?> = flowOf(null)
+
+    override suspend fun refreshDirection(): Result<KiblatDirection> =
         throw UnsupportedOperationException("not needed by SerambiViewModelTest")
 }
 

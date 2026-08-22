@@ -7641,3 +7641,270 @@ files. The repository already fails `ktlintCheck`/`detekt` at `HEAD` on ~3,600 p
 violations across unrelated files (confirmed by running the checks against an untouched checkout);
 none of the changed files above are among them. Not manually verified on-device or emulator this
 pass — no build/emulator run was available in this session.
+
+## Ayat Hari Ini — Beranda header, share card, and a third widget (2026-08-22)
+
+**What changed.** The design handoff's turn 5 (`design_handoff_beranda_quran_revamp/README.md`,
+§Addendum — Ayat Hari Ini): Beranda gained a daily Qur'an ayah directly under the greeting, the
+next-prayer block was slimmed to make room for it, tapping the ayah opens a sheet holding the full
+text as a 1:1 share card, and the widget picker now offers a third entry that carries the same ayah
+under the prayer strip.
+
+**Created:** `domain/model/AyatHariIni.kt` (the model and the pure `ayatOfDay` selector),
+`feature/home/BerandaAyatHariIni.kt`, `feature/home/AyatShareCard.kt`,
+`feature/home/AyatHariIniSheet.kt`, `feature/prayertimes/widget/PrayerTimesAyatWidgetProvider.kt`,
+`res/layout/widget_prayer_times_ayat.xml`, `res/layout/widget_prayer_times_ayat_preview.xml`,
+`res/xml/prayer_times_ayat_widget_info.xml`, `res/xml/file_paths.xml`,
+`test/.../AyatHariIniSelectorTest.kt`.
+
+**Modified:** `QuranVerseDao` (`getByOrdinal`), `QuranRepository`/`Impl` (`ayatOfDay`),
+`SerambiUiState`, `SerambiViewModel`, `SerambiScreen`, `BerandaPrayerBlock`,
+`PrayerTimesWidgetProvider`, `AndroidManifest.xml`, `strings.xml`, `widget_dimens.xml`,
+`SerambiViewModelTest`.
+
+**The selector is pure so two processes can agree without sharing state.** Beranda and the widget
+run in the same app but are rendered from different entry points at different moments;
+`Random(date.toEpochDay()).nextInt(6236)` means each computes the same ordinal from the date alone
+— no stored "today's ayah", no coordination, no network, and a rollover at local midnight that
+happens simply because the date changes. The ordinal resolves through a
+`ORDER BY surahNumber, ayatNumber LIMIT 1 OFFSET :ordinal` read, i.e. canonical mushaf order, so the
+mapping is the dataset's own. There is a unit test asserting that one date always yields one ayah.
+
+**Beranda reads it once a day, not once a minute.** The header rides the existing minute clock but
+`distinctUntilChanged` on `LocalDate.now()`, so Room is touched at the midnight rollover only.
+
+**The header clips by line count, never by a fixed height** — one line of Arabic, two of
+translation. That is what makes a long ayah and a short one occupy identical space on a narrow
+device. "Selengkapnya" renders only when `onTextLayout` actually reported `hasVisualOverflow` on one
+of the two, rather than being guessed from a character count, because whether a given ayah fits
+depends on the face, the user's font scale and the screen.
+
+**The prayer block lost its chip row.** "Jadwal lengkap" went because the five-time row directly
+below already carries that information and the block surface already opens the schedule; kiblat
+moved into a 32dp pill in the block's top-right. The block is 20dp radius, 14/15dp padding, 22sp
+headline. **The pill renders only when a bearing has actually been computed** — no location
+permission means no pill, never a placeholder direction, the same rule the schedule itself follows.
+This put `KiblatRepository` into `SerambiViewModel`.
+
+**One composable serves the sheet preview and the shared PNG**, so what the reader approves is what
+leaves the device: the on-screen card records itself into a `GraphicsLayer`, and the share action
+captures that layer, copies it to a software config (the capture can be a hardware bitmap, which
+`compress` refuses), scales it to 1080x1080 and writes it to `cacheDir/shared_images/`.
+
+**A FileProvider had to be added** — the handoff says to share "through the existing FileProvider"
+and the app had none. It grants exactly one cache subfolder; `filesDir/murottal/` and the database
+are deliberately outside it.
+
+**The card auto-shrinks rather than clipping.** The handoff's 20sp/12sp are drawn for an ayah of
+ordinary length and the card must hold all 6,236 — Al-Baqarah 282 is a page of text. A single
+`Modifier.layout` measures the content unbounded and scales the whole block down to fit the square,
+which keeps Qur'an and gloss in proportion; auto-sizing each `Text` separately would let the
+translation catch up with the Arabic. This was found on-device: the first build clipped the
+reference line and the wordmark off a mid-length ayah.
+
+**The widget is a subclass, not a second renderer.** `PrayerTimesAyatWidgetProvider` overrides three
+things — the layout, a flag that makes the base read the day's ayah, and the tap target — and
+inherits the header, divider, strip, empty state, size logic and boundary alarm. The base gained
+`layoutRes`, `showsAyat` and `openIntent` as open members and a `QuranRepository` injection that
+only the third entry's `showsAyat` actually spends. The quote line is set *before* the empty-state
+return, so a widget with no city chosen still shows the ayah. It is `widget_dim`, not the accent:
+the prayer times must read first. `widget_list` is kept in the new layout despite never being
+inflated, because the shared arrangement code hides and empties both containers on every render and
+a RemoteViews action against a missing id throws when the launcher applies it.
+
+**The widget's dp figures came from the existing entries, not the cell formula.** Deriving them
+from `(73n-16) x (118m-16)` produced a panel the launcher offered as **4x4**, caught on-device; the
+wide entry already proves 250dp is four columns and the vertical entry that 110dp is two rows, and
+with those it offers 4x2 as specified.
+
+**Tapping the third widget opens Beranda** by launching `MainActivity` with no extra, since Beranda
+is the start destination. The case this does not cover is the app already running on Aktivitas or
+Tasbih, where the tap resumes that tab; routing across a built back stack would need a deep-link
+extra threaded through the nav host and was judged not worth it.
+
+**Validation.** `ktlintFormat` (see the note below), `ktlintCheck`, `detekt`, `lintDebug`,
+`assembleDebug`, `installDebug` and the full `testDebugUnitTest` suite all pass. `detekt` reports
+only the three findings that pre-date this work (`PrayerScheduleRepository`,
+`PrayerScheduleRepositoryImpl`, `AdzanPlaybackService`). `ktlintCheck` still fails repository-wide
+on the ~3,700 pre-existing indentation violations; none are in the files above.
+
+**A note on `ktlintFormat`.** Running it reformatted ~60 unrelated files into the class-body
+indentation ktlint wants — the standing drift the previous entry describes. Those were reverted and
+the two touched files that it reindented wholesale (`QuranRepositoryImpl`, `SerambiViewModel`) were
+restored and re-edited in the tree's existing style, so this change's diff is the change itself.
+
+**On-device verification** (emulator-5554, Pixel 9, API 36): the ayah header renders label,
+right-aligned reference, one clipped line of Arabic and two of translation with "Selengkapnya", in
+both light and dark; the slimmed prayer block shows the five-time row with no chips; the sheet opens
+with the full ayah fitting inside the square card; "Bagikan ayat ini" writes a 1080x1080 PNG and
+opens the system chooser with the image and the plain-text body; "Salin teks" puts Arabic,
+translation and "QS. Al-Jumu'ah : 1" on the clipboard and shows the snackbar; the picker lists three
+entries with the new one at 4x2; the placed widget renders the location header, the six-prayer strip
+with the next prayer marked, a hairline and the single-line ayah, and tapping it opens Beranda.
+
+**Not verified.** The short-ayah case — an ayah that does *not* overflow and so shows no
+"Selengkapnya" — could not be reached, because the emulator image allows no root and the date could
+not be moved to another day's ayah. The overflow branch is verified; the other is the same code path
+with the flag false. The widget's empty state ("Pilih kota" with the ayah still rendering) was not
+re-checked after a city had been selected on this emulator.
+
+## Ayat Hari Ini — review fixes: kiblat icon, one line, expanded sheet, resizable widget (2026-08-22)
+
+Product-owner review of the entry above. Four changes, plus a documentation of the quote source.
+
+**The prayer block had two horizontal lines; the design has one.** `PrayerTimesRow` was still
+drawing
+a 1dp hairline above the five-time row, left over from the pre-turn-5 block, on top of the 2dp
+progress track right above it. The hairline is gone — the track is the only line in the block now.
+
+**The kiblat pill is always rendered; only the bearing is conditional.** It was hidden entirely
+until
+a bearing existed, which hid the feature from precisely the readers who had not granted location yet
+— and the pill is the only route to kiblat from Beranda. It now always shows the `explore` icon and
+opens the kiblat card; the "294°" appears once a bearing has actually been computed. The rule that
+mattered is unchanged: no invented direction is ever displayed.
+
+**The sheet opens fully expanded** (`skipPartiallyExpanded = true`). At the half-height default
+"Salin teks" sat below the fold with nothing indicating a second action existed, so the sheet read
+as
+share-only.
+
+**Widget: 4x2 by default, draggable to 4x4, and it now carries Arabic as well as translation.**
+Product-owner choice between four options mocked in `docs/design/widget_size_options.html` (open it
+in a browser; it renders the real LPMQ face and the real ayah of the day, not a sample). Three parts
+to it:
+
+* The layout gained `widget_ayat_arabic` above the translation, in LPMQ Isep Misbah. A font can be
+  applied to a RemoteViews TextView **only from XML** (`android:fontFamily`) — there is no
+  RemoteViews API for a typeface — and that works because the layout is inflated normally in the
+  launcher's process.
+* The prayer strip lost `layout_weight` and the ayat block took it, so extra height goes to the
+  quote rather than to the gap around the times. That gap was the original complaint.
+* `resizeMode` is now `horizontal|vertical` with `maxResizeHeight` 460dp. The first value tried,
+  240dp,
+  barely moved: a placed 4x2 reports ~219dp on the reference device, so a row is ~110dp, not the
+  ~55dp assumed. Measured, then fixed.
+
+**Line counts are budgeted from the leftover height, not from a size bucket.** The first attempt
+used
+a tall/short threshold and clipped the last translation line mid-glyph at 4x3 — `maxLines` caps a
+TextView, it does not make it fit, so a count the panel cannot afford is cut rather than ellipsised.
+The provider now computes the leftover (`heightDp` minus measured chrome), gives Arabic a little
+under
+half of it and the translation the rest, and **hides the block and its hairline entirely** when even
+one line of each will not fit, the same call the base already makes when it drops the city header on
+a short panel. That last part is what makes the dp resize floor safe on grids it was not measured
+on.
+
+**Quote source documented:** `docs/product/AYAT_HARI_INI.md`. It states plainly that there is **no
+curated quote list** — the pool is all 6,236 Kemenag ayat — explains why curating one would be an
+editorial judgement about religious text that neither a developer nor an AI may make, and then
+prints
+the complete dated calendar for 22 Aug 2026 – 31 Dec 2028 (863 days). The calendar was generated by
+running the production selector itself in a throwaway JVM test and mapping its ordinals against the
+real Room database pulled off the device, not by reimplementing the algorithm; the spot check is
+that
+22 Aug 2026 gives ordinal 5177 = QS. Al-Jumu'ah : 1, which is what the device displayed that day.
+
+**Two facts in that document the product owner should weigh.** The selector samples *with
+replacement*, so ayat repeat — 863 days hold 804 distinct ayat, the first repeat falling between 16
+Nov 2026 and 5 Apr 2027. And because the pool is the whole mushaf, the calendar contains ayat about
+Jahannam, zaqqum and legal rulings alongside the consoling ones; a "quote of the day" framing may
+not
+suit all of them. Changing either behaviour is a product decision, not a technical fix.
+
+**Validation.** `ktlintCheck` (clean for the changed files), `detekt` (only the three pre-existing
+findings), `lintDebug`, `assembleDebug`, `installDebug` and the full `testDebugUnitTest` suite pass.
+
+**On-device verification** (emulator-5554, Pixel 9): the block shows the kiblat `explore` pill with
+no
+bearing and exactly one line; the sheet opens with both actions visible without scrolling; the
+widget
+renders Arabic plus a three-line translation at 4x2 with nothing clipped and no empty band, resize
+handles appear on all four sides, and dragging the bottom handle down grows the panel and reveals
+the
+Arabic in full rather than one ellipsised line.
+
+**Not verified.** The bearing-present form of the kiblat pill (still no location permission on this
+emulator), the short-ayah case that shows no "Selengkapnya", and the widget squeezed below its floor
+so the ayat block hides — that path is reasoned from the same `heightDp` the header logic already
+uses, but was not reached by hand.
+
+## Ayat Hari Ini moves from a computed selector to an editorially published schedule (2026-08-22)
+
+**What changed.** Which ayat appears each day is no longer computed by the app. The random
+date-seeded selector is deleted; the day's ayat is now published per date by an editor and fetched
+from the CMS. Product-owner decision: the old mechanism could not be controlled — nobody knew
+tomorrow's ayat until tomorrow, and there was no way to hold, swap or schedule one without shipping
+a release. The audit calendar produced in the previous pass is what made the case: because the pool
+was the whole mushaf, the schedule put ayat about Jahannam and zaqqum under a heading that reads as
+daily encouragement. Filtering that is an editorial judgement about scripture, so it moved to a
+person.
+
+**Deleted:** `ayatOfDay` and `QURAN_AYAT_COUNT` (`domain/model/AyatHariIni.kt`),
+`QuranRepository.ayatOfDay` + impl, `QuranVerseDao.getByOrdinal`, `AyatHariIniSelectorTest`.
+
+**Created:** `domain/repository/AyatHariIniRepository.kt`, `AyatHariIniSelection` (domain model),
+`data/local/entity/AyatHariIniEntity.kt`, `data/local/dao/AyatHariIniDao.kt`,
+`data/remote/ayat/` (`AyatHariIniApiService`, `AyatHariIniRemoteSource` + API and fixture
+implementations, `AyatHariIniValidator`, `dto/AyatHariIniScheduleDto`),
+`data/sync/ayat/AyatHariIniSyncManager.kt`, `data/repository/AyatHariIniRepositoryImpl.kt`,
+`di/AyatHariIniModule.kt`.
+
+**Modified:** `SanguSantriDatabase` (table `ayat_hari_ini`, v7 → v8), `DatabaseModule`,
+`SerambiViewModel`, `PrayerTimesWidgetProvider`, `SerambiViewModelTest`.
+
+**The endpoint publishes a reference, never scripture.** `{date, surah, ayat, theme?}` — no Arabic,
+no translation, no surah name. The app resolves each reference against its own Kemenag tables at
+read time. This is the load-bearing decision: it keeps Kemenag the single source of Quran text
+(ADR 0016 §2), so a CMS typo can at worst schedule the *wrong* ayat, never a *corrupted* one. The
+repository re-checks too — a reference the local dataset cannot resolve renders nothing rather than
+a wrong quotation.
+
+**Sync policy, as specified by the product owner.** On app open, compare the device's current date
+against Room: if a row for today exists, no request is made at all; if not, fetch once. Room is
+written only on success, so a failed fetch leaves the cached window untouched. The API returns a
+window (today + 90 days) rather than a single day, which is what lets a device that is offline for a
+week keep showing content.
+
+**A new day with no network falls back instead of going blank.** This was the gap in the first cut
+of
+the sync rule: on a date the cached window does not cover, `getByEpochDay` finds nothing and the
+header would disappear. `getLatestOnOrBefore` now backs it up with the most recent published entry,
+and 90 days of history are retained specifically as that fallback material. The header is a day or
+two stale rather than empty.
+
+**Accepted staleness:** once today is cached, an editor's later change to *today's* entry is not
+seen
+until tomorrow. Chasing it would mean a request every launch for a value that changes daily. The
+brief tells editors to schedule ahead.
+
+**The remote source is an interface with two implementations, deliberately and temporarily.** The
+CMS
+endpoint does not exist yet, so `FixtureAyatHariIniRemoteSource` answers in its shape and everything
+above it runs for real. The fixture holds exactly one selection — QS. Al-Jumu'ah : 1, the ayat the
+old selector resolved on 2026-08-22 — returned for every date. It was deliberately not filled with a
+spread of "good" ayat: choosing verses is precisely the editorial act being moved to the CMS. Note
+that even the fixture publishes no scripture; it is a pointer, and the words still come from
+Kemenag.
+**It must not ship** — swapping it is one line in `di/AyatHariIniModule.kt`.
+
+**Docs.** `docs/product/AYAT_HARI_INI.md` rewritten for the API model (the 400KB generated calendar
+of the old selector is gone with the mechanism it described). New
+`docs/product/AYAT_HARI_INI_CMS_BRIEF.md` is the hand-off for a separate session working in
+`../cms`: endpoint contract, Supabase table, admin screens, and the three-step switch-over on the
+Android side.
+
+**Validation.** `ktlintCheck` clean for the new files, `detekt` down to the three pre-existing
+findings, `lintDebug`, `assembleDebug`, `installDebug` and the full `testDebugUnitTest` suite pass.
+
+**On-device verification** (emulator-5554, Pixel 9): the v8 bump dropped all tables as the standing
+policy intends, so the Quran dataset was re-downloaded; Beranda then fetched the schedule on first
+open and rendered "AYAT HARI INI / Al-Jumu'ah : 1" with the Kemenag text joined in. With Wi-Fi and
+mobile data both disabled, a cold start still renders the same header from Room, which is the
+offline-first path.
+
+**Not verified.** The real endpoint (it does not exist), the schema-version-mismatch branch, the
+`getLatestOnOrBefore` fallback (it needs a date past the cached window, and the emulator image
+allows no clock change), and the widget after this change — the schedule table is shared with
+Beranda and was left rendering, but the widget itself was not re-placed on this fresh emulator.

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.sangusantri.app.data.local.dao.AmaliyahCompletionEventDao
 import com.sangusantri.app.data.local.dao.AppMetadataDao
+import com.sangusantri.app.data.local.dao.AyatHariIniDao
 import com.sangusantri.app.data.local.dao.ContentDao
 import com.sangusantri.app.data.local.dao.ContentStepDao
 import com.sangusantri.app.data.local.dao.GuidedReadingSessionDao
@@ -55,6 +56,9 @@ object DatabaseModule {
 
     @Provides
     fun provideAppMetadataDao(database: SanguSantriDatabase): AppMetadataDao = database.appMetadataDao()
+
+    @Provides
+    fun provideAyatHariIniDao(database: SanguSantriDatabase): AyatHariIniDao = database.ayatHariIniDao()
 
     @Provides
     fun provideContentDao(database: SanguSantriDatabase): ContentDao = database.contentDao()

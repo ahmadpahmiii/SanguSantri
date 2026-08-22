@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  The third entry: four cells across, two tall, and horizontal-only — the six prayers across, and a
+  full-width line for the ayat underneath.
+
+  The dp figures are taken from the two entries that already exist rather than from the cell-size
+  formula: the wide entry proves 250dp is four columns on this grid and the vertical entry proves
+  110dp is two rows. Deriving them instead ((73n-16) x (118m-16)) produced a panel the launcher
+  offered as 4x4, because a cell is not that tall on every device — the sizes here are the ones the
+  app has actually been measured against.
+
+  minResizeWidth and minResizeHeight repeat that 4x2, which is what "cannot be squeezed smaller"
+  means: the quote line is the whole point of this entry and it needs the width to say anything.
+  Someone who wants a smaller prayer panel already has the other two entries.
+
+  It resizes in both directions, from that floor up to roughly 4x4 (maxResizeHeight 460dp). That
+  number is measured, not derived: a placed 4x2 reports ~219dp on the reference device, so a row is
+  ~110dp and four of them are ~440dp. Height is not decoration here — the ayat block takes the
+  leftover space and the provider budgets its line counts from it, so a reader who wants the whole
+  ayah instead of an opening line drags the panel taller and gets it.
+
+  The floor cannot be expressed exactly in dp on every grid, so the provider does not rely on it:
+  squeezed below what a quote needs, it hides the ayat block and its hairline rather than clipping
+  text, the same way the base drops the city header on a short panel.
+
+  Everything else — the update period, the boundary alarm, the glass panel — is
+  PrayerTimesWidgetProvider's, shared with the two schedule-only entries.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:description="@string/widget_prayer_ayat_description"
+  android:initialLayout="@layout/widget_prayer_times_ayat"
+  android:maxResizeWidth="500dp"
+  android:maxResizeHeight="460dp"
+  android:minWidth="250dp"
+  android:minHeight="110dp"
+  android:minResizeWidth="250dp"
+  android:minResizeHeight="110dp"
+  android:previewLayout="@layout/widget_prayer_times_ayat_preview"
+  android:resizeMode="horizontal|vertical"
+  android:targetCellWidth="4"
+  android:targetCellHeight="2"
+  android:updatePeriodMillis="1800000"
+  android:widgetCategory="home_screen" />

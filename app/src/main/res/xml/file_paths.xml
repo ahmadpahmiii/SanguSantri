@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  What the app is willing to hand to another app through the FileProvider, and nothing else.
+
+  One directory: the cache subfolder the ayah share card is written to. Deliberately not `cacheDir`
+  itself and certainly not `filesDir` — `filesDir/murottal/` holds downloaded audio and the Room
+  database lives alongside it, none of which any other app has business reading.
+-->
+<paths>
+  <cache-path
+    name="shared_images"
+    path="shared_images/" />
+</paths>

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  widget_prayer_times.xml plus a second hairline and the ayat-of-the-day line.
+
+  This panel is always the horizontal strip — its provider entry starts at 4x2 and refuses to shrink
+  below it — so [widget_list] is here only because PrayerTimesWidgetProvider's shared arrangement
+  code hides and empties both containers on every render; a RemoteViews action against an id the
+  layout does not carry throws when the launcher applies it. It is never populated and never shown.
+
+  The prayer strip is wrap_content and the ayat block carries the weight, so the entry's 4x2-to-4x4
+  resize spends its extra height on the quote rather than on the gap around the times.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@android:id/background"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/widget_background"
+  android:orientation="vertical"
+  android:padding="@dimen/widget_padding">
+
+  <LinearLayout
+    android:id="@+id/widget_header"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageView
+      android:id="@+id/widget_location_icon"
+      android:layout_width="@dimen/widget_header_icon_size"
+      android:layout_height="@dimen/widget_header_icon_size"
+      android:contentDescription="@null"
+      android:src="@drawable/ic_widget_location" />
+
+    <TextView
+      android:id="@+id/widget_location"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="@dimen/widget_header_icon_gap"
+      android:layout_weight="1"
+      android:ellipsize="end"
+      android:letterSpacing="0.04"
+      android:maxLines="1"
+      android:textColor="@color/widget_dim"
+      android:textSize="@dimen/widget_text_label" />
+
+    <TextView
+      android:id="@+id/widget_header_date"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="@dimen/widget_header_date_gap"
+      android:maxLines="1"
+      android:textColor="@color/widget_dim"
+      android:textSize="@dimen/widget_text_label"
+      android:visibility="gone" />
+  </LinearLayout>
+
+  <ImageView
+    android:id="@+id/widget_divider_top"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_divider_height"
+    android:layout_marginTop="@dimen/widget_divider_spacing"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null" />
+
+  <!-- Never inflated on this panel; see the file header. -->
+  <LinearLayout
+    android:id="@+id/widget_list"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:visibility="gone" />
+
+  <LinearLayout
+    android:id="@+id/widget_strip"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/widget_strip_spacing"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:visibility="gone" />
+
+  <TextView
+    android:id="@+id/widget_empty"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/widget_empty_spacing"
+    android:ellipsize="end"
+    android:gravity="center_vertical"
+    android:maxLines="2"
+    android:text="@string/widget_prayer_empty_message"
+    android:textColor="@color/widget_strong"
+    android:textSize="@dimen/widget_text_empty"
+    android:visibility="gone" />
+
+  <ImageView
+    android:id="@+id/widget_ayat_divider"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_divider_height"
+    android:layout_marginTop="@dimen/widget_ayat_divider_spacing"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null" />
+
+  <!--
+    The ayat block takes whatever height is left over, so dragging the panel from 4x2 to 4x4 grows
+    the quote instead of the gap around the prayer strip. The provider raises both line counts at
+    the taller sizes; here they are the 4x2 defaults.
+
+    The Arabic face is set in XML rather than from code because RemoteViews has no API for a
+    typeface — a layout is inflated normally in the launcher's process, so a @font resource resolves
+    exactly as it would in the app.
+  -->
+  <LinearLayout
+    android:id="@+id/widget_ayat_block"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:gravity="center_vertical"
+    android:orientation="vertical">
+
+    <TextView
+      android:id="@+id/widget_ayat_arabic"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="@dimen/widget_ayat_spacing"
+      android:ellipsize="end"
+      android:fontFamily="@font/lpmq_isep_misbah"
+      android:gravity="right"
+      android:lineSpacingMultiplier="1.35"
+      android:maxLines="2"
+      android:textColor="@color/widget_strong"
+      android:textDirection="rtl"
+      android:textSize="@dimen/widget_text_ayat_arabic" />
+
+    <TextView
+      android:id="@+id/widget_ayat"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="@dimen/widget_ayat_translation_spacing"
+      android:ellipsize="end"
+      android:lineSpacingMultiplier="1.2"
+      android:maxLines="2"
+      android:textColor="@color/widget_dim"
+      android:textSize="@dimen/widget_text_ayat" />
+  </LinearLayout>
+</LinearLayout>

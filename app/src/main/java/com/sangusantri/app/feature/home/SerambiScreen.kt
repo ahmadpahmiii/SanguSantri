@@ -34,7 +34,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,9 +56,12 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.AppThemeMode
+import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.Content
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.update.AppUpdateGate
+import kotlinx.coroutines.launch
 
 @Composable
 fun SerambiRoute(
@@ -116,6 +122,11 @@ fun SerambiScreen(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     detectingCity: Boolean = false,
 ) {
+    // Which ayah the sheet is showing, or null for closed. Held here rather than in the ViewModel:
+    // it is sheet visibility and nothing else — no repository, no persistence, nothing to restore.
+    var sheetAyat by remember { mutableStateOf<AyatHariIni?>(null) }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -139,9 +150,19 @@ fun SerambiScreen(
                         onContentSelected = onContentSelected,
                         actions = actions,
                         detectingCity = detectingCity,
+                        onOpenAyatSheet = { sheetAyat = it },
                     )
             }
         }
+    }
+
+    sheetAyat?.let { ayat ->
+        AyatHariIniSheet(
+            ayat = ayat,
+            arabicFont = (uiState as? SerambiUiState.Loaded)?.arabicFont ?: QuranArabicFont.LPMQ_ISEP_MISBAH,
+            onDismiss = { sheetAyat = null },
+            onMessage = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
+        )
     }
 }
 
@@ -152,6 +173,7 @@ private fun SerambiDashboard(
     onContentSelected: (String) -> Unit,
     actions: SerambiActions,
     detectingCity: Boolean,
+    onOpenAyatSheet: (AyatHariIni) -> Unit,
 ) {
     Column(
         modifier =
@@ -164,13 +186,28 @@ private fun SerambiDashboard(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = SanguSantriSpacing.large),
         ) {
+            uiState.ayatHariIni?.let { ayat ->
+                item(key = "ayat") {
+                    BerandaAyatHariIni(
+                        ayat = ayat,
+                        arabicFont = uiState.arabicFont,
+                        onOpenSheet = { onOpenAyatSheet(ayat) },
+                        modifier = Modifier.padding(horizontal = BerandaHorizontalPadding),
+                    )
+                }
+            }
+
             item(key = "prayer") {
                 val schedule = uiState.prayerSchedule
+                val topPadding = if (uiState.ayatHariIni == null) 0.dp else AyatToPrayerGap
                 if (schedule == null) {
                     BerandaPrayerSetupRow(
                         onOpenSchedule = actions.onPrayerScheduleClick,
                         detecting = detectingCity,
-                        modifier = Modifier.padding(horizontal = BerandaHorizontalPadding),
+                        modifier =
+                            Modifier
+                                .padding(horizontal = BerandaHorizontalPadding)
+                                .padding(top = topPadding),
                     )
                 } else {
                     BerandaPrayerBlock(
@@ -178,7 +215,11 @@ private fun SerambiDashboard(
                         now = uiState.now,
                         onOpenSchedule = actions.onPrayerScheduleClick,
                         onOpenKiblat = actions.onKiblatClick,
-                        modifier = Modifier.padding(horizontal = BerandaHorizontalPadding),
+                        kiblatBearingDegrees = uiState.kiblatBearingDegrees,
+                        modifier =
+                            Modifier
+                                .padding(horizontal = BerandaHorizontalPadding)
+                                .padding(top = topPadding),
                     )
                 }
             }
@@ -358,6 +399,10 @@ private fun SerambiActions.continueResume(item: SerambiResumeItem) {
 
 private val BerandaHorizontalPadding = 20.dp
 private val SectionGap = 24.dp
+
+/** The ayah header and the prayer block read as one page header, so they sit closer together than
+ * the sections below them (handoff turn 5 §1). */
+private val AyatToPrayerGap = 14.dp
 private val GreetingBottomPadding = 14.dp
 private val CircularActionSize = 42.dp
 

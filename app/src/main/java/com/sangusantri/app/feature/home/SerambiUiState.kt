@@ -1,7 +1,9 @@
 package com.sangusantri.app.feature.home
 
+import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.PrayerSchedule
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.Reminder
 import java.time.LocalTime
@@ -23,6 +25,15 @@ sealed interface SerambiUiState {
         /** Ticks once a minute so the countdown, the position line, and the highlighted prayer stay
          * honest without the block recomposing every second. */
         val now: LocalTime = LocalTime.MIDNIGHT,
+        /** `null` until the Quran dataset has been downloaded — the ayah header is then not
+         * rendered at all, the same rule every other Beranda section follows. */
+        val ayatHariIni: AyatHariIni? = null,
+        /** `null` until a qibla bearing has been computed; the prayer block then shows no kiblat
+         * pill rather than an invented direction. */
+        val kiblatBearingDegrees: Float? = null,
+        /** The app-wide Arabic typeface, so the ayah header and its share card match the readers
+         * rather than pinning a second face of their own. */
+        val arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
     ) : SerambiUiState {
         val featuredItems: List<Content> get() = items.take(MAX_FEATURED_ITEMS)
 

@@ -32,6 +32,11 @@
   <dimen name="widget_strip_spacing">5dp</dimen>
   <dimen name="widget_empty_spacing">8dp</dimen>
 
+  <!-- Ayat-of-the-day block, third picker entry only -->
+  <dimen name="widget_ayat_divider_spacing">9dp</dimen>
+  <dimen name="widget_ayat_spacing">8dp</dimen>
+  <dimen name="widget_ayat_translation_spacing">5dp</dimen>
+
   <!-- Narrow (2x2) list row: name left, time right -->
   <dimen name="widget_row_padding_horizontal">6dp</dimen>
 
@@ -45,4 +50,6 @@
   <dimen name="widget_text_row">12sp</dimen>
   <dimen name="widget_text_column_name">11sp</dimen>
   <dimen name="widget_text_column_time">13sp</dimen>
+  <dimen name="widget_text_ayat">12sp</dimen>
+  <dimen name="widget_text_ayat_arabic">14sp</dimen>
 </resources>

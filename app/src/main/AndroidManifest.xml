@@ -133,6 +133,34 @@
         android:resource="@xml/prayer_times_wide_widget_info" />
     </receiver>
 
+    <!-- Third picker entry: the prayer strip plus the ayat of the day. Also a subclass, overriding
+         only the layout, the quote line and where a tap goes (Beranda, not Jadwal Sholat). -->
+    <receiver
+      android:name=".feature.prayertimes.widget.PrayerTimesAyatWidgetProvider"
+      android:exported="true"
+      android:label="@string/widget_prayer_ayat_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/prayer_times_ayat_widget_info" />
+    </receiver>
+
+    <!-- Grants another app read access to exactly one cache subfolder: the ayah share card written
+         by the Beranda sheet. Not exported and no permission of its own — access is only ever the
+         one-shot grant that rides on the ACTION_SEND intent. -->
+    <provider
+      android:name="androidx.core.content.FileProvider"
+      android:authorities="${applicationId}.fileprovider"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/file_paths" />
+    </provider>
+
     <!--
          SanguSantriApplication implements Configuration.Provider (custom HiltWorkerFactory),
          so WorkManager's default androidx-startup initializer must be removed — otherwise

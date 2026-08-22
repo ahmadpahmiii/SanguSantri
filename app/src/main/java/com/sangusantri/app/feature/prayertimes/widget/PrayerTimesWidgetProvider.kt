@@ -15,9 +15,11 @@ import android.widget.RemoteViews
 import androidx.core.content.getSystemService
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
+import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.PrayerName
 import com.sangusantri.app.domain.model.PrayerSchedule
 import com.sangusantri.app.domain.model.PrayerTime
+import com.sangusantri.app.domain.repository.AyatHariIniRepository
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
 import com.sangusantri.app.feature.home.formatAsClock
 import com.sangusantri.app.feature.home.labelRes
@@ -50,10 +52,10 @@ import javax.inject.Inject
  * 30-minute [R.xml.prayer_times_widget_info] update period is only a safety net behind that alarm
  * (it also picks up a city chosen while the widget is on screen).
  *
- * **Two shapes, one renderer.** [PrayerTimesWideWidgetProvider] is the horizontal band offered as a
- * second entry in the widget picker; it subclasses this one and adds nothing, because the two
- * differ only in the default size, resize envelope and preview their `appwidget-provider` XML
- * declares. Everything below already adapts to the reported size, so a user who resizes either one
+ * **Three shapes, one renderer.** [PrayerTimesWideWidgetProvider] is the horizontal band and
+ * [PrayerTimesAyatWidgetProvider] the wider panel that adds the ayat of the day; both subclass this
+ * one, the first adding nothing at all and the second only a layout, a quote line and its own tap
+ * target. Everything below already adapts to the reported size, so a user who resizes any of them
  * gets the arrangement that fits rather than the one its picker entry started at.
  *
  * **Glass, not blur.** There is no backdrop-blur API for RemoteViews — they are inflated in the
@@ -73,6 +75,19 @@ import javax.inject.Inject
 open class PrayerTimesWidgetProvider : AppWidgetProvider() {
     @Inject
     lateinit var repository: PrayerScheduleRepository
+
+    @Inject
+    lateinit var ayatHariIniRepository: AyatHariIniRepository
+
+    /** The panel this entry inflates. Overridden by the entry that carries an ayah line as well. */
+    protected open val layoutRes: Int get() = R.layout.widget_prayer_times
+
+    /** Whether this entry renders the ayat of the day. `false` keeps the extra Room read out of the
+     * two entries that do not show one. */
+    protected open val showsAyat: Boolean get() = false
+
+    /** Where tapping the panel goes. Jadwal Sholat for the two schedule-only entries. */
+    protected open fun openIntent(context: Context): PendingIntent = openScheduleIntent(context)
 
     override fun onUpdate(
         context: Context,
@@ -111,6 +126,9 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
                     PanelData(
                         schedule = repository.observeToday().first(),
                         cityName = repository.observeSelectedCity().first()?.name,
+                        // Room only — the widget never syncs. It shows whatever schedule the app
+                        // last fetched, which is the same row Beranda is reading.
+                        ayat = if (showsAyat) ayatHariIniRepository.forDate(LocalDate.now()) else null,
                     )
                 val now = LocalTime.now()
                 appWidgetIds.forEach { id ->
@@ -138,10 +156,14 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         now: LocalTime,
     ): RemoteViews {
         val schedule = data.schedule
-        val views = RemoteViews(context.packageName, R.layout.widget_prayer_times)
-        views.setOnClickPendingIntent(android.R.id.background, openScheduleIntent(context))
+        val views = RemoteViews(context.packageName, layoutRes)
+        views.setOnClickPendingIntent(android.R.id.background, openIntent(context))
 
         val (widthDp, heightDp) = panelSizeDp(context, appWidgetManager.getAppWidgetOptions(appWidgetId))
+
+        // Set before the empty-state return: the quote never depends on the schedule, so a panel
+        // with no city chosen still carries the day's ayat.
+        if (showsAyat) views.applyAyat(data.ayat, heightDp)
 
         val prayers = schedule?.times.orEmpty()
         val wide = widthDp >= WIDE_MIN_WIDTH_DP
@@ -210,6 +232,51 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
     }
 
     /**
+     * The ayat of the day, given as much of itself as the panel's height allows.
+     *
+     * This is the whole point of letting the entry resize vertically: at its 4x2 floor the block has
+     * room for a line of Arabic and two of translation, and dragging it to 4x4 turns that into a
+     * readable passage rather than more empty panel. The line counts are pushed from here rather
+     * than fixed in the layout because the same layout serves every size in between.
+     *
+     * The Arabic is `widget_strong` and the translation `widget_dim` — the reverse of a reading
+     * surface, where translation supports Arabic; on a glance surface the Arabic is the thing being
+     * recognised and the translation is the gloss. Both stay quieter than the prayer times, which
+     * are what someone actually opened their home screen to check.
+     */
+    private fun RemoteViews.applyAyat(
+        ayat: AyatHariIni?,
+        heightDp: Int,
+    ) {
+        // Budgeted from the height actually left over, not from a size bucket. A two-bucket guess
+        // clipped the last translation line mid-glyph at 4x3: `maxLines` only caps a TextView, it
+        // does not make it fit, so a count the panel cannot afford is cut off rather than
+        // ellipsised. Spending the real leftover is also what keeps 4x2 from going blank again.
+        val leftover = (heightDp - AYAT_CHROME_DP).coerceAtLeast(0)
+
+        // Squeezed past what one line of each needs, the block goes entirely rather than showing a
+        // sliced glyph — the same call the base makes when it drops the city header on a short
+        // panel. A dp resize floor cannot pin this on every grid, so it is enforced here.
+        val fits = leftover >= AYAT_MIN_BLOCK_DP
+        setViewVisibility(R.id.widget_ayat_divider, if (fits) View.VISIBLE else View.GONE)
+        setViewVisibility(R.id.widget_ayat_block, if (fits) View.VISIBLE else View.GONE)
+        if (!fits) return
+
+        val arabicLines =
+            (leftover * AYAT_ARABIC_SHARE / AYAT_ARABIC_LINE_DP)
+                .toInt()
+                .coerceIn(1, AYAT_ARABIC_MAX_LINES)
+        val translationLines =
+            ((leftover - arabicLines * AYAT_ARABIC_LINE_DP - AYAT_TRANSLATION_GAP_DP) / AYAT_TRANSLATION_LINE_DP)
+                .toInt()
+                .coerceIn(1, AYAT_TRANSLATION_MAX_LINES)
+        setTextViewText(R.id.widget_ayat_arabic, ayat?.arabicText.orEmpty())
+        setTextViewText(R.id.widget_ayat, ayat?.translation.orEmpty())
+        setInt(R.id.widget_ayat_arabic, "setMaxLines", arabicLines)
+        setInt(R.id.widget_ayat, "setMaxLines", translationLines)
+    }
+
+    /**
      * What one render needs from the repository.
      *
      * Two reads, not one, because the schedule and the chosen city become known at different
@@ -218,6 +285,7 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
     private data class PanelData(
         val schedule: PrayerSchedule?,
         val cityName: String?,
+        val ayat: AyatHariIni?,
     )
 
     /**
@@ -415,11 +483,12 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        /** The two entries the widget picker offers. Both render through this class. */
+        /** The three entries the widget picker offers. All render through this class. */
         private val PROVIDERS =
             listOf(
                 PrayerTimesWidgetProvider::class.java,
                 PrayerTimesWideWidgetProvider::class.java,
+                PrayerTimesAyatWidgetProvider::class.java,
             )
 
         private fun widgetIds(
@@ -471,6 +540,26 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         /** Below this even the city header goes, leaving the bare strip — the only thing that fits
          * a one-row band on a landscape home screen. */
         private const val HEADER_MIN_HEIGHT_DP = 70
+
+        /** Everything above the ayat block on the panel: padding, the header line, both hairlines
+         * and the prayer strip. What is left is the block's to spend. */
+        private const val AYAT_CHROME_DP = 105
+
+        /** LPMQ's line box is far taller than its nominal 14sp — harakat sit well above and below
+         * the baseline — which is why this is not derived from the text size. */
+        private const val AYAT_ARABIC_LINE_DP = 30f
+        private const val AYAT_TRANSLATION_LINE_DP = 16f
+        private const val AYAT_TRANSLATION_GAP_DP = 5f
+
+        /** Arabic takes a little under half the block; the translation gets the rest. Caps stop a
+         * very tall panel from turning one ayah into a wall of text. */
+        private const val AYAT_ARABIC_SHARE = 0.45f
+        private const val AYAT_ARABIC_MAX_LINES = 6
+        private const val AYAT_TRANSLATION_MAX_LINES = 12
+
+        /** One line of Arabic and one of translation, plus the gap. Below this the block is
+         * hidden. */
+        private const val AYAT_MIN_BLOCK_DP = 51
 
         /** Fire just past the boundary, never a tick before it. */
         private const val FLIP_MARGIN_MILLIS = 2_000L

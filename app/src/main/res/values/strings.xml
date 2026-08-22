@@ -397,8 +397,23 @@
   <string name="beranda_resume_tasbih_supporting">%1$d dari %2$d · tersimpan</string>
   <string name="beranda_resume_tasbih_supporting_unlimited">%1$d hitungan · tersimpan</string>
   <string name="beranda_prayer_next_label">SELANJUTNYA</string>
-  <string name="beranda_prayer_full_schedule">Jadwal lengkap</string>
   <string name="beranda_prayer_kiblat">Kiblat</string>
+  <string name="beranda_prayer_kiblat_bearing">%1$d°</string>
+
+  <!-- Ayat Hari Ini (design handoff turn 5). The ayah text itself is never a string resource: it
+       comes verbatim from the stored Kemenag dataset. -->
+  <string name="beranda_ayat_label">AYAT HARI INI</string>
+  <string name="beranda_ayat_more">Selengkapnya</string>
+  <string name="beranda_ayat_share_card_caption">Pratinjau kartu bagikan · 1:1</string>
+  <string name="beranda_ayat_share_card_reference">QS. %1$s : %2$d</string>
+  <string name="beranda_ayat_share_card_wordmark">SANGU SANTRI</string>
+  <string name="beranda_ayat_share_title">Bagikan ayat ini</string>
+  <string name="beranda_ayat_share_supporting">Kirim kartu gambar di atas</string>
+  <string name="beranda_ayat_copy_title">Salin teks</string>
+  <string name="beranda_ayat_copy_supporting">Arab, terjemahan, dan rujukan</string>
+  <string name="beranda_ayat_copy_label">Ayat hari ini</string>
+  <string name="beranda_ayat_copied">Teks ayat disalin</string>
+  <string name="beranda_ayat_share_failed">Gambar ayat gagal dibuat</string>
   <string name="beranda_prayer_tomorrow">besok</string>
   <string name="beranda_prayer_setup_title">Jadwal sholat</string>
   <string name="beranda_prayer_setup_supporting">Pilih kota Anda untuk menampilkan jadwal, atau izinkan lokasi</string>
@@ -720,6 +735,8 @@
   <string name="widget_prayer_description">Enam waktu sholat dalam satu kolom</string>
   <string name="widget_prayer_wide_label">Jadwal Sholat (lebar)</string>
   <string name="widget_prayer_wide_description">Enam waktu sholat dalam satu baris</string>
+  <string name="widget_prayer_ayat_label">Jadwal Sholat + Ayat Hari Ini</string>
+  <string name="widget_prayer_ayat_description">Satu baris waktu sholat dan ayat hari ini</string>
   <string name="widget_prayer_empty_message">Pilih kota Anda</string>
   <!-- A city is chosen but its month has not been fetched yet — never "pick a city", which would
        send the user to do something they have already done. -->

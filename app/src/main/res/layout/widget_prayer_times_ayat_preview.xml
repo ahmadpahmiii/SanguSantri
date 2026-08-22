@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  Widget-picker preview (API 31+) for the third entry. Same rule as the other preview: the widget's
+  real first-run state, never sample prayer times — a made-up schedule in the picker could be read
+  as a real one. The ayah line is left blank here for the same reason: the picker must not appear to
+  quote an ayat that has not been read out of the Kemenag dataset.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/widget_background"
+  android:orientation="vertical"
+  android:padding="@dimen/widget_padding">
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:letterSpacing="0.04"
+    android:maxLines="1"
+    android:text="@string/widget_prayer_label"
+    android:textColor="@color/widget_dim"
+    android:textSize="@dimen/widget_text_label" />
+
+  <ImageView
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_divider_height"
+    android:layout_marginTop="@dimen/widget_divider_spacing"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null" />
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="@dimen/widget_empty_spacing"
+    android:layout_weight="1"
+    android:gravity="center_vertical"
+    android:maxLines="2"
+    android:text="@string/widget_prayer_empty_message"
+    android:textColor="@color/widget_strong"
+    android:textSize="@dimen/widget_text_empty" />
+
+  <ImageView
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_divider_height"
+    android:layout_marginTop="@dimen/widget_ayat_divider_spacing"
+    android:background="@color/widget_divider"
+    android:contentDescription="@null" />
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/widget_ayat_spacing"
+    android:maxLines="1"
+    android:text="@string/widget_prayer_ayat_label"
+    android:textColor="@color/widget_dim"
+    android:textSize="@dimen/widget_text_ayat" />
+</LinearLayout>

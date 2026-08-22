@@ -8,6 +8,9 @@ package com.sangusantri.app.feature.quran.reader
  */
 data class QuranReaderAyatUiModel(
     val remoteId: Long,
+    /** Which surah this ayat belongs to. Needed now that mushaf mode pages through the whole mushaf:
+     * one halaman can carry several surahs, so an ayat can no longer be assumed to be the reader's. */
+    val surahNumber: Int,
     val surahName: String,
     val ayatNumber: Int,
     val juz: Int,

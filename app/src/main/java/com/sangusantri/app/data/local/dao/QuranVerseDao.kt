@@ -16,6 +16,25 @@ interface QuranVerseDao {
     fun observeByPage(page: Int): Flow<List<QuranVerseEntity>>
 
     /**
+     * Every ayat on a run of mushaf pages, in reading order across surah boundaries.
+     *
+     * A halaman is a page of the mushaf, not a slice of one surah: page 603 carries the whole of
+     * Al-Kafirun, An-Nasr and Al-Lahab. Ordering by `surahNumber, ayatNumber` within the page keeps
+     * them in the order they are printed, so a page can be rendered by walking the rows.
+     */
+    @Query(
+        """
+        SELECT * FROM quran_verses
+        WHERE page BETWEEN :fromPage AND :toPage
+        ORDER BY page ASC, surahNumber ASC, ayatNumber ASC
+        """,
+    )
+    fun observeByPageRange(
+        fromPage: Int,
+        toPage: Int,
+    ): Flow<List<QuranVerseEntity>>
+
+    /**
      * The first locally ordered verse of every Juz (QUR-FR-007) — one row per Juz 1..30, derived
      * only from locally stored `juz` fields, never a hardcoded or AI-derived mapping.
      *

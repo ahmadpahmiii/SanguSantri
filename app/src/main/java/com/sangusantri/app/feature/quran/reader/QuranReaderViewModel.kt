@@ -20,11 +20,13 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -40,12 +42,14 @@ import kotlin.math.roundToInt
  */
 // Seven collaborators: the repositories the reader reads through, the murottal trio, and the
 // continuity holder. Each is a distinct dependency, with no shared seam to fold any pair into.
+@OptIn(ExperimentalCoroutinesApi::class)
 @Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = QuranReaderViewModel.Factory::class)
 class QuranReaderViewModel
 @AssistedInject
 constructor(
-    @Assisted private val surahNumber: Int,
+    @Assisted("surah") private val surahNumber: Int,
+    @Assisted("targetAyat") private val targetAyatNumber: Int?,
     private val quranRepository: QuranRepository,
     private val settingsRepository: QuranReaderSettingsRepository,
     private val murottalPlayer: QuranMurottalPlayer,
@@ -55,8 +59,20 @@ constructor(
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
-        fun create(surahNumber: Int): QuranReaderViewModel
+        fun create(
+            @Assisted("surah") surahNumber: Int,
+            @Assisted("targetAyat") targetAyat: Int?,
+        ): QuranReaderViewModel
     }
+
+    /** The surah being read. Mushaf mode pages straight through the mushaf, so this moves as the
+     * reader crosses a surah: it names the title bar and backs Arab+terjemahan mode, which stays
+     * surah-based. */
+    private val activeSurah = MutableStateFlow(surahNumber)
+
+    /** The halaman on screen in mushaf mode. `0` until the opening ayat has been resolved to its
+     * page, which is a Room read. */
+    private val currentPage = MutableStateFlow(0)
 
     private val selectedAyatId = MutableStateFlow<Long?>(null)
     private val tafsirSheetOpen = MutableStateFlow(false)
@@ -78,26 +94,27 @@ constructor(
             .observeVersesBySurah(AL_FATIHAH_SURAH_NUMBER)
             .map { verses -> verses.firstOrNull()?.arabicText.orEmpty() }
 
-    /** The surah either side of this one, so mushaf mode can draw their adjacent pages at the
-     * pager's boundaries. Guarded rather than queried for surah 0/115, which do not exist. */
-    private val neighbourVerses =
-        combine(
-            if (surahNumber > FIRST_SURAH_NUMBER) {
-                quranRepository.observeVersesBySurah(surahNumber - 1)
-            } else {
+    /**
+     * The halaman around the one being read. A window, not the whole mushaf: the pager shows one
+     * page and composes its immediate neighbours, and holding all 6,236 ayat of Arabic and
+     * translation in memory to render three of them would be absurd.
+     */
+    private val pageWindow =
+        currentPage.flatMapLatest { page ->
+            if (page <= 0) {
                 flowOf(emptyList())
-            },
-            if (surahNumber < LAST_SURAH_NUMBER) {
-                quranRepository.observeVersesBySurah(surahNumber + 1)
             } else {
-                flowOf(emptyList())
-            },
-        ) { previous, next -> QuranNeighbourVerses(previous, next) }
+                quranRepository.observeVersesByPageRange(
+                    fromPage = (page - PAGE_WINDOW_RADIUS).coerceAtLeast(1),
+                    toPage = (page + PAGE_WINDOW_RADIUS).coerceAtMost(QURAN_MUSHAF_PAGE_COUNT),
+                )
+            }
+        }
 
     private val roomData =
         combine(
             quranRepository.observeSurahs(),
-            quranRepository.observeVersesBySurah(surahNumber),
+            activeSurah.flatMapLatest { quranRepository.observeVersesBySurah(it) },
             settingsRepository.observe(),
             quranRepository.observeBookmarks(),
             basmalahArabic,
@@ -108,27 +125,17 @@ constructor(
     val uiState: StateFlow<QuranReaderUiState> =
         combine(
             roomData,
-            neighbourVerses,
+            pageWindow,
+            currentPage,
             selectedAyatId,
             tafsirSheetOpen,
-        ) { data, neighbours, selected, tafsirOpen ->
-            buildState(data, neighbours, selected, tafsirOpen)
+        ) { data, windowVerses, page, selected, tafsirOpen ->
+            buildState(data, windowVerses, page, selected, tafsirOpen)
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
-            initialState(),
+            QuranReaderUiState.Loading,
         )
-
-    /**
-     * Opens on whatever the previous reader already loaded for this surah, so crossing a boundary
-     * never draws an empty frame. Falls back to [QuranReaderUiState.Loading] only when this surah
-     * was not already in hand — opening the reader cold from the hub, where a brief load is
-     * honest rather than a blink.
-     */
-    private fun initialState(): QuranReaderUiState =
-        continuity.snapshot(surahNumber)?.let { cached ->
-            buildState(cached, QuranNeighbourVerses(emptyList(), emptyList()), null, false)
-        } ?: QuranReaderUiState.Loading
 
     /** Survives crossing into another surah, unlike screen-local state — see [QuranReaderContinuity]. */
     val chromeVisible: StateFlow<Boolean> = continuity.chromeVisible
@@ -180,6 +187,11 @@ constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS), null)
 
     init {
+        // The reader is asked for a surah but shows halaman, so the opening page is whichever one the
+        // requested ayat is printed on. A Room read, hence the launch: nothing renders until it lands.
+        viewModelScope.launch {
+            currentPage.value = quranRepository.pageOf(surahNumber, targetAyatNumber ?: FIRST_AYAT) ?: 0
+        }
         audioStore.ensureDirectory()
         viewModelScope.launch { audioStore.refresh() }
         // The player owns playback across screens, so persisted murottal preferences are pushed into
@@ -325,20 +337,39 @@ constructor(
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
-    /** Called as the visible ayat changes while scrolling (QUR-FR-011) — the first call seeds
-     * the session's starting position, every call updates the last-seen position. */
-    fun onVisiblePositionChanged(ayatNumber: Int) {
-        if (startAyatNumber == null) startAyatNumber = ayatNumber
-        lastVisibleAyatNumber = ayatNumber
-        val page =
-            (uiState.value as? QuranReaderUiState.Content)
-                ?.ayats
-                ?.firstOrNull {
-                    it.ayatNumber == ayatNumber
-                }?.page
-        if (page != null) {
-            viewModelScope.launch { quranRepository.setLastRead(surahNumber, ayatNumber, page) }
+    /**
+     * Called as the visible ayat changes while reading (QUR-FR-011) — the first call seeds the
+     * session's starting position, every call updates the last-seen position.
+     *
+     * It also moves [activeSurah], because mushaf mode pages through the whole mushaf: scrolling down
+     * page 603 passes from Al-Kafirun into An-Nasr without any navigation, and the title bar and
+     * Arab+terjemahan mode both have to follow. A surah change closes the session that was open for
+     * the surah being left, so a continuous read is recorded as the surahs it actually covered.
+     */
+    fun onVisibleAyatChanged(ayat: QuranReaderAyatUiModel) {
+        if (ayat.surahNumber != activeSurah.value) {
+            recordSessionIfAdvanced()
+            startAyatNumber = null
+            lastVisibleAyatNumber = null
+            sessionRecorded = false
+            activeSurah.value = ayat.surahNumber
         }
+        if (startAyatNumber == null) startAyatNumber = ayat.ayatNumber
+        lastVisibleAyatNumber = ayat.ayatNumber
+        viewModelScope.launch {
+            quranRepository.setLastRead(ayat.surahNumber, ayat.ayatNumber, ayat.page)
+        }
+    }
+
+    /** The halaman on screen; moving it slides the loaded window. */
+    fun onMushafPageChanged(page: Int) {
+        if (page in 1..QURAN_MUSHAF_PAGE_COUNT) currentPage.value = page
+    }
+
+    /** Recitation continuing into the next surah moves the reader with it — no navigation, since the
+     * page it is on already shows that surah. */
+    fun onFollowAudioSurah(surahNumber: Int) {
+        if (surahNumber != activeSurah.value) activeSurah.value = surahNumber
     }
 
     /** Called when the reader closes (QUR-FR-017) — writes one session only if the position
@@ -349,7 +380,8 @@ constructor(
         if (!sessionRecorded && start != null && last != null) {
             if (last > start) {
                 sessionRecorded = true
-                viewModelScope.launch { quranRepository.recordReadingSession(surahNumber, start, last) }
+                val surah = activeSurah.value
+                viewModelScope.launch { quranRepository.recordReadingSession(surah, start, last) }
             }
         }
     }
@@ -357,22 +389,34 @@ constructor(
     @Suppress("ReturnCount")
     private fun buildState(
         data: QuranReaderRoomData,
-        neighbours: QuranNeighbourVerses,
+        windowVerses: List<QuranVerse>,
+        page: Int,
         selectedAyatId: Long?,
         tafsirOpen: Boolean,
     ): QuranReaderUiState {
-        val surah = data.surahs.firstOrNull { it.number == surahNumber } ?: return QuranReaderUiState.Unavailable
+        val surah =
+            data.surahs.firstOrNull { it.number == activeSurah.value } ?: return QuranReaderUiState.Unavailable
         if (data.verses.isEmpty()) return QuranReaderUiState.Loading
-
-        continuity.putSnapshot(surahNumber + 1, data.copy(verses = neighbours.next))
-        continuity.putSnapshot(surahNumber - 1, data.copy(verses = neighbours.previous))
 
         val settings = data.settings
         val ayats = data.verses.map { it.toReaderUiModel(surah.latinName) }
-        val selectedAyat = ayats.firstOrNull { it.remoteId == selectedAyatId }
+        // The selected ayat may sit on the page but outside the active surah — a halaman can carry
+        // three of them — so the window is searched too, named by its own surah.
+        val selectedAyat =
+            ayats.firstOrNull { it.remoteId == selectedAyatId }
+                ?: windowVerses.firstOrNull { it.remoteId == selectedAyatId }?.let { verse ->
+                    verse.toReaderUiModel(
+                        data.surahs
+                            .firstOrNull { it.number == verse.surahNumber }
+                            ?.latinName
+                            .orEmpty(),
+                    )
+                }
         val isSelectedBookmarked =
             selectedAyat != null &&
-                    data.bookmarks.any { it.surahNumber == surahNumber && it.ayatNumber == selectedAyat.ayatNumber }
+                data.bookmarks.any {
+                    it.surahNumber == selectedAyat.surahNumber && it.ayatNumber == selectedAyat.ayatNumber
+                }
 
         return QuranReaderUiState.Content(
             surahNumber = surah.number,
@@ -384,15 +428,8 @@ constructor(
             displayMode = settings.displayMode,
             arabicFont = settings.arabicFont,
             ayats = ayats,
-            pages = ayats.groupBy { it.page }.values.toList(),
-            nextBoundaryPage =
-                data.surahs
-                    .firstOrNull { it.number == surahNumber + 1 }
-                    ?.boundaryPage(neighbours.next, takeLast = false),
-            previousBoundaryPage =
-                data.surahs
-                    .firstOrNull { it.number == surahNumber - 1 }
-                    ?.boundaryPage(neighbours.previous, takeLast = true),
+            mushafPages = windowVerses.toMushafPages(data.surahs),
+            currentMushafPage = page,
             selectedAyat = selectedAyat,
             isSelectedBookmarked = isSelectedBookmarked,
             arabicSizeSp = settings.arabicSizeSp,
@@ -405,8 +442,10 @@ constructor(
 
     private companion object {
         const val AL_FATIHAH_SURAH_NUMBER = 1
-        const val FIRST_SURAH_NUMBER = 1
-        const val LAST_SURAH_NUMBER = 114
+        const val FIRST_AYAT = 1
+
+        /** Pages held either side of the one on screen, so a swipe reveals a composed page. */
+        const val PAGE_WINDOW_RADIUS = 1
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5000L
 
         /** "Ulangi 3×" — the count the design's chip states. */
@@ -426,6 +465,7 @@ data class QuranReaderRoomData(
 internal fun QuranVerse.toReaderUiModel(surahName: String): QuranReaderAyatUiModel =
     QuranReaderAyatUiModel(
         remoteId = remoteId,
+        surahNumber = surahNumber,
         surahName = surahName,
         ayatNumber = ayatNumber,
         juz = juz,
@@ -437,36 +477,38 @@ internal fun QuranVerse.toReaderUiModel(surahName: String): QuranReaderAyatUiMod
         footnoteText = footnoteText,
     )
 
-private data class QuranNeighbourVerses(
-    val previous: List<QuranVerse>,
-    val next: List<QuranVerse>,
-)
-
 /**
- * The one page of this surah that touches the surah being read: its last when it sits before, its
- * first when it sits after. Null until that surah's verses have loaded, so the pager simply has no
- * boundary page yet rather than one that would draw blank.
+ * Groups a window of verses into the halaman they are printed on, and each halaman into the surahs
+ * it carries.
+ *
+ * This is the official Kemenag mapping, not one this app decides: every ayat states its own
+ * `halaman`, so grouping by it — and by `surahNumber` within it — reproduces the printed page.
+ * Nothing is hardcoded or inferred, which matters because a wrong page-to-surah mapping would
+ * misrepresent the mushaf.
  */
-private fun QuranSurah.boundaryPage(
-    verses: List<QuranVerse>,
-    takeLast: Boolean,
-): QuranBoundaryPage? {
-    val pages =
-        verses
-            .map { it.toReaderUiModel(latinName) }
-            .groupBy { it.page }
-            .values
-            .toList()
-    val page = (if (takeLast) pages.lastOrNull() else pages.firstOrNull()) ?: return null
-    return QuranBoundaryPage(
-        surahNumber = number,
-        surahName = latinName,
-        surahArabicName = arabicName,
-        category = category,
-        ayatCount = ayatCount,
-        ayats = page,
-        // A surah short enough to fit on one page shows its header even when approached from behind,
-        // because that page is also its first.
-        showsSurahHeader = !takeLast || pages.size == 1,
-    )
-}
+private fun List<QuranVerse>.toMushafPages(surahs: List<QuranSurah>): Map<Int, QuranMushafPageUiModel> =
+    groupBy { it.page }
+        .mapValues { (page, versesOnPage) ->
+            QuranMushafPageUiModel(
+                page = page,
+                juz = versesOnPage.first().juz,
+                segments =
+                    versesOnPage
+                        .groupBy { it.surahNumber }
+                        .map { (surahNumber, versesOfSurah) ->
+                            val surah = surahs.firstOrNull { it.number == surahNumber }
+                            QuranMushafSegment(
+                                surahNumber = surahNumber,
+                                surahName = surah?.latinName.orEmpty(),
+                                surahArabicName = surah?.arabicName.orEmpty(),
+                                category = surah?.category.orEmpty(),
+                                ayatCount = surah?.ayatCount ?: versesOfSurah.size,
+                                // The surah opens on this page when its first ayat is printed here.
+                                startsSurah = versesOfSurah.first().ayatNumber == FIRST_AYAT_NUMBER,
+                                ayats = versesOfSurah.map { it.toReaderUiModel(surah?.latinName.orEmpty()) },
+                            )
+                        },
+            )
+        }
+
+private const val FIRST_AYAT_NUMBER = 1

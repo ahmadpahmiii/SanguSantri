@@ -1,94 +1,32 @@
 package com.sangusantri.app.feature.quran.reader
 
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.sangusantri.app.domain.model.QuranDisplayMode
 
 /**
- * Opens on [targetAyat], then maps the outgoing mode's visible ayat to the destination mode.
+ * Carries the reading position across a change of display mode.
  *
- * The two modes navigate by different units — mushaf mode turns whole Kemenag `halaman` pages
- * horizontally, translation mode scrolls a continuous ayat list — so they keep separate state and the
- * ayat number is what travels between them. Switching modes therefore lands on the same place in the
- * surah rather than the same scroll offset.
+ * The two modes navigate by different units — mushaf mode turns whole halaman of the printed
+ * mushaf, Arab+terjemahan scrolls one surah's ayat — so the ayat number is what travels between
+ * them. Only the translation list is placed here: the mushaf pager is positioned from
+ * [QuranReaderUiState.Content.currentMushafPage], which the ViewModel owns and keeps current as the
+ * reader pages through the mushaf.
+ *
+ * Keyed on the mode and surah alone, never on the anchor. Keying on the anchor would re-run every
+ * time scrolling reported a new visible ayat, and the list would fight the thumb scrolling it.
  */
 @Composable
 internal fun QuranReaderSynchronizePosition(
     state: QuranReaderUiState.Content,
-    targetAyat: Int?,
-    mushafPagerState: PagerState,
+    anchorAyat: Int?,
     translationListState: LazyListState,
-): Boolean {
-    val paging = state.mushafPaging()
-    var previousMode by remember(state.surahNumber) { mutableStateOf<QuranDisplayMode?>(null) }
-    LaunchedEffect(state.surahNumber, targetAyat, state.displayMode) {
-        val oldMode = previousMode
-        val anchorAyat =
-            if (oldMode == null) {
-                restoredOrRequestedAyat(state, targetAyat, mushafPagerState, translationListState)
-            } else {
-                visibleAyatForMode(oldMode, state, mushafPagerState, translationListState)
-            }
-        when (state.displayMode) {
-            QuranDisplayMode.ARAB_ONLY -> {
-                val page = state.pages.indexOfFirst { page -> page.any { it.ayatNumber == anchorAyat } }
-                if (page >= 0) mushafPagerState.scrollToPage(paging.pagerIndex(page))
-            }
-
-            QuranDisplayMode.ARAB_TRANSLATION -> {
-                val index = state.ayats.indexOfFirst { it.ayatNumber == anchorAyat }
-                // +1 for the surah-start header, which occupies index 0 of the translation list.
-                if (index >= 0) translationListState.scrollToItem(index + 1)
-            }
-        }
-        previousMode = state.displayMode
-    }
-    return previousMode == state.displayMode
-}
-
-/** On first composition there is no outgoing mode: a restored position wins over the requested ayat,
- * so returning to the reader resumes where it was left rather than jumping back to the entry point. */
-private fun restoredOrRequestedAyat(
-    state: QuranReaderUiState.Content,
-    targetAyat: Int?,
-    mushafPagerState: PagerState,
-    translationListState: LazyListState,
-): Int? {
-    val restored =
-        when (state.displayMode) {
-            QuranDisplayMode.ARAB_ONLY -> state.mushafPaging().contentIndex(mushafPagerState.currentPage) > 0
-            QuranDisplayMode.ARAB_TRANSLATION ->
-                translationListState.firstVisibleItemIndex > 0 ||
-                    translationListState.firstVisibleItemScrollOffset > 0
-        }
-    return if (restored) {
-        visibleAyatForMode(state.displayMode, state, mushafPagerState, translationListState)
-    } else {
-        targetAyat
+) {
+    LaunchedEffect(state.surahNumber, state.displayMode) {
+        if (state.displayMode != QuranDisplayMode.ARAB_TRANSLATION) return@LaunchedEffect
+        val index = state.ayats.indexOfFirst { it.ayatNumber == anchorAyat }
+        // +1 for the surah-start header, which occupies index 0 of the translation list.
+        if (index >= 0) translationListState.scrollToItem(index + 1)
     }
 }
-
-private fun visibleAyatForMode(
-    mode: QuranDisplayMode,
-    state: QuranReaderUiState.Content,
-    mushafPagerState: PagerState,
-    translationListState: LazyListState,
-): Int? =
-    when (mode) {
-        QuranDisplayMode.ARAB_ONLY ->
-            state.pages
-                .getOrNull(state.mushafPaging().contentIndex(mushafPagerState.currentPage))
-                ?.firstOrNull()
-                ?.ayatNumber
-
-        QuranDisplayMode.ARAB_TRANSLATION ->
-            state.ayats
-                .getOrNull((translationListState.firstVisibleItemIndex - 1).coerceAtLeast(0))
-                ?.ayatNumber
-    }

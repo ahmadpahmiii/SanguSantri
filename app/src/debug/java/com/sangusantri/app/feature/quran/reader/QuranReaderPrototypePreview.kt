@@ -30,6 +30,7 @@ private val prototypeFixtureAyats =
     listOf(
         QuranReaderAyatUiModel(
             remoteId = 9001,
+            surahNumber = 1,
             surahName = "[FIXTURE] Surah",
             ayatNumber = 1,
             juz = 1,
@@ -39,6 +40,7 @@ private val prototypeFixtureAyats =
         ),
         QuranReaderAyatUiModel(
             remoteId = 9002,
+            surahNumber = 1,
             surahName = "[FIXTURE] Surah",
             ayatNumber = 2,
             juz = 1,
@@ -48,6 +50,7 @@ private val prototypeFixtureAyats =
         ),
         QuranReaderAyatUiModel(
             remoteId = 9003,
+            surahNumber = 1,
             surahName = "[FIXTURE] Surah",
             ayatNumber = 3,
             juz = 1,

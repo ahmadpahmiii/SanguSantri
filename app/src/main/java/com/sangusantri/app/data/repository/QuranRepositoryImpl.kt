@@ -50,6 +50,17 @@ constructor(
     override fun observeVersesBySurah(surahNumber: Int): Flow<List<QuranVerse>> =
         verseDao.observeBySurah(surahNumber).map { verses -> verses.map { it.toDomain() } }
 
+    override fun observeVersesByPageRange(
+        fromPage: Int,
+        toPage: Int,
+    ): Flow<List<QuranVerse>> =
+        verseDao.observeByPageRange(fromPage, toPage).map { verses -> verses.map { it.toDomain() } }
+
+    override suspend fun pageOf(
+        surahNumber: Int,
+        ayatNumber: Int,
+    ): Int? = verseDao.getByIdentity(surahNumber, ayatNumber)?.page
+
     override fun observeJuzStarts(): Flow<List<QuranVerse>> =
         verseDao.observeJuzStarts().map { verses -> verses.map { it.toDomain() } }
 

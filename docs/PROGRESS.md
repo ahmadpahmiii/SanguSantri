@@ -7487,3 +7487,69 @@ two extra surahs rather than one page each; worth revisiting only if a long sura
 in profiling. Returning to a page composes it at its top
 rather than restoring where it was scrolled to, which matches how a mushaf page is picked
 up again.
+
+## Mushaf mode becomes page-based: one halaman per screen (2026-08-21)
+
+**Status:** Implemented and verified on a booted emulator.
+
+A halaman is a page of the mushaf, not a slice of one surah — and the reader had been treating it as
+the latter. `pages` was built as `groupBy { it.page }` *within one surah*, so page 603, which
+carries
+the whole of Al-Kafirun, An-Nasr and Al-Lahab, was drawn three separate times: once inside each
+surah, each showing only its own third against a screen of empty space. Mushaf mode now pages
+through the mushaf itself — 604 halaman, each rendered whole, with every surah printed on it and a
+surah header wherever one begins.
+
+Arab+terjemahan is unchanged and stays surah-based (product-owner decision, reversing an earlier
+answer): page breaks mid-translation read badly.
+
+**The mapping is the dataset's own.** Every ayat already states its `halaman`, so grouping by it —
+and by `surahNumber` within it — reproduces the printed page. Nothing is hardcoded, inferred or
+AI-derived, which matters because a wrong page-to-surah mapping would misrepresent the mushaf.
+
+**This deleted the surah-crossing machinery rather than adding to it.** With pages as the unit,
+reading straight through never crosses a "surah boundary": the next page is simply the next page.
+Gone: `QuranBoundaryPage`, `QuranMushafPaging`, the leading/trailing boundary pages, the
+next/previous-surah navigation and its `NavDisplay` metadata, `QuranFollowAudioAcrossSurahEffect`'s
+navigation, and the snapshot-priming that existed only to stop the rebuild blinking. Audio crossing
+a
+surah now moves the active surah in place instead of navigating.
+
+**Created:** `feature/quran/reader/QuranMushafPager.kt` (pager, page, segments),
+`QuranMushafPageUiModel.kt`. **Modified:** `QuranReaderViewModel.kt` (a sliding page window and an
+`activeSurah` that follows what is on screen), `QuranReaderUiState.kt`, `QuranReaderScreen.kt`,
+`QuranReaderPosition.kt`, `QuranReaderAyatUiModel.kt` (ayat now carry `surahNumber` — a halaman can
+hold three surahs, so an ayat can no longer be assumed to be the reader's), `QuranVerseDao.kt` and
+`QuranRepository`/`Impl` (a page-range query and `pageOf`), `SanguSantriNavHost.kt`.
+
+**Memory.** The reader holds a window of `currentPage ± 1`, not the whole mushaf — 6,236 ayat of
+Arabic and translation in memory to render three pages would be absurd. Pages outside the window are
+absent and draw blank; reaching one takes a swipe, and the read finishes first.
+
+**One bug found and fixed during verification.** Paging appeared to skip halaman — 600 to 603 in a
+single swipe. The pager keeps its neighbours composed and every composed page reported its own first
+visible ayat, so an off-screen page overwrote the title bar with its surah and halaman. Reporting is
+now gated to the page actually being read.
+
+**Validation.** `ktlintFormat`, `lint`, `assembleDebug`, `installDebug` pass; `detekt` reports only
+the three pre-existing findings in the prayer-times/adzan files this work never touched.
+
+**On-device verification** (emulator-5554): halaman 603 renders Al-Kafirun's header, basmalah and 6
+ayat, then An-Nasr's, then Al-Lahab's, on one scrollable screen; the title bar follows the surah at
+the top of what is visible, moving Al-Kafirun to An-Nasr on scroll while the position stays
+`Juz 30 · Hal 603`. Paging steps exactly one halaman (1 to 2 to 3 to 4), stops at halaman 1 going
+back and at 604 going forward.
+
+**For the product owner to check at source, not changed here.** The page-603 headers render An-Nasr
+as `MAKIYYAH`, where the reference mushaf app shows it as Madaniyah. That category string is taken
+verbatim from the stored Kemenag surah record and is displayed as-is; correcting religious content
+on
+the app's own judgement is not permitted (`CLAUDE.md` Content safety), so it needs verifying against
+the Kemenag source and fixing there if wrong. The dataset also spells the category inconsistently
+(`MAKKIYYAH` on some surahs, `MAKIYYAH` on others) — also rendered verbatim.
+
+**Known limitations.** A reading session is recorded per surah, and a continuous read now closes one
+session and opens another as it passes into the next surah; long single-sitting reads therefore
+appear as several sessions rather than one. Reading-position tracking is page-precise in mushaf
+mode,
+as before.

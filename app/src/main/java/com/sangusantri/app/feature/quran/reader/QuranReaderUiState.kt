@@ -20,12 +20,16 @@ sealed interface QuranReaderUiState {
         val ayatCount: Int,
         val displayMode: QuranDisplayMode,
         val arabicFont: QuranArabicFont,
+        /** The active surah's ayat, used by Arab+terjemahan mode, which stays surah-based. */
         val ayats: List<QuranReaderAyatUiModel>,
-        val pages: List<List<QuranReaderAyatUiModel>>,
-        /** Surah [surahNumber] + 1's first page, or `null` on An-Nas. */
-        val nextBoundaryPage: QuranBoundaryPage?,
-        /** Surah [surahNumber] - 1's last page, or `null` on Al-Fatihah. */
-        val previousBoundaryPage: QuranBoundaryPage?,
+        /**
+         * The mushaf halaman currently loaded, keyed by page number — a sliding window around
+         * [currentMushafPage], not all 604. Pages outside it are simply absent and render blank
+         * until the window catches up, which takes a swipe to reach.
+         */
+        val mushafPages: Map<Int, QuranMushafPageUiModel>,
+        /** The halaman being read, 1..[QURAN_MUSHAF_PAGE_COUNT]. */
+        val currentMushafPage: Int,
         val selectedAyat: QuranReaderAyatUiModel?,
         val isSelectedBookmarked: Boolean,
         /** `true` once "Tafsir Kemenag" is chosen from the action sheet for [selectedAyat] — the
@@ -36,28 +40,4 @@ sealed interface QuranReaderUiState {
         val translationSizeSp: Int,
         val brightnessOverride: Float?,
     ) : QuranReaderUiState
-}
-
-/**
- * One real page of the surah either side of this one, carried so mushaf mode can render it inside the
- * pager at the boundary.
- *
- * Without it, crossing a surah boundary meant swiping onto a blank page and swapping the whole
- * destination underneath the reader's thumb — a hard cut mid-gesture. Drawing the adjacent surah's
- * actual page makes the crossing look like any other page turn, and lets the navigation wait until
- * the pager has settled, at which point the reader is already looking at the page it will land on.
- */
-data class QuranBoundaryPage(
-    val surahNumber: Int,
-    val surahName: String,
-    val surahArabicName: String,
-    val category: String,
-    val ayatCount: Int,
-    val ayats: List<QuranReaderAyatUiModel>,
-    /** `true` when this page is that surah's first, so it draws the surah-start header here exactly as
-     * it will once the reader actually opens there — otherwise the header would pop in on landing. */
-    val showsSurahHeader: Boolean,
-) {
-    /** The ayat the reader opens that surah on, so it lands on this very page rather than its far end. */
-    val targetAyat: Int? get() = ayats.firstOrNull()?.ayatNumber
 }

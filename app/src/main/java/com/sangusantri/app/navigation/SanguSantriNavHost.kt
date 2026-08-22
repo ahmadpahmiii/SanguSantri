@@ -527,13 +527,6 @@ private fun EntryProviderScope<NavKey>.quranEntries(topLevelBackStack: TopLevelB
             targetAyat = key.targetAyat,
             onBack = { topLevelBackStack.removeLast() },
             onOpenSettings = { topLevelBackStack.add(QuranSettings) },
-            // Continuous reading moving into another surah — murottal crossing a surah
-            // boundary while this reader was following it, or a swipe past the last mushaf page.
-            // `replaceLast` rather than `add`: an hour of either must not leave a surah-deep back
-            // stack to walk out of.
-            onOpenSurah = { surahNumber, ayatNumber ->
-                topLevelBackStack.replaceLast(QuranReader(surahNumber, targetAyat = ayatNumber))
-            },
         )
     }
     entry<QuranSource> {

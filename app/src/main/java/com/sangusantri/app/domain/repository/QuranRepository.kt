@@ -26,6 +26,19 @@ interface QuranRepository {
 
     fun observeVersesBySurah(surahNumber: Int): Flow<List<QuranVerse>>
 
+    /** Every ayat on mushaf pages [fromPage]..[toPage], in printed order across surah boundaries —
+     * a halaman is a page of the mushaf, not a slice of one surah. */
+    fun observeVersesByPageRange(
+        fromPage: Int,
+        toPage: Int,
+    ): Flow<List<QuranVerse>>
+
+    /** The mushaf page an ayat is printed on, or `null` when the dataset has no such ayat. */
+    suspend fun pageOf(
+        surahNumber: Int,
+        ayatNumber: Int,
+    ): Int?
+
     /** One entry per Juz 1..30 — the first locally ordered verse of each (QUR-FR-007). */
     fun observeJuzStarts(): Flow<List<QuranVerse>>
 

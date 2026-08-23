@@ -3,7 +3,8 @@
 ## Status
 
 Accepted (2026-08-08, product owner/tech lead); update policy amended
-2026-08-09; decision #12 (dark-only) amended 2026-08-10
+2026-08-09; decision #12 (dark-only) amended 2026-08-10; decision #2
+(Kemenag as sole Quran-text source) amended 2026-08-23
 
 ## Context
 
@@ -33,7 +34,10 @@ cannot make a client-shipped credential secret.
    transliteration remain out of scope.
 2. **Kemenag is the only Quran-content API.** Android consumes official
    read-only source fields without editorial mutation or secondary-source
-   merging.
+   merging. *(Amended 2026-08-23 — see "Amendment (2026-08-23): CMS-authored
+   quote text in Ayat Hari Ini" below. Kemenag remains the only source for the
+   Qur'an **feature**; the daily quote is now an editorial surface whose text
+   comes from the CMS.)*
 3. **The client calls Kemenag directly.** No Cloud Function, Cloud Run,
    Firebase mirror, or other SanguSantri proxy is introduced.
 4. **The residual credential-extraction risk is accepted and documented.**
@@ -209,3 +213,60 @@ mode.**
   available" — implemented as `QuranThemeBoundary` resolving
   `LocalQuranThemeMode` (provided once by `SanguSantriNavHost` from the
   persisted setting) instead of a hardcoded `darkTheme = true`.
+
+## Amendment (2026-08-23): CMS-authored quote text in Ayat Hari Ini
+
+Decision #2 said Kemenag is the only source of Qur'an text in this app. The
+Ayat Hari Ini feature was built to honour that literally: the CMS published a
+bare `(surah, ayat)` reference and the app read the words out of its own LPMQ
+Kemenag tables, so a CMS mistake could at worst schedule the *wrong* ayat,
+never a *corrupted* one.
+
+**The product owner has decided the daily quote should carry its own text.**
+The reason is scope, not convenience: the same surface is meant to carry hadith
+and other quotations as well as Qur'an, and there is no local dataset to
+resolve those against. A reference-only contract can only ever publish Qur'an.
+
+### What changed
+
+* The CMS gained a free-form `quotes` pool — `kind`, `arabic`,
+  `translation_id`, `translation_en`, `source_label` — and the endpoint's
+  `schemaVersion` went to **2**, carrying the text itself. The shapes are not
+  compatible; the app rejects an unknown version and keeps its cache, which is
+  what made the switch safe to ship on either side first.
+* `ayat_hari_ini` (Room, DB v9) stores the text instead of a reference.
+  `AyatHariIniRepositoryImpl` no longer joins `quran_verses`.
+* `AyatHariIni` replaces `surahName`/`ayatNumber` with `sourceLabel`, and
+  `arabic` became nullable — a quotation may not be in Arabic at all.
+
+### What this costs, stated plainly
+
+**A typo in the CMS now ships as scripture.** The verification the old design
+got for free — a reference that did not resolve was refused, so wrong Arabic
+was structurally impossible — is gone, and nothing in the app replaces it.
+`AyatHariIniValidator` can still check that a row has a parseable date, a
+non-empty Indonesian translation and a non-empty citation. It cannot check that
+an ayat is *correct*, and no client-side check ever could.
+
+The brief that specified this feature (`docs/product/AYAT_HARI_INI_CMS_BRIEF.md`
+§2a and §6) proposed a compensating control: the CMS form would show the
+official Kemenag text beside what the admin typed, so the difference was
+visible before saving. **The product owner decided against fetching Kemenag
+into the CMS** — admins type the quotation and verify it themselves. What ships
+instead is a reminder on the form, next to the Arabic field, naming the risk
+and linking to `quran.kemenag.go.id`.
+
+So the residual control is **editorial process, not code**. Whoever publishes a
+`kind = 'quran'` quote is the last check on its text. This is a deliberate,
+recorded trade, not an oversight — and if a mistyped ayat ever does ship, the
+fix is the diff step in §2a of the brief, not more validation in the app.
+
+### What is *not* amended
+
+Decisions #1 and #3–#14 stand unchanged. The standalone Al-Qur'an feature still
+consumes Kemenag and only Kemenag; Ayat Hari Ini is a separate, editorial
+surface that happens to quote scripture, and it must never be read as the
+Qur'an feature's source of text. In particular `kind = 'quran'` is a filing
+label for layout — the app does not, and must not, render it as a claim of
+authority.
+

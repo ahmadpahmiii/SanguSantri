@@ -88,9 +88,10 @@ fun AyatHariIniSheet(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = SheetBottomPadding),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = SheetBottomPadding),
         ) {
             CardPreview(ayat = ayat, arabicFont = arabicFont, cardLayer = cardLayer)
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -199,12 +200,12 @@ private suspend fun Context.shareCard(
 }
 
 /**
- * Arabic, blank line, translation, blank line, citation — the same three parts the card carries, so
- * a pasted quote and a shared picture say the same thing. The Kemenag strings go on the clipboard
- * verbatim.
+ * Arabic, blank line, translation, blank line, citation — the same parts the card carries, so a
+ * pasted quote and a shared picture say the same thing. A quote with no Arabic drops that part
+ * rather than pasting a leading blank line.
  */
-private fun Context.ayatPlainText(ayat: AyatHariIni): String =
-    "${ayat.arabicText}\n\n${ayat.translation}\n\n${ayatReference(ayat)}"
+private fun ayatPlainText(ayat: AyatHariIni): String =
+    listOfNotNull(ayat.arabic, ayat.translation, ayat.sourceLabel).joinToString("\n\n")
 
 private fun Context.copyAyatText(ayat: AyatHariIni) {
     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return

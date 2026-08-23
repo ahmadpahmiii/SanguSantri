@@ -1,10 +1,13 @@
 package com.sangusantri.app.data.repository
 
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
+import com.sangusantri.app.data.local.entity.AyatHariIniEntity
 import com.sangusantri.app.data.sync.ayat.AyatHariIniSyncManager
 import com.sangusantri.app.domain.model.AyatHariIni
+import com.sangusantri.app.domain.model.QuoteKind
 import com.sangusantri.app.domain.repository.AyatHariIniRepository
 import java.time.LocalDate
+import java.util.Locale
 import javax.inject.Inject
 
 class AyatHariIniRepositoryImpl
@@ -14,8 +17,6 @@ constructor(
     private val syncManager: AyatHariIniSyncManager,
 ) : AyatHariIniRepository {
     private val scheduleDao get() = database.ayatHariIniDao()
-    private val verseDao get() = database.quranVerseDao()
-    private val surahDao get() = database.quranSurahDao()
 
     /**
      * Offline-first, in two senses.
@@ -24,35 +25,40 @@ constructor(
      * launch is not this method's business.
      *
      * **A day with no entry falls back rather than going blank.** If the device rolls into a date
-     * the cached window does not cover and the refresh fails, the most recent published ayat is
+     * the cached window does not cover and the refresh fails, the most recent published quote is
      * shown instead of nothing. That is a deliberate trade: the header is a day or two behind
      * rather than empty, and the app is offline-first everywhere else for the same reason.
      *
-     * Then the safety net that is not negotiable: the schedule says *which* ayat, and the words are
-     * read from the Kemenag tables. A reference the local dataset cannot resolve — an ayat past the
-     * end of its surah, or any reference at all before the Quran download has finished — yields
-     * `null` and the section is not rendered. The app never shows a reference it cannot back with
-     * the official text.
+     * There is no longer a Kemenag join, and with it went the safety net that used to sit here: a
+     * reference the local dataset could not resolve was refused, so a bad schedule produced a blank
+     * section rather than a wrong quotation. Under schema version 2 the CMS sends the words
+     * themselves and this layer has nothing left to check them against. What is displayed is what
+     * an editor typed — see ADR 0016's amendment.
      */
     override suspend fun forDate(date: LocalDate): AyatHariIni? {
         val epochDay = date.toEpochDay()
         val scheduled =
             scheduleDao.getByEpochDay(epochDay) ?: scheduleDao.getLatestOnOrBefore(epochDay)
-        val verse = scheduled?.let { verseDao.getByIdentity(it.surahNumber, it.ayatNumber) }
-        val surah = verse?.let { surahDao.getByNumber(it.surahNumber) }
-        return if (scheduled == null || verse == null || surah == null) {
-            null
-        } else {
-            AyatHariIni(
-                surahNumber = verse.surahNumber,
-                surahName = surah.latinName,
-                ayatNumber = verse.ayatNumber,
-                arabicText = verse.arabicText,
-                translation = verse.translation,
-                theme = scheduled.theme,
-            )
-        }
+        return scheduled?.toDomain()
     }
 
     override suspend fun sync(): Result<Unit> = syncManager.syncIfNeeded()
+}
+
+/**
+ * Picks the translation for the device's language, falling back to Indonesian.
+ *
+ * Read at call time rather than cached: the row holds both translations precisely so that a
+ * language change is a re-read and never a re-sync.
+ */
+private fun AyatHariIniEntity.toDomain(): AyatHariIni {
+    val prefersEnglish = Locale.getDefault().language == Locale.ENGLISH.language
+    return AyatHariIni(
+        kind = runCatching { QuoteKind.valueOf(kind) }.getOrDefault(QuoteKind.OTHER),
+        arabic = arabic,
+        translation = translationEn?.takeIf { prefersEnglish } ?: translationId,
+        sourceLabel = sourceLabel,
+        sourceNote = sourceNote,
+        theme = theme,
+    )
 }

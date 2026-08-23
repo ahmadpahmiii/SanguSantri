@@ -3,13 +3,13 @@ package com.sangusantri.app.data.remote.ayat.dto
 import kotlinx.serialization.Serializable
 
 /**
- * The CMS's ayat-of-the-day schedule (`GET /api/v1/ayat-hari-ini`), documented in
- * `docs/product/AYAT_HARI_INI_CMS_BRIEF.md`.
+ * The CMS's quote-of-the-day schedule (`GET /api/v1/ayat-hari-ini`), documented in
+ * `../cms/docs/engineering/API.md`.
  *
- * Note what is absent: no Arabic, no translation, no surah name. The endpoint publishes editorial
- * decisions, and the app resolves each one against its own Kemenag dataset. That is deliberate —
- * it keeps the payload tiny, keeps Kemenag the single source of Quran text, and means a CMS bug can
- * at worst schedule the wrong ayat, never a corrupted one.
+ * **Schema version 2 carries the text.** Version 1 published only `surah`/`ayat` and the app
+ * resolved the words from its own Kemenag dataset. The shapes are not compatible, which is exactly
+ * why the version is checked before any of this is trusted — an app that meets a version it does
+ * not know keeps its cache rather than guessing.
  */
 @Serializable
 data class AyatHariIniScheduleDto(
@@ -19,9 +19,22 @@ data class AyatHariIniScheduleDto(
 
 @Serializable
 data class AyatHariIniItemDto(
-    /** ISO-8601 local date, `YYYY-MM-DD`. */
+    /** ISO-8601 local date, `YYYY-MM-DD`. Compared against the device's local date, not UTC. */
     val date: String,
-    val surah: Int,
-    val ayat: Int,
+    /** `quran` / `hadith` / `other`. Decorative — see `QuoteKind`. */
+    val kind: String? = null,
+    /** Null when the quotation is not in Arabic. */
+    val arabic: String? = null,
+    val translation: AyatHariIniTranslationDto,
+    val sourceLabel: String,
+    val sourceNote: String? = null,
     val theme: String? = null,
+)
+
+@Serializable
+data class AyatHariIniTranslationDto(
+    /** Indonesian. Always present — it is the app's base language. */
+    val id: String,
+    /** English. Absent for most quotes; the app falls back to [id]. */
+    val en: String? = null,
 )

@@ -262,17 +262,32 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         setViewVisibility(R.id.widget_ayat_block, if (fits) View.VISIBLE else View.GONE)
         if (!fits) return
 
+        // A quote need not be in Arabic at all since the CMS moved to free-form quotations. When
+        // there is none the view goes rather than rendering an empty line, and — the part that
+        // actually matters — its share of the height is handed to the translation instead of being
+        // spent on nothing. An `other` quote otherwise got one usable line on a panel with room
+        // for four.
+        val arabic = ayat?.arabic?.takeIf(String::isNotBlank)
+        setViewVisibility(R.id.widget_ayat_arabic, if (arabic == null) View.GONE else View.VISIBLE)
+
         val arabicLines =
-            (leftover * AYAT_ARABIC_SHARE / AYAT_ARABIC_LINE_DP)
-                .toInt()
-                .coerceIn(1, AYAT_ARABIC_MAX_LINES)
+            if (arabic == null) {
+                0
+            } else {
+                (leftover * AYAT_ARABIC_SHARE / AYAT_ARABIC_LINE_DP)
+                    .toInt()
+                    .coerceIn(1, AYAT_ARABIC_MAX_LINES)
+            }
+        val arabicBudget =
+            if (arabic == null) 0f else arabicLines * AYAT_ARABIC_LINE_DP + AYAT_TRANSLATION_GAP_DP
         val translationLines =
-            ((leftover - arabicLines * AYAT_ARABIC_LINE_DP - AYAT_TRANSLATION_GAP_DP) / AYAT_TRANSLATION_LINE_DP)
+            ((leftover - arabicBudget) / AYAT_TRANSLATION_LINE_DP)
                 .toInt()
                 .coerceIn(1, AYAT_TRANSLATION_MAX_LINES)
-        setTextViewText(R.id.widget_ayat_arabic, ayat?.arabicText.orEmpty())
+
+        setTextViewText(R.id.widget_ayat_arabic, arabic.orEmpty())
         setTextViewText(R.id.widget_ayat, ayat?.translation.orEmpty())
-        setInt(R.id.widget_ayat_arabic, "setMaxLines", arabicLines)
+        setInt(R.id.widget_ayat_arabic, "setMaxLines", arabicLines.coerceAtLeast(1))
         setInt(R.id.widget_ayat, "setMaxLines", translationLines)
     }
 

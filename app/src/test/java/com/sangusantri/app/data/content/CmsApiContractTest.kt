@@ -2,6 +2,8 @@ package com.sangusantri.app.data.content
 
 import com.sangusantri.app.data.content.dto.ContentCatalogDto
 import com.sangusantri.app.data.content.dto.ContentFileDto
+import com.sangusantri.app.data.remote.ayat.AyatHariIniValidator
+import com.sangusantri.app.data.remote.ayat.dto.AyatHariIniScheduleDto
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -21,6 +23,12 @@ import org.junit.Test
  * Re-capture with:
  *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/catalog
  *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/content/tahlil
+ *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/ayat-hari-ini
+ *
+ * The ayat-hari-ini fixture is trimmed to four days and its quotes are deliberately placeholders,
+ * not real scripture: what it exists to pin is the *shape* — which fields are null, which are
+ * absent — and capturing real Qur'an text into a test resource would create a second copy of it in
+ * this repository with nothing keeping it in step with the CMS.
  */
 class CmsApiContractTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -66,6 +74,59 @@ class CmsApiContractTest {
 
         assertNotNull(file.steps[0].repeatTarget)
         assertNull(file.steps[1].repeatTarget)
+    }
+
+    /**
+     * Schema version 2 of the quote-of-the-day route. The version number is the safety mechanism:
+     * version 1 published a `surah`/`ayat` reference and this app resolved the words locally, so
+     * the two shapes share no fields at all. An app that meets the wrong one must reject it and
+     * keep its cache rather than parse it half-way.
+     */
+    @Test
+    fun cmsAyatHariIniParsesAndValidates() {
+        val schedule = json.decodeFromString<AyatHariIniScheduleDto>(readFixture("cmsapi/ayat-hari-ini.json"))
+
+        assertEquals(AyatHariIniValidator.SUPPORTED_SCHEMA_VERSION, schedule.schemaVersion)
+        assertEquals(schedule.items.size, AyatHariIniValidator.validate(schedule.items).size)
+    }
+
+    /**
+     * A quote need not be in Arabic and need not have an English translation. Both must survive as
+     * null rather than as "" — an empty string would render as a blank script line on the card, and
+     * for `en` would blank the whole quote on an English-language device.
+     */
+    @Test
+    fun cmsAyatHariIniCarriesAbsentArabicAndEnglishThrough() {
+        val schedule = json.decodeFromString<AyatHariIniScheduleDto>(readFixture("cmsapi/ayat-hari-ini.json"))
+        val selections = AyatHariIniValidator.validate(schedule.items)
+
+        val withArabic = selections.first { it.arabic != null }
+        assertNotNull(withArabic.translationEn)
+
+        val withoutArabic = selections.first { it.arabic == null }
+        assertNull(withoutArabic.translationEn)
+        assertTrue(withoutArabic.translationId.isNotBlank())
+    }
+
+    /** Every published quote carries a citation — the CMS enforces it with a NOT NULL column, and
+     * the validator drops any row that somehow arrives without one. */
+    @Test
+    fun cmsAyatHariIniAlwaysCarriesASourceLabel() {
+        val schedule = json.decodeFromString<AyatHariIniScheduleDto>(readFixture("cmsapi/ayat-hari-ini.json"))
+
+        AyatHariIniValidator.validate(schedule.items).forEach {
+            assertTrue(it.sourceLabel.isNotBlank())
+        }
+    }
+
+    /** Dates are plain YYYY-MM-DD with no timezone, one per day, ascending. */
+    @Test
+    fun cmsAyatHariIniPublishesOneAscendingDatePerDay() {
+        val schedule = json.decodeFromString<AyatHariIniScheduleDto>(readFixture("cmsapi/ayat-hari-ini.json"))
+        val dates = AyatHariIniValidator.validate(schedule.items).map { it.date }
+
+        assertEquals(dates.distinct(), dates)
+        assertEquals(dates.sorted(), dates)
     }
 
     private fun readFixture(path: String): String =

@@ -46,6 +46,9 @@ import com.sangusantri.app.feature.quran.withQuranFontFallback
  * depends on the face, the user's font scale and the screen.
  *
  * The whole block is one tap target; the full, unclipped text lives in the sheet.
+ *
+ * The Arabic line is optional: since the CMS moved to free-form quotations a quote may have no
+ * Arabic at all, and the line is dropped rather than left blank.
  */
 @Composable
 fun BerandaAyatHariIni(
@@ -57,28 +60,36 @@ fun BerandaAyatHariIni(
     var arabicOverflowed by remember(ayat) { mutableStateOf(false) }
     var translationOverflowed by remember(ayat) { mutableStateOf(false) }
 
-    Column(modifier = modifier
-        .fillMaxWidth()
-        .clickable(onClick = onOpenSheet)) {
-        LabelRow(reference = ayat.reference)
-        Text(
-            text = ayat.arabicText.withQuranFontFallback(arabicFont),
-            style =
-                TextStyle(
-                    fontFamily = arabicFont.toFontFamily(),
-                    fontSize = ArabicSize,
-                    lineHeight = ArabicLineHeight,
-                    textAlign = TextAlign.Right,
-                    textDirection = TextDirection.Rtl,
-                ),
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            onTextLayout = { arabicOverflowed = it.hasVisualOverflow },
-            modifier = Modifier
+    Column(
+        modifier =
+            modifier
                 .fillMaxWidth()
-                .padding(top = ArabicTopPadding),
-        )
+                .clickable(onClick = onOpenSheet),
+    ) {
+        LabelRow(reference = ayat.sourceLabel)
+        // Absent for a quotation that is not in Arabic - an `other` quote need not be - and the
+        // line is not rendered at all rather than reserved empty, so the translation moves up.
+        ayat.arabic?.let { arabic ->
+            Text(
+                text = arabic.withQuranFontFallback(arabicFont),
+                style =
+                    TextStyle(
+                        fontFamily = arabicFont.toFontFamily(),
+                        fontSize = ArabicSize,
+                        lineHeight = ArabicLineHeight,
+                        textAlign = TextAlign.Right,
+                        textDirection = TextDirection.Rtl,
+                    ),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                onTextLayout = { arabicOverflowed = it.hasVisualOverflow },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = ArabicTopPadding),
+            )
+        }
         Text(
             text = ayat.translation,
             fontSize = TranslationSize,

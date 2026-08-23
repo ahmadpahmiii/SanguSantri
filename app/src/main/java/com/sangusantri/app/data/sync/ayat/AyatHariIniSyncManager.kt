@@ -53,7 +53,8 @@ constructor(
             }
             // An unknown schema version means the CMS moved on without the app. Keeping the existing
             // cache is the safe outcome: a reader sees yesterday's schedule continue rather than an
-            // empty header, and an app update fixes it.
+            // empty header, and an app update fixes it. This is what makes the version 1 → 2 change
+            // — which swapped a reference for the text itself — safe to ship on either side first.
             if (body.schemaVersion != AyatHariIniValidator.SUPPORTED_SCHEMA_VERSION) {
                 throw IOException("unsupported ayat-hari-ini schemaVersion ${body.schemaVersion}")
             }
@@ -61,8 +62,12 @@ constructor(
                 AyatHariIniValidator.validate(body.items).map { selection ->
                     AyatHariIniEntity(
                         epochDay = selection.date.toEpochDay(),
-                        surahNumber = selection.surahNumber,
-                        ayatNumber = selection.ayatNumber,
+                        kind = selection.kind.name,
+                        arabic = selection.arabic,
+                        translationId = selection.translationId,
+                        translationEn = selection.translationEn,
+                        sourceLabel = selection.sourceLabel,
+                        sourceNote = selection.sourceNote,
                         theme = selection.theme,
                     )
                 }

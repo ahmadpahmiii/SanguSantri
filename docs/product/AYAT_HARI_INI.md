@@ -1,92 +1,118 @@
 # Ayat Hari Ini — sumber, kontrol editorial, dan sinkronisasi
 
-Ayat harian yang tampil di kepala Beranda dan di widget "Jadwal Sholat + Ayat Hari Ini".
+Kutipan harian yang tampil di kepala Beranda dan di widget "Jadwal Sholat + Ayat Hari Ini".
 
-## 1. Siapa yang memilih ayatnya
+## 1. Siapa yang memilih kutipannya
 
-**Manusia, lewat CMS.** Seorang editor menjadwalkan ayat per tanggal; aplikasi hanya menampilkan apa
-yang sudah dijadwalkan. Tidak ada pemilihan otomatis di dalam aplikasi.
+**Manusia, lewat CMS — tetapi tidak per hari.** Editor mengisi *kolam* kutipan; sistem yang
+membagikannya ke tanggal secara acak. Editor tidak perlu memilih satu per satu setiap pagi, tetapi
+tetap bisa mengunci kutipan tertentu ke tanggal tertentu (misalnya menjelang Ramadan).
+
+Itulah yang membuat "acak" tetap terkendali: keacakannya ada di *pembagian tanggal*, bukan di *isi*.
+Semua yang bisa muncul sudah lolos meja editor.
 
 ### Yang berubah dan kenapa
 
-Versi pertama fitur ini memilih ayat sendiri: `Random(date.toEpochDay()).nextInt(6236)` — satu ayat
-acak dari seluruh mushaf, deterministik per tanggal. Pendekatan itu **dibatalkan oleh pemilik
-produk** karena tidak bisa dikendalikan: yang muncul besok tidak diketahui siapa pun sampai besok
-tiba, dan tidak ada cara menahan, mengganti, atau menjadwalkan ayat tanpa merilis ulang aplikasi.
+Versi pertama fitur ini memilih ayat sendiri di dalam aplikasi:
+`Random(date.toEpochDay()).nextInt(6236)` — satu ayat acak dari seluruh mushaf, deterministik per
+tanggal. Pendekatan itu **dibatalkan oleh pemilik produk** karena tidak bisa dikendalikan: yang
+muncul besok tidak diketahui siapa pun sampai besok tiba. Audit kalender lengkapnya memperjelas
+masalahnya: karena kolamnya seluruh mushaf, jadwal berisi ayat tentang Jahanam dan hukum-hukum
+tertentu di bawah judul yang dibaca sebagai penyemangat harian. Menyaring itu berarti melakukan
+**seleksi editorial atas teks agama**, dan itu harus dilakukan oleh orang yang berwenang, bukan
+oleh kode.
 
-Kalender lengkap hasil selektor lama pernah dibuatkan untuk diaudit, dan justru audit itu yang
-memperjelas masalahnya: karena kolamnya seluruh mushaf, jadwal berisi ayat tentang Jahanam, zaqqum,
-dan hukum-hukum tertentu di bawah judul yang dibaca sebagai penyemangat harian. Menyaring itu
-berarti melakukan **seleksi editorial atas teks agama** — dan seleksi itu memang harus dilakukan,
-tetapi oleh orang yang berwenang, bukan oleh kode. Karena itu keputusannya dipindahkan ke CMS.
+Versi kedua memindahkan keputusannya ke CMS, tetapi CMS hanya mengirim **rujukan** —
+`(surah, ayat)` — dan aplikasi mengambil teksnya dari dataset LPMQ Kemenag di Room. ADR 0016 §2
+menjadikan Kemenag satu-satunya sumber teks Al-Qur'an, dan bentuk itu menghormatinya secara harfiah.
 
-Selektor lama sudah dihapus dari kode (`ayatOfDay`, `QuranVerseDao.getByOrdinal`, dan tesnya).
+**Versi ketiga (schemaVersion 2, 2026-08-23) mengirim teksnya sendiri.** Alasannya bukan kemudahan
+melainkan cakupan: permukaan yang sama dimaksudkan memuat hadis dan kutipan lain, dan tidak ada
+dataset lokal untuk meresolusi rujukan semacam itu. Kontrak berbasis rujukan hanya akan pernah bisa
+memuat Al-Qur'an.
 
-## 2. Yang dikirim CMS: rujukan, bukan teks
+## 2. Konsekuensi yang harus dibaca sebelum menyentuh fitur ini
 
-Endpoint **tidak pernah mengirim teks Arab atau terjemahan.** Yang dikirim hanya nomor surah dan
-nomor ayat; aplikasi mengambil teksnya dari dataset LPMQ Kemenag yang sudah tersimpan di Room.
+**Teks Al-Qur'an sekarang diketik tangan di CMS.** Verifikasi yang dulu didapat gratis — rujukan
+yang tidak resolve ditolak, jadi Arab yang salah mustahil secara struktural — sudah hilang, dan
+tidak ada yang menggantikannya di aplikasi. `AyatHariIniValidator` masih memeriksa tanggal yang
+bisa diurai, terjemahan Indonesia tidak kosong, dan `sourceLabel` tidak kosong. Ia **tidak bisa**
+memeriksa apakah sebuah ayat benar, dan tidak ada pemeriksaan sisi klien yang bisa.
 
-Tiga alasan, dan yang pertama yang menentukan:
+Pemilik produk memutuskan **tidak** menarik teks Kemenag ke dalam CMS untuk diperbandingkan
+berdampingan (usulan brief §2a). Yang ada di form hanyalah pengingat di sebelah kolom Arab, beserta
+tautan ke `quran.kemenag.go.id`. Jadi kendali sisanya adalah **proses editorial, bukan kode**:
+siapa pun yang menerbitkan kutipan `kind = 'quran'` adalah pemeriksa terakhir teksnya. Rekamannya
+ada di amandemen ADR [0016](../decisions/0016-standalone-quran-kemenag-direct-api.md) tertanggal
+2026-08-23.
 
-1. **Kemenag tetap satu-satunya sumber teks Al-Qur'an** (ADR 0016 §2). Kalau CMS boleh mengirim
-   teks, ada dua sumber ayat yang bisa berbeda isinya, dan kesalahan ketik di CMS akan tampil
-   sebagai Al-Qur'an.
-2. Payload-nya jadi sangat kecil — satu baris per hari.
-3. Kalau editor salah, kesalahannya paling jauh adalah **ayat yang keliru**, bukan **ayat yang
-   rusak**.
+**Hadis butuh sanad dan derajat.** Hadis tanpa perawi dan status (sahih/hasan/daif) masuk kategori
+konten berisiko tinggi menurut `docs/operations/CONTENT_GOVERNANCE.md`. Karena itu `source_label`
+**wajib** di tingkat basis data (`NOT NULL`), di form CMS, dan di validator aplikasi — tiga lapis
+untuk satu aturan, karena inilah satu-satunya yang masih bisa ditegakkan secara mekanis.
 
-Aplikasi juga memverifikasi ulang: rujukan yang tidak bisa diresolusi ke dataset lokal (misalnya
-nomor ayat melebihi jumlah ayat surahnya) tidak ditampilkan sama sekali.
-
-Satu-satunya field yang benar-benar editorial adalah `theme` — label pendek opsional dari editor
-("Sabar", "Syukur"). Itu alasan editor menjadwalkannya, bukan klaim tentang ayatnya.
+`kind` (`quran` / `hadith` / `other`) adalah **label penataan, bukan klaim**. Aplikasi tidak boleh
+menampilkannya sebagai pernyataan tentang otoritas teks.
 
 ## 3. Offline-first: kapan aplikasi memanggil API
 
-Aturannya, persis seperti yang diminta pemilik produk:
+Aturannya tidak berubah dari versi sebelumnya:
 
-| Keadaan                                                                      | Yang terjadi                                                                                               |
-|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| Aplikasi dibuka, Room **sudah** punya baris untuk tanggal perangkat hari ini | **Tidak ada request.** Tampilkan dari Room.                                                                |
-| Aplikasi dibuka, Room **belum** punya baris untuk hari ini                   | Panggil API sekali, simpan jendela jadwal yang diterima, tampilkan.                                        |
-| Tanggal berganti, panggilan API **gagal** (offline, server mati)             | Room tidak disentuh. Tampilkan entri terakhir yang tersedia (`getLatestOnOrBefore`) — bukan layar kosong.  |
-| Belum pernah sinkron sama sekali dan sedang offline                          | Tidak ada yang ditampilkan; bagian ayat tidak dirender (aturan Beranda: bagian tanpa data tidak dirender). |
-| Dataset Al-Qur'an belum diunduh                                              | Tidak ada yang ditampilkan — teksnya memang belum ada di perangkat.                                        |
+| Keadaan                                                                      | Yang terjadi                                                                                                     |
+|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Aplikasi dibuka, Room **sudah** punya baris untuk tanggal perangkat hari ini | **Tidak ada request.** Tampilkan dari Room.                                                                      |
+| Aplikasi dibuka, Room **belum** punya baris untuk hari ini                   | Panggil API sekali, simpan jendela jadwal yang diterima, tampilkan.                                              |
+| Tanggal berganti, panggilan API **gagal** (offline, server mati)             | Room tidak disentuh. Tampilkan entri terakhir yang tersedia (`getLatestOnOrBefore`) — bukan layar kosong.        |
+| Belum pernah sinkron sama sekali dan sedang offline                          | Tidak ada yang ditampilkan; bagian kutipan tidak dirender (aturan Beranda: bagian tanpa data tidak dirender).    |
+| CMS mengirim `schemaVersion` yang tidak dikenal                              | Cache lama dipertahankan. Inilah yang membuat pergantian versi 1 → 2 aman dirilis dari sisi mana pun lebih dulu. |
 
 Room **hanya ditulis kalau request berhasil**, jadi kegagalan tidak pernah merusak cache yang sudah
 ada. Widget tidak pernah memanggil API sendiri; ia membaca baris Room yang sama dengan Beranda.
 
 **Konsekuensi yang disengaja:** begitu hari ini sudah ter-cache, perubahan editor atas jadwal *hari
-ini* baru terbaca besok. Jadwal memang dimaksudkan disiapkan di muka. Endpoint mengirim satu jendela
-tanggal (bukan hanya hari ini) supaya perangkat yang offline berhari-hari tetap punya isi; 90 hari
-ke belakang disimpan sebagai bahan fallback di tabel `ayat_hari_ini`.
+ini* baru terbaca besok. Jadwal memang dimaksudkan disiapkan di muka. Endpoint mengirim jendela
+`hari ini + 90 hari` supaya perangkat yang offline berhari-hari tetap punya isi; 90 hari ke belakang
+disimpan sebagai bahan fallback di tabel `ayat_hari_ini`.
 
-## 4. Status implementasi
+## 4. Penjadwal
 
-Lapisan data, domain, dan presentasi **sudah selesai dan berjalan**. Yang belum ada adalah
-endpoint-nya.
+Seluruh kebijakannya ada di satu fungsi Postgres, `fill_quote_schedule()`
+(`../../cms/db/migrations/008_quotes.sql`), yang dipanggil endpoint sebelum membaca:
 
-| Lapisan           | Berkas                                                                                                      | Status                        |
-|-------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------|
-| Domain            | `domain/model/AyatHariIni.kt`, `domain/repository/AyatHariIniRepository.kt`                                 | Selesai                       |
-| Data — lokal      | `data/local/entity/AyatHariIniEntity.kt`, `data/local/dao/AyatHariIniDao.kt`, tabel `ayat_hari_ini` (DB v8) | Selesai                       |
-| Data — remote     | `data/remote/ayat/` (DTO, `AyatHariIniApiService`, validator)                                               | Selesai                       |
-| Data — sync       | `data/sync/ayat/AyatHariIniSyncManager.kt`                                                                  | Selesai                       |
-| Data — repository | `data/repository/AyatHariIniRepositoryImpl.kt`                                                              | Selesai                       |
-| Presentasi        | `feature/home/BerandaAyatHariIni.kt`, sheet, kartu bagikan, widget                                          | Selesai                       |
-| **Sumber data**   | `FixtureAyatHariIniRemoteSource`                                                                            | **Sementara — harus diganti** |
+1. Tanggal masa depan **tidak terkunci** yang memegang kutipan tak-terbit mengembalikan tanggalnya.
+2. Setiap tanggal kosong dari hari ini sampai hari ini+90 mendapat kutipan acak yang terbit.
+3. Kutipan yang dipakai **dalam 60 hari** sebelum atau sesudah suatu tanggal tidak memenuhi syarat.
+   Kalau kolamnya terlalu kecil, syaratnya melonggar — dulu ke "tidak di hari tetangga", lalu tidak
+   sama sekali — daripada meninggalkan hari kosong.
+4. Tanggal **terkunci** tidak pernah disentuh.
+5. **Kolam kosong** tidak menjadwalkan apa pun; endpoint mengirim `items: []`.
 
-`FixtureAyatHariIniRemoteSource` menjawab seperti endpoint akan menjawab, tetapi isinya satu entri
-saja: **QS. Al-Jumu'ah : 1**, ayat yang memang tampil pada 22 Agustus 2026 dengan mekanisme lama.
-Ia mengembalikan entri yang sama untuk tanggal apa pun. Isinya tidak diperbanyak dengan "ayat-ayat
-pilihan" secara sengaja — memilih ayat justru pekerjaan editor yang sedang dipindahkan ke CMS.
+Jendelanya berpatokan pada `Asia/Jakarta`, bukan hari UTC server.
 
-Fixture ini **tidak boleh ikut rilis.** Menggantinya satu baris di `di/AyatHariIniModule.kt`
-(`FixtureAyatHariIniRemoteSource` → `ApiAyatHariIniRemoteSource`), ditambah mendaftarkan
-`AyatHariIniApiService` di `NetworkModule` seperti `ContentApiService`.
+## 5. Status implementasi
 
-## 5. Yang harus dibangun berikutnya
+Selesai dan berjalan, dari basis data sampai widget.
 
-Brief untuk sesi terpisah: **`docs/product/AYAT_HARI_INI_CMS_BRIEF.md`** — kontrak endpoint, skema
-tabel, dan layar admin di `../cms`.
+| Lapisan           | Berkas                                                                                                                           | Status                            |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------|-----------------------------------|
+| Domain            | `domain/model/AyatHariIni.kt` (`AyatHariIni`, `QuoteKind`, `AyatHariIniSelection`), `domain/repository/AyatHariIniRepository.kt` | Selesai                           |
+| Data — lokal      | `data/local/entity/AyatHariIniEntity.kt`, `data/local/dao/AyatHariIniDao.kt`, tabel `ayat_hari_ini` (DB v9)                      | Selesai                           |
+| Data — remote     | `data/remote/ayat/` (DTO v2, `AyatHariIniApiService`, `AyatHariIniRemoteSource`, validator)                                      | Selesai                           |
+| Data — sync       | `data/sync/ayat/AyatHariIniSyncManager.kt`                                                                                       | Selesai                           |
+| Data — repository | `data/repository/AyatHariIniRepositoryImpl.kt`                                                                                   | Selesai                           |
+| Presentasi        | `feature/home/BerandaAyatHariIni.kt`, sheet, kartu bagikan, widget                                                               | Selesai                           |
+| Sumber data       | `AyatHariIniRemoteSource` → CMS Content API                                                                                      | **Nyata** — fixture sudah dihapus |
+
+`FixtureAyatHariIniRemoteSource` **sudah tidak ada**, begitu pula antarmuka
+`AyatHariIniRemoteSource` yang dulu menampungnya: keduanya hanya ada selama endpoint CMS belum
+dibangun. `AyatHariIniApiService` terdaftar di `NetworkModule` bersama `ContentApiService`, memakai
+Retrofit dan origin yang sama.
+
+Kontrak wire-nya dikunci oleh `app/src/test/.../CmsApiContractTest.kt`, yang mengurai respons
+tangkapan asli dari API dan menjalankan validator aplikasi di atasnya.
+
+## 6. Layar admin
+
+Ada di `../../cms` — daftar kutipan (cari + saring per `kind`, `theme`, status terbit), form
+kutipan, kalender jadwal dengan kunci/ganti per tanggal, dan peringatan kalau kolam terbit di bawah
+60 kutipan. Kontrak endpoint lengkapnya: `../../cms/docs/engineering/API.md`.

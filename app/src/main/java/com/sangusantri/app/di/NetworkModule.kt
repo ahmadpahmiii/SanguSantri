@@ -4,6 +4,7 @@ import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.data.remote.ResponseSizeLimitInterceptor
 import com.sangusantri.app.data.remote.api.ContentApiService
+import com.sangusantri.app.data.remote.ayat.AyatHariIniApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -57,6 +58,14 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideContentApiService(retrofit: Retrofit): ContentApiService = retrofit.create(ContentApiService::class.java)
+
+    // Same Retrofit instance, same origin, same read-only contract as the catalog: the quote of
+    // the day is served by the CMS Content API alongside everything else, so it needs no client of
+    // its own (unlike Quran, which is a different host and carries credentials).
+    @Provides
+    @Singleton
+    fun provideAyatHariIniApiService(retrofit: Retrofit): AyatHariIniApiService =
+        retrofit.create(AyatHariIniApiService::class.java)
 
     private const val NETWORK_TIMEOUT_SECONDS = 15L
 }

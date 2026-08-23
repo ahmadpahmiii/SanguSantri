@@ -1,6 +1,5 @@
 package com.sangusantri.app.feature.home
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -63,35 +62,41 @@ fun AyatShareCard(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .scaleDownToFit(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .scaleDownToFit(),
         ) {
-            Text(
-                text = ayat.arabicText.withQuranFontFallback(arabicFont),
-                style =
-                    TextStyle(
-                        fontFamily = arabicFont.toFontFamily(),
-                        fontSize = ArabicSize,
-                        lineHeight = ArabicLineHeight,
-                        textAlign = TextAlign.Center,
-                        textDirection = TextDirection.Rtl,
-                    ),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // Optional since the CMS moved to free-form quotations: a quote may carry no
+            // Arabic. scaleDownToFit() below re-centres what is left, so nothing is reserved.
+            ayat.arabic?.let { arabic ->
+                Text(
+                    text = arabic.withQuranFontFallback(arabicFont),
+                    style =
+                        TextStyle(
+                            fontFamily = arabicFont.toFontFamily(),
+                            fontSize = ArabicSize,
+                            lineHeight = ArabicLineHeight,
+                            textAlign = TextAlign.Center,
+                            textDirection = TextDirection.Rtl,
+                        ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             Text(
                 text = ayat.translation,
                 fontSize = TranslationSize,
                 lineHeight = TranslationLineHeight,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = TranslationTopPadding),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = TranslationTopPadding),
             )
             Text(
-                text = stringResource(R.string.beranda_ayat_share_card_reference, ayat.surahName, ayat.ayatNumber),
+                text = ayat.sourceLabel,
                 fontSize = ReferenceSize,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = ReferenceTopPadding),
@@ -140,12 +145,6 @@ private fun Modifier.scaleDownToFit(): Modifier =
             }
         }
     }
-
-/** "QS. Ar-Ra'd : 28" — the citation form, outside a composition for the copied text. The card
- * above resolves the same resource through `stringResource`, so the picture and a pasted quote name
- * the source identically. */
-fun Context.ayatReference(ayat: AyatHariIni): String =
-    getString(R.string.beranda_ayat_share_card_reference, ayat.surahName, ayat.ayatNumber)
 
 private val CardCornerRadius = 16.dp
 private val CardPadding = 24.dp

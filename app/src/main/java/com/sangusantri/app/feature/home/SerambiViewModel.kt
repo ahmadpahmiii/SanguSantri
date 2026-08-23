@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -84,17 +85,31 @@ constructor(
         }
 
     /**
+     * Re-reads the cached schedule after a sync has actually written one.
+     *
+     * Without this the header is read once per date and never again, so on a device whose
+     * `ayat_hari_ini` table is empty when Beranda first composes — a fresh install, or any install
+     * that has just taken the destructive schema migration — the read returns null, the sync
+     * finishes a moment later, and nothing asks Room again until the midnight rollover. The reader
+     * would see no quote for their entire first day.
+     */
+    private val ayatRefresh = MutableStateFlow(0)
+
+    /**
      * The page header's values: the ayat of the day, the qibla bearing, and the Arabic typeface the
      * ayah renders in.
      *
      * The ayat rides the same minute tick as the countdown rather than a ticker of its own —
      * `distinctUntilChanged` on the *date* means Room is read once a day, at the midnight rollover,
-     * not once a minute. That rollover is also what re-reads the schedule after [refreshAyatHariIni]
-     * has fetched a new window.
+     * not once a minute. [ayatRefresh] adds the one other moment worth re-reading at: immediately
+     * after [refreshAyatHariIni] has fetched a window.
      */
     private val headerData: Flow<HeaderData> =
         combine(
-            clock.map { LocalDate.now() }.distinctUntilChanged().map { ayatHariIniRepository.forDate(it) },
+            combine(
+                clock.map { LocalDate.now() }.distinctUntilChanged(),
+                ayatRefresh,
+            ) { date, _ -> date }.map { ayatHariIniRepository.forDate(it) },
             kiblatRepository.observeDirection().map { it?.bearingDegrees },
             settingsRepository.observe().map { it.arabicFont }.distinctUntilChanged(),
         ) { ayat, bearing, arabicFont -> HeaderData(ayat, bearing, arabicFont) }
@@ -139,7 +154,14 @@ constructor(
      * holds today's entry, so the common case costs no network at all.
      */
     private fun refreshAyatHariIni() {
-        viewModelScope.launch { ayatHariIniRepository.sync() }
+        viewModelScope.launch {
+            ayatHariIniRepository.sync()
+            // Re-read regardless of the result. A sync that no-ops because today was already
+            // cached changes nothing, and a failed one leaves the cache untouched, so the extra
+            // read is cheap in both cases and is the only thing that makes a first successful
+            // fetch visible before tomorrow.
+            ayatRefresh.update { it + 1 }
+        }
     }
 
     fun dismissResume(fingerprint: String) {

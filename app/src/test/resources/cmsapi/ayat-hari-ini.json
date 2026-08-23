@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "items": [
+    {
+      "date": "2026-08-23",
+      "kind": "quran",
+      "arabic": "نَصٌّ عَرَبِيٌّ لِلِاخْتِبَارِ",
+      "translation": {
+        "id": "Terjemahan contoh untuk fixture kontrak.",
+        "en": "Sample translation for the contract fixture."
+      },
+      "sourceLabel": "QS. Contoh : 1",
+      "sourceNote": "catatan editor",
+      "theme": "Contoh"
+    },
+    {
+      "date": "2026-08-24",
+      "kind": "other",
+      "arabic": null,
+      "translation": {
+        "id": "Kutipan tanpa teks Arab dan tanpa terjemahan Inggris."
+      },
+      "sourceLabel": "Contoh sumber tanpa catatan",
+      "sourceNote": null,
+      "theme": null
+    },
+    {
+      "date": "2026-08-25",
+      "kind": "quran",
+      "arabic": "نَصٌّ عَرَبِيٌّ لِلِاخْتِبَارِ",
+      "translation": {
+        "id": "Terjemahan contoh untuk fixture kontrak.",
+        "en": "Sample translation for the contract fixture."
+      },
+      "sourceLabel": "QS. Contoh : 1",
+      "sourceNote": "catatan editor",
+      "theme": "Contoh"
+    },
+    {
+      "date": "2026-08-26",
+      "kind": "other",
+      "arabic": null,
+      "translation": {
+        "id": "Kutipan tanpa teks Arab dan tanpa terjemahan Inggris."
+      },
+      "sourceLabel": "Contoh sumber tanpa catatan",
+      "sourceNote": null,
+      "theme": null
+    }
+  ]
+}

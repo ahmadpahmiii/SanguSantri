@@ -93,6 +93,14 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * (`docs/product/AYAT_HARI_INI.md`). Additive, and on the same standing destructive-fallback
  * policy: the table refills from the CMS on the next launch, and it holds references only, so
  * nothing dropped here is content the app cannot fetch again.
+ *
+ * Version 9 rewrites `ayat_hari_ini` from a reference to the text itself: `surahNumber`/
+ * `ayatNumber` become `kind`/`arabic`/`translationId`/`translationEn`/`sourceLabel`/`sourceNote`,
+ * following the CMS contract's schema version 2. The CMS now publishes free-form quotations that
+ * may be hadith or neither, so there is no `quran_verses` row left to join a reference against.
+ * A column rewrite, not additive, and on the same standing
+ * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4-8: the table refills
+ * from the CMS on the next launch, and the Quran corpus each user re-downloads once.
  */
 @Database(
     entities = [
@@ -119,7 +127,7 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         PrayerScheduleDayEntity::class,
         AyatHariIniEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.

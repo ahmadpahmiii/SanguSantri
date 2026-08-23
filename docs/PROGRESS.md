@@ -7908,3 +7908,109 @@ offline-first path.
 `getLatestOnOrBefore` fallback (it needs a date past the cached window, and the emulator image
 allows no clock change), and the widget after this change — the schedule table is shared with
 Beranda and was left rendering, but the widget itself was not re-placed on this fresh emulator.
+
+## Engagement research — comfort, frequency, challenge, uniqueness (2026-08-23)
+
+Exploratory product research only; no code changed and nothing is approved by it.
+`docs/product/ENGAGEMENT_RESEARCH.md` (new) answers the product owner's question about features
+that would make the app more comfortable, opened more often, more challenging, and unlike
+competitors. It first corrects `docs/product/GROWTH_RESEARCH.md` §2's now-stale baseline (that
+document predates prayer times, adzan audio, the three widgets, murottal, mushaf page mode, and
+Ayat Hari Ini), then ranks ten candidates by value ÷ effort against what the repository already
+contains, with every idea checked against ADR 0013's nav lock, ADR 0014/0017's Firebase limit, the
+non-commercial rule, and PRD §3.1's risk-based content model.
+
+Headline findings: the adzan alarm already fires five accurate daily events that lead nowhere —
+wiring wirid ba'da sholat onto `data/prayeralarm/` is the strongest frequency lever and the thing
+that would make the Aktivitas streak honest for the first time; Ayat Hari Ini is fully built and
+earning nothing behind one missing CMS endpoint; Nahwu Tantangan Harian is spec'd with 31 accepted
+questions and still uncoded; `keepScreenOn` exists only in the Quran reader while murottal plays,
+so the amaliyah reader sleeps mid-Tahlil; and a Daftar Arwah with an auto-computed
+3/7/40/100/1000-day and haul schedule is the most differentiated idea found — `tahlil-v1.json`
+already contains the khususon step it would attach to, and the names must sit beside that step as
+a display card, never inside the Arabic. Competitor overlap is stated honestly rather than
+flattered: a Play Store app already computes selametan schedules (search-snippet claim, unverified
+— the listing fetch returned only the page shell), Tarteel already ships reading goals and streak
+widgets, and the existing dzikir habit-trackers are salafi-framed, which is where the NU-idiom gap
+was found.
+
+### Next recommended milestone
+
+Unchanged by this document — it authorises nothing. If the product owner picks from it, the
+shortlist's own order applies: the Ayat Hari Ini endpoint (CMS work, no Android code), then the
+reader keep-awake fix, then wirid ba'da sholat.
+
+## Ayat Hari Ini — CMS endpoint shipped, contract moved to schemaVersion 2 (2026-08-23)
+
+The endpoint `docs/product/AYAT_HARI_INI.md` §4 had been waiting for now exists, and the contract
+it publishes is **not** the one the app was built against. `GET /api/v1/ayat-hari-ini` carries the
+quotation's text — Arabic, Indonesian, optional English, a source label — instead of the
+`(surah, ayat)` reference version 1 sent. Both sides were changed together in this session; the
+CMS side lives in `../cms`.
+
+**Why the contract changed.** The reference design existed to keep Kemenag the only source of
+Qur'an text (ADR 0016 §2), and it did that perfectly. It also meant the surface could only ever
+publish Qur'an — there is no local dataset to resolve a hadith against. The product owner chose
+the wider scope and accepted the cost, which is recorded as an amendment to ADR
+[0016](decisions/0016-standalone-quran-kemenag-direct-api.md) dated 2026-08-23: **a typo in the CMS
+now ships as scripture**, and the app can no longer detect it. The brief's compensating control —
+showing the official Kemenag text beside what the admin typed — was also declined; what ships is a
+reminder on the form. The residual control is editorial process, not code, and the ADR says so in
+those words.
+
+**Android changes.** `AyatHariIniEntity` stores text (DB **v9**, standing destructive-fallback
+policy); `AyatHariIni` replaces `surahName`/`ayatNumber` with `sourceLabel` and gains a nullable
+`arabic` plus a `QuoteKind` filing label; `AyatHariIniRepositoryImpl` no longer joins
+`quran_verses` and picks the translation from the device locale; the validator moved to
+`SUPPORTED_SCHEMA_VERSION = 2` and now checks the three things still checkable — a parseable date,
+a non-blank Indonesian translation, a non-blank citation. Beranda, the sheet, the share card and
+the widget all render `sourceLabel`, and each handles a quote with no Arabic (the widget hands that
+line's height budget to the translation rather than rendering a blank line).
+
+**`FixtureAyatHariIniRemoteSource` is deleted**, and the `AyatHariIniRemoteSource` interface with
+it — it existed only to stand in for the missing endpoint. `AyatHariIniApiService` is registered in
+`NetworkModule` on the same Retrofit instance as `ContentApiService`.
+
+No shipped build ever called this route (the fixture was bound), so the version bump breaks nothing
+in the field. `CmsApiContractTest` gained four cases over a captured response; 204 unit tests pass.
+
+**A first-run bug this change would have shipped to every user.** `SerambiViewModel` read the
+schedule from `clock.map { LocalDate.now() }.distinctUntilChanged()`, so Room was read once per
+*date* and never again. `refreshAyatHariIni()` wrote the window a moment later and nothing asked
+Room again until midnight. That was invisible before, because the table was always already
+populated from a previous launch — but the v9 migration **drops the table for everyone**, so every
+user upgrading to this build would have seen a blank ayat section for their whole first day. Found
+on-device by clearing app data, which is what a real install looks like. Fixed with an
+`ayatRefresh` signal the header flow combines with, bumped after `sync()` returns.
+
+**On-device verification** (emulator-5554, Pixel 9, API 36, against the live Vercel API). All
+three header branches, including the short-quote one the 2026-08-22 entry recorded as
+**"Not verified"**:
+
+| Case                       | Result                                                                 |
+|----------------------------|------------------------------------------------------------------------|
+| Short quote                | Arabic + translation, **no "Selengkapnya"** — nothing overflowed       |
+| Long quote                 | Arabic clipped to one line, translation to two, "Selengkapnya" shown   |
+| No Arabic (`arabic: null`) | Script line not rendered at all; translation moves up under the label  |
+| Sheet                      | Full unclipped Arabic, card auto-fits, `sourceLabel` as the citation   |
+| Widget (4x2)               | Placed from the picker; renders header, strip, hairline, ayat          |
+| Widget, no Arabic          | No blank line; the Arabic line's height budget goes to the translation |
+| Room after sync            | 91 rows, today..today+90, all three `kind` values, no drafts           |
+| Drafts                     | Never scheduled, never synced, never rendered                          |
+
+**Scheduler verified against the live database.** With a 70-quote pool: all 70 used across the
+window, **minimum gap between reuses 61 days** (the 60-day rule holding exactly), zero
+back-to-back repeats. Pinning survives a scheduler run; unpublishing frees a quote's future
+non-pinned dates and they are reassigned; an empty pool schedules nothing; a second call is a
+no-op.
+
+**A product question this surfaced.** The emulator's locale is `en-US`, so the header renders the
+**English** translation while every UI label around it stays Indonesian — the app has no English
+string resources. That is exactly what the brief specifies (`translation_en` is used when the
+device language is English), and it is implemented as specified, but the result on a real
+English-locale device is a half-translated screen. Worth a product decision before release.
+
+**Not done:** the pool holds five clearly-labelled `Contoh` placeholder quotes used to exercise the
+render branches, plus one draft. Real quotes are editorial work — choosing which verses appear is
+the act this whole design exists to hand to a person, and `CLAUDE.md` Content safety puts it out of
+reach of an AI. Delete the placeholders before release.

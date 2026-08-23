@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.domain.model.ReaderMode
 
@@ -161,7 +162,7 @@ private fun ResumeCardSurface(
 @Composable
 private fun ResumeActionPill() {
     Surface(
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = SanguSantriPillShape,
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {

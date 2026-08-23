@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 3,
+  "items": [
+    {
+      "id": "tahlil",
+      "title": "Tahlil",
+      "description": "Rangkaian bacaan tahlil, doa, dan terjemahannya secara lengkap.",
+      "category": "Amaliyah",
+      "order": 1
+    },
+    {
+      "id": "istighosah",
+      "title": "Istighosah",
+      "description": "Rangkaian bacaan istighosah dan terjemahannya.",
+      "category": "Amaliyah",
+      "order": 2
+    },
+    {
+      "id": "ratib-al-haddad",
+      "title": "Ratib al-Haddad",
+      "description": "Ratib al-Haddad disusun oleh salah seorang ulama terkemuka dari Hadramaut, yakni al-Habib Abdullah bin ‘Alawi bin Muhammad al-Haddad, yang dikenal sebagai seorang pembaharu (mujaddid) di masanya.\n\nNaskah Ratib al-Haddad dalam aplikasi ini mengacu pada \"Majmû'ah Anwâriyyah, Maqrû-ât Yaumiyyah wa Usbû'iyyah\" terbitan Pondok Pesantren al-Anwar Sarang, Rembang, Jawa Tengah.",
+      "category": "Amaliyah",
+      "order": 4
+    }
+  ]
+}

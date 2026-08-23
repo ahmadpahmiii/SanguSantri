@@ -1,7 +1,9 @@
 package com.sangusantri.app.feature.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.data.sync.ContentSyncManager
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.CityDetection
@@ -55,6 +57,7 @@ constructor(
     private val ayatHariIniRepository: AyatHariIniRepository,
     kiblatRepository: KiblatRepository,
     private val resumeCoordinator: SerambiResumeCoordinator,
+    private val contentSyncManager: ContentSyncManager,
 ) : ViewModel() {
     // Sholawat (0.0.8) deliberately has its own list + reader (feature/sholawat), not the
     // Full/Guided Amaliyah reader Beranda's featured section and resume widget route through — so
@@ -142,7 +145,38 @@ constructor(
         )
 
     init {
+        refresh()
+    }
+
+    /**
+     * Everything Beranda pulls from the CMS, in one call, safe to run on every resume.
+     *
+     * Called from `Lifecycle.Event.ON_RESUME` rather than only from [init]: a ViewModel survives
+     * backgrounding, so init alone means a reader who leaves the app open for a week never sees
+     * anything published in it. Resume is the moment they are actually looking.
+     *
+     * The cost of doing this often is what the `schemaVersion` 3 split bought. The two category
+     * listings are a few hundred bytes each and carry no steps, so their ETags do not move when
+     * someone corrects a word inside an item — the common resume is two `304`s and no body.
+     * Offline it is two failed requests that change nothing; Room has already drawn the screen.
+     */
+    fun refresh() {
+        refreshContentCatalogue()
         refreshAyatHariIni()
+    }
+
+    /**
+     * Pulls the published catalogue so a publish or unpublish in the CMS lands here without
+     * waiting for the background sync window.
+     *
+     * Failures are silent by design: Beranda has already rendered from Room, a stale catalogue
+     * is exactly what an offline reader wants, and there is nothing for them to act on.
+     */
+    private fun refreshContentCatalogue() {
+        viewModelScope.launch {
+            runCatching { contentSyncManager.sync() }
+                .onFailure { Log.w(TAG, "Beranda content refresh failed", it) }
+        }
     }
 
     /**
@@ -155,7 +189,8 @@ constructor(
      */
     private fun refreshAyatHariIni() {
         viewModelScope.launch {
-            ayatHariIniRepository.sync()
+            runCatching { ayatHariIniRepository.sync() }
+                .onFailure { Log.w(TAG, "Beranda ayat refresh failed", it) }
             // Re-read regardless of the result. A sync that no-ops because today was already
             // cached changes nothing, and a failed one leaves the cache untouched, so the extra
             // read is cheap in both cases and is the only thing that makes a first successful
@@ -220,6 +255,7 @@ constructor(
     )
 
     private companion object {
+        const val TAG = "SerambiViewModel"
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val CLOCK_TICK_MILLIS = 60_000L
     }

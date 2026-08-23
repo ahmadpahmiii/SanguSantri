@@ -17,7 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 
 /** A stepper's mutable parts, bundled to keep [ReaderSettingStepper]'s parameter list concise. */
 data class ReaderStepperControl(
@@ -49,7 +49,7 @@ fun ReaderSettingStepper(
             modifier = Modifier.weight(1f),
         )
         Surface(
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
             color = MaterialTheme.colorScheme.primaryContainer,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

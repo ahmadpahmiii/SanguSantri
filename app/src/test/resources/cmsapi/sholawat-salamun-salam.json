@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 3,
+  "id": "salamun-salam",
+  "title": "سَلَامٌ سَلَامٌ كَمِسْكِ الْخِتَامِ",
+  "description": "Qasidah sholawat salam penutup majelis, berisi rangkaian syair cinta dan pujian kepada Nabi Muhammad SAW beserta terjemahan Bahasa Indonesia.",
+  "category": "Sholawat",
+  "order": 0,
+  "sourceName": "Sangu Santri",
+  "sourceUrl": "sangusantri.app",
+  "steps": [
+    {
+      "id": "salamun-salam-1",
+      "arabicText": "سَلاَمٌ سَلاَمٌ كَمِسْكِ الْخِتَامِ",
+      "translation": "Salam dan salam sebagai penutup yang baik",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-2",
+      "arabicText": "عَلَيْكُمْ أُحَيْبَابَنَا يَاكِرَام",
+      "translation": "Atasmu wahai kekasih-kekasihku yang mulia",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-3",
+      "arabicText": "وَمَنْ ذِكْرُهُمْ أُنْسُنَا فِي الظَّلاَمِ",
+      "translation": "Dengan mengingat mereka terdapat ketenteraman",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-4",
+      "arabicText": "وَنُوْرٌ لَنَا بَيْنَ هَذَا الْأَنَامِ",
+      "translation": "Dan cahaya bagi kami di antara manusia sejagat",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-5",
+      "arabicText": "سَكَنْتُمْ فُؤَادِيْ وَرَبِّ الْعِبَادِ",
+      "translation": "Demi Allah! Engkau bertempat dalam hatiku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-6",
+      "arabicText": "وَأَنْتُمْ مَرَامِيْ وَأَقْصَى الْمُرَادِ",
+      "translation": "Kamu sekelian adalah maksud dan tujuanku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-7",
+      "arabicText": "فَهَلْ تُسْعِدُوْنِيْ بِصَفْوِ الْوِدَادِ",
+      "translation": "Tidakkah kau berikan padaku cinta yang suci",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-8",
+      "arabicText": "وَهَلْ تَمْنَحُوْنِيْ شَرِيْفَ الْمَقَامِ",
+      "translation": "Dan tidakkah kau berikan padaku kedudukan yang mulia",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-9",
+      "arabicText": "أَنَا عَبْدُكُمْ يَا أُهَيْلَ الْوَفَا",
+      "translation": "Aku adalah pembantumu wahai orang-orang yang mulia",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-10",
+      "arabicText": "وَفِيْ قُرْبِكُمْ مَرْهَمِيْ وَالشِّفَا",
+      "translation": "Dekat denganmu adalah ubat dan kesembuhan bagiku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-11",
+      "arabicText": "فَلاَ تُسْقِمُوْنِي بِطُوْلِ الْجَفَا",
+      "translation": "Maka janganlah kau sakiti aku dengan berjauhan dariku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-12",
+      "arabicText": "وَمُنُّوْا بِوَصْلٍ وَلَوْ فِي الْمَنَامِ",
+      "translation": "Dekatkanlah aku denganmu walau hanya dalam mimpiku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-13",
+      "arabicText": "أَمُوْتُ وَأَحْيَا عَلَى حُبِّكُمْ",
+      "translation": "Aku mati dan hidup dalam keadaan mencintaimu",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-14",
+      "arabicText": "وَذُلِّي لَدَيْكُمْ وَعِزِّي بِكُمْ",
+      "translation": "Aku merasa hina dihadapanmu, dan bersamamu aku mulia",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-15",
+      "arabicText": "وَرَاحَاتُ رُوْحِي رَجَا قُرْبِكُمْ",
+      "translation": "Ketenteraman jiwaku adalah berharap untuk dekat dengamu",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-16",
+      "arabicText": "وَعَزْمِي وَقَصْدِيْ إِلَيْكُمْ دَوَامْ",
+      "translation": "Azam dan tujuanku sentiasa padamu",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-17",
+      "arabicText": "فَلاَ عِشْتُ إِنْ كَانَ قَلْبِي سَكَنْ",
+      "translation": "Aku tak akan hidup senang jika hatiku tenteram",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-18",
+      "arabicText": "إِلَى الْبُعْدِ عَنْ أَهْلِهِ وَالْوَطَنَ",
+      "translation": "Dengan berjauhan dari orang-orang yang bersih hati dan tanah air mereka",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-19",
+      "arabicText": "وَمَنْ حُبُّهُمْ فِي الْحَشَا قَدْ قَطَنَ",
+      "translation": "Atau jauh dari orang-orang yang bertempat dalam lubuk hatiku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-20",
+      "arabicText": "وَخَامَرَ مِنِّي جَمِيْعَ الْأَعْظَامْ",
+      "translation": "Dan telah bercampur dengan seluruh badanku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-21",
+      "arabicText": "إِذَا مَرَّ بِالْقَلْبِ ذِكْرُ الْحَبِيْبِ",
+      "translation": "Bila hati terdengar nama orang yang dikasihi",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-22",
+      "arabicText": "وَوَادِي الْعَقِيْقِ وَذَاكَ الْكَثِيْبِ",
+      "translation": "Dan lembah 'Aqiq (satu lembah di Madinah) serta negeri itu",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-23",
+      "arabicText": "يَمِيْلُ كَمَيْلِ الْقَضِيْبِ الرَّطِيْبِ",
+      "translation": "Hatiku akan bergerak (kerana senang) sebagaimana dahan pokok yang bergoyang",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-24",
+      "arabicText": "وَيَهْتَزُّ مِنْ شَوْقِهِ وَالْغَرَامْ",
+      "translation": "Dan akan bergetar kerana rindu dan cinta",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-25",
+      "arabicText": "لَئِنْ كَانَ هَذَا فَيَا غُرْبَتِي",
+      "translation": "Kalaulah aku berjauhan darimu, aku akan merasa terasing",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-26",
+      "arabicText": "وَيَا طُوْلَ حُزْنِي وَيَا كُرْبَتِي",
+      "translation": "Alangkah sedih dan merananya aku",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-27",
+      "arabicText": "وَلِيْ حُسْنُ ظَنٍّ بِهِ قُرْبَتِي",
+      "translation": "Aku memiliki prasangka baik, dari itu aku dapat mendekatimu",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-28",
+      "arabicText": "بِذُلِّي وَحَسْبِيْ بِهِ يَا غُلاَمْ",
+      "translation": "Dengan aku merendah dan mengharap wahai tuan",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-29",
+      "arabicText": "عَسَى اللهُ يَشْفِي غَلِيْلَ الصُّدُوْرْ",
+      "translation": "Semoga Allah mengubati hati yang sakit",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-30",
+      "arabicText": "بِوَصْلِ الْحَبَائِبْ وَفَكِّ الْقُيُوْدْ",
+      "translation": "Dengan berdekatan dengan para kekasih, juga dengan melepaskan ikatan",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-31",
+      "arabicText": "فَرَبِّي رَحِيْمٌ كَرِيْمٌ وَدُوْدْ",
+      "translation": "Sungguh Allah Maha Pengasih, Pemurah, Pemberi kasih sayang",
+      "repeatTarget": null
+    },
+    {
+      "id": "salamun-salam-32",
+      "arabicText": "يَجُوْدُ عَلَى مَنْ يَشَا بِالْمَرَامْ",
+      "translation": "Yang memberi kepada siapa yang di kehendaki-Nya",
+      "repeatTarget": null
+    }
+  ]
+}

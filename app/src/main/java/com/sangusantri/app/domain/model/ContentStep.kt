@@ -18,13 +18,16 @@ data class ContentStep(
     val repeatTarget: Int?,
 ) {
     /**
-     * The step's counter target, or `null` when it has none. The CMS stores "no counter" as SQL
-     * NULL, but a stale row or hand-edited bundled asset can still carry 0 or a negative, and both
-     * mean the same thing to a reader — so every read goes through here rather than comparing
-     * `repeatTarget` directly.
+     * The step's counter target, or `null` when there is nothing to count. The CMS stores "no
+     * counter" as SQL NULL, a stale row or hand-edited bundled asset can carry 0 or a negative,
+     * and a target of **1** is a step read once — none of them is a repetition, so all of them
+     * read as `null` here rather than putting a one-tap tasbih (and a "Target 1 kali" label, and a
+     * disabled "Lanjut") in front of the reader. Every read goes through this property rather than
+     * comparing `repeatTarget` directly, so the counter, the status label, the Full Reader's
+     * repetition shortcut and the continue gate can never disagree.
      */
     val effectiveRepeatTarget: Int?
-        get() = repeatTarget?.takeIf { it > 0 }
+        get() = repeatTarget?.takeIf { it > 1 }
 }
 
 /**

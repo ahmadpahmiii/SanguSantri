@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.sangusantri.app.R
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import kotlinx.coroutines.delay
 
@@ -65,7 +65,7 @@ fun ReaderSavedPositionStatus(
 
     AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
         Surface(
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
             color = MaterialTheme.colorScheme.primaryContainer,
         ) {
             Row(

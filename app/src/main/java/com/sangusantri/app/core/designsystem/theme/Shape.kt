@@ -5,17 +5,22 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Three deliberate corner radii (DESIGN_SYSTEM.md) — not one radius invented per component.
- * `small` for compact controls, `medium` for cards, `large` for sheets/dialogs. `extraLarge` is a
- * full stadium/pill (design product-alignment pass — every pill-shaped element in the revised
- * exports — repeat-shortcut actions, the saved-position status, stepper value controls, the
- * guided/tasbih counter, tasbih presets — uses a corner radius equal to half its own height, which
- * `RoundedCornerShape(percent = 50)` reproduces at any size rather than a fixed dp value).
+ * A small deliberate radius set (DESIGN_SYSTEM.md) — not one radius invented per component.
+ * `small` for compact controls, `medium` for cards, `large` for menus/sheets, `extraLarge` for
+ * dialogs: Material 3 derives every dialog's container shape from `extraLarge`, so it must stay a
+ * real radius. Stadium/pill elements use [SanguSantriPillShape] explicitly instead.
  */
 val SanguSantriShapes =
     Shapes(
         small = RoundedCornerShape(8.dp),
         medium = RoundedCornerShape(12.dp),
         large = RoundedCornerShape(20.dp),
-        extraLarge = RoundedCornerShape(percent = 50),
+        extraLarge = RoundedCornerShape(24.dp),
     )
+
+/**
+ * Full stadium/pill — a corner radius equal to half the element's own height at any size (design
+ * product-alignment pass: repeat-shortcut actions, saved-position status, stepper value controls,
+ * progress tracks, badges, tasbih presets).
+ */
+val SanguSantriPillShape = RoundedCornerShape(percent = 50)

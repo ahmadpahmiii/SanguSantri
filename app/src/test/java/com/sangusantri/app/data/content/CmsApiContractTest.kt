@@ -1,11 +1,12 @@
 package com.sangusantri.app.data.content
 
-import com.sangusantri.app.data.content.dto.ContentCatalogDto
-import com.sangusantri.app.data.content.dto.ContentFileDto
+import com.sangusantri.app.data.content.dto.ContentDetailDto
+import com.sangusantri.app.data.content.dto.ContentListResponseDto
 import com.sangusantri.app.data.remote.ayat.AyatHariIniValidator
 import com.sangusantri.app.data.remote.ayat.dto.AyatHariIniScheduleDto
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -21,59 +22,119 @@ import org.junit.Test
  * the fixtures are captured verbatim from the API and both layers run over them here.
  *
  * Re-capture with:
- *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/catalog
- *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/content/tahlil
+ *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/sholawat
+ *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/amaliyah
+ *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/sholawat/salamun-salam
+ *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/amaliyah/tahlil
  *   curl -s https://sangusantri-content-api-v4.vercel.app/api/v1/ayat-hari-ini
  *
- * The ayat-hari-ini fixture is trimmed to four days and its quotes are deliberately placeholders,
- * not real scripture: what it exists to pin is the *shape* — which fields are null, which are
- * absent — and capturing real Qur'an text into a test resource would create a second copy of it in
- * this repository with nothing keeping it in step with the CMS.
+ * One detail per category is captured rather than all of them, and the ayat-hari-ini fixture is
+ * trimmed to four days whose quotes are deliberately placeholders, not real scripture: what these
+ * exist to pin is the *shape* — which fields are null, which are absent — and a second copy of
+ * every amaliyah's text in this repository would have nothing keeping it in step with the CMS.
  */
 class CmsApiContractTest {
     private val json = Json { ignoreUnknownKeys = true }
 
     @Test
-    fun cmsCatalogParsesAndValidates() {
-        val catalog = json.decodeFromString<ContentCatalogDto>(readFixture("cmsapi/catalog.json"))
+    fun cmsListsParseAndValidate() {
+        listOf("cmsapi/sholawat.json", "cmsapi/amaliyah.json").forEach { fixture ->
+            val response = json.decodeFromString<ContentListResponseDto>(readFixture(fixture))
 
-        assertEquals(ContentValidator.SUPPORTED_SCHEMA_VERSION, catalog.schemaVersion)
-        assertTrue(catalog.items.isNotEmpty())
-        assertTrue(ContentValidator.validateCatalog(catalog) is ContentValidation.Valid)
-    }
-
-    /** No cover image must arrive as an absent field, never as "" — "" fails the https-only pin. */
-    @Test
-    fun cmsCatalogOmitsImageUrlWhenThereIsNoCoverImage() {
-        val catalog = json.decodeFromString<ContentCatalogDto>(readFixture("cmsapi/catalog.json"))
-
-        assertNull(catalog.items.first().imageUrl)
-    }
-
-    /** contentUrl is origin-relative so Retrofit resolves it against the configured base URL. */
-    @Test
-    fun cmsCatalogContentUrlStaysOnTheConfiguredOrigin() {
-        val catalog = json.decodeFromString<ContentCatalogDto>(readFixture("cmsapi/catalog.json"))
-
-        catalog.items.forEach { item ->
-            assertTrue(item.contentUrl, ContentValidator.isOriginRelativeContentPath(item.contentUrl))
+            assertEquals(ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION, response.schemaVersion)
+            assertTrue(fixture, response.items.isNotEmpty())
+            assertTrue(fixture, ContentValidator.validateList(response) is ContentValidation.Valid)
         }
     }
 
     @Test
-    fun cmsContentFileParsesAndValidates() {
-        val file = json.decodeFromString<ContentFileDto>(readFixture("cmsapi/content-tahlil.json"))
+    fun cmsDetailsParseAndValidate() {
+        listOf("cmsapi/amaliyah-tahlil.json", "cmsapi/sholawat-salamun-salam.json").forEach { fixture ->
+            val detail = json.decodeFromString<ContentDetailDto>(readFixture(fixture))
 
-        assertTrue(ContentValidator.validateContentFile(file) is ContentValidation.Valid)
+            assertEquals(ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION, detail.schemaVersion)
+            assertTrue(fixture, detail.steps.isNotEmpty())
+            assertTrue(fixture, ContentValidator.validateDetail(detail) is ContentValidation.Valid)
+        }
     }
 
-    /** A counted step and an uncounted one in the same file — both must survive the round trip. */
+    /**
+     * The whole point of the schemaVersion 3 split: the list is fetched on every Beranda resume, so
+     * a step edit must not be able to move its bytes. If steps ever reappear here, one correction
+     * starts invalidating the whole category's ETag again for every device.
+     */
     @Test
-    fun cmsContentFileCarriesNullRepeatTargetThrough() {
-        val file = json.decodeFromString<ContentFileDto>(readFixture("cmsapi/content-tahlil.json"))
+    fun cmsListCarriesNoStepsAndNoSource() {
+        listOf("cmsapi/sholawat.json", "cmsapi/amaliyah.json").forEach { fixture ->
+            val raw = readFixture(fixture)
 
-        assertNotNull(file.steps[0].repeatTarget)
-        assertNull(file.steps[1].repeatTarget)
+            listOf("\"steps\"", "\"sourceName\"", "\"sourceUrl\"").forEach { gone ->
+                assertFalse("$fixture must not carry $gone", raw.contains(gone))
+            }
+        }
+    }
+
+    /** The detail repeats the list fields so it can draw the whole reader on its own. */
+    @Test
+    fun cmsDetailIsSelfContained() {
+        val detail = json.decodeFromString<ContentDetailDto>(readFixture("cmsapi/amaliyah-tahlil.json"))
+
+        assertEquals("tahlil", detail.id)
+        assertTrue(detail.title.isNotBlank())
+        assertTrue(detail.description.isNotBlank())
+        assertTrue(detail.sourceName.isNotBlank())
+        assertTrue(detail.sourceUrl.isNotBlank())
+    }
+
+    /** No cover image must arrive as an absent field, never as "" — "" fails the https-only pin. */
+    @Test
+    fun cmsOmitsImageUrlWhenThereIsNoCoverImage() {
+        val response = json.decodeFromString<ContentListResponseDto>(readFixture("cmsapi/sholawat.json"))
+
+        assertNull(response.items.first().imageUrl)
+    }
+
+    /** A counted step and an uncounted one in the same item — both must survive the round trip. */
+    @Test
+    fun cmsCarriesNullRepeatTargetThrough() {
+        val detail = json.decodeFromString<ContentDetailDto>(readFixture("cmsapi/amaliyah-tahlil.json"))
+
+        assertTrue(detail.steps.any { it.repeatTarget != null })
+        assertTrue(detail.steps.any { it.repeatTarget == null })
+    }
+
+    /**
+     * Sholawat is the motivating case for the optional counter: no step has one, which is how the
+     * app drops Panduan mode for the whole item. If the CMS ever starts sending counts here, the
+     * reader silently gains a mode it was never meant to have.
+     */
+    @Test
+    fun cmsSholawatDetailHasNoCountedSteps() {
+        val detail = json.decodeFromString<ContentDetailDto>(readFixture("cmsapi/sholawat-salamun-salam.json"))
+
+        assertTrue(detail.steps.isNotEmpty())
+        assertTrue(detail.steps.all { it.repeatTarget == null })
+    }
+
+    /**
+     * Retired per-item sync fields. Asserted absent rather than simply unused because
+     * `ignoreUnknownKeys` would happily parse a response that still carried them, leaving the app
+     * and the CMS disagreeing about what drives an update with nothing to notice.
+     */
+    @Test
+    fun cmsNoLongerSendsVersionOrContentUrl() {
+        listOf(
+            "cmsapi/sholawat.json",
+            "cmsapi/amaliyah.json",
+            "cmsapi/amaliyah-tahlil.json",
+            "cmsapi/sholawat-salamun-salam.json",
+        ).forEach { fixture ->
+            val raw = readFixture(fixture)
+
+            listOf("\"version\"", "\"contentUrl\"", "\"isActive\"").forEach { gone ->
+                assertFalse("$fixture still carries $gone", raw.contains(gone))
+            }
+        }
     }
 
     /**

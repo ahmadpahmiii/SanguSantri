@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.HijriCalendarPalette
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -147,7 +148,7 @@ private fun SourceBlock(
             Box(
                 modifier =
                     Modifier
-                        .clip(SanguSantriShapes.extraLarge)
+                        .clip(SanguSantriPillShape)
                         .background(palette.tealSoft)
                         .padding(horizontal = SanguSantriSpacing.small, vertical = 3.dp),
             ) {

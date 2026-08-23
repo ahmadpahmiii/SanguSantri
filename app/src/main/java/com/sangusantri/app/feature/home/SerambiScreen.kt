@@ -48,6 +48,8 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.component.SectionHeader
@@ -71,6 +73,14 @@ fun SerambiRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Every resume, not just first composition. The ViewModel survives backgrounding, so its init
+    // block alone would mean a reader who leaves the app open never sees anything the CMS publishes.
+    // This is cheap on purpose: the two category listings carry no steps, so an unchanged catalogue
+    // costs two 304s, and offline it costs two failed requests that change nothing on screen.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refresh()
+    }
 
     // First launch only: ask for location so the prayer schedule can set itself up. Denying is a
     // normal outcome — the prayer section then invites picking a city by hand, and nothing else in

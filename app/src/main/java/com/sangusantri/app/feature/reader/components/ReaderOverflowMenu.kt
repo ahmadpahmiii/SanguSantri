@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -33,8 +32,10 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 
 /**
  * Shared reader top-bar overflow menu (Milestone 5 FR-016, design product-alignment pass nodes
- * `16:2`/`16:45`): mode-switch, reader appearance settings (moved here from a standalone top-bar
- * icon — decision F), and a compact source-attribution dialog, in that order. Source attribution
+ * `16:2`/`16:45`): reader appearance settings (moved here from a standalone top-bar icon —
+ * decision F) and a compact source-attribution dialog. Mode switching left this menu when the
+ * always-visible [ReaderModeToggle] took over — a menu made the Panduan → Lengkap direction a
+ * two-step action while the reverse was one tap. Source attribution
  * is always shown, truthfully, for every content item (PRD 6.5); ADR 0015 dropped the separate
  * religious-authority approval object from the Android model, so this menu no longer has an
  * "Approved by" line to show — only the source name remains. Deliberately not visually dominant —
@@ -43,8 +44,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderOverflowMenu(
-    switchModeLabel: String?,
-    actions: ReaderOverflowActions,
+    onOpenSettings: () -> Unit,
     sourceName: String,
     modifier: Modifier = Modifier,
 ) {
@@ -59,8 +59,7 @@ fun ReaderOverflowMenu(
     }
 
     ReaderOverflowDropdown(
-        switchModeLabel = switchModeLabel,
-        actions = actions,
+        onOpenSettings = onOpenSettings,
         expanded = expanded,
         onDismiss = { expanded = false },
         onOpenSource = {
@@ -77,8 +76,7 @@ fun ReaderOverflowMenu(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReaderOverflowDropdown(
-    switchModeLabel: String?,
-    actions: ReaderOverflowActions,
+    onOpenSettings: () -> Unit,
     expanded: Boolean,
     onDismiss: () -> Unit,
     onOpenSource: () -> Unit,
@@ -90,17 +88,9 @@ private fun ReaderOverflowDropdown(
         shape = SanguSantriShapes.large,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        // null when the content has no Panduan mode to switch to (no step has a repeat target),
-        // in which case the item is absent rather than disabled — there is nothing to explain.
-        if (switchModeLabel != null) {
-            ReaderMenuItem(switchModeLabel, Icons.AutoMirrored.Filled.ArrowForward) {
-                onDismiss()
-                actions.onSwitchMode()
-            }
-        }
         ReaderMenuItem(stringResource(R.string.reader_open_settings_action), Icons.Default.Settings) {
             onDismiss()
-            actions.onOpenSettings()
+            onOpenSettings()
         }
         ReaderMenuItem(stringResource(R.string.content_source_menu_action), Icons.Default.Info, onOpenSource)
     }

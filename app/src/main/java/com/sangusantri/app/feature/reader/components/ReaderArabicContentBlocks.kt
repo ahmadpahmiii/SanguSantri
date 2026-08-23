@@ -16,12 +16,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.arabicTextStyle
 import com.sangusantri.app.core.designsystem.theme.translationTextStyle
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.feature.quran.toFontFamily
+import com.sangusantri.app.feature.quran.withQuranFontFallback
 
 @Composable
 internal fun ReaderArabicBlock(
@@ -31,7 +32,9 @@ internal fun ReaderArabicBlock(
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         SelectionContainer {
             Text(
-                text = text,
+                // The app-wide face may lack a glyph this content uses; the selected face keeps
+                // everything it can render and only those words fall back (see the Quran reader).
+                text = text.withQuranFontFallback(settings.arabicFont),
                 style =
                     arabicTextStyle(
                         fontSizeSp = settings.arabicFontSizeSp,
@@ -73,7 +76,7 @@ internal fun ReaderRepetitionShortcut(
 ) {
     Surface(
         onClick = onClick,
-        shape = SanguSantriShapes.extraLarge,
+        shape = SanguSantriPillShape,
         color = MaterialTheme.colorScheme.primaryContainer,
         modifier =
             Modifier

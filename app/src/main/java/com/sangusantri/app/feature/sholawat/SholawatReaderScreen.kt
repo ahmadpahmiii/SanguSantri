@@ -36,6 +36,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.ContentStep
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
@@ -127,6 +128,7 @@ fun SholawatReaderScreen(
                     steps = uiState.steps,
                     showTranslation = showTranslation,
                     largeArabicMode = !showTranslation,
+                    arabicFont = uiState.arabicFont,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -138,6 +140,7 @@ private fun SholawatReaderStepList(
     steps: List<ContentStep>,
     showTranslation: Boolean,
     largeArabicMode: Boolean,
+    arabicFont: QuranArabicFont,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -154,6 +157,7 @@ private fun SholawatReaderStepList(
                     step = step,
                     showTranslation = showTranslation,
                     largeArabicMode = largeArabicMode,
+                    arabicFont = arabicFont,
                 )
             }
         }
@@ -178,7 +182,12 @@ private val previewSteps =
 private fun SholawatReaderScreenPreview() {
     SanguSantriTheme {
         SholawatReaderScreen(
-            uiState = SholawatReaderUiState.ContentAvailable(title = "[FIXTURE] Sholawat", steps = previewSteps),
+            uiState =
+                SholawatReaderUiState.ContentAvailable(
+                    title = "[FIXTURE] Sholawat",
+                    steps = previewSteps,
+                    arabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
+                ),
             onBack = {},
             onRetry = {},
         )

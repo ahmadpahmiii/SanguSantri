@@ -17,7 +17,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.sangusantri.app.R
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.TasbihTargetPreset
 
@@ -38,7 +37,6 @@ fun CustomTasbihTargetDialog(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        shape = SanguSantriShapes.large,
         title = { Text(text = stringResource(R.string.tasbih_custom_target_dialog_title)) },
         text = {
             OutlinedTextField(

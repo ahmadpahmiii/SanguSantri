@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.domain.model.ContentDetail
-import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.GuidedProgressionMode
 import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.ReaderMode
@@ -233,17 +232,19 @@ class GuidedReaderViewModel
             currentStepIndex.value = restoredIndex?.takeIf { it >= 0 } ?: 0
         }
 
-        // Each function is a short chain of independent guard clauses (no step / not a counter step /
-        // already at target / wrong step to act on) — flat early returns read more clearly here than
-        // nesting every guard inside `?.let`, mirroring ContentRepositoryImpl's own ReturnCount suppression.
-        @Suppress("ReturnCount")
+    /**
+     * Advancing is never gated on the counter: the tasbih is a companion, not a lock, and a
+     * reader who counted on beads or wants to move on must not be held on a step
+     * (product-owner decision, 2026-08-23 — it relaxes the PRD's original FR-007 wording).
+     */
         private fun onContinue() {
             val detail = availableDetail() ?: return
-            val step = detail.steps.getOrNull(currentStepIndex.value) ?: return
-            if (!isStepContinueEnabled(step, stepCounts.value)) return
             if (currentStepIndex.value < detail.steps.lastIndex) moveTo(currentStepIndex.value + 1)
         }
 
+    // A short chain of independent guard clauses (no step / not a counter step / already at
+    // target) — flat early returns read more clearly here than nesting every guard inside
+    // `?.let`, mirroring ContentRepositoryImpl's own ReturnCount suppression.
         @Suppress("ReturnCount")
         private fun onIncrement() {
             val detail = availableDetail() ?: return
@@ -280,7 +281,6 @@ class GuidedReaderViewModel
             val available = contentState.value as? ContentState.Available ?: return
             val detail = available.detail
             if (currentStepIndex.value != detail.steps.lastIndex) return
-            if (!allRequiredCountersComplete(detail.steps, stepCounts.value)) return
             if (completedAtEpochMillis.value != null) return
 
             val now = System.currentTimeMillis()
@@ -398,8 +398,6 @@ class GuidedReaderViewModel
                             settings = settings,
                             isFirstStep = clampedIndex == 0,
                             isLastStep = clampedIndex == steps.lastIndex,
-                            continueEnabled = isStepContinueEnabled(step, counts),
-                            allRequiredCountersComplete = allRequiredCountersComplete(steps, counts),
                             isCompleted = completedAt != null,
                             sourceName = detail.content.sourceName,
                         )
@@ -413,22 +411,3 @@ class GuidedReaderViewModel
             const val AUTO_ADVANCE_DELAY_MILLIS = 500L
         }
     }
-
-/**
- * A step's counter must reach its target before continuing past it. A step with no target has no
- * counter to reach, so it never blocks — that is also what makes completion reachable for content
- * where only some steps are counted.
- */
-private fun isStepContinueEnabled(
-    step: ContentStep,
-    counts: Map<String, Int>,
-): Boolean {
-    val target = step.effectiveRepeatTarget ?: return true
-    return (counts[step.id] ?: 0) >= target
-}
-
-/** FR-007: completion requires every step's own counter to have reached its target. */
-private fun allRequiredCountersComplete(
-    steps: List<ContentStep>,
-    counts: Map<String, Int>,
-): Boolean = steps.all { step -> isStepContinueEnabled(step, counts) }

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 3,
+  "items": [
+    {
+      "id": "salamun-salam",
+      "title": "سَلَامٌ سَلَامٌ كَمِسْكِ الْخِتَامِ",
+      "description": "Qasidah sholawat salam penutup majelis, berisi rangkaian syair cinta dan pujian kepada Nabi Muhammad SAW beserta terjemahan Bahasa Indonesia.",
+      "category": "Sholawat",
+      "order": 0
+    },
+    {
+      "id": "shalawat-munjiyat",
+      "title": "Shalawat Munjiyat",
+      "description": "Shalawat ini sangat populer khususnya di lingkungan pesantren, dan seringkali mengawali pembacaan doa. Syekh Umar bin ‘Ali bin Salim al-Fakihani dalam \"al-Fajr al-Munîr fi as-Shalât ‘alâl Basyîr wan Nadzîr\" meriwayatkan, pemuka tarekat Syadziliyah, Syekh Shalih Musa ad-Dlarir mendapatkan redaksi shalawat itu dari Rasulullah melalui mimpi saat berada di atas kapal yang tengah diserang badai besar.",
+      "category": "Sholawat",
+      "order": 21
+    }
+  ]
+}

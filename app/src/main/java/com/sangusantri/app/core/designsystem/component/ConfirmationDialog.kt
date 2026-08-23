@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 
 /**
@@ -30,7 +29,6 @@ fun ConfirmationDialog(
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        shape = SanguSantriShapes.large,
         tonalElevation = SanguSantriElevation.flat,
         title = { Text(text = text.title) },
         text = { Text(text = text.message) },

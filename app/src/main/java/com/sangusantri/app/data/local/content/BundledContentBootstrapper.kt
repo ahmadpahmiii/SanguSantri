@@ -58,12 +58,28 @@ class BundledContentBootstrapper
                 }
             }
 
+    /**
+     * The metadata refresh is gated on the version comparison, not run ahead of it.
+     *
+     * It used to run unconditionally, which meant the bundled catalog overwrote title,
+     * category, order and isActive on every cold start — including for items the CMS had
+     * already replaced with newer content, whose own content import this method then correctly
+     * skipped as older. The visible symptom was Tahlil and Istighosah reverting from their CMS
+     * category ("Amaliyah") to the bundled one ("Tahlil dan Doa") every launch, and flipping
+     * back only when the once-a-day sync next ran.
+     *
+     * SKIP_OLDER means the local copy came from the CMS and is ahead of the bundle, so the
+     * bundle is not the authority on any of its fields. IMPORT rewrites the whole row anyway.
+     */
         private suspend fun evaluate(item: ContentCatalogItemDto): ContentImportOutcome {
-            contentImporter.refreshCatalogMetadata(item)
             val localVersion = contentImporter.localVersion(item.id)
             return when (decideContentVersionAction(item.version, localVersion)) {
                 ContentVersionAction.SKIP_OLDER -> ContentImportOutcome.SkippedOlderVersion(item.id, localVersion ?: 0)
-                ContentVersionAction.SKIP_UP_TO_DATE -> ContentImportOutcome.SkippedUpToDate(item.id)
+                ContentVersionAction.SKIP_UP_TO_DATE -> {
+                    contentImporter.refreshCatalogMetadata(item)
+                    ContentImportOutcome.SkippedUpToDate(item.id)
+                }
+
                 ContentVersionAction.IMPORT -> readAndImport(item)
             }
         }

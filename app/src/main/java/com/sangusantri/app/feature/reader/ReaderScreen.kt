@@ -5,10 +5,8 @@ package com.sangusantri.app.feature.reader
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -16,10 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -53,11 +48,12 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.ContentStep
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.model.hasGuidedMode
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
-import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
+import com.sangusantri.app.feature.reader.components.ReaderModeToggle
 import com.sangusantri.app.feature.reader.components.ReaderOverflowMenu
 import com.sangusantri.app.feature.reader.components.ReaderProgressHeader
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
@@ -108,7 +104,7 @@ fun ReaderScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            ReaderTopBar(
+            ReaderHeader(
                 uiState = uiState,
                 onBack = onBack,
                 onAction = onAction,
@@ -143,6 +139,36 @@ fun ReaderScreen(
     }
 }
 
+/**
+ * Top bar plus the pinned Bacaan Lengkap ⇄ Panduan toggle, drawn on one `surface` slab so the two
+ * read as a single header (the Scaffold body sits on `background`). The toggle is absent for
+ * content that has no Panduan mode at all (see [ReaderUiState.ContentAvailable.hasGuidedMode]).
+ */
+@Composable
+private fun ReaderHeader(
+    uiState: ReaderUiState,
+    onBack: () -> Unit,
+    onAction: (ReaderUiAction) -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    Surface(color = MaterialTheme.colorScheme.surface) {
+        Column {
+            ReaderTopBar(
+                uiState = uiState,
+                onBack = onBack,
+                onAction = onAction,
+                onOpenSettings = onOpenSettings,
+            )
+            if ((uiState as? ReaderUiState.ContentAvailable)?.hasGuidedMode == true) {
+                ReaderModeToggle(
+                    current = ReaderMode.FULL,
+                    onSelect = { onAction(ReaderUiAction.SwitchToGuided) },
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReaderTopBar(
@@ -159,7 +185,7 @@ private fun ReaderTopBar(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 contentState?.let {
                     Text(
-                        text = stringResource(R.string.reader_full_mode_subtitle, it.steps.size),
+                        text = stringResource(R.string.reader_step_count_subtitle, it.steps.size),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -178,59 +204,15 @@ private fun ReaderTopBar(
         actions = {
             ThemeToggleButton(onSelect = { onAction(ReaderUiAction.SetThemeMode(it)) })
             if (contentState != null) {
-                // Handoff §7: switching to Panduan is the reader's primary alternate action, so it
-                // gets a visible tint pill rather than hiding inside the overflow menu — but only
-                // for content that has a Panduan mode at all (see ReaderUiState.hasGuidedMode).
-                if (contentState.hasGuidedMode) {
-                    ReaderModeSwitchPill(
-                        label = stringResource(R.string.reader_switch_to_guided_action),
-                        onClick = { onAction(ReaderUiAction.SwitchToGuided) },
-                    )
-                }
+                // Mode switching lives in the always-visible ReaderModeToggle below this bar, not
+                // in the overflow menu — one tap, both directions (Handoff §7).
                 ReaderOverflowMenu(
-                    switchModeLabel =
-                        stringResource(R.string.reader_switch_to_guided_action)
-                            .takeIf { contentState.hasGuidedMode },
-                    actions =
-                        ReaderOverflowActions(
-                            onSwitchMode = { onAction(ReaderUiAction.SwitchToGuided) },
-                            onOpenSettings = onOpenSettings,
-                        ),
+                    onOpenSettings = onOpenSettings,
                     sourceName = contentState.sourceName,
                 )
             }
         },
     )
-}
-
-@Composable
-private fun ReaderModeSwitchPill(
-    label: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(ModeSwitchPillHeight / 2),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        modifier = Modifier.height(ModeSwitchPillHeight),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = SanguSantriSpacing.medium),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(start = SanguSantriSpacing.extraSmall),
-            )
-        }
-    }
 }
 
 @Composable
@@ -435,5 +417,3 @@ private fun ReaderScreenExpandedPreview() {
         )
     }
 }
-
-private val ModeSwitchPillHeight = 32.dp

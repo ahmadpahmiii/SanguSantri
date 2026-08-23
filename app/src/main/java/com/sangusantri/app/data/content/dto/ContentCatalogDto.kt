@@ -3,10 +3,13 @@ package com.sangusantri.app.data.content.dto
 import kotlinx.serialization.Serializable
 
 /**
- * The dynamic catalog (`catalog.json`, ADR 0015) — shared verbatim between bundled assets
- * (`app/src/main/assets/content/catalog.json`) and the CMS API's
- * `GET /api/v1/catalog`. Lists every content item's display metadata
- * plus where to fetch its content file; it never carries step data itself.
+ * The **bundled-asset** catalog (`app/src/main/assets/content/catalog.json`, `schemaVersion` 1).
+ * Lists each bundled item's display metadata plus the local package file holding its steps.
+ *
+ * Local files only. This shape was once shared verbatim with the CMS API; it is not any more —
+ * the CMS speaks `schemaVersion` 3 ([ContentListResponseDto]/[ContentDetailDto]), which has no
+ * `version` and no `contentUrl`. The bundled layout is a file convention on disk with no reason to
+ * follow the wire, so the two are deliberately separate types.
  */
 @Serializable
 data class ContentCatalogDto(

@@ -19,4 +19,12 @@ interface ContentDao {
 
     @Query("DELETE FROM content WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    /**
+     * Hides every active item the CMS stopped publishing, and reports how many. Unpublishing is
+     * "stop distributing", not "recall": the row and its steps stay in Room, so a reader who is
+     * mid-way through an item does not lose it — it just leaves Beranda.
+     */
+    @Query("UPDATE content SET isActive = 0 WHERE isActive = 1 AND id NOT IN (:publishedIds)")
+    suspend fun deactivateAbsent(publishedIds: List<String>): Int
 }

@@ -38,7 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.Content
@@ -293,19 +293,19 @@ private fun ReminderPresetChips(
             selected = selected == ReminderPreset.TAHLIL_THURSDAY_NIGHT,
             onClick = { onSelected(ReminderPreset.TAHLIL_THURSDAY_NIGHT) },
             label = { Text(text = stringResource(R.string.reminder_preset_tahlil_thursday_night)) },
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
         )
         FilterChip(
             selected = selected == ReminderPreset.ISTIGHOSAH_WEEKLY,
             onClick = { onSelected(ReminderPreset.ISTIGHOSAH_WEEKLY) },
             label = { Text(text = stringResource(R.string.reminder_preset_istighosah_weekly)) },
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
         )
         FilterChip(
             selected = selected == ReminderPreset.CUSTOM,
             onClick = { onSelected(ReminderPreset.CUSTOM) },
             label = { Text(text = stringResource(R.string.reminder_preset_custom)) },
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
         )
     }
 }
@@ -326,7 +326,7 @@ private fun ContentPicker(
                 selected = selectedContentId == content.id,
                 onClick = { onSelected(content.id) },
                 label = { Text(text = content.title) },
-                shape = SanguSantriShapes.extraLarge,
+                shape = SanguSantriPillShape,
             )
         }
     }
@@ -349,7 +349,7 @@ private fun DayOfWeekPicker(
                 selected = selected == day,
                 onClick = { onSelected(day) },
                 label = { Text(text = dayNames.getOrElse(day.value - 1) { day.name }) },
-                shape = SanguSantriShapes.extraLarge,
+                shape = SanguSantriPillShape,
             )
         }
     }
@@ -376,7 +376,7 @@ private fun HijriDatePicker(
                     selected = month == index + 1,
                     onClick = { onMonthChange(index + 1) },
                     label = { Text(text = name) },
-                    shape = SanguSantriShapes.extraLarge,
+                    shape = SanguSantriPillShape,
                 )
             }
         }
@@ -386,7 +386,7 @@ private fun HijriDatePicker(
                     selected = day == candidateDay,
                     onClick = { onDayChange(candidateDay) },
                     label = { Text(text = candidateDay.toString()) },
-                    shape = SanguSantriShapes.extraLarge,
+                    shape = SanguSantriPillShape,
                 )
             }
         }

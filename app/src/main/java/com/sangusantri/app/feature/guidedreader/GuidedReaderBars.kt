@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 
 /**
@@ -56,6 +56,9 @@ internal fun GuidedReaderTopBar(
  * `14:32`) — "Sebelumnya" tonal (`primaryContainer`), "Lanjut"/"Selesaikan" primary — rather than
  * an outlined/filled pairing. Direction is conveyed by an [Icons.AutoMirrored] arrow (RTL-correct)
  * rather than a literal arrow glyph in the label, per `docs/design/ACCESSIBILITY.md`'s RTL rule.
+ *
+ * "Lanjut"/"Selesaikan" is always enabled — an unfinished tasbih never blocks the reader
+ * (product-owner decision, 2026-08-23). Only "Sebelumnya" is ever disabled, on the first step.
  */
 @Composable
 internal fun GuidedReaderBottomBar(
@@ -73,7 +76,7 @@ internal fun GuidedReaderBottomBar(
         Button(
             onClick = onPrevious,
             enabled = !state.isFirstStep,
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
             colors =
                 ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -96,11 +99,9 @@ internal fun GuidedReaderBottomBar(
             } else {
                 stringResource(R.string.guided_reader_continue_action)
             }
-        val continueEnabled = if (state.isLastStep) state.allRequiredCountersComplete else state.continueEnabled
         Button(
             onClick = onContinue,
-            enabled = continueEnabled,
-            shape = SanguSantriShapes.extraLarge,
+            shape = SanguSantriPillShape,
             modifier =
                 Modifier
                     .weight(1f)

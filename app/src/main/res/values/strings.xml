@@ -203,8 +203,8 @@
 
   <!-- Reader mode switch and source attribution (FR-016, PRD 6.5, ADR 0015) -->
   <string name="reader_overflow_content_description">Menu lainnya</string>
-  <string name="reader_switch_to_guided_action">Buka mode Panduan</string>
-  <string name="reader_switch_to_full_action">Buka Bacaan Lengkap</string>
+  <string name="reader_mode_toggle_full">Bacaan Lengkap</string>
+  <string name="reader_mode_toggle_guided">Panduan</string>
   <string name="content_source_menu_action">Sumber</string>
   <string name="content_source_label">Sumber</string>
 
@@ -419,7 +419,7 @@
   <string name="beranda_prayer_setup_detecting">Mencari kota Anda dari lokasi…</string>
   <string name="tasbih_counter_of_target">dari %1$d</string>
   <string name="tasbih_counter_tap_hint">Ketuk lingkaran untuk menghitung</string>
-  <string name="reader_full_mode_subtitle">Mode Penuh · %1$d langkah</string>
+  <string name="reader_step_count_subtitle">%1$d langkah</string>
   <string name="guided_counter_reached_label">✓ Tercapai</string>
   <string name="activity_streak_days_unit">hari</string>
   <string name="activity_streak_record_label">Rekor %1$d</string>
@@ -635,10 +635,11 @@
   <string name="quran_settings_multiplier_value">%1$s×</string>
   <string name="quran_settings_percent_value">%1$d%%</string>
   <string name="quran_font_candidate_lpmq">LPMQ Isep Misbah</string>
+  <string name="quran_font_description_lpmq">Standar mushaf Kemenag RI</string>
+  <string name="quran_font_candidate_hafs">KFGQPC HAFS Uthmanic</string>
+  <string name="quran_font_description_hafs">Rasm Utsmani resmi Madinah</string>
   <string name="quran_font_candidate_amiri">Amiri Quran</string>
-  <string name="quran_font_candidate_king_fahd">King Fahd Complex</string>
-  <string name="quran_font_unavailable">Belum tersedia</string>
-  <string name="quran_font_not_yet_cleared">Belum lolos pemeriksaan</string>
+  <string name="quran_font_description_amiri">Naskhi klasik, huruf lebih ramping</string>
 
   <!-- Kalender Hijriah (0.0.7, docs/product/HIJRI_CALENDAR_PRD.md) -->
   <string name="hijri_calendar_title">Kalender Hijriah</string>

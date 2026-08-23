@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -31,13 +33,14 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.ContentStep
+import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepContent
 import com.sangusantri.app.feature.guidedreader.components.GuidedStepStatusRow
 import com.sangusantri.app.feature.guidedreader.components.TasbihActions
 import com.sangusantri.app.feature.reader.components.ReaderContentUnavailableState
 import com.sangusantri.app.feature.reader.components.ReaderLoadingState
-import com.sangusantri.app.feature.reader.components.ReaderOverflowActions
+import com.sangusantri.app.feature.reader.components.ReaderModeToggle
 import com.sangusantri.app.feature.reader.components.ReaderOverflowMenu
 import com.sangusantri.app.feature.reader.components.ReaderProgressHeader
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
@@ -99,7 +102,7 @@ fun GuidedReaderScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { GuidedReaderTopBarWithOverflow(title, uiState, callbacks, overlays) },
+        topBar = { GuidedReaderHeader(title, uiState, callbacks, overlays) },
         bottomBar = { GuidedReaderBottomBarIfVisible(uiState, callbacks, overlays.showCompletionConfirm) },
     ) { innerPadding ->
         GuidedReaderContent(
@@ -114,31 +117,41 @@ fun GuidedReaderScreen(
     GuidedReaderOverlays(settings = settings, callbacks = callbacks, overlays = overlays)
 }
 
+/**
+ * Top bar plus the pinned Bacaan Lengkap ⇄ Panduan toggle, on one `surface` slab — the same header
+ * block the Full Reader renders, so the switch sits in the same place and costs one tap in both
+ * directions (FR-016).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GuidedReaderTopBarWithOverflow(
+private fun GuidedReaderHeader(
     title: String,
     uiState: GuidedReaderUiState,
     callbacks: GuidedReaderCallbacks,
     overlays: GuidedReaderOverlayVisibility,
 ) {
-    GuidedReaderTopBar(
-        title = title,
-        onBack = callbacks.onBack,
-        overflow = {
-            if (uiState is GuidedReaderUiState.StepVisible) {
-                ReaderOverflowMenu(
-                    switchModeLabel = stringResource(R.string.reader_switch_to_full_action),
-                    actions =
-                        ReaderOverflowActions(
-                            onSwitchMode = { callbacks.onAction(GuidedReaderUiAction.SwitchToFull) },
+    Surface(color = MaterialTheme.colorScheme.surface) {
+        Column {
+            GuidedReaderTopBar(
+                title = title,
+                onBack = callbacks.onBack,
+                overflow = {
+                    if (uiState is GuidedReaderUiState.StepVisible) {
+                        ReaderOverflowMenu(
                             onOpenSettings = { overlays.showSettings.value = true },
-                        ),
-                    sourceName = uiState.sourceName,
+                            sourceName = uiState.sourceName,
+                        )
+                    }
+                },
+            )
+            if (uiState is GuidedReaderUiState.StepVisible) {
+                ReaderModeToggle(
+                    current = ReaderMode.GUIDED,
+                    onSelect = { callbacks.onAction(GuidedReaderUiAction.SwitchToFull) },
                 )
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -316,8 +329,6 @@ private fun previewStepVisible(currentCount: Int = 12) =
         settings = ReaderSettings(),
         isFirstStep = false,
         isLastStep = false,
-        continueEnabled = currentCount >= 33,
-        allRequiredCountersComplete = false,
         isCompleted = false,
         sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
     )

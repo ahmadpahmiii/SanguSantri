@@ -17,7 +17,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import kotlin.math.roundToInt
 
@@ -66,7 +66,7 @@ fun ReaderProgressHeader(
                 Modifier
                     .fillMaxWidth()
                     .height(ProgressTrackHeight)
-                    .clip(SanguSantriShapes.extraLarge)
+                    .clip(SanguSantriPillShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
             Box(
@@ -74,7 +74,7 @@ fun ReaderProgressHeader(
                     Modifier
                         .fillMaxWidth(fraction = percent / PERCENT_SCALE.toFloat())
                         .height(ProgressTrackHeight)
-                        .clip(SanguSantriShapes.extraLarge)
+                        .clip(SanguSantriPillShape)
                         .background(MaterialTheme.colorScheme.primary),
             )
         }

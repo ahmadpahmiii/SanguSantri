@@ -16,7 +16,10 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.arabicTextStyle
 import com.sangusantri.app.core.designsystem.theme.translationTextStyle
 import com.sangusantri.app.domain.model.ContentStep
+import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.ReaderSettings
+import com.sangusantri.app.feature.quran.toFontFamily
+import com.sangusantri.app.feature.quran.withQuranFontFallback
 
 /**
  * One verse in the Sholawat reader (0.0.8's own reader, not [com.sangusantri.app.feature.reader]'s
@@ -25,20 +28,22 @@ import com.sangusantri.app.domain.model.ReaderSettings
  * Reader uses) rather than re-deriving Arabic typography from scratch. [largeArabicMode] is the
  * screen-wide "Arabic-only, bigger font" toggle (0.0.8: still scrolls, not a shrink-to-fit
  * algorithm) — reusing [ReaderSettings]'s existing documented font-size range rather than
- * inventing a new one.
+ * inventing a new one. [arabicFont] is the app-wide typeface chosen in the Quran reader's
+ * settings; words it has no glyph for fall back to LPMQ exactly as they do in the other readers.
  */
 @Composable
 fun SholawatVerseBlock(
     step: ContentStep,
     showTranslation: Boolean,
     largeArabicMode: Boolean,
+    arabicFont: QuranArabicFont,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             SelectionContainer {
                 Text(
-                    text = step.arabicText,
+                    text = step.arabicText.withQuranFontFallback(arabicFont),
                     style =
                         arabicTextStyle(
                             fontSizeSp =
@@ -48,6 +53,7 @@ fun SholawatVerseBlock(
                                     ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP
                                 },
                             lineSpacingMultiplier = ReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
+                            fontFamily = arabicFont.toFontFamily(),
                         ),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),

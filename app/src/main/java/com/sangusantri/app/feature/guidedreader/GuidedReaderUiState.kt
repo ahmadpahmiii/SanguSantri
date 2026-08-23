@@ -18,8 +18,6 @@ sealed interface GuidedReaderUiState {
         val settings: ReaderSettings,
         val isFirstStep: Boolean,
         val isLastStep: Boolean,
-        val continueEnabled: Boolean,
-        val allRequiredCountersComplete: Boolean,
         val isCompleted: Boolean,
         val sourceName: String,
     ) : GuidedReaderUiState

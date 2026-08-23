@@ -5,11 +5,8 @@ import com.sangusantri.app.data.content.ContentImportOutcome
 import com.sangusantri.app.data.content.ContentImporter
 import com.sangusantri.app.data.content.ContentValidation
 import com.sangusantri.app.data.content.ContentValidator
-import com.sangusantri.app.data.content.ContentVersionAction
-import com.sangusantri.app.data.content.decideContentVersionAction
-import com.sangusantri.app.data.content.dto.ContentCatalogDto
-import com.sangusantri.app.data.content.dto.ContentCatalogItemDto
-import com.sangusantri.app.data.content.dto.ContentFileDto
+import com.sangusantri.app.data.content.dto.ContentListItemDto
+import com.sangusantri.app.data.content.dto.ContentListResponseDto
 import com.sangusantri.app.data.remote.api.ContentApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,13 +16,16 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * One complete remote content-sync execution against the CMS API (ADR 0015):
- * fetch the catalog, compare every item against Room's local versions, fetch and import only
- * genuinely newer/changed content, and return one [SyncResult]. All writes still go through
- * [ContentImporter] — this class never touches a content table directly. Response-size limiting
- * (`docs/security/SECURITY_BASELINE.md`) is enforced transparently at the OkHttp layer
- * ([com.sangusantri.app.data.remote.ResponseSizeLimitInterceptor]), not here — both
- * [ContentApiService] calls return already-parsed, already-size-checked DTOs.
+ * One complete list sync against the CMS API (`schemaVersion` 3): fetch both category listings,
+ * update the catalogue Beranda draws from, hide anything the CMS stopped publishing, and return
+ * one [SyncResult].
+ *
+ * **Metadata only — this never fetches steps.** Steps belong to [ContentDetailSyncManager], which
+ * runs when the reader opens an item. That split is why this can run on every Beranda resume: the
+ * two listings are a few hundred bytes each, and their `ETag`s do not move when someone corrects a
+ * word inside an item, so the common resume costs two `304`s and nothing else.
+ *
+ * All writes go through [ContentImporter] — this class never touches a content table directly.
  */
 class ContentSyncManager
     @Inject
@@ -35,35 +35,48 @@ class ContentSyncManager
     ) {
         suspend fun sync(): SyncResult =
             withContext(Dispatchers.IO) {
-                when (val outcome = fetchCatalog()) {
-                    is CatalogOutcome.Failure -> outcome.result
-                    is CatalogOutcome.Success -> processItems(outcome.catalog.items)
+                // Both listings are fetched before anything is written. A half-fetched sync must not
+                // deactivate the half it never saw, and aborting early leaves Room exactly as it was.
+                when (val sholawat = fetchList("sholawat") { api.getSholawatList() }) {
+                    is ListOutcome.Failure -> sholawat.result
+                    is ListOutcome.Success ->
+                        when (val amaliyah = fetchList("amaliyah") { api.getAmaliyahList() }) {
+                            is ListOutcome.Failure -> amaliyah.result
+                            is ListOutcome.Success ->
+                                importAll(sholawat.response.items + amaliyah.response.items)
+                        }
                 }
             }
 
-        private suspend fun fetchCatalog(): CatalogOutcome =
+    private suspend fun fetchList(
+        name: String,
+        call: suspend () -> Response<ContentListResponseDto>,
+    ): ListOutcome =
             try {
-                toCatalogOutcome(api.getCatalog())
+                toListOutcome(name, call())
             } catch (io: IOException) {
-                Log.w(TAG, "content catalog fetch failed", io)
-                CatalogOutcome.Failure(SyncResult.RetryableFailure("catalog network error"))
+                Log.w(TAG, "$name list fetch failed", io)
+                ListOutcome.Failure(SyncResult.RetryableFailure("$name network error"))
             } catch (malformed: SerializationException) {
-                Log.w(TAG, "content catalog fetch failed", malformed)
-                CatalogOutcome.Failure(SyncResult.PermanentFailure("malformed catalog body"))
+                Log.w(TAG, "$name list fetch failed", malformed)
+                ListOutcome.Failure(SyncResult.PermanentFailure("malformed $name body"))
             }
 
         @Suppress("ReturnCount")
-        private fun toCatalogOutcome(response: Response<ContentCatalogDto>): CatalogOutcome {
+        private fun toListOutcome(
+            name: String,
+            response: Response<ContentListResponseDto>,
+        ): ListOutcome {
             if (!response.isSuccessful) {
-                return CatalogOutcome.Failure(classifyHttpFailure(response.code(), source = "catalog"))
+                return ListOutcome.Failure(classifyHttpFailure(response.code(), source = name))
             }
-            val catalog =
-                response.body() ?: return CatalogOutcome.Failure(SyncResult.PermanentFailure("empty catalog body"))
-            val validation = ContentValidator.validateCatalog(catalog)
+            val body =
+                response.body() ?: return ListOutcome.Failure(SyncResult.PermanentFailure("empty $name body"))
+            val validation = ContentValidator.validateList(body)
             if (validation is ContentValidation.Invalid) {
-                return CatalogOutcome.Failure(SyncResult.PermanentFailure("invalid catalog: ${validation.reason}"))
+                return ListOutcome.Failure(SyncResult.PermanentFailure("invalid $name: ${validation.reason}"))
             }
-            return CatalogOutcome.Success(catalog)
+            return ListOutcome.Success(body)
         }
 
         private fun classifyHttpFailure(
@@ -76,115 +89,39 @@ class ContentSyncManager
                 SyncResult.PermanentFailure("$source HTTP $code")
             }
 
-        private suspend fun processItems(items: List<ContentCatalogItemDto>): SyncResult {
+    private suspend fun importAll(items: List<ContentListItemDto>): SyncResult {
             val updated = mutableListOf<String>()
             val skipped = mutableListOf<String>()
             val rejected = mutableListOf<String>()
 
             for (item in items) {
-                // Cheap, no-fetch metadata refresh runs for every item regardless of version — this is
-                // how isActive/order/title/description/image changes propagate without a content fetch.
-                contentImporter.refreshCatalogMetadata(item)
+                when (contentImporter.importListItem(item)) {
+                    is ContentImportOutcome.Imported, is ContentImportOutcome.Replaced -> updated += item.id
+                    is ContentImportOutcome.SkippedUpToDate, is ContentImportOutcome.SkippedOlderVersion ->
+                        skipped += item.id
 
-                when (val result = processItem(item)) {
-                    is ItemResult.Updated -> updated += result.contentId
-                    is ItemResult.Skipped -> skipped += result.contentId
-                    is ItemResult.Rejected -> rejected += result.contentId
-                    // A retryable content-fetch failure aborts the whole sync (matches manifest-level
-                    // retry semantics) — items already updated above stay in Room and are simply
-                    // skipped on the next attempt.
-                    is ItemResult.Abort -> return SyncResult.RetryableFailure(result.reason)
+                    is ContentImportOutcome.Rejected -> rejected += item.id
                 }
             }
 
-            return SyncResult.Completed(updated, skipped, rejected)
+        // Runs only here, after both listings parsed and validated: an item missing because a
+        // request failed must never be mistaken for one the CMS unpublished.
+        val hidden = contentImporter.deactivateAbsent(items.map { it.id })
+        if (hidden > 0) {
+            Log.i(TAG, "hid $hidden item(s) no longer published by the CMS")
         }
 
-        private suspend fun processItem(item: ContentCatalogItemDto): ItemResult {
-            val localVersion = contentImporter.localVersion(item.id)
-            return when (decideContentVersionAction(item.version, localVersion)) {
-                ContentVersionAction.SKIP_OLDER, ContentVersionAction.SKIP_UP_TO_DATE -> ItemResult.Skipped(item.id)
-                ContentVersionAction.IMPORT -> downloadAndImport(item)
-            }
-        }
+        return SyncResult.Completed(updated, skipped, rejected)
+    }
 
-        private suspend fun downloadAndImport(item: ContentCatalogItemDto): ItemResult =
-            when (val download = fetchContent(item)) {
-                is ContentDownload.Abort -> ItemResult.Abort(download.reason)
-                is ContentDownload.Rejected -> ItemResult.Rejected(item.id)
-                is ContentDownload.Fetched ->
-                    when (contentImporter.importContentFile(item, download.file)) {
-                        is ContentImportOutcome.Imported, is ContentImportOutcome.Replaced ->
-                            ItemResult.Updated(
-                                item.id,
-                            )
-
-                        is ContentImportOutcome.SkippedUpToDate, is ContentImportOutcome.SkippedOlderVersion ->
-                            ItemResult.Skipped(item.id)
-
-                        is ContentImportOutcome.Rejected -> ItemResult.Rejected(item.id)
-                    }
-            }
-
-        private suspend fun fetchContent(item: ContentCatalogItemDto): ContentDownload =
-            try {
-                val response = api.getContent(item.contentUrl)
-                when {
-                    !response.isSuccessful ->
-                        if (isRetryableHttpStatus(response.code())) {
-                            ContentDownload.Abort("content ${item.id} HTTP ${response.code()}")
-                        } else {
-                            ContentDownload.Rejected
-                        }
-
-                    else -> response.body()?.let { ContentDownload.Fetched(it) } ?: ContentDownload.Rejected
-                }
-            } catch (io: IOException) {
-                Log.w(TAG, "content download interrupted for ${item.id}", io)
-                ContentDownload.Abort("content ${item.id} download interrupted")
-            } catch (malformed: SerializationException) {
-                Log.w(TAG, "content download malformed for ${item.id}", malformed)
-                ContentDownload.Rejected
-            }
-
-        private sealed interface CatalogOutcome {
+    private sealed interface ListOutcome {
             data class Success(
-                val catalog: ContentCatalogDto,
-            ) : CatalogOutcome
+                val response: ContentListResponseDto,
+            ) : ListOutcome
 
             data class Failure(
                 val result: SyncResult,
-            ) : CatalogOutcome
-        }
-
-        private sealed interface ItemResult {
-            data class Updated(
-                val contentId: String,
-            ) : ItemResult
-
-            data class Skipped(
-                val contentId: String,
-            ) : ItemResult
-
-            data class Rejected(
-                val contentId: String,
-            ) : ItemResult
-
-            data class Abort(
-                val reason: String,
-            ) : ItemResult
-        }
-
-        private sealed interface ContentDownload {
-            data class Fetched(
-                val file: ContentFileDto,
-            ) : ContentDownload
-
-            data class Abort(
-                val reason: String,
-            ) : ContentDownload
-
-            data object Rejected : ContentDownload
+            ) : ListOutcome
         }
 
         private companion object {

@@ -3,6 +3,7 @@ package com.sangusantri.app.feature.reader
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.data.sync.ContentDetailSyncManager
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.ReaderMode
@@ -41,6 +42,10 @@ import kotlinx.coroutines.launch
  * position — debounced, and flushed immediately on [ReaderUiAction.PersistPositionNow] (dispatched
  * on `Lifecycle.Event.ON_STOP`) — per content id.
  */
+// The Full Reader genuinely depends on all of these: content, saved position, its own settings, the
+// shared Arabic-font setting, the guided-mode handover, and now the detail refresh that keeps an
+// open item current. Collapsing them into a wrapper would hide the dependencies, not remove them.
+@Suppress("LongParameterList")
 @OptIn(FlowPreview::class)
 @HiltViewModel(assistedFactory = ReaderViewModel.Factory::class)
 class ReaderViewModel
@@ -52,6 +57,7 @@ class ReaderViewModel
         private val readerSettingsRepository: ReaderSettingsRepository,
         private val guidedReadingRepository: GuidedReadingRepository,
         private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
+        private val contentDetailSyncManager: ContentDetailSyncManager,
     ) : ViewModel() {
         @AssistedFactory
         interface Factory {
@@ -194,30 +200,55 @@ class ReaderViewModel
             contentState.value = ContentState.Loading
             loadJob =
                 viewModelScope.launch {
-                    contentState.value =
-                        try {
-                            val detail = contentRepository.getContentDetail(contentId)
-                            if (detail == null || detail.steps.isEmpty()) {
+                    try {
+                        val cached = contentRepository.getContentDetail(contentId)
+                        if (cached == null) {
+                            Log.w(TAG, "Content unavailable for id=$contentId: no catalogue row")
+                            contentState.value = ContentState.Unavailable
+                            return@launch
+                        }
+
+                        // Room first, always. Whatever is already cached renders now; the network
+                        // never gates the reader (PRD 12.1). An item opened before has its steps
+                        // here, so this is the frame the reader actually sees.
+                        if (cached.steps.isNotEmpty()) {
+                            contentState.value = available(cached)
+                        }
+
+                        // Then refresh, every open. An unchanged item costs a 304 and no body, and
+                        // this is the only thing that brings a correction published since the last
+                        // open to a reader who never closes the app. An item whose detail has never
+                        // been fetched — a row the list created but nobody opened yet — has no steps
+                        // to show, so for it this fetch is the load, and its failure is visible.
+                        val changed = contentDetailSyncManager.refresh(contentId, cached.content.isSholawat)
+                        val fresh = if (changed) contentRepository.getContentDetail(contentId) else cached
+
+                        contentState.value =
+                            if (fresh == null || fresh.steps.isEmpty()) {
                                 Log.w(
                                     TAG,
                                     "Content unavailable for id=$contentId: " +
-                                        "contentFound=${detail != null}, stepCount=${detail?.steps?.size ?: 0}",
+                                        "stepCount=${fresh?.steps?.size ?: 0}, refreshChanged=$changed",
                                 )
                                 ContentState.Unavailable
                             } else {
-                                val restored = readingPositionRepository.getPosition(contentId)
-                                val position = validateRestoredPosition(restored, detail.steps.size)
-                                lastKnownItemIndex = position.itemIndex
-                                ContentState.Available(detail = detail, restoredPosition = position)
+                                available(fresh)
                             }
-                        } catch (cancellation: CancellationException) {
-                            throw cancellation
-                        } catch (unexpected: Exception) {
-                            Log.e(TAG, "Reader content load failed for id=$contentId", unexpected)
-                            ContentState.Error
-                        }
+                    } catch (cancellation: CancellationException) {
+                        throw cancellation
+                    } catch (unexpected: Exception) {
+                        Log.e(TAG, "Reader content load failed for id=$contentId", unexpected)
+                        contentState.value = ContentState.Error
+                    }
                 }
         }
+
+    private suspend fun available(detail: ContentDetail): ContentState.Available {
+        val restored = readingPositionRepository.getPosition(contentId)
+        val position = validateRestoredPosition(restored, detail.steps.size)
+        lastKnownItemIndex = position.itemIndex
+        return ContentState.Available(detail = detail, restoredPosition = position)
+    }
 
         private suspend fun persistPosition(position: ScrollPosition) {
             val id = (contentState.value as? ContentState.Available)?.detail?.content?.id ?: return

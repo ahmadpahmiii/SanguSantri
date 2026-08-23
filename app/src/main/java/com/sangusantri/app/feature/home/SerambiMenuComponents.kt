@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
+import com.sangusantri.app.core.designsystem.theme.SanguSantriPillShape
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -247,7 +248,7 @@ private fun SerambiSupportingMenuItem(
 @Composable
 private fun FeatureBadge(text: String) {
     Surface(
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = SanguSantriPillShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {

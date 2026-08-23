@@ -22,11 +22,15 @@ class ContentStepGuidedModeTest {
         assertNull(step(repeatTarget = null).effectiveRepeatTarget)
     }
 
-    /** A stale row or hand-edited asset can still carry 0; it means the same as null to a reader. */
+    /**
+     * A stale row or hand-edited asset can still carry 0, and a target of 1 is a step read once —
+     * neither is a repetition, so both mean the same as null to a reader.
+     */
     @Test
-    fun zeroAndNegativeTargetsAlsoMeanNoCounter() {
+    fun zeroNegativeAndSingleTargetsAlsoMeanNoCounter() {
         assertNull(step(repeatTarget = 0).effectiveRepeatTarget)
         assertNull(step(repeatTarget = -1).effectiveRepeatTarget)
+        assertNull(step(repeatTarget = 1).effectiveRepeatTarget)
     }
 
     @Test

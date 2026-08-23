@@ -1,5 +1,6 @@
 package com.sangusantri.app.di
 
+import android.content.Context
 import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.sangusantri.app.BuildConfig
 import com.sangusantri.app.data.remote.ResponseSizeLimitInterceptor
@@ -8,23 +9,51 @@ import com.sangusantri.app.data.remote.ayat.AyatHariIniApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+    /**
+     * The HTTP response cache is what makes content sync conditional.
+     *
+     * The CMS content endpoints send a strong `ETag` and
+     * `Cache-Control: public, max-age=0, must-revalidate`, so every sync revalidates and an
+     * unchanged category comes back `304` with no body. OkHttp stores the validator and replays it
+     * as `If-None-Match` on its own — there is no ETag handling anywhere in this app's own code,
+     * and deliberately so: the previous attempt at manifest-level ETag plumbing was removed for
+     * being hand-rolled (ADR 0012 amendment, 2026-07-28), and this puts the same saving back
+     * where the HTTP client already implements it.
+     *
+     * `max-age=0` means nothing is ever served from this cache without asking the server first, so
+     * it cannot mask a content update — it only avoids re-downloading one. Offline behaviour does
+     * not depend on it either: the reader reads from Room, not from here.
+     */
     @Provides
     @Singleton
-    fun provideOkHttpClient(chuckerInterceptor: ChuckerInterceptor): OkHttpClient =
+    fun provideHttpCache(
+        @ApplicationContext context: Context,
+    ): Cache = Cache(File(context.cacheDir, HTTP_CACHE_DIR), HTTP_CACHE_BYTES)
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        chuckerInterceptor: ChuckerInterceptor,
+        cache: Cache,
+    ): OkHttpClient =
         OkHttpClient
             .Builder()
+            .cache(cache)
             .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -68,4 +97,10 @@ object NetworkModule {
         retrofit.create(AyatHariIniApiService::class.java)
 
     private const val NETWORK_TIMEOUT_SECONDS = 15L
+    private const val HTTP_CACHE_DIR = "http-cache"
+
+    // Both content categories fully published are ~190 KB gzipped; 5 MB leaves room for the
+    // quote-of-the-day window and Quran/prayer-time responses without ever being the reason a
+    // revalidation misses.
+    private const val HTTP_CACHE_BYTES = 5L * 1024 * 1024
 }

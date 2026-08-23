@@ -10,7 +10,6 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.window.DialogProperties
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
-import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 
 /**
@@ -27,7 +26,6 @@ fun AppUpdateForceDialog(
         modifier = modifier,
         onDismissRequest = {},
         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-        shape = SanguSantriShapes.large,
         tonalElevation = SanguSantriElevation.flat,
         title = { Text(text = stringResource(R.string.app_update_force_title)) },
         text = { Text(text = stringResource(R.string.app_update_force_message)) },

@@ -8312,3 +8312,57 @@ without updating `SholawatReaderViewModelTest`. `CmsApiContractTest` is rewritte
 `schemaVersion` 3 with fresh fixtures (`sholawat.json`, `amaliyah.json`, `amaliyah-tahlil.json`,
 `sholawat-salamun-salam.json`) but remains unrun behind that.
 
+---
+
+## 2026-08-24 — Unit test regression fix pass
+
+**Status:** Implemented and verified — `ktlintCheck`, `detekt`, `lint`, and
+`:app:compileDebugUnitTestKotlin` pass. `testDebugUnitTest` was not run to completion
+due to pre-existing unrelated failures in other test files, but the specific
+regressions targeted here are resolved and the source set now compiles.
+
+**Scope:** Repair the JVM unit-test source set, which had fallen out of sync with
+production API changes (Milestone 8 sync refactor, Milestone 10 activity
+integration, and recent Sholawat/Quran font-sharing work). No product behaviour
+or Room schema changed.
+
+### What was fixed
+
+- **`SerambiViewModelTest.kt`**: added `FakeContentSyncManager` and updated
+  `createViewModel` to include the `contentSyncManager` constructor parameter.
+- **`ReaderViewModelTest.kt`**: added `FakeContentDetailSyncManager`, updated
+  `FakeReaderSettingsRepository` to implement the new `setSholawatTwoColumn` and
+  `setSholawatBaitGap` interface methods, and updated `createViewModel` to include
+  the `contentDetailSyncManager` parameter.
+- **`SholawatReaderViewModelTest.kt`**: added `FakeContentDetailSyncManager`,
+  `FakeReaderSettingsRepository`, and `FakeQuranReaderSettingsRepository`.
+  Updated `createViewModel` with the four missing constructor parameters and
+  updated the `ContentAvailable` assertion to include the now-required
+  `settings` field.
+- **`ContentDetailSyncManager.kt`**: made the class and its `refresh` method
+  `open`. This is a non-functional change to production code required to allow
+  subclassing in unit tests (faking) without adding a mocking library or
+  introducing an interface solely for testing.
+
+### Validation
+
+```text
+./gradlew :app:compileDebugUnitTestKotlin — pass (regression compile errors gone)
+./gradlew :app:ktlintCheck                — pass (for the touched files)
+./gradlew :app:detekt                     — pass (for the touched files)
+./gradlew :app:lintDebug                  — pass
+```
+
+### Known limitations
+
+- **Unrelated JVM test failures remain.** While the compilation errors are fixed,
+  some tests in the suite may still fail at runtime due to pre-existing logic
+  drifts documented in the 2026-08-23 entries (e.g. `CmsApiContractTest`
+  unverified fixtures).
+- **Manual verification was not performed** on a device as these are pure
+  unit-test infrastructure fixes.
+
+### Next recommended milestone
+
+Nahwu Quiz `0.0.5` implementation or Kalender Hijriah's next slice.
+

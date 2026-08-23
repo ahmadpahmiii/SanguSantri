@@ -27,13 +27,13 @@ import javax.inject.Inject
  *
  * All writes go through [ContentImporter] — this class never touches a content table directly.
  */
-class ContentSyncManager
+open class ContentSyncManager
     @Inject
     constructor(
         private val api: ContentApiService,
         private val contentImporter: ContentImporter,
     ) {
-        suspend fun sync(): SyncResult =
+    open suspend fun sync(): SyncResult =
             withContext(Dispatchers.IO) {
                 // Both listings are fetched before anything is written. A half-fetched sync must not
                 // deactivate the half it never saw, and aborting early leaves Room exactly as it was.

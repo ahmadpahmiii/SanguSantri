@@ -1,12 +1,24 @@
 package com.sangusantri.app.feature.sholawat
 
+import com.sangusantri.app.data.sync.ContentDetailSyncManager
+import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.ContentStep
+import com.sangusantri.app.domain.model.GuidedProgressionMode
+import com.sangusantri.app.domain.model.QuranArabicFont
+import com.sangusantri.app.domain.model.QuranDisplayMode
+import com.sangusantri.app.domain.model.QuranMurottalSpeed
+import com.sangusantri.app.domain.model.QuranReaderSettings
+import com.sangusantri.app.domain.model.ReaderMode
+import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.repository.ContentRepository
+import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
+import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -44,6 +56,7 @@ class SholawatReaderViewModelTest {
                     title = detail.content.title,
                     steps = detail.steps,
                     layout = detail.content.layout,
+                    settings = ReaderSettings(),
                 ),
                 collected.last(),
             )
@@ -63,7 +76,13 @@ class SholawatReaderViewModelTest {
         }
 
     private fun createViewModel(contentRepository: ContentRepository) =
-        SholawatReaderViewModel(contentId = "sholawat-nariyah", contentRepository = contentRepository)
+        SholawatReaderViewModel(
+            contentId = "sholawat-nariyah",
+            contentRepository = contentRepository,
+            quranReaderSettingsRepository = FakeQuranReaderSettingsRepository(),
+            readerSettingsRepository = FakeReaderSettingsRepository(),
+            contentDetailSyncManager = FakeContentDetailSyncManager(),
+        )
 
     private companion object {
         val steps =
@@ -105,4 +124,87 @@ private class FakeReaderContentRepository(
     override suspend fun getContentById(contentId: String): Content? = detail?.content
 
     override suspend fun getContentDetail(contentId: String): ContentDetail? = detail
+}
+
+private class FakeReaderSettingsRepository : ReaderSettingsRepository {
+    private val state = MutableStateFlow(ReaderSettings())
+
+    override fun observe(): Flow<ReaderSettings> = state
+
+    override suspend fun setArabicFontSize(sp: Int) {
+        state.value = state.value.copy(arabicFontSizeSp = ReaderSettings.coerceArabicFontSize(sp))
+    }
+
+    override suspend fun setTranslationFontSize(sp: Int) {
+        state.value = state.value.copy(translationFontSizeSp = ReaderSettings.coerceTranslationFontSize(sp))
+    }
+
+    override suspend fun setArabicLineSpacing(multiplier: Float) {
+        state.value = state.value.copy(arabicLineSpacingMultiplier = ReaderSettings.coerceLineSpacing(multiplier))
+    }
+
+    override suspend fun setTranslationLineSpacing(multiplier: Float) {
+        state.value =
+            state.value.copy(translationLineSpacingMultiplier = ReaderSettings.coerceLineSpacing(multiplier))
+    }
+
+    override suspend fun setShowTranslation(show: Boolean) {
+        state.value = state.value.copy(showTranslation = show)
+    }
+
+    override suspend fun setLastReaderMode(mode: ReaderMode) {
+        state.value = state.value.copy(lastReaderMode = mode)
+    }
+
+    override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
+        state.value = state.value.copy(guidedProgressionMode = mode)
+    }
+
+    override suspend fun setSholawatTwoColumn(enabled: Boolean) {
+        state.value = state.value.copy(sholawatTwoColumn = enabled)
+    }
+
+    override suspend fun setSholawatBaitGap(enabled: Boolean) {
+        state.value = state.value.copy(sholawatBaitGap = enabled)
+    }
+}
+
+private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository {
+    override fun observe(): Flow<QuranReaderSettings> = flowOf(QuranReaderSettings())
+
+    override suspend fun setDisplayMode(mode: QuranDisplayMode) = Unit
+
+    override suspend fun setArabicFont(font: QuranArabicFont) = Unit
+
+    override suspend fun setArabicSize(sp: Int) = Unit
+
+    override suspend fun setArabicLineSpacing(multiplier: Float) = Unit
+
+    override suspend fun setTranslationSize(sp: Int) = Unit
+
+    override suspend fun setBrightnessOverride(value: Float) = Unit
+
+    override suspend fun setThemeMode(mode: AppThemeMode) = Unit
+
+    override suspend fun setMurottalSpeed(speed: QuranMurottalSpeed) = Unit
+
+    override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) = Unit
+
+    override suspend fun setMurottalKeepScreenOn(enabled: Boolean) = Unit
+}
+
+private class FakeContentDetailSyncManager :
+    ContentDetailSyncManager(
+        api = object : com.sangusantri.app.data.remote.api.ContentApiService {
+            override suspend fun getSholawatList() = TODO()
+            override suspend fun getAmaliyahList() = TODO()
+            override suspend fun getSholawatDetail(id: String) = TODO()
+            override suspend fun getAmaliyahDetail(id: String) = TODO()
+        },
+        contentImporter = com.sangusantri.app.data.content.ContentImporter(error("stub")),
+    ) {
+    override suspend fun refresh(
+        contentId: String,
+        isSholawat: Boolean,
+    ): Boolean = false
 }

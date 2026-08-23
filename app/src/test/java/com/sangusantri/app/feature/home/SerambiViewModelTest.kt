@@ -1,5 +1,8 @@
 package com.sangusantri.app.feature.home
 
+import com.sangusantri.app.data.content.ContentImporter
+import com.sangusantri.app.data.sync.ContentSyncManager
+import com.sangusantri.app.data.sync.SyncResult
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.CityDetection
@@ -148,6 +151,7 @@ class SerambiViewModelTest {
                     tasbihRepository = FakeTasbihRepository(),
                     homePreferencesRepository = FakeHomePreferencesRepository(),
                 ),
+            contentSyncManager = FakeContentSyncManager(),
         )
 
     private companion object {
@@ -399,4 +403,17 @@ private class FakePrayerScheduleRepository : PrayerScheduleRepository {
     ) = Unit
 
     override suspend fun scheduleOn(date: LocalDate): PrayerSchedule? = null
+}
+
+private class FakeContentSyncManager :
+    ContentSyncManager(
+        api = object : com.sangusantri.app.data.remote.api.ContentApiService {
+            override suspend fun getSholawatList() = TODO()
+            override suspend fun getAmaliyahList() = TODO()
+            override suspend fun getSholawatDetail(id: String) = TODO()
+            override suspend fun getAmaliyahDetail(id: String) = TODO()
+        },
+        contentImporter = ContentImporter(error("stub")),
+    ) {
+    override suspend fun sync(): SyncResult = SyncResult.Completed(emptyList(), emptyList(), emptyList())
 }

@@ -28,7 +28,7 @@ import javax.inject.Inject
  * Nothing here decides whether the content changed. The OkHttp cache spares the download with
  * `If-None-Match`, and [ContentImporter.importRemoteDetail] compares against Room before writing.
  */
-class ContentDetailSyncManager
+open class ContentDetailSyncManager
 @Inject
 constructor(
     private val api: ContentApiService,
@@ -42,7 +42,7 @@ constructor(
      * an admin might type ("shalawat", "salawat", …), and getting it wrong would mean asking the
      * wrong category's endpoint and getting a 404 for content that exists.
      */
-    suspend fun refresh(
+    open suspend fun refresh(
         contentId: String,
         isSholawat: Boolean,
     ): Boolean =

@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.reader
 
+import com.sangusantri.app.data.sync.ContentDetailSyncManager
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
@@ -244,6 +245,7 @@ class ReaderViewModelTest {
         readerSettingsRepository = readerSettingsRepository,
         guidedReadingRepository = guidedReadingRepository,
         quranReaderSettingsRepository = FakeQuranReaderSettingsRepository(),
+        contentDetailSyncManager = FakeContentDetailSyncManager(),
     )
 
     private companion object {
@@ -370,6 +372,14 @@ private class FakeReaderSettingsRepository : ReaderSettingsRepository {
     override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
         state.value = state.value.copy(guidedProgressionMode = mode)
     }
+
+    override suspend fun setSholawatTwoColumn(enabled: Boolean) {
+        state.value = state.value.copy(sholawatTwoColumn = enabled)
+    }
+
+    override suspend fun setSholawatBaitGap(enabled: Boolean) {
+        state.value = state.value.copy(sholawatBaitGap = enabled)
+    }
 }
 
 private class FakeGuidedReadingRepository : GuidedReadingRepository {
@@ -416,4 +426,20 @@ private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository 
     override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) = Unit
 
     override suspend fun setMurottalKeepScreenOn(enabled: Boolean) = Unit
+}
+
+private class FakeContentDetailSyncManager :
+    ContentDetailSyncManager(
+        api = object : com.sangusantri.app.data.remote.api.ContentApiService {
+            override suspend fun getSholawatList() = TODO()
+            override suspend fun getAmaliyahList() = TODO()
+            override suspend fun getSholawatDetail(id: String) = TODO()
+            override suspend fun getAmaliyahDetail(id: String) = TODO()
+        },
+        contentImporter = com.sangusantri.app.data.content.ContentImporter(error("stub")),
+    ) {
+    override suspend fun refresh(
+        contentId: String,
+        isSholawat: Boolean,
+    ): Boolean = false
 }

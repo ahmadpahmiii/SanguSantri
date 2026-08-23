@@ -101,6 +101,15 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
  * A column rewrite, not additive, and on the same standing
  * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4-8: the table refills
  * from the CMS on the next launch, and the Quran corpus each user re-downloads once.
+ *
+ * Version 10 adds `content.layout` — the CMS's per-item instruction for how the Sholawat reader
+ * arranges an item's steps (paired hemistichs vs. one per row), which the reader cannot infer from
+ * the Arabic itself. A new column, so additive, and on the same standing
+ * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4-9: **every table is
+ * dropped**. Bundled amaliyah content bootstraps itself again and the CMS catalog re-syncs, but
+ * downloaded Quran text/tafsir and Quran bookmarks, tasbih history, amaliyah progress and
+ * completion events, reminders and quiz attempts are gone. Downloaded murottal audio survives —
+ * it lives as files under `filesDir/murottal/`, deliberately outside Room for exactly this reason.
  */
 @Database(
     entities = [
@@ -127,7 +136,7 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         PrayerScheduleDayEntity::class,
         AyatHariIniEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.

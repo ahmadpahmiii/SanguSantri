@@ -16,6 +16,8 @@ data class Content(
     val isActive: Boolean,
     val sourceName: String,
     val sourceUrl: String,
+    /** How a reader arranges this item's steps. See [ContentLayout]; stacked unless the CMS says otherwise. */
+    val layout: ContentLayout = ContentLayout.STACKED,
 ) {
     companion object {
         /**
@@ -47,3 +49,35 @@ data class Content(
     val isSholawat: Boolean
         get() = category?.trim()?.lowercase() in SHOLAWAT_CATEGORY_ALIASES
 }
+
+/**
+ * How a reader arranges an item's steps.
+ *
+ * [BAYT] means the steps are hemistichs to be paired two per row — sadr on the right, ajuz on the
+ * left — the way a qasidah is printed. [STACKED] means one step per row, straight down.
+ *
+ * This cannot be worked out from the text. Salamun Salam is paired verse (32 steps = 16 baits);
+ * Shalawat Munjiyat is continuous prose, and pairing prose into two columns cuts sentences in half.
+ * So the CMS says which, on the detail endpoints only, and [toContentLayout] decides what to
+ * believe.
+ */
+enum class ContentLayout {
+    BAYT,
+    STACKED,
+}
+
+/**
+ * Every value the CMS's free-text `layout` column can arrive as, resolved to a layout this build
+ * can actually render — absent, null, blank and *anything unrecognised* all become
+ * [ContentLayout.STACKED].
+ *
+ * Same tolerance as [Content.isSholawat] above, for the same reason: a constant compiled into the
+ * app is being matched against a text column an admin (or a future CMS version) writes. The
+ * asymmetry is deliberate — stacked reads correctly for any content, two columns do not, so an
+ * unknown value must never resolve to [ContentLayout.BAYT] and must never crash.
+ */
+fun String?.toContentLayout(): ContentLayout =
+    if (this?.trim()?.lowercase() == BAYT_LAYOUT_VALUE) ContentLayout.BAYT else ContentLayout.STACKED
+
+/** The exact string the CMS writes for paired verse (`content_layout_check`, `cms/db/migrations/012`). */
+private const val BAYT_LAYOUT_VALUE = "bayt"

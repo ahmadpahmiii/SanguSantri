@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 3,
+  "id": "fixture-layout-unknown",
+  "title": "[FIXTURE] Layout unknown",
+  "description": "[FIXTURE] Detail response carrying a layout value this build does not know. Never production content.",
+  "category": "Sholawat",
+  "order": 0,
+  "sourceName": "[FIXTURE]",
+  "sourceUrl": "https://example.invalid/fixture",
+  "layout": "musammat-four-column",
+  "steps": [
+    {
+      "id": "fixture-layout-unknown-1",
+      "arabicText": "[FIXTURE] teks arab",
+      "translation": "[FIXTURE] terjemahan",
+      "repeatTarget": null
+    }
+  ]
+}

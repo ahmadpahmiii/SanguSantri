@@ -170,11 +170,29 @@ identifier:
 
 `content`: `id` (primary key), `title`, `description`, `imageUrl`
 (nullable), `category` (nullable), `version`, `order`, `isActive`,
-`sourceName`, `sourceUrl`. `content_steps`: `id` (primary key),
+`sourceName`, `sourceUrl`, `layout`. `content_steps`: `id` (primary key),
 `contentId` (foreign key, cascade delete), `position`, `arabicText`,
 `translation`, `repeatTarget`. Replaces the former `AmaliyahEntity`/
 `AmaliyahVariantEntity`/`AmaliyahVersionEntity`/`AmaliyahStepEntity`/
 `ApprovalEntity` five-table hierarchy.
+
+`layout` (`ContentLayout`, `BAYT` | `STACKED`, added in Room version 10) is
+how a reader arranges the item's steps: `BAYT` pairs them two per row —
+sadr on the right, ajuz on the left, as a qasidah is printed — and
+`STACKED` puts one per row. It is per item, never per step. The reader
+cannot infer it: Salamun Salam is paired verse and Shalawat Munjiyat is
+continuous prose, identical in shape and category, and pairing prose into
+two columns splits its sentences. So the CMS supplies it, on the detail
+endpoint only (ADR 0019's 2026-08-24 amendment), and everything that cannot
+be understood — absent, null, blank, unrecognised — resolves to `STACKED`
+via `String?.toContentLayout()`. `STACKED` reads correctly for any content;
+two columns do not, so an unknown value must never become `BAYT`.
+
+Only `ContentImporter.importRemoteDetail` writes this column. The list
+import must not touch it — the list does not carry the field, so writing
+there would overwrite a known-good value with a default on every Beranda
+resume — and the bundled `schemaVersion` 1 format has no counterpart, so
+bundled content is always `STACKED`.
 
 ### `reading_positions` (implemented, Milestone 3; re-keyed by ADR 0015)
 

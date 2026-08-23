@@ -169,6 +169,12 @@
   <string name="reader_settings_translation_font_size">Ukuran terjemahan</string>
   <string name="reader_settings_arabic_line_spacing">Jarak baris Arab</string>
   <string name="reader_settings_show_translation">Tampilkan terjemahan</string>
+  <string name="reader_settings_sholawat_two_column">Bait dua kolom</string>
+  <string name="reader_settings_sholawat_two_column_caption">Tampilkan sadr dan ajuz berdampingan.</string>
+  <string name="reader_settings_sholawat_two_column_unavailable">Teks ini bukan qasidah berpasangan.</string>
+  <string name="reader_settings_sholawat_bait_gap">Jeda antarbait</string>
+  <string name="reader_settings_sholawat_bait_gap_caption">Beri jarak di antara tiap bait.</string>
+  <string name="sholawat_reader_settings_content_description">Pengaturan tampilan</string>
   <string name="reader_settings_decrease_content_description">Kurangi %1$s</string>
   <string name="reader_settings_increase_content_description">Tambah %1$s</string>
 

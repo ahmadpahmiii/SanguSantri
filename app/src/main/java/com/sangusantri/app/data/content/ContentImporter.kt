@@ -9,6 +9,7 @@ import com.sangusantri.app.data.content.dto.ContentStepDto
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import com.sangusantri.app.data.local.entity.ContentEntity
 import com.sangusantri.app.data.local.entity.ContentStepEntity
+import com.sangusantri.app.domain.model.toContentLayout
 import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
@@ -57,8 +58,10 @@ class ContentImporter
      * the reader can tap it to fetch its detail. Until that happens the row has no steps and
      * empty source attribution; [importRemoteDetail] fills both in.
      *
-     * Existing rows keep their steps, their local revision counter, and their progress —
-     * nothing here touches content, only how the card looks and whether it is shown.
+     * Existing rows keep their steps, their local revision counter, their progress, and their
+     * layout — nothing here touches content, only how the card looks and whether it is shown.
+     * `layout` in particular is *not* on the list contract, so writing it here would overwrite a
+     * known-good value with a default on every Beranda resume.
      */
     suspend fun importListItem(item: ContentListItemDto): ContentImportOutcome {
         val validation = ContentValidator.validateListItem(item)
@@ -189,6 +192,10 @@ class ContentImporter
                 isActive = true,
                 sourceName = detail.sourceName,
                 sourceUrl = detail.sourceUrl,
+                // Flipping an item's layout edits no step, so this — the steps-unchanged path —
+                // is exactly the one a layout correction arrives on. Left out here it would
+                // never land.
+                layout = detail.layout.toContentLayout(),
             ),
         )
     }
@@ -229,6 +236,7 @@ class ContentImporter
                     isActive = true,
                     sourceName = detail.sourceName,
                     sourceUrl = detail.sourceUrl,
+                    layout = detail.layout.toContentLayout(),
                 ),
             )
             if (replacesSteps) {

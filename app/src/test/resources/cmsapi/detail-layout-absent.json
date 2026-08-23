@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 3,
+  "id": "fixture-layout-absent",
+  "title": "[FIXTURE] Layout absent",
+  "description": "[FIXTURE] Detail response from before the layout field existed. Never production content.",
+  "category": "Sholawat",
+  "order": 0,
+  "sourceName": "[FIXTURE]",
+  "sourceUrl": "https://example.invalid/fixture",
+  "steps": [
+    {
+      "id": "fixture-layout-absent-1",
+      "arabicText": "[FIXTURE] teks arab",
+      "translation": "[FIXTURE] terjemahan",
+      "repeatTarget": null
+    }
+  ]
+}

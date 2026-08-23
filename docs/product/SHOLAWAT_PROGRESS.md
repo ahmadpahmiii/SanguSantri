@@ -128,3 +128,157 @@ Supply the real sholawat titles, Arabic text, Indonesian translations, and a
 named source (per `SHOLAWAT_PRD.md` §11), then do the content-delivery pass:
 real `content-hosting/` catalog/package JSON, manual on-device verification
 with real content, and the `CONTENT_GOVERNANCE.md` addendum.
+
+---
+
+## 2026-08-24 — Bait (two-column) layout, driven by a CMS `layout` flag
+
+The reader can now render a qasidah the way it is printed: two hemistichs per
+row, sadr on the right and ajuz on the left, separated by a ✻ ornament. Which
+items get that is an editorial fact the CMS supplies — it cannot be inferred
+from the text, because `salamun-salam` is paired verse and `shalawat-munjiyat`
+is continuous prose with the identical step shape and category, and pairing
+prose into two columns splits its sentences across columns.
+
+### CMS side (`../cms`)
+
+* `db/migrations/012_content_layout.sql` — `content.layout text not null
+  default 'stacked'` plus a `content_layout_check` constraint; `salamun-salam`
+  set to `bayt`. Applied to Supabase project `lzxikotwhhezxgbfbtrh`.
+* The Go content API carries `layout` on the **detail** responses only. It is
+  kept out of `listColumns` deliberately: the list is re-fetched on every
+  Beranda resume, so a reader-only field there would make flipping one item's
+  layout re-validate every card in the category.
+* The Next.js admin editor gained a `LayoutRadioGroup` and refuses to save a
+  `bayt` item with an odd verse count.
+* Deployed to production and verified against the live URL.
+
+### Android side
+
+* `ContentDetailDto.layout: String? = null` (not on `ContentListItemDto`), new
+  domain `ContentLayout { BAYT, STACKED }` with a total parser
+  `String?.toContentLayout()` next to `Content.isSholawat`, `layout` on
+  `Content`/`ContentEntity`/the entity mappers.
+* `ContentImporter.importRemoteDetail` persists it on **both** detail write
+  paths — including the steps-unchanged refresh, which is the path a pure
+  layout flip actually arrives on. `importListItem` deliberately does not
+  touch it.
+* Room `@Database` version 9 → 10, `app/schemas/.../10.json` committed, KDoc
+  version log extended. No `Migration` class: the standing
+  `fallbackToDestructiveMigration(dropAllTables = true)` policy applies, so
+  **every table is dropped**.
+* New `feature/sholawat/components/SholawatBaytRow.kt`. The right-first order
+  is `LayoutDirection.Rtl` doing its job — an RTL `Row` puts its first child at
+  the right edge — not position arithmetic. Hemistich Arabic uses `BasicText`
+  with `TextAutoSize.StepBased(18.sp..30.sp)` and `maxLines = 2`, keeping the
+  existing `arabicTextStyle()` and `withQuranFontFallback()`.
+* `SholawatReaderScreen` branches on `content.layout`: `items(steps.chunked(2))`
+  for BAYT, today's `items(steps)` with `SholawatVerseBlock` for STACKED.
+  While there, `largeArabicMode` stopped being a parameter — it was always
+  passed as `!showTranslation`, so it is derived at the one call site.
+
+### Validation
+
+`assembleDebug` ✅ · `lint` ✅ · `detekt` — 0 findings in changed files (3
+pre-existing failures remain in `PrayerScheduleRepository(Impl)` and
+`AdzanPlaybackService`, untouched here) · `ktlintCheck` — 0 violations in
+changed files · `testDebugUnitTest` — 192 run, 0 failed, including four new
+`CmsApiContractTest` cases covering layout absent, `"stacked"`, `"bayt"`, and
+a garbage value.
+
+Manual on-device verification (Pixel 9 emulator, fresh install, real published
+content from the production CMS): `salamun-salam` renders two-column with
+reading order right-then-left per row; Room stores `layout = BAYT` with its 32
+steps while `tahlil`/`istighosah` stay `STACKED`; the translation toggle puts
+each translation under its own hemistich with `1`/`2` ordinals; at font scale
+`1.5` the reader falls back to stacked full-width rows and honours the larger
+scale rather than shrinking the Arabic back down.
+
+### Known limitations
+
+* **Stanza gaps are not rendered.** Salamun Salam is *musammat* (8 stanzas ×
+  4 hemistichs, AAAB with a constant `-ām` refrain), so real breaks exist, but
+  nothing in the content marks them and "every 4" would be wrong for
+  couplet-form sholawat. Needs a second CMS field; deferred.
+* **`layout` is per item**, so an item mixing a prose opening with a qasidah
+  body cannot be rendered correctly. No published item does this today.
+* The odd-step-count guard (final hemistich alone in the right column) holds by
+  construction — `chunked(2)` drops nothing and the missing ajuz becomes a
+  `Spacer` — but was **not** exercised on device: no published item has an odd
+  count, and the CMS editor now refuses to create one.
+* `SholawatBaytRow` does not wrap its text in a `SelectionContainer`, unlike
+  `SholawatVerseBlock`; text in bait mode is therefore not selectable.
+* Only `salamun-salam` is published in the Sholawat category right now, so the
+  stacked-sholawat path was verified through the font-scale fallback rather
+  than through a prose item.
+
+---
+
+## 2026-08-24 (later) — Reader appearance settings; layout becomes a user choice
+
+The bait layout shipped earlier today was entirely CMS-driven and fixed-size.
+Two product-owner decisions followed: the reader must let the user choose, and
+the Arabic was rendering far too large on a real device.
+
+### What changed
+
+* **The 40sp problem is gone.** Arabic-only mode hard-coded
+  `MAX_ARABIC_FONT_SIZE_SP` (40sp) whenever the translation was hidden. Both
+  Sholawat components now read their sizes from the shared `ReaderSettings`,
+  so the default is **28sp** — one step from the Quran reader's 27sp — and it
+  is adjustable.
+* **A settings sheet**, reached from a new top-bar control. It is the
+  *existing* `ReaderSettingsSheet`, not a second one: Arabic typeface, Arabic
+  size, translation size, Arabic line spacing and the translation switch all
+  come for free, and the sheet gained one optional extra section for the two
+  Sholawat-only switches — the same mechanism the Guided Reader already used
+  for its progression-mode row.
+* **"Bait dua kolom"** and **"Jeda antarbait"**, persisted in the shared
+  `ReaderSettings` DataStore. Product-owner decision: one reading preference
+  across every Arabic surface, so changing the Arabic size in Sholawat changes
+  it in Tahlil too.
+* Pairing is now three independent vetoes, all narrowing — the CMS must call
+  the item paired verse, the user must not have turned pairing off, and two
+  columns must still fit the width and font scale. For a `stacked` item the
+  switch is shown **disabled with a caption** rather than hidden: pairing prose
+  would split its sentences across columns, so it must not be forceable.
+* The top-bar translation toggle now writes the persisted preference instead of
+  local Compose state, so it survives leaving the screen and can never disagree
+  with the sheet's switch.
+
+### Refactors this forced
+
+`ReaderSettingsSheet` had two optional control parameters and 11 functions,
+both at detekt's limits. The optional sections are now one
+`ReaderSettingsExtras` bundle, and the Sholawat rows moved to their own file.
+`SholawatReaderScreen`'s top bar became its own composable. In passing,
+`largeArabicMode` stopped being a parameter — it was always `!showTranslation`
+at the one call site.
+
+### Validation
+
+`assembleDebug` ✅ · `lint` ✅ · `testDebugUnitTest` 192 run, 0 failed ·
+`detekt` — 0 findings in changed files (the 3 pre-existing ones in
+`PrayerScheduleRepository(Impl)` / `AdzanPlaybackService` remain) ·
+`ktlintCheck` — 0 violations in changed files.
+
+Manual on-device verification (Pixel 9 emulator, real published content): the
+sheet opens with the font selector, three steppers and four switches; turning
+"Bait dua kolom" off re-renders Salamun Salam one hemistich per row and greys
+out "Jeda antarbait"; turning it back on with "Jeda antarbait" off tightens the
+baits; the size stepper visibly resizes both layouts; every value survives a
+force-stop and relaunch (confirmed against the DataStore file, which carries
+`sholawat_two_column`, `sholawat_bait_gap` and `reader_arabic_font_size_sp`).
+
+### Known limitations
+
+* Stanza-level grouping is still not implemented — "Jeda antarbait" spaces
+  every bait equally and knows nothing about stanzas. That still needs a second
+  CMS field.
+* The settings sheet is a plain `Column` in a `ModalBottomSheet`, so on a short
+  screen the user must drag the sheet up to reach the last switches and the
+  "Selesai" button. It is not independently scrollable.
+* `ReaderSettings` now carries two Sholawat-only fields. That is the accepted
+  cost of one shared preference store; if a third reader ever wants its own
+  display switches, the store should be split rather than grown again.
+

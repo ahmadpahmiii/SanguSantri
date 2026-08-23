@@ -45,8 +45,10 @@ private val SheetTopCornerRadius = 28.dp
  * Restrained reader appearance settings (FR-008 subset) — a bottom sheet, contextual to the
  * reader, reached from the reader overflow menu (decision F, design product-alignment pass — no
  * longer a standalone top-bar icon). Shared by the Full Reader and the Guided Reader (Milestone 4)
- * rather than duplicated — [progressionModeControl] is non-null only when opened from the Guided
- * Reader, which adds one extra section for the automatic/manual progression preference (FR-005).
+ * rather than duplicated, and by the Sholawat reader since `0.0.8`. [extras] carries the
+ * reader-specific extra sections: the Guided Reader's automatic/manual progression preference
+ * (FR-005), and the Sholawat reader's two-column/bait-gap switches (FR-SHL-013). Both are absent
+ * for the Full Reader, which has neither concept.
  *
  * Matches the revised design sheet (node `16:89`): a title + subtitle, three steppers (Arabic
  * font size, translation font size, Arabic line spacing — translation line spacing has no
@@ -63,7 +65,7 @@ fun ReaderSettingsSheet(
     onAction: (ReaderUiAction) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    progressionModeControl: ProgressionModeControl? = null,
+    extras: ReaderSettingsExtras = ReaderSettingsExtras(),
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -75,7 +77,7 @@ fun ReaderSettingsSheet(
             settings = settings,
             onAction = onAction,
             onClose = onDismiss,
-            progressionModeControl = progressionModeControl,
+            extras = extras,
         )
     }
 }
@@ -86,7 +88,7 @@ private fun ReaderSettingsContent(
     onAction: (ReaderUiAction) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    progressionModeControl: ProgressionModeControl? = null,
+    extras: ReaderSettingsExtras = ReaderSettingsExtras(),
 ) {
     val headingFocusRequester = remember { FocusRequester() }
 
@@ -112,9 +114,8 @@ private fun ReaderSettingsContent(
         ReaderSettingsFontSizeControls(settings, onAction)
         ReaderSettingsArabicLineSpacingControl(settings, onAction)
         ReaderSettingsTranslationToggleRow(settings, onAction)
-        if (progressionModeControl != null) {
-            ReaderSettingsProgressionModeRow(progressionModeControl)
-        }
+        extras.sholawatLayout?.let { ReaderSettingsSholawatLayoutRows(it) }
+        extras.progressionMode?.let { ReaderSettingsProgressionModeRow(it) }
         Button(
             onClick = onClose,
             shape = SanguSantriShapes.large,

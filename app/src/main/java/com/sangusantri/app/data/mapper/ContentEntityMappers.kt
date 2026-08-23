@@ -21,6 +21,7 @@ fun ContentEntity.toDomain(): Content =
         isActive = isActive,
         sourceName = sourceName,
         sourceUrl = sourceUrl,
+        layout = layout,
     )
 
 fun ContentStepEntity.toDomain(): ContentStep =

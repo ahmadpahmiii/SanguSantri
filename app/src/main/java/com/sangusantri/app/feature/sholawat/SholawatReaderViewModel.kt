@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.data.sync.ContentDetailSyncManager
 import com.sangusantri.app.domain.model.ContentDetail
-import com.sangusantri.app.domain.model.QuranArabicFont
+import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
+import com.sangusantri.app.domain.repository.ReaderSettingsRepository
+import com.sangusantri.app.feature.reader.ReaderUiAction
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -22,14 +24,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * Owns one Sholawat's reading content. Deliberately stateless (0.0.8 scope): no reading position,
- * no font-size persistence, no [com.sangusantri.app.domain.model.ReaderSettings] — the
- * Arabic-only/with-translation toggle lives as local Compose state in
- * [SholawatReaderScreen], reset every time the screen is opened fresh.
+ * Owns one Sholawat's reading content and its appearance preferences.
  *
- * The Arabic typeface is the one exception: it is a single app-wide choice made in the Quran
- * reader's settings, so it is observed from [QuranReaderSettingsRepository] here exactly as the
- * Full and Guided Readers do, rather than given the Sholawat reader a picker of its own.
+ * Reading *position* is still not persisted (FR-SHL-007) — opening a sholawat always starts at the
+ * top. Appearance is: the reader now shares the same [ReaderSettings] store as the Full and Guided
+ * Readers, so font, size, line spacing and translation visibility carry across every Arabic reading
+ * surface instead of resetting on each open. That reverses this feature's original stateless-v1
+ * decision by product-owner approval; the two Sholawat-only switches (two-column, bait gap) live in
+ * the same store for the same reason.
+ *
+ * The Arabic typeface is merged in from [QuranReaderSettingsRepository] rather than stored twice —
+ * a single app-wide choice, exactly as the Full and Guided Readers handle it.
  */
 @HiltViewModel(assistedFactory = SholawatReaderViewModel.Factory::class)
 class SholawatReaderViewModel
@@ -38,6 +43,7 @@ constructor(
     @Assisted private val contentId: String,
     private val contentRepository: ContentRepository,
     private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
+    private val readerSettingsRepository: ReaderSettingsRepository,
     private val contentDetailSyncManager: ContentDetailSyncManager,
 ) : ViewModel() {
     @AssistedFactory
@@ -48,12 +54,20 @@ constructor(
     private val contentState = MutableStateFlow<ContentState>(ContentState.Loading)
     private var loadJob: Job? = null
 
+    private val mergedSettings =
+        combine(
+            readerSettingsRepository.observe(),
+            quranReaderSettingsRepository.observe(),
+        ) { settings, quranSettings ->
+            settings.copy(arabicFont = quranSettings.arabicFont)
+        }
+
     val uiState: StateFlow<SholawatReaderUiState> =
         combine(
             contentState,
-            quranReaderSettingsRepository.observe(),
-        ) { content, quranSettings ->
-            content.toUiState(quranSettings.arabicFont)
+            mergedSettings,
+        ) { content, settings ->
+            content.toUiState(settings)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -65,6 +79,49 @@ constructor(
     }
 
     fun retry() = loadContent()
+
+    /**
+     * Handles the subset of [ReaderUiAction] the shared `ReaderSettingsSheet` can send from within
+     * the Sholawat reader (appearance only). Mirrors `GuidedReaderViewModel.onSettingsAction`: the
+     * reader-specific actions are no-ops here because the settings sheet never dispatches them.
+     */
+    fun onSettingsAction(action: ReaderUiAction) {
+        when (action) {
+            is ReaderUiAction.SetArabicFont ->
+                viewModelScope.launch { quranReaderSettingsRepository.setArabicFont(action.font) }
+
+            is ReaderUiAction.SetArabicFontSize ->
+                viewModelScope.launch { readerSettingsRepository.setArabicFontSize(action.sp) }
+
+            is ReaderUiAction.SetTranslationFontSize ->
+                viewModelScope.launch { readerSettingsRepository.setTranslationFontSize(action.sp) }
+
+            is ReaderUiAction.SetArabicLineSpacing ->
+                viewModelScope.launch { readerSettingsRepository.setArabicLineSpacing(action.multiplier) }
+
+            is ReaderUiAction.SetTranslationLineSpacing ->
+                viewModelScope.launch { readerSettingsRepository.setTranslationLineSpacing(action.multiplier) }
+
+            is ReaderUiAction.SetShowTranslation ->
+                viewModelScope.launch { readerSettingsRepository.setShowTranslation(action.show) }
+
+            is ReaderUiAction.SetThemeMode,
+            is ReaderUiAction.ScrollPositionChanged,
+            is ReaderUiAction.PersistPositionNow,
+            ReaderUiAction.Retry,
+            ReaderUiAction.SwitchToGuided,
+            is ReaderUiAction.SwitchToGuidedAtStep,
+                -> Unit
+        }
+    }
+
+    fun setTwoColumn(enabled: Boolean) {
+        viewModelScope.launch { readerSettingsRepository.setSholawatTwoColumn(enabled) }
+    }
+
+    fun setBaitGap(enabled: Boolean) {
+        viewModelScope.launch { readerSettingsRepository.setSholawatBaitGap(enabled) }
+    }
 
     // Room failures surface as unpredictable exception types; catching Exception here is the
     // deliberate boundary that turns any of them into RecoverableError instead of a crash
@@ -121,7 +178,7 @@ constructor(
 
         data object Error : ContentState
 
-        fun toUiState(arabicFont: QuranArabicFont): SholawatReaderUiState =
+        fun toUiState(settings: ReaderSettings): SholawatReaderUiState =
             when (this) {
                 Loading -> SholawatReaderUiState.Loading
                 Unavailable -> SholawatReaderUiState.Unavailable
@@ -130,7 +187,8 @@ constructor(
                     SholawatReaderUiState.ContentAvailable(
                         title = detail.content.title,
                         steps = detail.steps,
-                        arabicFont = arabicFont,
+                        layout = detail.content.layout,
+                        settings = settings,
                     )
             }
     }

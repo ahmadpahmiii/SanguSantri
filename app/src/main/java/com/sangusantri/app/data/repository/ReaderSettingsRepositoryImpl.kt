@@ -27,6 +27,10 @@ import javax.inject.Inject
  * release (or corrupted on disk) always falls back to a safe, currently valid value instead of
  * being rendered as-is.
  */
+// One setter per preference key is the natural, unavoidable shape of a DataStore adapter —
+// splitting it would mean two stores for one set of reader preferences. Same rationale as
+// SanguSantriDatabase's own suppression.
+@Suppress("TooManyFunctions")
 class ReaderSettingsRepositoryImpl
     @Inject
     constructor(
@@ -61,6 +65,8 @@ class ReaderSettingsRepositoryImpl
                         guidedProgressionMode =
                             preferences[GUIDED_PROGRESSION_MODE]?.let(::parseProgressionMode)
                                 ?: GuidedProgressionMode.MANUAL,
+                        sholawatTwoColumn = preferences[SHOLAWAT_TWO_COLUMN] ?: true,
+                        sholawatBaitGap = preferences[SHOLAWAT_BAIT_GAP] ?: true,
                     )
                 }
 
@@ -92,6 +98,14 @@ class ReaderSettingsRepositoryImpl
             dataStore.edit { it[GUIDED_PROGRESSION_MODE] = mode.name }
         }
 
+    override suspend fun setSholawatTwoColumn(enabled: Boolean) {
+        dataStore.edit { it[SHOLAWAT_TWO_COLUMN] = enabled }
+    }
+
+    override suspend fun setSholawatBaitGap(enabled: Boolean) {
+        dataStore.edit { it[SHOLAWAT_BAIT_GAP] = enabled }
+    }
+
         // A future stored value outside the current enum's names (e.g. after a renamed constant) falls
         // back to null/MANUAL instead of crashing, the same corruption-safety net as the coerce* numeric
         // bounds above.
@@ -108,5 +122,7 @@ class ReaderSettingsRepositoryImpl
             val SHOW_TRANSLATION = booleanPreferencesKey("reader_show_translation")
             val LAST_READER_MODE = stringPreferencesKey("reader_last_mode")
             val GUIDED_PROGRESSION_MODE = stringPreferencesKey("guided_progression_mode")
+            val SHOLAWAT_TWO_COLUMN = booleanPreferencesKey("sholawat_two_column")
+            val SHOLAWAT_BAIT_GAP = booleanPreferencesKey("sholawat_bait_gap")
         }
     }

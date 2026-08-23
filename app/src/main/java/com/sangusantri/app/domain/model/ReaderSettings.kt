@@ -7,6 +7,11 @@ package com.sangusantri.app.domain.model
  * progression preference (FR-005) — both preferences, so both belong in the same DataStore-backed
  * model rather than a second store. Persisted in DataStore, never Room (PRD 11.2).
  *
+ * [sholawatTwoColumn]/[sholawatBaitGap] are Sholawat-reader display preferences. They live here
+ * rather than in a second store because the product decision is one reading preference across every
+ * Arabic reading surface — changing the Arabic size in Sholawat changes it in Tahlil too — and a
+ * separate store for two booleans would buy nothing but a second migration.
+ *
  * [arabicFont] is the one field here not sourced from this model's own DataStore key: it mirrors
  * [QuranReaderSettings.themeMode] — a single app-wide font choice, shared with the Quran reader
  * through [com.sangusantri.app.domain.repository.QuranReaderSettingsRepository], read into this
@@ -21,11 +26,24 @@ data class ReaderSettings(
     val showTranslation: Boolean = true,
     val lastReaderMode: ReaderMode? = null,
     val guidedProgressionMode: GuidedProgressionMode = GuidedProgressionMode.MANUAL,
+    /**
+     * Sholawat reader only: whether a qasidah the CMS marked `bayt` is actually drawn in two
+     * columns. The CMS flag says an item *can* be paired; this says the reader *should* pair it.
+     * Only ever narrows — an item the CMS calls prose is never paired, whatever this holds, because
+     * two columns split prose sentences across columns.
+     */
+    val sholawatTwoColumn: Boolean = true,
+    /** Sholawat reader only: extra breathing room between baits, versus a tight continuous block. */
+    val sholawatBaitGap: Boolean = true,
 ) {
     companion object {
-        const val MIN_ARABIC_FONT_SIZE_SP = 20
+        // 16/22 set by the product owner on 2026-08-24 after reading on a real device: the
+        // previous 20sp floor was still large, and the 28sp default was noticeably bigger than the
+        // Quran reader's 27sp in practice. Both readers share these, so Sholawat and Amaliyah move
+        // together. Every value on the 2sp step grid from 16 stays reachable, 22 included.
+        const val MIN_ARABIC_FONT_SIZE_SP = 16
         const val MAX_ARABIC_FONT_SIZE_SP = 40
-        const val DEFAULT_ARABIC_FONT_SIZE_SP = 28
+        const val DEFAULT_ARABIC_FONT_SIZE_SP = 22
         const val ARABIC_FONT_SIZE_STEP_SP = 2
 
         const val MIN_TRANSLATION_FONT_SIZE_SP = 12

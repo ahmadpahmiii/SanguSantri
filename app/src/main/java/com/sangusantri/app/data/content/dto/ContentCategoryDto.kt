@@ -59,5 +59,16 @@ data class ContentDetailDto(
     val order: Int,
     val sourceName: String,
     val sourceUrl: String,
+    /**
+     * How the reader arranges [steps] — `"bayt"` or `"stacked"`, parsed by
+     * [com.sangusantri.app.domain.model.toContentLayout]. Detail only: the list deliberately does
+     * not carry it (a reader concern must not move the validator of every card in the category), so
+     * [ContentListItemDto] has no counterpart and must not gain one.
+     *
+     * Nullable with a null default because it is a free-text CMS column reaching a compiled-in
+     * client: absent, null, blank and unrecognised all resolve to stacked, which reads correctly
+     * for any content.
+     */
+    val layout: String? = null,
     val steps: List<ContentStepDto>,
 )

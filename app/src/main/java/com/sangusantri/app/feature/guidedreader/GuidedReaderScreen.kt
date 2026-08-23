@@ -46,6 +46,7 @@ import com.sangusantri.app.feature.reader.components.ReaderProgressHeader
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
 import com.sangusantri.app.feature.reader.components.ReaderSavedPositionStatus
 import com.sangusantri.app.feature.reader.settings.ProgressionModeControl
+import com.sangusantri.app.feature.reader.settings.ReaderSettingsExtras
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
 
 @Composable
@@ -218,10 +219,13 @@ private fun GuidedReaderOverlays(
             settings = settings,
             onAction = callbacks.onSettingsAction,
             onDismiss = { overlays.showSettings.value = false },
-            progressionModeControl =
-                ProgressionModeControl(
-                    mode = settings.guidedProgressionMode,
-                    onChange = callbacks.onSetProgressionMode,
+            extras =
+                ReaderSettingsExtras(
+                    progressionMode =
+                        ProgressionModeControl(
+                            mode = settings.guidedProgressionMode,
+                            onChange = callbacks.onSetProgressionMode,
+                        ),
                 ),
         )
     }

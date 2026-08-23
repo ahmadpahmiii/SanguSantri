@@ -40,7 +40,11 @@ class SholawatReaderViewModelTest {
             job.cancel()
 
             assertEquals(
-                SholawatReaderUiState.ContentAvailable(title = detail.content.title, steps = detail.steps),
+                SholawatReaderUiState.ContentAvailable(
+                    title = detail.content.title,
+                    steps = detail.steps,
+                    layout = detail.content.layout,
+                ),
                 collected.last(),
             )
         }

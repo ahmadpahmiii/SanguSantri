@@ -25,17 +25,21 @@ import com.sangusantri.app.feature.quran.withQuranFontFallback
  * One verse in the Sholawat reader (0.0.8's own reader, not [com.sangusantri.app.feature.reader]'s
  * `ReaderStepFields` — see ADR-less rationale in `docs/product/SHOLAWAT_PRD.md`). Reuses
  * [arabicTextStyle]/[translationTextStyle] (the same RTL-aware, already-approved text styles Full
- * Reader uses) rather than re-deriving Arabic typography from scratch. [largeArabicMode] is the
- * screen-wide "Arabic-only, bigger font" toggle (0.0.8: still scrolls, not a shrink-to-fit
- * algorithm) — reusing [ReaderSettings]'s existing documented font-size range rather than
- * inventing a new one. [arabicFont] is the app-wide typeface chosen in the Quran reader's
- * settings; words it has no glyph for fall back to LPMQ exactly as they do in the other readers.
+ * Reader uses) rather than re-deriving Arabic typography from scratch.
+ *
+ * Sizes come from [settings], the same shared [ReaderSettings] store the Full and Guided Readers
+ * write to, so the reader's own size stepper drives this text. It used to hard-code
+ * `MAX_ARABIC_FONT_SIZE_SP` (40sp) whenever the translation was hidden, which is why Arabic-only
+ * mode rendered far larger than the Quran reader and could not be turned down.
+ *
+ * [arabicFont] is the app-wide typeface chosen in the Quran reader's settings; words it has no
+ * glyph for fall back to LPMQ exactly as they do in the other readers.
  */
 @Composable
 fun SholawatVerseBlock(
     step: ContentStep,
     showTranslation: Boolean,
-    largeArabicMode: Boolean,
+    settings: ReaderSettings,
     arabicFont: QuranArabicFont,
     modifier: Modifier = Modifier,
 ) {
@@ -46,13 +50,8 @@ fun SholawatVerseBlock(
                     text = step.arabicText.withQuranFontFallback(arabicFont),
                     style =
                         arabicTextStyle(
-                            fontSizeSp =
-                                if (largeArabicMode) {
-                                    ReaderSettings.MAX_ARABIC_FONT_SIZE_SP
-                                } else {
-                                    ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP
-                                },
-                            lineSpacingMultiplier = ReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
+                            fontSizeSp = settings.arabicFontSizeSp,
+                            lineSpacingMultiplier = settings.arabicLineSpacingMultiplier,
                             fontFamily = arabicFont.toFontFamily(),
                         ),
                     color = MaterialTheme.colorScheme.onSurface,
@@ -67,8 +66,8 @@ fun SholawatVerseBlock(
                     text = step.translation,
                     style =
                         translationTextStyle(
-                            fontSizeSp = ReaderSettings.DEFAULT_TRANSLATION_FONT_SIZE_SP,
-                            lineSpacingMultiplier = ReaderSettings.DEFAULT_TRANSLATION_LINE_SPACING,
+                            fontSizeSp = settings.translationFontSizeSp,
+                            lineSpacingMultiplier = settings.translationLineSpacingMultiplier,
                         ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(),

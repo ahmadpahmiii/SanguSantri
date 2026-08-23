@@ -4,6 +4,8 @@ import com.sangusantri.app.data.content.dto.ContentDetailDto
 import com.sangusantri.app.data.content.dto.ContentListResponseDto
 import com.sangusantri.app.data.remote.ayat.AyatHariIniValidator
 import com.sangusantri.app.data.remote.ayat.dto.AyatHariIniScheduleDto
+import com.sangusantri.app.domain.model.ContentLayout
+import com.sangusantri.app.domain.model.toContentLayout
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,6 +34,12 @@ import org.junit.Test
  * trimmed to four days whose quotes are deliberately placeholders, not real scripture: what these
  * exist to pin is the *shape* — which fields are null, which are absent — and a second copy of
  * every amaliyah's text in this repository would have nothing keeping it in step with the CMS.
+ *
+ * `detail-layout-absent.json` and `detail-layout-unknown.json` are the two exceptions: they are
+ * hand-written `[FIXTURE]` shapes, never production content and never captured, because the API
+ * cannot be made to emit either. They exist because both are reachable in the field — an absent
+ * `layout` is every response published before the field existed, and an unrecognised one is a
+ * free-text column a future CMS could widen.
  */
 class CmsApiContractTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -114,6 +122,59 @@ class CmsApiContractTest {
 
         assertTrue(detail.steps.isNotEmpty())
         assertTrue(detail.steps.all { it.repeatTarget == null })
+    }
+
+    /**
+     * `layout` is the reader's whole instruction for arranging an item's steps, and paired verse is
+     * indistinguishable from continuous prose in the text itself. Salamun Salam is the qasidah, so
+     * it must arrive as bayt with an even step count; Tahlil is not, so it must arrive stacked.
+     */
+    @Test
+    fun cmsCarriesLayoutOnTheDetail() {
+        val qasidah = json.decodeFromString<ContentDetailDto>(readFixture("cmsapi/sholawat-salamun-salam.json"))
+        assertEquals(ContentLayout.BAYT, qasidah.layout.toContentLayout())
+        assertEquals("a bayt layout pairs steps two per row", 0, qasidah.steps.size % 2)
+
+        val amaliyah = json.decodeFromString<ContentDetailDto>(readFixture("cmsapi/amaliyah-tahlil.json"))
+        assertEquals(ContentLayout.STACKED, amaliyah.layout.toContentLayout())
+    }
+
+    /**
+     * The two values that cannot be captured from the API but do reach devices: a detail published
+     * before `layout` existed, and one carrying a value this build has never heard of. Both must
+     * resolve to STACKED. The asymmetry is the point — stacked reads correctly for any content,
+     * two columns cut prose sentences in half, so an unknown value must never become BAYT.
+     */
+    @Test
+    fun cmsUnknownOrAbsentLayoutResolvesToStacked() {
+        listOf("cmsapi/detail-layout-absent.json", "cmsapi/detail-layout-unknown.json").forEach { fixture ->
+            val detail = json.decodeFromString<ContentDetailDto>(readFixture(fixture))
+
+            assertTrue(fixture, ContentValidator.validateDetail(detail) is ContentValidation.Valid)
+            assertEquals(fixture, ContentLayout.STACKED, detail.layout.toContentLayout())
+        }
+    }
+
+    /** Null and blank take the same road as absent and unrecognised — never a crash, never BAYT. */
+    @Test
+    fun layoutParserIsTotal() {
+        listOf(null, "", "   ", "BAYT?", "stacked", "STACKED", "musammat").forEach { raw ->
+            assertEquals("layout=$raw", ContentLayout.STACKED, raw.toContentLayout())
+        }
+        assertEquals(ContentLayout.BAYT, "bayt".toContentLayout())
+        assertEquals(ContentLayout.BAYT, " BAYT ".toContentLayout())
+    }
+
+    /**
+     * `layout` is a reader concern kept off the list on purpose: the list is fetched on every
+     * Beranda resume, so putting it there would make flipping one item's layout re-validate every
+     * card in the category — the exact problem the schemaVersion 3 split exists to fix.
+     */
+    @Test
+    fun cmsListCarriesNoLayout() {
+        listOf("cmsapi/sholawat.json", "cmsapi/amaliyah.json").forEach { fixture ->
+            assertFalse("$fixture must not carry a layout key", readFixture(fixture).contains("\"layout\""))
+        }
     }
 
     /**

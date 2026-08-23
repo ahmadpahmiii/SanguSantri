@@ -126,6 +126,32 @@ fetched file actually matches the catalog entry that named it.
 | `steps[].translation`    | string | yes      | Never blank. The value is translated text, not an identifier (renamed from `translationId`). |
 | `steps[].repeatTarget`   | int    | yes      | Minimum `1`. Every step has a repeat target — there is no "non-repeating" step kind.      |
 
+### `layout` — CMS API detail only, not part of this schema
+
+The CMS API's *detail* responses carry one field with no counterpart here:
+`layout`, valued `"bayt"` or `"stacked"`. It says how a reader arranges the
+item's steps — `bayt` pairs them two per row (sadr right, ajuz left) as a
+qasidah is printed, `stacked` puts one per row — and it is per item, never
+per step.
+
+It is deliberately **not** in the bundled `schemaVersion` 1 format above:
+bundled content is Tahlil and Istighosah, neither of which is paired verse,
+and adding a field to the hand-authored asset tree to always say `stacked`
+would be a field nobody sets correctly. Bundled imports therefore leave the
+column at its `STACKED` default.
+
+It is also deliberately **absent from the CMS API's list responses**, for
+the same reason source attribution is: the list is re-fetched on every
+Beranda resume, so a reader-only field there would make flipping one item's
+layout re-validate every card in the category. See
+`../../cms/docs/engineering/API.md` and ADR
+[0019](decisions/0019-two-endpoint-content-api-and-etag-sync.md)'s
+2026-08-24 amendment.
+
+Absent, null, blank and any unrecognised value all resolve to `STACKED`
+(`String?.toContentLayout()`). Stacked reads correctly for any content and
+two columns do not, so an unknown value must never resolve to `BAYT`.
+
 There is no step "type" (`HEADING`/`INSTRUCTION`/`ARABIC_TEXT`/
 `QURAN_AYAH`/`PRAYER`/`REPEATED_READING`/`DIVIDER`/`CLOSING` are all gone,
 ADR 0015) and no per-step title, instruction text, or Quran-reference

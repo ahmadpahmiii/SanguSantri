@@ -53,6 +53,20 @@ Explicitly out of scope for `0.0.8`:
   feature's governance tier — deferred to a separate pass.
 * Real sholawat content — see §13.
 
+Added 2026-08-24 (bait layout), and explicitly still out of scope:
+
+* **Stanza gaps.** Salamun Salam is *musammat* — 8 stanzas of 4 hemistichs,
+  AAAB with a constant `-ām` refrain — so real stanza breaks exist. Nothing
+  in the content marks them, and a "break every 4" rule would be wrong for
+  couplet-form sholawat. This needs a second CMS field; deferred. The
+  "Jeda antarbait" switch added on 2026-08-24 is **not** this: it spaces
+  every bait equally and knows nothing about stanzas.
+* **Mixed-layout items.** `layout` is per item, so an item whose opening is
+  prose and whose body is qasidah cannot be rendered correctly in one pass.
+  Known limitation, not currently present in any published item.
+* Adjustable font size, verse numbers, tablet/landscape layouts, and
+  reading-position persistence — all still out, per FR-SHL-007.
+
 ## 4. Information architecture
 
 ```
@@ -89,24 +103,93 @@ for this milestone.
   text via the existing `arabicTextStyle()`, translation via the existing
   `translationTextStyle()` (both from `core/designsystem/theme/
   ReaderTypography.kt`) — not a re-derivation of Arabic typography.
-* **FR-SHL-004** The Arabic-only/with-translation toggle is one control per
-  page, defaulting to Arabic-only, implemented as local (non-persisted)
-  Compose state — never the shared `ReaderSettings` DataStore toggle the
-  Full/Guided Amaliyah reader uses.
-* **FR-SHL-005** Arabic-only mode uses `ReaderSettings.MAX_ARABIC_FONT_SIZE_SP`
-  (40sp); with-translation mode uses `ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP`
-  (28sp) for the Arabic line and `ReaderSettings.DEFAULT_TRANSLATION_FONT_SIZE_SP`
-  (16sp) for the translation line — reusing the existing documented range,
-  not a new one. Both modes scroll normally; neither shrinks text to force a
-  sholawat onto one screen.
+* **FR-SHL-004** *(revised 2026-08-24, reader settings)* The
+  Arabic-only/with-translation toggle stays one control in the top app bar,
+  but it now **writes to the shared `ReaderSettings.showTranslation`
+  preference** rather than to local Compose state, so it survives leaving the
+  screen. The same preference backs the switch inside the settings sheet, so
+  the two controls can never disagree. This reverses the original
+  stateless-v1 decision by product-owner approval; the default is unchanged
+  from `ReaderSettings` (translation shown).
+* **FR-SHL-005** *(revised 2026-08-24, twice: bait layout, then reader
+  settings)* Type size is **user-controlled**, from the same
+  `ReaderSettings` values the Full and Guided Readers use — Arabic size
+  (default 28sp), translation size (default 16sp) and Arabic line spacing
+  (default 1.9×). The reader no longer picks a size from its own mode: it
+  previously forced `MAX_ARABIC_FONT_SIZE_SP` (40sp) whenever the
+  translation was hidden, which rendered far larger than the Quran reader
+  and could not be turned down. Both modes scroll normally; neither shrinks
+  text to force a sholawat onto one screen.
+
+  In the **bait** layout each hemistich has only half the width, so a single
+  fixed size is wrong in both directions — short hemistichs would be
+  needlessly small and long ones would overflow. Hemistich Arabic is
+  therefore auto-sized (`TextAutoSize.StepBased`, `maxLines = 2`) with the
+  user's own Arabic size as the **ceiling** and 62% of it as the floor, so
+  the size stepper still drives this text; it simply cannot overflow a
+  half-width cell. Typography still comes from the existing
+  `arabicTextStyle()`/`translationTextStyle()` — the range is a width
+  constraint, not a second Arabic type scale.
+* **FR-SHL-013** The reader has an appearance settings sheet, reached from a
+  top-bar control, which **reuses the Full/Guided Reader's
+  `ReaderSettingsSheet`** rather than maintaining a second one: Arabic
+  typeface (the app-wide `QuranArabicFont`), Arabic size, translation size,
+  Arabic line spacing, and a translation switch — plus two Sholawat-only
+  switches, "Bait dua kolom" and "Jeda antarbait". Every value persists in
+  the shared `ReaderSettings` DataStore, so changing the Arabic size here
+  changes it in the Amaliyah readers too. That is the intended product
+  behaviour: one reading preference across every Arabic reading surface.
+* **FR-SHL-014** "Bait dua kolom" can only ever **narrow** what the CMS
+  allows. For an item the CMS marked `stacked` the switch is shown disabled
+  with an explanatory caption rather than hidden — pairing prose would split
+  its sentences across columns, so the user must not be able to force it.
+* **FR-SHL-015** "Jeda antarbait" controls the vertical gap between bait
+  rows. It is disabled whenever pairing is not actually in effect, since a
+  one-verse-per-row layout has no baits to space apart. Stanza-level
+  grouping remains out of scope — see §3.
+* **FR-SHL-008** The CMS supplies a per-item `layout` flag on its detail
+  endpoint, valued `bayt` or `stacked`, surfaced as `Content.layout`. The
+  reader must not guess it: `salamun-salam` is paired verse (32 steps = 16
+  baits) while `shalawat-munjiyat` is continuous prose, identical in step
+  shape and category, and pairing prose into two columns splits sentences
+  across columns.
+* **FR-SHL-009** `stacked` is the default everywhere. An absent, null,
+  blank, or unrecognised value resolves to `stacked`, never to `bayt` and
+  never to a crash — the field is a free-text CMS column reaching a
+  compiled-in client. Stacked reads correctly for any content; two columns
+  do not, so the fallback is deliberately one-directional.
+* **FR-SHL-010** In `bayt`, steps are paired in reading order: step *n*
+  is the sadr and renders in the **right** column, step *n+1* is the ajuz
+  and renders in the **left**, separated by a ✻ ornament. The pairing comes
+  from `LayoutDirection.Rtl` placing the first child at the right edge, not
+  from position arithmetic. When the translation is shown, each hemistich's
+  translation sits under that hemistich, in LTR cells prefixed with a small
+  `1`/`2` ordinal — Arabic reads right-to-left and Indonesian left-to-right,
+  so without the marker readers pair the wrong halves.
+* **FR-SHL-011** An item flagged `bayt` with an **odd** step count renders
+  its final hemistich alone in the right column, with an empty left cell.
+  No step is ever dropped and the reader never crashes. This is a content
+  error, not a supported shape: the CMS editor refuses to save `bayt` with
+  an odd verse count, and this rule exists only for content already
+  published before that check.
+* **FR-SHL-012** The reader falls back to `stacked` regardless of the flag
+  when two columns cannot hold: available width below **320dp**, or a system
+  font scale above **1.3×**. The font-scale trigger is an accessibility
+  requirement, not an aesthetic one — `docs/design/ACCESSIBILITY.md` mandates
+  testing at 1.5×, and half-width cells with an auto-size floor and a
+  two-line cap would answer a larger scale by shrinking the text back down,
+  silently undoing the user's setting.
 * **FR-SHL-006** Sholawat items are excluded from: Jelajahi Amaliyah
   (`ExploreViewModel`), Beranda's featured-Amaliyah section and "Amaliyah"
   main-feature gate (`SerambiViewModel`'s `activeContent`). Both exclusions
   filter on `category == Content.SHOLAWAT_CATEGORY`.
-* **FR-SHL-007** No `ReadingPosition`, `GuidedReadingSession`, or
-  `ReaderSettings` row is ever written by this feature — confirmed stateless,
-  and confirmed (by inspection of `SerambiResumeCoordinator`) that this also
-  means a sholawat can never appear in Beranda's "continue reading" widget.
+* **FR-SHL-007** *(narrowed 2026-08-24, reader settings)* No
+  `ReadingPosition` and no `GuidedReadingSession` row is ever written by this
+  feature — opening a sholawat always starts at the top, and (confirmed by
+  inspection of `SerambiResumeCoordinator`) a sholawat can never appear in
+  Beranda's "continue reading" widget. `ReaderSettings` **is** now written:
+  appearance is a preference, not reading state, and resetting it on every
+  open was the thing users actually noticed.
 
 ## 7. Data ownership
 

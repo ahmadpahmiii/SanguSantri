@@ -3,6 +3,7 @@
 ## Status
 
 Accepted — implemented 2026-08-23, amended the same day (see *Amendment: the list/detail split*)
+and again 2026-08-24 (see *Amendment: `layout` on the detail*)
 
 ## Context
 
@@ -143,3 +144,35 @@ open, and only without a network. Everything opened before reads offline exactly
 Deactivation semantics, the empty-response guard, the local revision counter, and the reasoning
 about
 ADR 0008's immutability representation are all unchanged from the original decision above.
+
+## Amendment (2026-08-24): `layout` on the detail
+
+The detail responses gained one field, `layout`, valued `"bayt"` or `"stacked"`. It tells a reader
+how to arrange an item's steps: `bayt` pairs them two per row (sadr right, ajuz left) the way a
+qasidah is printed, `stacked` puts one per row.
+
+**Why the server has to say it.** The reader cannot infer it. Salamun Salam is paired verse — 32
+steps are 16 baits — while Shalawat Munjiyat is continuous prose in the same table, with the same
+step shape, in the same category. Pairing prose into two columns splits its sentences across
+columns. Nothing in the Arabic distinguishes the two, so an editorial fact has to travel on the
+wire.
+
+**This does not change the decision above; it is the first field to exercise it.** `layout` is on
+the *detail* only and deliberately absent from the lists, for exactly the reason the split exists:
+the list is re-fetched on every Beranda resume, so a reader-only field there would mean flipping one
+item's layout moved the whole category's `ETag` and re-validated every card in it. The Go
+repository keeps it out of `listColumns`, and both the API's handler tests and the app's
+`CmsApiContractTest` assert its absence from the list rather than merely not reading it.
+
+**`schemaVersion` stays 3.** The field is additive and defaulted at every layer — `NOT NULL DEFAULT
+'stacked'` with a `CHECK` constraint in Postgres (`cms/db/migrations/012_content_layout.sql`),
+`String? = null` on `ContentDetailDto`, and a total parser (`String?.toContentLayout()`) that maps
+absent, null, blank and *any* unrecognised value to `STACKED`. A build that predates the field
+ignores it; a build that postdates a future CMS widening the column falls back rather than
+crashing. The asymmetry is deliberate and load-bearing: stacked reads correctly for any content,
+two columns do not, so an unknown value must never resolve to `BAYT`.
+
+ADR [0015](0015-simplified-dynamic-catalog-content-model.md) needs no amendment. Its decision is
+the *flat* content model — one `content` row, one `content_steps` row per step, no step types and
+no per-step presentation fields. `layout` is one more scalar column on `content`, per item and not
+per step, so the shape 0015 chose is unchanged.

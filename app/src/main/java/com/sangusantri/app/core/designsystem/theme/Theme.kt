@@ -25,6 +25,9 @@ private val DarkColorScheme =
         onPrimaryContainer = SantriOnTintDark,
         secondary = SantriOnTintDark,
         onSecondary = SantriBackgroundDark,
+        // Amalan Harian's streak accent — the only use of the tertiary role in this app.
+        tertiary = SantriEmberDark,
+        onTertiary = SantriBackgroundDark,
         background = SantriBackgroundDark,
         onBackground = SantriTextDark,
         surface = SantriSurfaceDark,
@@ -56,6 +59,9 @@ private val LightColorScheme =
         onPrimaryContainer = SantriOnTintLight,
         secondary = SantriOnTintLight,
         onSecondary = SantriOnPrimaryLight,
+        // Amalan Harian's streak accent — the only use of the tertiary role in this app.
+        tertiary = SantriEmberLight,
+        onTertiary = SantriOnPrimaryLight,
         background = SantriBackgroundLight,
         onBackground = SantriTextLight,
         surface = SantriSurfaceLight,

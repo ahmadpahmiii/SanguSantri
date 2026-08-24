@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
@@ -28,6 +30,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.component.SearchField
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -46,6 +49,7 @@ fun SholawatListRoute(
         uiState = uiState,
         onBack = onBack,
         onSholawatSelected = onSholawatSelected,
+        onQueryChanged = viewModel::setQuery,
         modifier = modifier,
     )
 }
@@ -56,6 +60,7 @@ fun SholawatListScreen(
     uiState: SholawatListUiState,
     onBack: () -> Unit,
     onSholawatSelected: (String) -> Unit,
+    onQueryChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -88,8 +93,9 @@ fun SholawatListScreen(
 
             is SholawatListUiState.ContentReady ->
                 SholawatListContent(
-                    items = uiState.items,
+                    state = uiState,
                     onSholawatSelected = onSholawatSelected,
+                    onQueryChanged = onQueryChanged,
                     modifier = Modifier.padding(innerPadding),
                 )
         }
@@ -98,25 +104,37 @@ fun SholawatListScreen(
 
 @Composable
 private fun SholawatListContent(
-    items: List<Content>,
+    state: SholawatListUiState.ContentReady,
     onSholawatSelected: (String) -> Unit,
+    onQueryChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        if (items.isEmpty()) {
-            SholawatListEmptyState()
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(SanguSantriDimensions.catalogueGridMinCellWidth),
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
-                contentPadding = PaddingValues(SanguSantriSpacing.default),
-                horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
-                verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
-            ) {
-                items(items = items, key = { it.id }) { item ->
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(SanguSantriDimensions.catalogueGridMinCellWidth),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .widthIn(max = SanguSantriDimensions.dashboardContentMaxWidth),
+            contentPadding = PaddingValues(SanguSantriSpacing.default),
+            horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
+        ) {
+            item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
+                SearchField(
+                    query = state.query,
+                    onQueryChanged = onQueryChanged,
+                    placeholder = stringResource(R.string.sholawat_search_placeholder),
+                )
+            }
+            if (state.items.isEmpty()) {
+                item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
+                    // A blank query with nothing to show means the catalogue itself is empty; with a
+                    // query it means this search found nothing. Two different messages.
+                    SholawatListEmptyState(isSearching = state.query.isNotBlank())
+                }
+            } else {
+                items(items = state.items, key = { it.id }) { item ->
                     ContentCard(content = item, onClick = onSholawatSelected)
                 }
             }
@@ -125,16 +143,22 @@ private fun SholawatListContent(
 }
 
 @Composable
-private fun SholawatListEmptyState(modifier: Modifier = Modifier) {
+private fun SholawatListEmptyState(
+    isSearching: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier =
             modifier
-                .fillMaxSize()
-                .padding(SanguSantriSpacing.large),
+                .fillMaxWidth()
+                .padding(vertical = SanguSantriSpacing.extraLarge),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = stringResource(R.string.sholawat_empty_state),
+            text =
+                stringResource(
+                    if (isSearching) R.string.sholawat_empty_search else R.string.sholawat_empty_state,
+                ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -167,6 +191,7 @@ private fun SholawatListScreenPreview() {
             uiState = SholawatListUiState.ContentReady(items = previewItems),
             onBack = {},
             onSholawatSelected = {},
+            onQueryChanged = {},
         )
     }
 }

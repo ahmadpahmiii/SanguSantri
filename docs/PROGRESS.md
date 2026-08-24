@@ -8366,3 +8366,280 @@ or Room schema changed.
 
 Nahwu Quiz `0.0.5` implementation or Kalender Hijriah's next slice.
 
+
+---
+
+## 2026-08-24 — Catalogue search, description clamp, and tasbih completion UX
+
+**Status:** Implemented and verified — `assembleDebug`, `lint`,
+`compileDebugUnitTestKotlin`, and the full `testDebugUnitTest` suite (211 tests,
+0 failures) pass. `ktlintCheck`/`detekt` report **no** violations in any file
+touched here; both still fail repo-wide on pre-existing drift (see Known
+limitations). Manually verified on the `Pixel_9` emulator via `installDebug`.
+
+**Scope:** four product-owner requests in one pass. No Room schema change (both
+new queries are reads), no content changed.
+
+### What was implemented
+
+- **Two-line description clamp with an in-place toggle** (`ContentCard`, so it
+  covers Sholawat *and* Amaliyah at once rather than per screen). The
+  description renders at most two lines, then "Selengkapnya" / "Ringkas". The
+  toggle appears only when the text actually overflows, measured from
+  `onTextLayout`, and has its own click target so it never opens the reader.
+- **Sholawat search by title or ayah** — the list gained a search field.
+  Title/description/category are matched in memory; ayah matching is a new
+  `ContentStepDao.observeContentIdsMatchingText` over `content_steps`
+  (arabicText + translation, `LIKE … ESCAPE`), exposed as
+  `ContentRepository.observeContentIdsMatchingStepText` and combined in the
+  ViewModel. One shared predicate, `Content.matchesSearch`, defines the rule for
+  both catalogue surfaces.
+- **Beranda's search now reaches sholawat.** Jelajahi still *browses* amaliyah
+  only (SHOLAWAT_PRD), but as soon as a query is typed the whole catalogue is
+  searchable, and a sholawat result routes to `SholawatReader`, never to the
+  reader-mode gate. `ExploreActions.onContentSelected` therefore carries
+  `isSholawat`.
+- **Tasbih completion is now a real event.** Root cause of "I counted 33 and
+  Riwayat was empty": history was only written on reset/target-switch, and
+  tapping past a reached target silently restarted the count *over a round that
+  had never been recorded*. `TasbihRepositoryImpl.incrementCount` now archives
+  the round the moment the target is reached; a continued round stamps a fresh
+  `startedAtEpochMillis`, and `TasbihHistoryDao.isArchived` dedupes so
+  finish/switch never file the same round twice.
+- **Tasbih UI says what is happening.** A progress ring around the counter, a
+  completion panel ("Alhamdulillah, 33 kali selesai · Sesi ini sudah tersimpan di
+  Riwayat" + Mulai lagi / Lihat Riwayat), the target-reached caption, and
+  "Reset hitungan" renamed to "Selesai & simpan" with a dialog that no longer
+  claims the count is discarded (it is not, any more) and is no longer marked
+  destructive.
+- **`docs/design/STREAK_GAMIFICATION_CONCEPT.md`** — the requested daily-streak
+  ("Amalan Harian") design concept. Concept only, deliberately not implemented,
+  with five decisions listed for the product owner.
+
+### Files created
+
+- `app/src/main/java/com/sangusantri/app/core/designsystem/component/SearchField.kt`
+- `app/src/main/java/com/sangusantri/app/domain/model/ContentSearch.kt`
+- `app/src/main/java/com/sangusantri/app/feature/tasbih/components/TasbihCompletionPanel.kt`
+- `docs/design/STREAK_GAMIFICATION_CONCEPT.md`
+
+### Files modified
+
+`ContentCard.kt`, `ContentStepDao.kt`, `ContentRepository.kt`,
+`ContentRepositoryImpl.kt`, `SholawatList{Screen,UiState,ViewModel}.kt`,
+`Explore{Screen,ViewModel}.kt`, `SanguSantriNavHost.kt`, `TasbihHistoryDao.kt`,
+`TasbihRepositoryImpl.kt`, `Tasbih{Screen,ViewModel,UiAction,Dialog}.kt`,
+`TasbihCounter.kt`, `TasbihSecondaryActions.kt`, `strings.xml`, and five test
+fakes kept compiling against the new `ContentRepository` method.
+
+### Validation
+
+```text
+./gradlew assembleDebug                 — pass
+./gradlew lint                          — pass
+./gradlew testDebugUnitTest             — pass (211 tests, 0 failures)
+./gradlew ktlintCheck                   — no violations in touched files
+./gradlew detekt                        — no violations in touched files
+./gradlew installDebug + manual         — pass (Pixel_9 emulator)
+```
+
+Manually checked on device: sholawat list clamp + Selengkapnya/Ringkas without
+navigating; sholawat search by title ("tarhim") and by translation text
+("sidratul", which appears only inside a step); Beranda search → "sidratul" → 1
+result → opens the sholawat reader directly; Jelajahi with an empty query still
+lists amaliyah only; tasbih 33 target counted to 33 → completion panel → Riwayat
+shows the round immediately; "Selesai & simpan" afterwards does not duplicate it.
+
+### Known limitations
+
+- **Ayah search only covers cached steps.** An item whose detail has never been
+  opened has no `content_steps` rows yet, so it is findable by title but not by
+  its text until first open. Prefetching every detail was not in scope.
+- **Arabic ayah search is literal.** `LIKE` matches the stored harakat exactly,
+  so typing undotted/unvocalised Arabic will not match. Translation search is
+  unaffected. A normalised search column would fix it if the product owner wants
+  it (`quran_verses` already keeps an `arabicTextNoHarakat` twin for the same
+  reason).
+- **`ktlintCheck`/`detekt` still fail repo-wide.** 72 committed files predate the
+  current ktlint indent rule (running `ktlintFormat` reindents all of them — that
+  reformat was deliberately reverted here rather than shipped inside this
+  change), and detekt reports 3 pre-existing issues in `PrayerScheduleRepository`,
+  `PrayerScheduleRepositoryImpl`, and `AdzanPlaybackService`. Worth a separate
+  formatting-only commit.
+- No new tests were added, per the standing implementation-pass constraint.
+
+### Next recommended milestone
+
+Product-owner answers to the five decisions in
+`docs/design/STREAK_GAMIFICATION_CONCEPT.md` §7, then Phase A of that concept —
+or Nahwu Quiz `0.0.5`.
+
+**Amendment, same day — streak decisions locked.** The product owner answered
+decisions 1–3 of `docs/design/STREAK_GAMIFICATION_CONCEPT.md`: two targets only
+(dzikir + Al-Qur'an 3 halaman, amaliyah dropped as a daily target), **both** must
+land for a day to count, and hari maaf exists only for udzur (no weekly grace
+day). The concept was rewritten accordingly and a full design page published —
+six card states, anatomy/tokens, the Indonesian copy table, and Mode Udzur, which
+now ships inside Phase A because a 2-of-2 rule is unshippable without it.
+Decisions 4 (milestone content source) and 5 (daily reminder) remain open and
+block only Phase C. **Still design only — no implementation started.**
+
+## 2026-08-24 — Kiblat compass NaN crash fix + Crashlytics breadcrumbs
+
+**Crash.** `IllegalArgumentException: Cannot round NaN value.` Retraced against
+the committed `mapping.txt` (`pg_map_id` matched the report exactly): the frame
+`mb2.b:16` is `JadwalSholatScreenKt.CompassFace$lambda$68$lambda$67$lambda$66`
+at `JadwalSholatScreen.kt:854` — the Ka'bah icon's `Modifier.offset`. `orbit` is
+a constant dp, so `sin(radians)` was NaN, meaning the needle angle
+(`bearing - azimuth`) was already NaN by the time layout ran. It surfaced under
+`dispatchDraw` only because `AndroidComposeView` runs `measureAndLayout` there.
+
+Two entry points could poison that angle, and both are now guarded at the source
+rather than at the crash site — `normalizeDegrees`, the smoothing accumulator and
+the needle animation all propagate NaN and, once poisoned, stay poisoned:
+
+- `DeviceHeading.kt` — a degenerate rotation vector yields a NaN azimuth on some
+  devices. The sample is now dropped, keeping the last good heading; folding it
+  in poisoned `smoothed` permanently.
+- `KiblatRepositoryImpl.kt` — a non-finite bearing is rejected both when read
+  from DataStore and when accepted from myquran, so the compass and Beranda's
+  bearing pill (`BerandaPrayerBlock.kt:183`, the same latent `roundToInt` crash)
+  show no direction rather than a fabricated one.
+
+**Crashlytics breadcrumbs** (`core/telemetry/Breadcrumb.kt`, new). `screen()` is
+wired once in `SanguSantriNavHost` off the top of the flattened back stack, so it
+covers every destination including ones added later; `action()` is one line in
+each of the six `onAction` dispatchers (Reader, Tasbih, NahwuQuizSession,
+GuidedReader, Reminder, HijriCalendar). Both set a Crashlytics custom key
+(`screen`, `last_action`) and append an ordered log line.
+
+Names only, never values — `docs/security/PRIVACY.md` commits that Crashlytics is
+not an analytics channel for devotional behaviour, so a breadcrumb records
+`FullReader`/`IncrementCounter` and never which amaliyah, surah, ayah or count.
+The name is taken from `toString()` rather than `simpleName` because R8
+obfuscates class names but leaves the `data class`/`data object` `toString()`
+literal intact.
+
+### Known limitations
+
+- Screens using lambda-bag `Actions` classes (Serambi, JadwalSholat, Quran
+  reader/settings) have **screen** breadcrumbs but no **action** breadcrumbs —
+  they have no single dispatch point. Add `Breadcrumb.action("name")` per lambda
+  when a specific flow needs tracing; wiring all of them up front is not worth it.
+- `ktlintCheck` (9 violations) and `detekt` (13 issues) remain red repo-wide for
+  the pre-existing reasons already recorded above; none are in the files changed
+  here. `ktlintFormat` re-applied the repo-wide reindent to 58 otherwise-clean
+  files during this pass; the product owner chose to leave it in the tree and
+  handle the formatting separately.
+- No new tests, per the standing implementation-pass constraint.
+
+**Commands:** `ktlintFormat`, `ktlintCheck`, `detekt`, `lint` (pass),
+`assembleDebug` (pass). Not verified on a device — no emulator was attached.
+
+---
+
+## 2026-08-24 — Amalan Harian: the daily streak (Phases A and B)
+
+**Status:** Implemented and verified. `assembleDebug`, `lint`, `testDebugUnitTest`
+(222 tests, 0 failures) and the two new instrumented classes (11 tests, all OK on
+a Pixel_9 emulator) pass; `ktlintCheck`/`detekt` report nothing in any file
+touched here. Manually verified on the emulator, state by state, against
+`docs/design/STREAK_GAMIFICATION_CONCEPT.md`.
+
+**Scope:** the daily-consistency layer designed in that document, built after the
+product owner locked its three open decisions: **two targets only** (dzikir +
+Al-Qur'an 3 halaman), **both must land** for a day to count, and **udzur is the
+only forgiveness** — no weekly grace day. **No Room schema change** (one new read
+query; udzur dates and milestone flags live in DataStore).
+
+### What was implemented
+
+- **`AmalanHarian` + `ObserveAmalanHarianUseCase`** — the rules engine. Dzikir
+  comes from today's `tasbih_history` rows; Qur'an halaman from
+  `quran_reading_sessions` joined to `quran_verses.page`
+  (`COUNT(DISTINCT page)`), so "3 halaman" is measured, never estimated. Both
+  targets required; today never breaks a streak while still in progress; an
+  udzur day with nothing recorded is bridged rather than broken; the walk back is
+  bounded at 400 days.
+- **`AmalanHarianCard`** (Aktivitas' first block, replacing `ActivityStreakSection`,
+  now deleted) — two tappable goal rows with proportional tick rings, the streak
+  with its record, the seven-day strip, and the Mode Udzur switch. Rows route to
+  Tasbih and to the Qur'an reader.
+- **`BerandaAmalanPill`** — one fixed-height line between the greeting row and the
+  prayer block, rendered even at zero ("Mulai hari ini"), tapping through to
+  Aktivitas.
+- **Mode Udzur** (`AmalanRepository` + DataStore) — suspends the Qur'an target so
+  dzikir alone completes the day. Turning it off ends udzur **today**, not
+  yesterday: days already spent in it stay marked, but today reverts to an
+  ordinary 2-of-2 day. Keeping today marked left the card saying "sedang udzur"
+  beside an off switch — found and fixed during device validation.
+- **Milestone sheet** at 3/7/30/40/100/365 (highest reached only; dismissing
+  absorbs the lower ones). It carries **no du'a or hadith text** — that needs a
+  named published source and editorial approval which has not been supplied, and
+  inventing one is never acceptable. The sheet says the plain true thing instead.
+- **One new colour token** — `SantriEmber*`, mapped to Material's `tertiary`
+  (previously unset, so it was falling through to the baseline lavender). Used
+  only for the flame and the live streak count.
+- The old "any activity counts" streak was removed from `ActivityOverview` and
+  `ObserveActivityOverviewUseCase`; that use case now owns history only.
+
+### Files created
+
+- `domain/model/AmalanHarian.kt`, `domain/model/QuranReadingPage.kt`
+- `domain/repository/AmalanRepository.kt`, `data/repository/AmalanRepositoryImpl.kt`
+- `domain/usecase/ObserveAmalanHarianUseCase.kt`
+- `feature/activity/components/AmalanHarianCard.kt`, `AmalanWeekStrip.kt`,
+  `AmalanMilestoneSheet.kt`
+- `feature/home/BerandaAmalanPill.kt`
+- `test/domain/usecase/ObserveAmalanHarianUseCaseTest.kt` (11 tests)
+- `androidTest/data/local/dao/QuranReadingSessionDaoTest.kt` (4 tests)
+- `androidTest/feature/activity/AmalanHarianCardTest.kt` (7 tests)
+
+### Files modified
+
+`QuranReadingSessionDao.kt` (+ `observeSessionPages` and its projection),
+`QuranRepository(.kt/Impl)`, `di/ActivityModule.kt`, `ActivityOverview.kt`,
+`ObserveActivityOverviewUseCase.kt`, `Activity{Screen,UiState,ViewModel}.kt`,
+`Serambi{Screen,UiState,ViewModel,Actions}.kt`, `SanguSantriNavHost.kt`,
+`theme/Color.kt`, `theme/Theme.kt`, `strings.xml`, `SerambiViewModelTest.kt`.
+Deleted: `feature/activity/components/ActivityStreakSection.kt`.
+
+### Validation
+
+```text
+./gradlew assembleDebug                 — pass
+./gradlew lint                          — pass
+./gradlew testDebugUnitTest             — pass (222 tests, 0 failures)
+adb am instrument QuranReadingSessionDaoTest — OK (4 tests)
+adb am instrument AmalanHarianCardTest       — OK (7 tests)
+./gradlew ktlintCheck / detekt          — no violations in touched files
+```
+
+Verified by hand on the emulator: first-run card ("Dua amalan setiap hari…"),
+dzikir-only ("1 dari 2 — tinggal 3 halaman lagi") after a real 33× tasbih round,
+Mode Udzur on (banner, Qur'an row "Dijeda", day complete, streak 1, week strip)
+and off again (back to 2-of-2, banner gone), both goal rows' tap-through, the
+Beranda pill in its zero and partial states, and the pill opening Aktivitas.
+
+### Known limitations
+
+- **The 2-of-2 completion was not exercised through the real Qur'an reader**: this
+  emulator has no network, so the Kemenag dataset cannot download and no reading
+  session can be recorded by hand. That path is covered instead by the DAO test
+  (the real page join, including an un-downloaded surah contributing nothing), the
+  use-case tests, and an instrumented card test asserting the completed state's
+  copy.
+- **The milestone sheet has not been seen on a device** — it needs a three-day
+  streak. Its selection rule is unit-tested.
+- **Milestone content is still blocked** on a named published source for the
+  du'a/hadith text (concept doc §8.4), and the daily reminder (§8.5) remains
+  unanswered and unbuilt.
+- `ktlintCheck`/`detekt` still fail repo-wide on the same pre-existing drift
+  recorded in the entry above (69 files predating the current ktlint indent rule,
+  3 old detekt findings); `ktlintFormat` reformats those files wholesale, so its
+  output was again deliberately kept out of this change.
+
+### Next recommended milestone
+
+Answer concept-doc §8.4/§8.5 (milestone text source, daily reminder), or Nahwu
+Quiz `0.0.5`.

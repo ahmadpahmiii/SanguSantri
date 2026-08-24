@@ -69,6 +69,8 @@ private class FakeContentRepository(
 ) : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = content
 
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
+
     override suspend fun getContentById(contentId: String): Content? = null
 
     override suspend fun getContentDetail(contentId: String): ContentDetail? = null

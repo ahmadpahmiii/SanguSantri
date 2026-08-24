@@ -12,6 +12,18 @@ interface ContentRepository {
     /** Active catalog items only, ordered for Beranda display (ADR 0015). */
     fun observeActiveContent(): Flow<List<Content>>
 
+    /**
+     * Ids of items whose *steps* contain [query] — the "cari per ayat" half of catalogue search,
+     * combined by callers with the title/description match they can do in memory. A blank query
+     * matches nothing here (it is not "match everything"; the caller's title filter already lets
+     * every item through).
+     *
+     * Only cached steps are searchable. An item whose detail has never been opened has no step
+     * rows yet — `ContentDetailSyncManager` fetches them on first open — so it can be found by
+     * title but not yet by its text.
+     */
+    fun observeContentIdsMatchingStepText(query: String): Flow<List<String>>
+
     suspend fun getContentById(contentId: String): Content?
 
     suspend fun getContentDetail(contentId: String): ContentDetail?

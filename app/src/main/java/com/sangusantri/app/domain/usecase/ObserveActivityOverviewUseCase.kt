@@ -13,19 +13,18 @@ import com.sangusantri.app.domain.repository.ReminderRepository
 import com.sangusantri.app.domain.repository.TasbihRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 import javax.inject.Inject
 
 /**
  * Combines [ActivityRepository] (amaliyah completions), [TasbihRepository] (tasbih history),
  * [ReminderRepository] (`0.0.4`, upcoming reminders), and [QuranRepository] (`0.0.6`, reading
  * sessions — reused directly rather than duplicated, `docs/engineering/ARCHITECTURE.md`'s
- * per-concern-repository convention) into the read model Aktivitas needs: streak, this-week
- * summary, and the recent-5 preview lists. Combining multiple repositories with genuine aggregation
- * logic (streak/weekly-window math) is exactly when `CODING_STANDARD.md` says a use case is
- * warranted.
+ * per-concern-repository convention) into the read model Aktivitas' history needs: the this-week
+ * summary and the recent-5 preview lists. Combining multiple repositories with genuine aggregation
+ * logic (the weekly window) is exactly when `CODING_STANDARD.md` says a use case is warranted.
+ *
+ * The streak is deliberately **not** here — `ObserveAmalanHarianUseCase` owns it, because "did this
+ * day count" follows Amalan Harian's two-target rule rather than "did anything happen".
  */
 class ObserveActivityOverviewUseCase
 @Inject
@@ -35,7 +34,7 @@ constructor(
     private val reminderRepository: ReminderRepository,
     private val quranRepository: QuranRepository,
 ) {
-    operator fun invoke(zoneId: ZoneId = ZoneId.systemDefault()): Flow<ActivityOverview> =
+    operator fun invoke(): Flow<ActivityOverview> =
         combine(
             activityRepository.observeCompletions(),
             tasbihRepository.observeHistory(),
@@ -43,7 +42,7 @@ constructor(
             quranRepository.observeReadingSessions(),
             quranRepository.observeSurahs(),
         ) { completions, tasbihHistory, reminders, quranSessions, surahs ->
-            buildOverview(completions, tasbihHistory, reminders, quranSessions, surahs, zoneId)
+            buildOverview(completions, tasbihHistory, reminders, quranSessions, surahs)
         }
 
     @Suppress("LongParameterList")
@@ -53,16 +52,8 @@ constructor(
         reminders: List<Reminder>,
         quranSessions: List<QuranReadingSession>,
         surahs: List<QuranSurah>,
-        zoneId: ZoneId,
     ): ActivityOverview {
         val now = System.currentTimeMillis()
-        val activeDates =
-            (
-                completions.map { it.completedAtEpochMillis } +
-                    tasbihHistory.map { it.endedAtEpochMillis } +
-                    quranSessions.map { it.readAtEpochMillis }
-                ).mapTo(mutableSetOf()) { epochMillisToLocalDate(it, zoneId) }
-
         val weekStart = now - MILLIS_PER_WEEK
         val weeklyCompletions = completions.filter { it.completedAtEpochMillis >= weekStart }
         val weeklyTasbih = tasbihHistory.filter { it.endedAtEpochMillis >= weekStart }
@@ -74,8 +65,6 @@ constructor(
         val surahNames = surahs.associate { it.number to it.latinName }
 
         return ActivityOverview(
-            currentStreakDays = calculateCurrentStreak(activeDates, epochMillisToLocalDate(now, zoneId)),
-            longestStreakDays = calculateLongestStreak(activeDates),
             weeklyAmaliyahCompletedCount = weeklyCompletions.size,
             weeklyTasbihSessionCount = weeklyTasbih.size,
             weeklyTotalMinutes = weeklyDurationMillis / MILLIS_PER_MINUTE,
@@ -95,38 +84,6 @@ constructor(
                     )
                 },
         )
-    }
-
-    private fun epochMillisToLocalDate(
-        epochMillis: Long,
-        zoneId: ZoneId,
-    ): LocalDate = Instant.ofEpochMilli(epochMillis).atZone(zoneId).toLocalDate()
-
-    /** Counts backward from today (or yesterday, if nothing happened yet today) through consecutive active days. */
-    private fun calculateCurrentStreak(
-        activeDates: Set<LocalDate>,
-        today: LocalDate,
-    ): Int {
-        var cursor = if (activeDates.contains(today)) today else today.minusDays(1)
-        if (!activeDates.contains(cursor)) return 0
-        var streak = 0
-        while (activeDates.contains(cursor)) {
-            streak++
-            cursor = cursor.minusDays(1)
-        }
-        return streak
-    }
-
-    private fun calculateLongestStreak(activeDates: Set<LocalDate>): Int {
-        if (activeDates.isEmpty()) return 0
-        val sortedDates = activeDates.sorted()
-        var longest = 1
-        var current = 1
-        for (index in 1 until sortedDates.size) {
-            current = if (sortedDates[index] == sortedDates[index - 1].plusDays(1)) current + 1 else 1
-            longest = maxOf(longest, current)
-        }
-        return longest
     }
 
     private companion object {

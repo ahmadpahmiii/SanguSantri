@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.tasbih
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.core.telemetry.Breadcrumb
 import com.sangusantri.app.domain.model.TasbihSession
 import com.sangusantri.app.domain.model.TasbihTargetPreset
 import com.sangusantri.app.domain.repository.TasbihRepository
@@ -39,6 +40,7 @@ class TasbihViewModel
                 )
 
         fun onAction(action: TasbihUiAction) {
+            Breadcrumb.action(action)
             when (action) {
                 TasbihUiAction.IncrementCounter ->
                     viewModelScope.launch { repository.incrementCount() }
@@ -51,10 +53,18 @@ class TasbihViewModel
                 is TasbihUiAction.RenameSession ->
                     viewModelScope.launch { repository.renameSession(action.name) }
 
-                TasbihUiAction.ResetSession ->
+                TasbihUiAction.RepeatRound -> onRepeatRound()
+
+                TasbihUiAction.FinishSession ->
                     viewModelScope.launch { repository.resetSession() }
             }
         }
+
+    /** Restarts the current target rather than picking a new one, so a custom target survives. */
+    private fun onRepeatRound() {
+        val active = uiState.value as? TasbihUiState.Active ?: return
+        viewModelScope.launch { repository.startSession(active.targetPreset, active.targetValue) }
+    }
 
         private fun onSelectPreset(preset: TasbihTargetPreset) {
             // CUSTOM is never dispatched via SelectPreset by the UI (it opens a dialog instead), but

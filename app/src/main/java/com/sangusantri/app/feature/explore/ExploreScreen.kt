@@ -15,11 +15,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,7 +24,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -35,14 +31,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sangusantri.app.R
+import com.sangusantri.app.core.designsystem.component.SearchField
 import com.sangusantri.app.core.designsystem.theme.SanguSantriDimensions
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -53,7 +47,7 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 @Composable
 fun ExploreRoute(
     onBack: () -> Unit,
-    onContentSelected: (String) -> Unit,
+    onContentSelected: (contentId: String, isSholawat: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExploreViewModel = hiltViewModel(),
 ) {
@@ -122,7 +116,6 @@ private fun ExploreContent(
     actions: ExploreActions,
     modifier: Modifier = Modifier,
 ) {
-    val focusManager = LocalFocusManager.current
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(SanguSantriDimensions.catalogueGridMinCellWidth),
@@ -135,10 +128,10 @@ private fun ExploreContent(
             verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
         ) {
             item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
-                ExploreSearchField(
+                SearchField(
                     query = state.query,
                     onQueryChanged = actions.onQueryChanged,
-                    focusManager = focusManager,
+                    placeholder = stringResource(R.string.explore_search_placeholder),
                 )
             }
             if (state.categories.isNotEmpty()) {
@@ -163,40 +156,12 @@ private fun ExploreContent(
                 }
             } else {
                 gridItems(items = state.filteredItems, key = { it.id }) { item ->
-                    ContentCard(content = item, onClick = actions.onContentSelected)
+                    // Sholawat can only appear here via search, and it opens its own reader.
+                    ContentCard(content = item, onClick = { actions.onContentSelected(it, item.isSholawat) })
                 }
             }
         }
     }
-}
-
-@Composable
-private fun ExploreSearchField(
-    query: String,
-    onQueryChanged: (String) -> Unit,
-    focusManager: FocusManager,
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChanged,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text(text = stringResource(R.string.explore_search_placeholder)) },
-        leadingIcon = { Icon(imageVector = Icons.Outlined.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChanged("") }) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = stringResource(R.string.explore_clear_search),
-                    )
-                }
-            }
-        },
-        singleLine = true,
-        shape = MaterialTheme.shapes.large,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-    )
 }
 
 @Composable
@@ -297,7 +262,7 @@ private fun ExploreScreenPreview() {
             actions =
                 ExploreActions(
                     onBack = {},
-                    onContentSelected = {},
+                    onContentSelected = { _, _ -> },
                     onQueryChanged = {},
                     onCategorySelected = {},
                 ),
@@ -307,7 +272,7 @@ private fun ExploreScreenPreview() {
 
 data class ExploreActions(
     val onBack: () -> Unit,
-    val onContentSelected: (String) -> Unit,
+    val onContentSelected: (contentId: String, isSholawat: Boolean) -> Unit,
     val onQueryChanged: (String) -> Unit,
     val onCategorySelected: (String?) -> Unit,
 )

@@ -37,15 +37,23 @@
 
   <!-- Jelajahi Amaliyah — scalable catalogue entry from Beranda -->
   <string name="explore_title">Jelajahi Amaliyah</string>
-  <string name="explore_search_placeholder">Cari amaliyah</string>
-  <string name="explore_clear_search">Hapus pencarian</string>
+  <string name="explore_search_placeholder">Cari amaliyah atau sholawat</string>
   <string name="explore_category_all">Semua</string>
-  <string name="explore_result_count">%1$d amaliyah</string>
-  <string name="explore_empty_search">Amaliyah yang dicari belum ditemukan.</string>
+  <string name="explore_result_count">%1$d hasil</string>
+  <string name="explore_empty_search">Bacaan yang dicari belum ditemukan.</string>
+
+  <!-- Shared search field (Jelajahi + Sholawat) -->
+  <string name="search_clear_action">Hapus pencarian</string>
+
+  <!-- Catalogue card description, clamped to two lines with an in-place toggle -->
+  <string name="content_card_description_expand">Selengkapnya</string>
+  <string name="content_card_description_collapse">Ringkas</string>
 
   <!-- Sholawat dan Artinya (0.0.8) — own list + reader, deliberately outside Jelajahi Amaliyah -->
   <string name="sholawat_list_title">Sholawat</string>
   <string name="sholawat_empty_state">Sholawat sedang disiapkan.</string>
+  <string name="sholawat_search_placeholder">Cari judul atau isi bacaan</string>
+  <string name="sholawat_empty_search">Sholawat yang dicari belum ditemukan.</string>
   <string name="sholawat_show_translation_content_description">Tampilkan terjemahan</string>
   <string name="sholawat_hide_translation_content_description">Sembunyikan terjemahan</string>
 
@@ -59,9 +67,6 @@
   <string name="activity_empty_heading">Belum ada aktivitas</string>
   <string name="activity_empty_body">Selesaikan amaliyah atau mulai sesi tasbih untuk melihat aktivitasmu di sini.</string>
   <string name="activity_section_streak">Ringkasan streak</string>
-  <string name="activity_streak_current_label">Streak saat ini</string>
-  <string name="activity_streak_longest_label">Streak terpanjang</string>
-  <string name="activity_streak_days_value">%1$d hari</string>
   <string name="activity_section_weekly">Ringkasan minggu ini</string>
   <string name="activity_weekly_amaliyah_label">Amaliyah selesai</string>
   <string name="activity_weekly_tasbih_label">Sesi tasbih</string>
@@ -85,9 +90,60 @@
   <string name="activity_filter_last_7_days">7 hari</string>
   <string name="activity_filter_last_30_days">30 hari</string>
 
+  <!-- Amalan Harian — the daily streak (docs/design/STREAK_GAMIFICATION_CONCEPT.md).
+       Two targets, both required; udzur is the only forgiveness. No string here scolds. -->
+  <string name="amalan_title">Amalan Harian</string>
+  <string name="amalan_progress">%1$d dari %2$d amalan hari ini</string>
+  <string name="amalan_progress_left_quran">%1$d dari 2 — tinggal %2$d halaman lagi</string>
+  <string name="amalan_progress_left_dzikir">1 dari 2 — tinggal 1 sesi dzikir</string>
+  <string name="amalan_complete">Alhamdulillah — amalan hari ini lengkap.</string>
+  <string name="amalan_first_run">Dua amalan setiap hari, sekecil apa pun.</string>
+  <string name="amalan_row_dzikir">Dzikir</string>
+  <string name="amalan_row_dzikir_target">1 sesi tasbih</string>
+  <string name="amalan_row_quran">Al-Qur\'an</string>
+  <string name="amalan_row_quran_target">%1$d halaman</string>
+  <string name="amalan_value_pending">Belum</string>
+  <string name="amalan_value_start">Mulai</string>
+  <string name="amalan_value_done">Selesai</string>
+  <string name="amalan_value_pages">%1$d / %2$d</string>
+  <string name="amalan_value_paused">Dijeda</string>
+  <string name="amalan_streak_days_short">%1$d hari</string>
+  <string name="amalan_streak_unit">hari</string>
+  <string name="amalan_streak_unit_long">hari berturut-turut</string>
+  <string name="amalan_streak_record">Rekor %1$d hari</string>
+  <string name="amalan_streak_restart">Mulai lagi hari ini — rekor %1$d hari tetap tersimpan.</string>
+  <string name="amalan_udzur_toggle">Sedang udzur</string>
+  <string name="amalan_udzur_banner">Hari udzur tidak memutus streak. Dzikir tetap dihitung.</string>
+  <string name="amalan_week_content_description">%1$d dari 7 hari terakhir lengkap</string>
+  <string name="amalan_row_dzikir_content_description">Dzikir, %1$s. Ketuk untuk membuka Tasbih.</string>
+  <string name="amalan_row_quran_content_description">Al-Qur\'an, %1$s. Ketuk untuk membuka Al-Qur\'an.</string>
+  <string name="amalan_day_monday">S</string>
+  <string name="amalan_day_tuesday">S</string>
+  <string name="amalan_day_wednesday">R</string>
+  <string name="amalan_day_thursday">K</string>
+  <string name="amalan_day_friday">J</string>
+  <string name="amalan_day_saturday">S</string>
+  <string name="amalan_day_sunday">A</string>
+
+  <!-- Beranda streak pill -->
+  <string name="amalan_pill_start">Mulai hari ini</string>
+  <string name="amalan_pill_start_supporting">0 dari 2 amalan</string>
+  <string name="amalan_pill_left_quran">tinggal %1$d halaman</string>
+  <string name="amalan_pill_left_dzikir">tinggal 1 sesi dzikir</string>
+  <string name="amalan_pill_complete">lengkap hari ini</string>
+  <string name="amalan_pill_complete_udzur">dzikir saja, tercatat</string>
+  <string name="amalan_pill_content_description">Amalan harian. Buka Aktivitas.</string>
+
+  <!-- Streak milestone sheet. Deliberately carries no du'a or hadith text: that content needs a
+       named published source and editorial approval (CLAUDE.md content safety) and has not been
+       supplied, and inventing or paraphrasing one here is never acceptable. -->
+  <string name="amalan_milestone_title">Masya Allah — %1$d hari berturut-turut</string>
+  <string name="amalan_milestone_body">Istiqamah itu yang sedikit tapi terus-menerus. Rekor kamu sekarang %1$d hari.</string>
+  <string name="amalan_milestone_dismiss">Alhamdulillah</string>
+
   <!-- Standalone Tasbih (0.0.2, 02-release-0.0.2-tasbih.md) -->
   <string name="tasbih_title">Tasbih</string>
-  <string name="tasbih_reset_action">Reset hitungan</string>
+  <string name="tasbih_finish_action">Selesai &amp; simpan</string>
   <string name="tasbih_history_action">Riwayat</string>
   <string name="tasbih_session_name_label">Nama sesi</string>
   <string name="tasbih_session_name_empty">Tanpa nama</string>
@@ -108,6 +164,12 @@
   <string name="tasbih_status_target_reached">target tercapai</string>
   <string name="tasbih_restored_indicator">Hitungan sebelumnya dipulihkan</string>
 
+  <!-- Target reached — the round is archived to Riwayat at this moment, so the panel says so -->
+  <string name="tasbih_completed_title">Alhamdulillah, %1$d kali selesai</string>
+  <string name="tasbih_completed_saved">Sesi ini sudah tersimpan di Riwayat.</string>
+  <string name="tasbih_completed_repeat_action">Mulai lagi</string>
+  <string name="tasbih_completed_history_action">Lihat Riwayat</string>
+
   <!-- Tasbih target preset chips -->
   <string name="tasbih_preset_thirty_three">33 kali</string>
   <string name="tasbih_preset_one_hundred">100 kali</string>
@@ -125,11 +187,11 @@
   <string name="tasbih_custom_target_error_non_numeric">Hanya angka yang diperbolehkan</string>
   <string name="tasbih_custom_target_error_too_large">Target maksimum adalah %1$d</string>
 
-  <!-- Tasbih reset confirmation dialog -->
-  <string name="tasbih_reset_dialog_title">Reset hitungan?</string>
-  <string name="tasbih_reset_dialog_message">Hitungan saat ini (%1$d) akan dihapus dan tidak dapat dikembalikan.</string>
-  <string name="tasbih_reset_dialog_confirm_action">Reset</string>
-  <string name="tasbih_reset_dialog_cancel_action">Batal</string>
+  <!-- Tasbih finish confirmation dialog — nothing is discarded any more, the count is archived -->
+  <string name="tasbih_finish_dialog_title">Selesaikan sesi ini?</string>
+  <string name="tasbih_finish_dialog_message">Hitungan saat ini (%1$d) disimpan ke Riwayat, lalu penghitung kembali ke nol.</string>
+  <string name="tasbih_finish_dialog_confirm_action">Simpan</string>
+  <string name="tasbih_finish_dialog_cancel_action">Batal</string>
 
   <!-- Tasbih Session History (0.0.2) -->
   <string name="tasbih_history_title">Riwayat Tasbih</string>
@@ -427,8 +489,6 @@
   <string name="tasbih_counter_tap_hint">Ketuk lingkaran untuk menghitung</string>
   <string name="reader_step_count_subtitle">%1$d langkah</string>
   <string name="guided_counter_reached_label">✓ Tercapai</string>
-  <string name="activity_streak_days_unit">hari</string>
-  <string name="activity_streak_record_label">Rekor %1$d</string>
   <string name="beranda_prayer_remaining_hours_minutes">%1$d jam %2$d menit lagi</string>
   <string name="beranda_prayer_remaining_minutes">%1$d menit lagi</string>
   <string name="beranda_prayer_remaining_summary">%1$s · %2$s</string>

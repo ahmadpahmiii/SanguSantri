@@ -13,6 +13,7 @@ import com.sangusantri.app.data.sync.quran.QuranTafsirFetchOutcome
 import com.sangusantri.app.data.sync.quran.QuranTafsirManager
 import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranPreparationResult
+import com.sangusantri.app.domain.model.QuranReadingPage
 import com.sangusantri.app.domain.model.QuranReadingSession
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
@@ -76,6 +77,11 @@ constructor(
 
     override fun observeReadingSessions(): Flow<List<QuranReadingSession>> =
         readingSessionDao.observeAll().map { sessions -> sessions.map { it.toDomain() } }
+
+    override fun observeReadingPages(): Flow<List<QuranReadingPage>> =
+        readingSessionDao.observeSessionPages().map { rows ->
+            rows.map { QuranReadingPage(readAtEpochMillis = it.readAtEpochMillis, page = it.page) }
+        }
 
     override suspend fun hasLocalDataset(): Boolean = localDataset.isComplete()
 

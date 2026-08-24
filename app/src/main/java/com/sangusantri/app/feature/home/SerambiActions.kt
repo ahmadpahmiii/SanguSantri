@@ -20,4 +20,6 @@ data class SerambiActions(
      * routes to the same destination as [onPrayerScheduleClick]. */
     val onKiblatClick: () -> Unit = {},
     val onThemeModeSelected: (AppThemeMode) -> Unit = {},
+    /** The streak pill opens Aktivitas, where the goals can actually be acted on. */
+    val onAmalanClick: () -> Unit = {},
 )

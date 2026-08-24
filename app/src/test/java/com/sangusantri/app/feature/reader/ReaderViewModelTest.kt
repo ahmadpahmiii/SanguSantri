@@ -295,6 +295,8 @@ private class FakeContentRepository(
 ) : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
+
     override suspend fun getContentById(contentId: String): Content? = content
 
     override suspend fun getContentDetail(contentId: String): ContentDetail? = detail
@@ -302,6 +304,8 @@ private class FakeContentRepository(
 
 private class ThrowingContentRepository : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
+
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content = error("boom")
 
@@ -315,6 +319,8 @@ private class FlakyContentRepository(
     private var attempt = 0
 
     override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
+
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content = detail.content
 

@@ -26,6 +26,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.icon.TasbihIcon
+import com.sangusantri.app.core.telemetry.Breadcrumb
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.feature.activity.ActivityRoute
 import com.sangusantri.app.feature.activity.detail.ActivityAmaliyahHistoryRoute
@@ -213,6 +214,12 @@ fun SanguSantriNavHost(
 
     val locationRefreshViewModel: LocationRefreshViewModel = hiltViewModel()
 
+    // Every destination the reader reaches, recorded once here rather than screen by screen: the
+    // top of the flattened back stack *is* what NavDisplay renders, so this covers destinations
+    // added later with no further wiring.
+    val currentKey = topLevelBackStack.backStack.lastOrNull()
+    LaunchedEffect(currentKey) { currentKey?.let(Breadcrumb::screen) }
+
     // A reminder notification tap (MainActivity.EXTRA_REMINDER_CONTENT_ID) opens that amaliyah's
     // reading-mode gate directly, on top of whatever the user was already doing — never replaces
     // the current tab's own back stack, matching how every other content selection navigates.
@@ -328,6 +335,7 @@ private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
                         onContinueTasbih = { topLevelBackStack.addTopLevel(Tasbih) },
                         onHijriCalendarClick = { topLevelBackStack.add(KalenderHijriah) },
                         onSholawatClick = { topLevelBackStack.add(SholawatList) },
+                        onAmalanClick = { topLevelBackStack.addTopLevel(Aktivitas) },
                         onPrayerScheduleClick = { topLevelBackStack.add(JadwalSholat) },
                         // Kiblat lives inside Jadwal Sholat (handoff decision) — same destination.
                         onKiblatClick = { topLevelBackStack.add(JadwalSholat) },
@@ -356,7 +364,10 @@ private fun EntryProviderScope<NavKey>.standaloneEntries(topLevelBackStack: TopL
     entry<Explore> {
         ExploreRoute(
             onBack = { topLevelBackStack.removeLast() },
-            onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
+            onContentSelected = { contentId, isSholawat ->
+                // Search reaches sholawat too, and sholawat has its own reader — never the mode gate.
+                topLevelBackStack.add(if (isSholawat) SholawatReader(contentId) else ReaderGate(contentId))
+            },
         )
     }
     entry<Pengingat> {
@@ -539,6 +550,10 @@ private fun EntryProviderScope<NavKey>.activityEntries(topLevelBackStack: TopLev
             onTasbihHistoryClick = { topLevelBackStack.add(ActivityTasbihHistory) },
             onRemindersClick = { topLevelBackStack.add(Pengingat) },
             onQuranHistoryClick = { topLevelBackStack.add(ActivityQuranHistory) },
+            // Amalan Harian's two rows go straight to the thing that satisfies them. Dzikir is a
+            // tab of its own, so it switches tabs rather than pushing a second Tasbih screen.
+            onDzikirClick = { topLevelBackStack.addTopLevel(Tasbih) },
+            onQuranClick = { topLevelBackStack.add(QuranEntry) },
         )
     }
     entry<ActivityAmaliyahHistory> {

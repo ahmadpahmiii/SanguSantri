@@ -108,6 +108,13 @@ val SantriBlockChipBackgroundDark = Color(0x246FA88A)
 val SantriBlockChipTextLight = Color(0xFFDDEDE0)
 val SantriBlockChipTextDark = SantriOnTintDark
 
+// Amalan Harian streak accent (`docs/design/STREAK_GAMIFICATION_CONCEPT.md`) — the one warm role
+// in an otherwise entirely green palette, and deliberately narrow: the flame and the live streak
+// count, nothing else. A streak that reads in the same green as every button would disappear into
+// the page, and Material's unset baseline tertiary (lavender) belongs to no part of this app.
+val SantriEmberLight = Color(0xFFB4571B)
+val SantriEmberDark = Color(0xFFE8A16A)
+
 val SantriError40 = Color(0xFFBA1A1A)
 val SantriError80 = Color(0xFFFFB4AB)
 val SantriError90 = Color(0xFFFFDAD6)

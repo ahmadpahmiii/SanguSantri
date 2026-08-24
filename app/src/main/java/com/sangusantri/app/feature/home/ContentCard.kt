@@ -1,6 +1,7 @@
 package com.sangusantri.app.feature.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,13 +16,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.sangusantri.app.R
 import com.sangusantri.app.core.designsystem.theme.SanguSantriElevation
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
@@ -89,11 +100,7 @@ private fun ContentCardBody(
             Text(text = content.title, style = MaterialTheme.typography.titleMedium)
             if (content.description.isNotBlank() && !compact) {
                 Spacer(modifier = Modifier.height(SanguSantriSpacing.extraSmall))
-                Text(
-                    text = content.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                ExpandableDescription(text = content.description, resetKey = content.id)
             }
         }
         Icon(
@@ -103,6 +110,50 @@ private fun ContentCardBody(
         )
     }
 }
+
+/**
+ * Catalogue descriptions arrive from the CMS at whatever length an editor typed, and a wall of
+ * prose under every title is what stopped the list reading as a list. Two lines, then an in-place
+ * toggle.
+ *
+ * The toggle appears only when the text genuinely overflows — measured by the layout, never guessed
+ * from character count, which gets it wrong at every font scale and card width. [resetKey] collapses
+ * the card again when the grid recycles this slot for a different item.
+ */
+@Composable
+private fun ExpandableDescription(
+    text: String,
+    resetKey: String,
+) {
+    var expanded by rememberSaveable(resetKey) { mutableStateOf(false) }
+    var overflowing by remember(text) { mutableStateOf(false) }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_DESCRIPTION_LINES,
+        overflow = TextOverflow.Ellipsis,
+        onTextLayout = { layout -> if (!expanded) overflowing = layout.hasVisualOverflow },
+    )
+    if (overflowing || expanded) {
+        val toggleLabel =
+            if (expanded) R.string.content_card_description_collapse else R.string.content_card_description_expand
+        Text(
+            text = stringResource(toggleLabel),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier =
+                Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    // Own click target inside an already-clickable card: tapping the toggle must
+                    // expand the text, not open the reader.
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .padding(vertical = SanguSantriSpacing.extraSmall),
+        )
+    }
+}
+
+private const val COLLAPSED_DESCRIPTION_LINES = 2
 
 // Development-only preview fixture — mirrors the bracketed placeholder convention used for
 // non-production bundled content fixtures, never real amaliyah text.

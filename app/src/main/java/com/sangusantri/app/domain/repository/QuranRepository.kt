@@ -2,6 +2,7 @@ package com.sangusantri.app.domain.repository
 
 import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranPreparationResult
+import com.sangusantri.app.domain.model.QuranReadingPage
 import com.sangusantri.app.domain.model.QuranReadingSession
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
@@ -52,6 +53,10 @@ interface QuranRepository {
     fun observeReadingState(): Flow<QuranReadingState?>
 
     fun observeReadingSessions(): Flow<List<QuranReadingSession>>
+
+    /** Every mushaf page a reading session touched, with when it was read — Amalan Harian's
+     * "3 halaman" target counts distinct pages per day from this (never an estimate). */
+    fun observeReadingPages(): Flow<List<QuranReadingPage>>
 
     suspend fun hasLocalDataset(): Boolean
 

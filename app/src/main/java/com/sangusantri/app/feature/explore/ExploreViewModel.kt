@@ -3,15 +3,18 @@ package com.sangusantri.app.feature.explore
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.domain.model.matchesSearch
 import com.sangusantri.app.domain.repository.ContentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ExploreViewModel
 @Inject
@@ -22,29 +25,29 @@ constructor(
     private val query = savedStateHandle.getStateFlow(QUERY_KEY, "")
     private val selectedCategory = savedStateHandle.getStateFlow<String?>(CATEGORY_KEY, null)
 
-    // Sholawat (0.0.8) has its own list + reader (feature/sholawat), deliberately not Jelajahi
-    // Amaliyah — see docs/product/SHOLAWAT_PRD.md.
-    private val amaliyahContent =
-        contentRepository.observeActiveContent().map { items ->
-            items.filterNot { it.isSholawat }
-        }
-
     val uiState: StateFlow<ExploreUiState> =
-        combine(amaliyahContent, query, selectedCategory) { items, searchQuery, category ->
-            val categories = items.mapNotNull { it.category?.takeIf(String::isNotBlank) }.distinct()
+        combine(
+            contentRepository.observeActiveContent(),
+            query,
+            selectedCategory,
+            query.flatMapLatest(contentRepository::observeContentIdsMatchingStepText),
+        ) { items, searchQuery, category, stepMatchedIds ->
+            // Sholawat (0.0.8) has its own list + reader (feature/sholawat), so Jelajahi *browses*
+            // amaliyah only — but a search from Beranda reaches the whole catalogue: typing a
+            // sholawat title into the app's one search box and getting nothing was the confusing
+            // part, not seeing it listed here.
+            val amaliyah = items.filterNot { it.isSholawat }
+            val searchable = if (searchQuery.isBlank()) amaliyah else items
+            val categories = amaliyah.mapNotNull { it.category?.takeIf(String::isNotBlank) }.distinct()
             val effectiveCategory = category?.takeIf(categories::contains)
+            val matchedIds = stepMatchedIds.toSet()
             val filteredItems =
-                items.filter { item ->
+                searchable.filter { item ->
                     val matchesCategory = effectiveCategory == null || item.category == effectiveCategory
-                    val matchesQuery =
-                        searchQuery.isBlank() ||
-                            item.title.contains(searchQuery, ignoreCase = true) ||
-                            item.description.contains(searchQuery, ignoreCase = true) ||
-                            item.category?.contains(searchQuery, ignoreCase = true) == true
-                    matchesCategory && matchesQuery
+                    matchesCategory && item.matchesSearch(searchQuery, matchedIds)
                 }
             ExploreUiState.ContentReady(
-                items = items,
+                items = amaliyah,
                 filteredItems = filteredItems,
                 categories = categories,
                 query = searchQuery,

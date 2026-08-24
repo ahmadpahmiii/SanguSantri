@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.data.sync.ContentSyncManager
+import com.sangusantri.app.domain.model.AmalanHarian
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.CityDetection
@@ -18,6 +19,7 @@ import com.sangusantri.app.domain.repository.NahwuQuizRepository
 import com.sangusantri.app.domain.repository.PrayerScheduleRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
+import com.sangusantri.app.domain.usecase.ObserveAmalanHarianUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +60,7 @@ constructor(
     kiblatRepository: KiblatRepository,
     private val resumeCoordinator: SerambiResumeCoordinator,
     private val contentSyncManager: ContentSyncManager,
+    observeAmalanHarian: ObserveAmalanHarianUseCase,
 ) : ViewModel() {
     // Sholawat (0.0.8) deliberately has its own list + reader (feature/sholawat), not the
     // Full/Guided Amaliyah reader Beranda's featured section and resume widget route through — so
@@ -115,7 +118,10 @@ constructor(
             ) { date, _ -> date }.map { ayatHariIniRepository.forDate(it) },
             kiblatRepository.observeDirection().map { it?.bearingDegrees },
             settingsRepository.observe().map { it.arabicFont }.distinctUntilChanged(),
-        ) { ayat, bearing, arabicFont -> HeaderData(ayat, bearing, arabicFont) }
+            // Rides along with the header rather than taking a sixth slot in the state combine
+            // below: the streak pill is part of the header band, above the prayer block.
+            observeAmalanHarian(),
+        ) { ayat, bearing, arabicFont, amalan -> HeaderData(ayat, bearing, arabicFont, amalan) }
 
     val uiState: StateFlow<SerambiUiState> =
         combine(
@@ -137,6 +143,7 @@ constructor(
                 ayatHariIni = header.ayatHariIni,
                 kiblatBearingDegrees = header.kiblatBearingDegrees,
                 arabicFont = header.arabicFont,
+                amalan = header.amalan,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -244,6 +251,7 @@ constructor(
         val ayatHariIni: AyatHariIni?,
         val kiblatBearingDegrees: Float?,
         val arabicFont: QuranArabicFont,
+        val amalan: AmalanHarian,
     )
 
     private data class BaseData(

@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.home
 
+import com.sangusantri.app.domain.model.AmalanHarian
 import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.PrayerSchedule
@@ -34,6 +35,9 @@ sealed interface SerambiUiState {
         /** The app-wide Arabic typeface, so the ayah header and its share card match the readers
          * rather than pinning a second face of their own. */
         val arabicFont: QuranArabicFont = QuranArabicFont.LPMQ_ISEP_MISBAH,
+        /** Today's two amalan and the streak they feed; `null` only until the first emission. The
+         * pill then renders in every state, including zero — unlike every other Beranda section. */
+        val amalan: AmalanHarian? = null,
     ) : SerambiUiState {
         val featuredItems: List<Content> get() = items.take(MAX_FEATURED_ITEMS)
 

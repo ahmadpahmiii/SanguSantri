@@ -20,6 +20,15 @@ sealed interface TasbihUiAction {
         val name: String?,
     ) : TasbihUiAction
 
-    /** Confirmed via a dialog in the UI layer — the ViewModel never resets without confirmation. */
-    data object ResetSession : TasbihUiAction
+    /**
+     * Start the same target over from zero after it was reached. The finished round is already in
+     * Riwayat by this point, so this discards nothing.
+     */
+    data object RepeatRound : TasbihUiAction
+
+    /**
+     * End the session: archive it to Riwayat and clear the counter. Confirmed via a dialog in the
+     * UI layer — the ViewModel never ends a session without confirmation.
+     */
+    data object FinishSession : TasbihUiAction
 }

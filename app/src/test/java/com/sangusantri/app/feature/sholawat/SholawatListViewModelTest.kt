@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.sholawat
 
+import androidx.lifecycle.SavedStateHandle
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.repository.ContentRepository
@@ -23,7 +24,11 @@ class SholawatListViewModelTest {
     @Test
     fun uiStateStartsAsLoadingBeforeRepositoryEmits() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = SholawatListViewModel(FakeListContentRepository(flowOf(listOf(sholawatNariyah))))
+            val viewModel =
+                SholawatListViewModel(
+                    FakeListContentRepository(flowOf(listOf(sholawatNariyah))),
+                    SavedStateHandle(),
+                )
 
             assertEquals(SholawatListUiState.Loading, viewModel.uiState.value)
         }
@@ -32,7 +37,10 @@ class SholawatListViewModelTest {
     fun onlyShalawatCategoryItemsAreListed() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel =
-                SholawatListViewModel(FakeListContentRepository(flowOf(listOf(sholawatNariyah, tahlil))))
+                SholawatListViewModel(
+                    FakeListContentRepository(flowOf(listOf(sholawatNariyah, tahlil))),
+                    SavedStateHandle(),
+                )
 
             val collected = mutableListOf<SholawatListUiState>()
             val job = launch { viewModel.uiState.toList(collected) }
@@ -64,6 +72,8 @@ private class FakeListContentRepository(
     private val content: Flow<List<Content>>,
 ) : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = content
+
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content? = null
 

@@ -123,6 +123,8 @@ private class FakeReaderContentRepository(
 ) : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
 
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
+
     override suspend fun getContentById(contentId: String): Content? = detail?.content
 
     override suspend fun getContentDetail(contentId: String): ContentDetail? = detail

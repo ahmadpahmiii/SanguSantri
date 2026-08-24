@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,7 +36,9 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 import com.sangusantri.app.domain.model.TasbihTargetPreset
 import com.sangusantri.app.feature.tasbih.components.CustomTasbihTargetDialog
+import com.sangusantri.app.feature.tasbih.components.TasbihActiveCounter
 import com.sangusantri.app.feature.tasbih.components.TasbihAutosaveCaption
+import com.sangusantri.app.feature.tasbih.components.TasbihCompletionPanel
 import com.sangusantri.app.feature.tasbih.components.TasbihCounter
 import com.sangusantri.app.feature.tasbih.components.TasbihCounterTone
 import com.sangusantri.app.feature.tasbih.components.TasbihRestoredIndicatorRow
@@ -78,10 +80,10 @@ fun TasbihScreen(
                 title = { Text(text = stringResource(R.string.tasbih_title)) },
                 actions = {
                     if (currentCount > 0) {
-                        IconButton(onClick = { activeDialog = TasbihDialog.RESET_CONFIRMATION }) {
+                        IconButton(onClick = { activeDialog = TasbihDialog.FINISH_CONFIRMATION }) {
                             Icon(
-                                imageVector = Icons.Filled.RestartAlt,
-                                contentDescription = stringResource(R.string.tasbih_reset_action),
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = stringResource(R.string.tasbih_finish_action),
                             )
                         }
                     }
@@ -140,7 +142,7 @@ private fun TasbihScreenContent(
                         onAction = onAction,
                         onHistoryClick = onHistoryClick,
                         onCustomTargetRequested = { onRequestDialog(TasbihDialog.CUSTOM_TARGET) },
-                        onResetRequested = { onRequestDialog(TasbihDialog.RESET_CONFIRMATION) },
+                        onFinishRequested = { onRequestDialog(TasbihDialog.FINISH_CONFIRMATION) },
                     )
             }
         }
@@ -166,18 +168,19 @@ private fun TasbihScreenDialogs(
                 },
             )
 
-        TasbihDialog.RESET_CONFIRMATION ->
+        TasbihDialog.FINISH_CONFIRMATION ->
             ConfirmationDialog(
                 text =
                     ConfirmationDialogText(
-                        title = stringResource(R.string.tasbih_reset_dialog_title),
-                        message = stringResource(R.string.tasbih_reset_dialog_message, currentCount),
-                        confirmLabel = stringResource(R.string.tasbih_reset_dialog_confirm_action),
-                        cancelLabel = stringResource(R.string.tasbih_reset_dialog_cancel_action),
+                        title = stringResource(R.string.tasbih_finish_dialog_title),
+                        message = stringResource(R.string.tasbih_finish_dialog_message, currentCount),
+                        confirmLabel = stringResource(R.string.tasbih_finish_dialog_confirm_action),
+                        cancelLabel = stringResource(R.string.tasbih_finish_dialog_cancel_action),
                     ),
-                isDestructive = true,
+                // Nothing is discarded any more — the count is archived, so this is not destructive.
+                isDestructive = false,
                 onConfirm = {
-                    onAction(TasbihUiAction.ResetSession)
+                    onAction(TasbihUiAction.FinishSession)
                     onDismiss()
                 },
                 onDismiss = onDismiss,
@@ -213,7 +216,7 @@ private fun TasbihNoSessionContent(
         onCustomRequested = onCustomTargetRequested,
     )
     TasbihAutosaveCaption()
-    TasbihSecondaryActions(showReset = false, onResetClick = {}, onHistoryClick = onHistoryClick)
+    TasbihSecondaryActions(showFinish = false, onFinishClick = {}, onHistoryClick = onHistoryClick)
 }
 
 @Composable
@@ -222,7 +225,7 @@ private fun TasbihActiveContent(
     onAction: (TasbihUiAction) -> Unit,
     onHistoryClick: () -> Unit,
     onCustomTargetRequested: () -> Unit,
-    onResetRequested: () -> Unit,
+    onFinishRequested: () -> Unit,
 ) {
     TasbihSessionNameField(
         sessionName = state.sessionName,
@@ -234,33 +237,19 @@ private fun TasbihActiveContent(
     TasbihTargetHeaderLabel()
     TasbihTargetHeaderValue(state)
 
-    val tone = if (state.isTargetReached) TasbihCounterTone.TARGET_REACHED else TasbihCounterTone.COUNTING
-    val targetShortText = state.targetValue?.toString() ?: stringResource(R.string.tasbih_target_unlimited_short)
-    val statusText =
-        if (state.isTargetReached) {
-            stringResource(R.string.tasbih_status_target_reached)
-        } else {
-            stringResource(R.string.tasbih_status_counting)
-        }
-    TasbihCounter(
+    TasbihActiveCounter(
         count = state.currentCount,
-        tone = tone,
-        stateDescription =
-            stringResource(
-                R.string.tasbih_counter_state_description,
-                state.currentCount,
-                targetShortText,
-                statusText,
-            ),
+        targetValue = state.targetValue,
+        isTargetReached = state.isTargetReached,
         onTap = { onAction(TasbihUiAction.IncrementCounter) },
-        targetLabel =
-            state.targetValue?.let { stringResource(R.string.tasbih_counter_of_target, it) },
     )
-    Text(
-        text = stringResource(R.string.tasbih_counter_tap_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    if (state.isTargetReached) {
+        TasbihCompletionPanel(
+            finalCount = state.currentCount,
+            onRepeat = { onAction(TasbihUiAction.RepeatRound) },
+            onHistoryClick = onHistoryClick,
+        )
+    }
     TasbihTargetSelector(
         selectedPreset = state.targetPreset,
         onPresetSelected = { onAction(TasbihUiAction.SelectPreset(it)) },
@@ -268,8 +257,8 @@ private fun TasbihActiveContent(
     )
     TasbihAutosaveCaption()
     TasbihSecondaryActions(
-        showReset = state.currentCount > 0,
-        onResetClick = onResetRequested,
+        showFinish = state.currentCount > 0,
+        onFinishClick = onFinishRequested,
         onHistoryClick = onHistoryClick,
     )
 }

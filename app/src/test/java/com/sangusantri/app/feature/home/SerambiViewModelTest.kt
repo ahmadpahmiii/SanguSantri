@@ -24,6 +24,7 @@ import com.sangusantri.app.domain.model.QuranDisplayMode
 import com.sangusantri.app.domain.model.QuranMurottalSpeed
 import com.sangusantri.app.domain.model.QuranPreparationResult
 import com.sangusantri.app.domain.model.QuranReaderSettings
+import com.sangusantri.app.domain.model.QuranReadingPage
 import com.sangusantri.app.domain.model.QuranReadingSession
 import com.sangusantri.app.domain.model.QuranReadingState
 import com.sangusantri.app.domain.model.QuranSurah
@@ -36,6 +37,7 @@ import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.model.TasbihHistoryEntry
 import com.sangusantri.app.domain.model.TasbihSession
 import com.sangusantri.app.domain.model.TasbihTargetPreset
+import com.sangusantri.app.domain.repository.AmalanRepository
 import com.sangusantri.app.domain.repository.AyatHariIniRepository
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
@@ -48,6 +50,7 @@ import com.sangusantri.app.domain.repository.QuranRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
 import com.sangusantri.app.domain.repository.TasbihRepository
+import com.sangusantri.app.domain.usecase.ObserveAmalanHarianUseCase
 import com.sangusantri.app.testing.stubContentApiService
 import com.sangusantri.app.testing.stubContentImporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -153,6 +156,12 @@ class SerambiViewModelTest {
                     homePreferencesRepository = FakeHomePreferencesRepository(),
                 ),
             contentSyncManager = FakeContentSyncManager(),
+            observeAmalanHarian =
+                ObserveAmalanHarianUseCase(
+                    tasbihRepository = FakeTasbihRepository(),
+                    quranRepository = FakeQuranRepository(),
+                    amalanRepository = FakeAmalanRepository(),
+                ),
         )
 
     private companion object {
@@ -183,6 +192,8 @@ private class FakeContentRepository(
     private val content: Flow<List<Content>>,
 ) : ContentRepository {
     override fun observeActiveContent(): Flow<List<Content>> = content
+
+    override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content? = null
 
@@ -253,6 +264,18 @@ private class FakeNahwuQuizRepository : NahwuQuizRepository {
     ): Int? = null
 }
 
+private class FakeAmalanRepository : AmalanRepository {
+    override fun observeUdzurDates(): Flow<Set<LocalDate>> = flowOf(emptySet())
+
+    override fun observeUdzurActive(): Flow<Boolean> = flowOf(false)
+
+    override suspend fun setUdzurActive(active: Boolean) = Unit
+
+    override fun observeCelebratedMilestones(): Flow<Set<Int>> = flowOf(emptySet())
+
+    override suspend fun markMilestoneCelebrated(streakDays: Int) = Unit
+}
+
 private class FakeQuranRepository : QuranRepository {
     override fun observeSurahs(): Flow<List<QuranSurah>> = flowOf(emptyList())
 
@@ -280,6 +303,8 @@ private class FakeQuranRepository : QuranRepository {
     override fun observeReadingState(): Flow<QuranReadingState?> = flowOf(null)
 
     override fun observeReadingSessions(): Flow<List<QuranReadingSession>> = flowOf(emptyList())
+
+    override fun observeReadingPages(): Flow<List<QuranReadingPage>> = flowOf(emptyList())
 
     override suspend fun hasLocalDataset(): Boolean = false
 

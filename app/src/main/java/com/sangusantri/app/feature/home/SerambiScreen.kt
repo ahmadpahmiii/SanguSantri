@@ -196,6 +196,21 @@ private fun SerambiDashboard(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = SanguSantriSpacing.large),
         ) {
+            uiState.amalan?.let { amalan ->
+                item(key = "amalan") {
+                    BerandaAmalanPill(
+                        state = amalan,
+                        onClick = actions.onAmalanClick,
+                        modifier =
+                            Modifier.padding(
+                                start = BerandaHorizontalPadding,
+                                end = BerandaHorizontalPadding,
+                                bottom = SanguSantriSpacing.medium,
+                            ),
+                    )
+                }
+            }
+
             uiState.ayatHariIni?.let { ayat ->
                 item(key = "ayat") {
                     BerandaAyatHariIni(

@@ -16,9 +16,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
@@ -96,10 +93,9 @@ fun SholawatBaytRow(
         if (showTranslation) {
             Spacer(modifier = Modifier.height(SanguSantriSpacing.small))
             // LTR, so each Indonesian line starts at its own cell's left edge — but the cells are
-            // still ordered to sit under the hemistich they translate, which in an RTL bait means
-            // the *second* hemistich is on the left. The ordinals are what make that legible:
-            // Arabic reads right to left and Indonesian left to right, so without a marker readers
-            // pair the wrong halves.
+            // ordered to sit under the hemistich they translate, which in an RTL bait puts the
+            // *second* hemistich on the left. Column position alone carries the pairing; there is
+            // deliberately no ordinal or other prefix on the text.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
@@ -108,14 +104,12 @@ fun SholawatBaytRow(
                     Spacer(modifier = Modifier.weight(1f))
                 } else {
                     HemistichTranslation(
-                        ordinal = 2,
                         text = ajuz.translation,
                         settings = settings,
                         modifier = Modifier.weight(1f),
                     )
                 }
                 HemistichTranslation(
-                    ordinal = 1,
                     text = sadr.translation,
                     settings = settings,
                     modifier = Modifier.weight(1f),
@@ -153,24 +147,12 @@ private fun Hemistich(
 
 @Composable
 private fun HemistichTranslation(
-    ordinal: Int,
     text: String,
     settings: ReaderSettings,
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text =
-            buildAnnotatedString {
-                withStyle(
-                    SpanStyle(
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontSize = (settings.translationFontSizeSp * ORDINAL_SIZE_RATIO).sp,
-                    ),
-                ) {
-                    append("$ordinal ")
-                }
-                append(text)
-            },
+        text = text,
         style =
             translationTextStyle(
                 fontSizeSp = settings.translationFontSizeSp,
@@ -204,6 +186,3 @@ private const val HEMISTICH_MIN_SIZE_RATIO = 0.62f
 
 /** Two lines, because a hemistich that needs three in half a screen is not a hemistich. */
 private const val HEMISTICH_MAX_LINES = 2
-
-/** The 1/2 marker rides the translation size so it stays a marker, never a second sentence. */
-private const val ORDINAL_SIZE_RATIO = 0.7f

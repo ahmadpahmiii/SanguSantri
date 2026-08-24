@@ -16,6 +16,8 @@ import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
+import com.sangusantri.app.testing.stubContentApiService
+import com.sangusantri.app.testing.stubContentImporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -195,13 +197,8 @@ private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository 
 
 private class FakeContentDetailSyncManager :
     ContentDetailSyncManager(
-        api = object : com.sangusantri.app.data.remote.api.ContentApiService {
-            override suspend fun getSholawatList() = TODO()
-            override suspend fun getAmaliyahList() = TODO()
-            override suspend fun getSholawatDetail(id: String) = TODO()
-            override suspend fun getAmaliyahDetail(id: String) = TODO()
-        },
-        contentImporter = com.sangusantri.app.data.content.ContentImporter(error("stub")),
+        api = stubContentApiService(),
+        contentImporter = stubContentImporter(),
     ) {
     override suspend fun refresh(
         contentId: String,

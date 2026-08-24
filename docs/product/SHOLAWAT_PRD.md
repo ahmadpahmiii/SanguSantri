@@ -163,9 +163,9 @@ for this milestone.
   and renders in the **left**, separated by a ✻ ornament. The pairing comes
   from `LayoutDirection.Rtl` placing the first child at the right edge, not
   from position arithmetic. When the translation is shown, each hemistich's
-  translation sits under that hemistich, in LTR cells prefixed with a small
-  `1`/`2` ordinal — Arabic reads right-to-left and Indonesian left-to-right,
-  so without the marker readers pair the wrong halves.
+  translation sits under that hemistich, in two LTR `weight(1f)` cells at
+  `translationTextStyle()`'s existing default size. **Column position alone
+  carries the pairing** — no ordinal markers or other prefixes.
 * **FR-SHL-011** An item flagged `bayt` with an **odd** step count renders
   its final hemistich alone in the right column, with an empty left cell.
   No step is ever dropped and the reader never crashes. This is a content

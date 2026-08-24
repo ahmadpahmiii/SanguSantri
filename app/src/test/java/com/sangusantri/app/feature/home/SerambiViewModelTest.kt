@@ -1,6 +1,5 @@
 package com.sangusantri.app.feature.home
 
-import com.sangusantri.app.data.content.ContentImporter
 import com.sangusantri.app.data.sync.ContentSyncManager
 import com.sangusantri.app.data.sync.SyncResult
 import com.sangusantri.app.domain.model.AppThemeMode
@@ -49,6 +48,8 @@ import com.sangusantri.app.domain.repository.QuranRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
 import com.sangusantri.app.domain.repository.TasbihRepository
+import com.sangusantri.app.testing.stubContentApiService
+import com.sangusantri.app.testing.stubContentImporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -407,13 +408,8 @@ private class FakePrayerScheduleRepository : PrayerScheduleRepository {
 
 private class FakeContentSyncManager :
     ContentSyncManager(
-        api = object : com.sangusantri.app.data.remote.api.ContentApiService {
-            override suspend fun getSholawatList() = TODO()
-            override suspend fun getAmaliyahList() = TODO()
-            override suspend fun getSholawatDetail(id: String) = TODO()
-            override suspend fun getAmaliyahDetail(id: String) = TODO()
-        },
-        contentImporter = ContentImporter(error("stub")),
+        api = stubContentApiService(),
+        contentImporter = stubContentImporter(),
     ) {
     override suspend fun sync(): SyncResult = SyncResult.Completed(emptyList(), emptyList(), emptyList())
 }

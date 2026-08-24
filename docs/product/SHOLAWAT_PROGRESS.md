@@ -190,7 +190,7 @@ Manual on-device verification (Pixel 9 emulator, fresh install, real published
 content from the production CMS): `salamun-salam` renders two-column with
 reading order right-then-left per row; Room stores `layout = BAYT` with its 32
 steps while `tahlil`/`istighosah` stay `STACKED`; the translation toggle puts
-each translation under its own hemistich with `1`/`2` ordinals; at font scale
+each translation under its own hemistich (column position alone, no markers); at font scale
 `1.5` the reader falls back to stacked full-width rows and honours the larger
 scale rather than shrinking the Arabic back down.
 
@@ -281,4 +281,25 @@ force-stop and relaunch (confirmed against the DataStore file, which carries
 * `ReaderSettings` now carries two Sholawat-only fields. That is the accepted
   cost of one shared preference store; if a third reader ever wants its own
   display switches, the store should be split rather than grown again.
+
+---
+
+## 2026-08-24 (later still) — Ordinal markers removed from bait translations
+
+The `1` / `2` prefixes on the two translation cells are gone, per the approved
+design: the translation already sits directly under the hemistich it belongs
+to, so **column position alone carries the pairing** and the markers were
+redundant chrome. `HemistichTranslation` is now a plain `Text` at
+`translationTextStyle()`'s existing default size — the `buildAnnotatedString`
+wrapper, the tertiary-coloured span and the `ORDINAL_SIZE_RATIO` constant all
+went with them.
+
+Also in this pass: the shared Arabic type scale moved to the product owner's
+numbers — **minimum 16sp** (was 20sp) and **default 22sp** (was 28sp), applying
+to the Amaliyah readers as well as Sholawat since they share `ReaderSettings`.
+The bait auto-size floor is now clamped at `MIN_ARABIC_FONT_SIZE_SP` so a long
+hemistich can never shrink below the smallest size the reader offers anywhere.
+
+`assembleDebug` ✅ · `lint` ✅ · `testDebugUnitTest` 211 run, 0 failed ·
+`detekt`/`ktlintCheck` clean in changed files.
 

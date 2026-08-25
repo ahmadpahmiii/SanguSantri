@@ -16,28 +16,28 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ActivityViewModel
-    @Inject
-    constructor(
-        observeActivityOverview: ObserveActivityOverviewUseCase,
-        observeAmalanHarian: ObserveAmalanHarianUseCase,
-        private val amalanRepository: AmalanRepository,
-    ) : ViewModel() {
-        val uiState: StateFlow<ActivityUiState> =
-            combine(
-                observeActivityOverview(),
-                observeAmalanHarian(),
-                amalanRepository.observeCelebratedMilestones(),
-            ) { overview, amalan, celebrated ->
-                ActivityUiState.Content(
-                    overview = overview,
-                    amalan = amalan,
-                    pendingMilestone = amalan.pendingMilestone(celebrated),
-                )
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = ActivityUiState.Loading,
+@Inject
+constructor(
+    observeActivityOverview: ObserveActivityOverviewUseCase,
+    observeAmalanHarian: ObserveAmalanHarianUseCase,
+    private val amalanRepository: AmalanRepository,
+) : ViewModel() {
+    val uiState: StateFlow<ActivityUiState> =
+        combine(
+            observeActivityOverview(),
+            observeAmalanHarian(),
+            amalanRepository.observeCelebratedMilestones(),
+        ) { overview, amalan, celebrated ->
+            ActivityUiState.Content(
+                overview = overview,
+                amalan = amalan,
+                pendingMilestone = amalan.pendingMilestone(celebrated),
             )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = ActivityUiState.Loading,
+        )
 
     fun setUdzur(active: Boolean) {
         viewModelScope.launch { amalanRepository.setUdzurActive(active) }
@@ -53,7 +53,7 @@ class ActivityViewModel
         }
     }
 
-        private companion object {
-            const val STOP_TIMEOUT_MILLIS = 5_000L
-        }
+    private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
     }
+}

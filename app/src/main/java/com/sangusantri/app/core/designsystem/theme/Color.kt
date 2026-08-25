@@ -115,6 +115,12 @@ val SantriBlockChipTextDark = SantriOnTintDark
 val SantriEmberLight = Color(0xFFB4571B)
 val SantriEmberDark = Color(0xFFE8A16A)
 
+// Spiritual Gold accent roles — qasidah hemistich separators (۞), badges, and rating stars.
+val SantriGoldLight = Color(0xFFD4AF37)
+val SantriGoldDark = Color(0xFFE5B842)
+val SantriGoldContainerLight = Color(0xFFFFF8E7)
+val SantriGoldContainerDark = Color(0xFF382E12)
+
 val SantriError40 = Color(0xFFBA1A1A)
 val SantriError80 = Color(0xFFFFB4AB)
 val SantriError90 = Color(0xFFFFDAD6)

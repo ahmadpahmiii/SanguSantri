@@ -33,15 +33,15 @@ constructor(
             query.flatMapLatest(contentRepository::observeContentIdsMatchingStepText),
         ) { items, searchQuery, stepMatchedIds ->
             val matchedIds = stepMatchedIds.toSet()
-                SholawatListUiState.ContentReady(
-                    items = items.filter { it.isSholawat && it.matchesSearch(searchQuery, matchedIds) },
-                    query = searchQuery,
-                )
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = SholawatListUiState.Loading,
+            SholawatListUiState.ContentReady(
+                items = items.filter { it.isSholawat && it.matchesSearch(searchQuery, matchedIds) },
+                query = searchQuery,
             )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = SholawatListUiState.Loading,
+        )
 
     fun setQuery(value: String) {
         savedStateHandle[QUERY_KEY] = value

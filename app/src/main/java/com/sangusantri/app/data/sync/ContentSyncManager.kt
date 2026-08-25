@@ -28,81 +28,81 @@ import javax.inject.Inject
  * All writes go through [ContentImporter] — this class never touches a content table directly.
  */
 open class ContentSyncManager
-    @Inject
-    constructor(
-        private val api: ContentApiService,
-        private val contentImporter: ContentImporter,
-    ) {
+@Inject
+constructor(
+    private val api: ContentApiService,
+    private val contentImporter: ContentImporter,
+) {
     open suspend fun sync(): SyncResult =
-            withContext(Dispatchers.IO) {
-                // Both listings are fetched before anything is written. A half-fetched sync must not
-                // deactivate the half it never saw, and aborting early leaves Room exactly as it was.
-                when (val sholawat = fetchList("sholawat") { api.getSholawatList() }) {
-                    is ListOutcome.Failure -> sholawat.result
-                    is ListOutcome.Success ->
-                        when (val amaliyah = fetchList("amaliyah") { api.getAmaliyahList() }) {
-                            is ListOutcome.Failure -> amaliyah.result
-                            is ListOutcome.Success ->
-                                importAll(sholawat.response.items + amaliyah.response.items)
-                        }
-                }
+        withContext(Dispatchers.IO) {
+            // Both listings are fetched before anything is written. A half-fetched sync must not
+            // deactivate the half it never saw, and aborting early leaves Room exactly as it was.
+            when (val sholawat = fetchList("sholawat") { api.getSholawatList() }) {
+                is ListOutcome.Failure -> sholawat.result
+                is ListOutcome.Success ->
+                    when (val amaliyah = fetchList("amaliyah") { api.getAmaliyahList() }) {
+                        is ListOutcome.Failure -> amaliyah.result
+                        is ListOutcome.Success ->
+                            importAll(sholawat.response.items + amaliyah.response.items)
+                    }
             }
+        }
 
     private suspend fun fetchList(
         name: String,
         call: suspend () -> Response<ContentListResponseDto>,
     ): ListOutcome =
-            try {
-                toListOutcome(name, call())
-            } catch (io: IOException) {
-                Log.w(TAG, "$name list fetch failed", io)
-                ListOutcome.Failure(SyncResult.RetryableFailure("$name network error"))
-            } catch (malformed: SerializationException) {
-                Log.w(TAG, "$name list fetch failed", malformed)
-                ListOutcome.Failure(SyncResult.PermanentFailure("malformed $name body"))
-            }
-
-        @Suppress("ReturnCount")
-        private fun toListOutcome(
-            name: String,
-            response: Response<ContentListResponseDto>,
-        ): ListOutcome {
-            if (!response.isSuccessful) {
-                return ListOutcome.Failure(classifyHttpFailure(response.code(), source = name))
-            }
-            val body =
-                response.body() ?: return ListOutcome.Failure(SyncResult.PermanentFailure("empty $name body"))
-            val validation = ContentValidator.validateList(body)
-            if (validation is ContentValidation.Invalid) {
-                return ListOutcome.Failure(SyncResult.PermanentFailure("invalid $name: ${validation.reason}"))
-            }
-            return ListOutcome.Success(body)
+        try {
+            toListOutcome(name, call())
+        } catch (io: IOException) {
+            Log.w(TAG, "$name list fetch failed", io)
+            ListOutcome.Failure(SyncResult.RetryableFailure("$name network error"))
+        } catch (malformed: SerializationException) {
+            Log.w(TAG, "$name list fetch failed", malformed)
+            ListOutcome.Failure(SyncResult.PermanentFailure("malformed $name body"))
         }
 
-        private fun classifyHttpFailure(
-            code: Int,
-            source: String,
-        ): SyncResult =
-            if (isRetryableHttpStatus(code)) {
-                SyncResult.RetryableFailure("$source HTTP $code")
-            } else {
-                SyncResult.PermanentFailure("$source HTTP $code")
-            }
+    @Suppress("ReturnCount")
+    private fun toListOutcome(
+        name: String,
+        response: Response<ContentListResponseDto>,
+    ): ListOutcome {
+        if (!response.isSuccessful) {
+            return ListOutcome.Failure(classifyHttpFailure(response.code(), source = name))
+        }
+        val body =
+            response.body() ?: return ListOutcome.Failure(SyncResult.PermanentFailure("empty $name body"))
+        val validation = ContentValidator.validateList(body)
+        if (validation is ContentValidation.Invalid) {
+            return ListOutcome.Failure(SyncResult.PermanentFailure("invalid $name: ${validation.reason}"))
+        }
+        return ListOutcome.Success(body)
+    }
+
+    private fun classifyHttpFailure(
+        code: Int,
+        source: String,
+    ): SyncResult =
+        if (isRetryableHttpStatus(code)) {
+            SyncResult.RetryableFailure("$source HTTP $code")
+        } else {
+            SyncResult.PermanentFailure("$source HTTP $code")
+        }
 
     private suspend fun importAll(items: List<ContentListItemDto>): SyncResult {
-            val updated = mutableListOf<String>()
-            val skipped = mutableListOf<String>()
-            val rejected = mutableListOf<String>()
+        val updated = mutableListOf<String>()
+        val skipped = mutableListOf<String>()
+        val rejected = mutableListOf<String>()
 
-            for (item in items) {
-                when (contentImporter.importListItem(item)) {
-                    is ContentImportOutcome.Imported, is ContentImportOutcome.Replaced -> updated += item.id
-                    is ContentImportOutcome.SkippedUpToDate, is ContentImportOutcome.SkippedOlderVersion ->
-                        skipped += item.id
+        for (item in items) {
+            when (contentImporter.importListItem(item)) {
+                is ContentImportOutcome.Imported, is ContentImportOutcome.Replaced -> updated += item.id
+                is ContentImportOutcome.SkippedUpToDate, is ContentImportOutcome.SkippedOlderVersion ->
+                    skipped += item.id
 
-                    is ContentImportOutcome.Rejected -> rejected += item.id
-                }
+                is ContentImportOutcome.Rejected -> rejected += item.id
             }
+        }
 
         // Runs only here, after both listings parsed and validated: an item missing because a
         // request failed must never be mistaken for one the CMS unpublished.
@@ -115,19 +115,19 @@ open class ContentSyncManager
     }
 
     private sealed interface ListOutcome {
-            data class Success(
-                val response: ContentListResponseDto,
-            ) : ListOutcome
+        data class Success(
+            val response: ContentListResponseDto,
+        ) : ListOutcome
 
-            data class Failure(
-                val result: SyncResult,
-            ) : ListOutcome
-        }
-
-        private companion object {
-            const val TAG = "ContentSyncManager"
-        }
+        data class Failure(
+            val result: SyncResult,
+        ) : ListOutcome
     }
+
+    private companion object {
+        const val TAG = "ContentSyncManager"
+    }
+}
 
 /** HTTP statuses worth retrying the whole sync for: request timeout, rate limiting, and any
  * server error. A pure top-level function so it is directly JVM-unit-testable without

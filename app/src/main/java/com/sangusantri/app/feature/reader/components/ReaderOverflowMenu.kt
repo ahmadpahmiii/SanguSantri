@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -33,13 +34,7 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriShapes
 /**
  * Shared reader top-bar overflow menu (Milestone 5 FR-016, design product-alignment pass nodes
  * `16:2`/`16:45`): reader appearance settings (moved here from a standalone top-bar icon —
- * decision F) and a compact source-attribution dialog. Mode switching left this menu when the
- * always-visible [ReaderModeToggle] took over — a menu made the Panduan → Lengkap direction a
- * two-step action while the reverse was one tap. Source attribution
- * is always shown, truthfully, for every content item (PRD 6.5); ADR 0015 dropped the separate
- * religious-authority approval object from the Android model, so this menu no longer has an
- * "Approved by" line to show — only the source name remains. Deliberately not visually dominant —
- * an overflow action, never a bottom navigation bar or a card.
+ * decision F), Table of Contents, and a compact source-attribution dialog.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +42,7 @@ fun ReaderOverflowMenu(
     onOpenSettings: () -> Unit,
     sourceName: String,
     modifier: Modifier = Modifier,
+    onOpenToc: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showSourceInfo by remember { mutableStateOf(false) }
@@ -60,6 +56,7 @@ fun ReaderOverflowMenu(
 
     ReaderOverflowDropdown(
         onOpenSettings = onOpenSettings,
+        onOpenToc = onOpenToc,
         expanded = expanded,
         onDismiss = { expanded = false },
         onOpenSource = {
@@ -77,6 +74,7 @@ fun ReaderOverflowMenu(
 @Composable
 private fun ReaderOverflowDropdown(
     onOpenSettings: () -> Unit,
+    onOpenToc: (() -> Unit)?,
     expanded: Boolean,
     onDismiss: () -> Unit,
     onOpenSource: () -> Unit,
@@ -88,6 +86,12 @@ private fun ReaderOverflowDropdown(
         shape = SanguSantriShapes.large,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        onOpenToc?.let { tocAction ->
+            ReaderMenuItem(stringResource(R.string.reader_toc_menu_action), Icons.Default.FormatListNumbered) {
+                onDismiss()
+                tocAction()
+            }
+        }
         ReaderMenuItem(stringResource(R.string.reader_open_settings_action), Icons.Default.Settings) {
             onDismiss()
             onOpenSettings()

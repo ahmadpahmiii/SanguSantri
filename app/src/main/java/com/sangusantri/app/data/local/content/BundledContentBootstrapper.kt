@@ -33,30 +33,30 @@ import javax.inject.Inject
  * holds (an older or already-current bundled entry never touches the asset file at all).
  */
 class BundledContentBootstrapper
-    @Inject
-    constructor(
-        @param:ApplicationContext private val context: Context,
-        private val contentImporter: ContentImporter,
-    ) {
-        private val json = Json { ignoreUnknownKeys = true }
+@Inject
+constructor(
+    @param:ApplicationContext private val context: Context,
+    private val contentImporter: ContentImporter,
+) {
+    private val json = Json { ignoreUnknownKeys = true }
 
-        suspend fun bootstrap(): List<ContentImportOutcome> =
-            withContext(Dispatchers.IO) {
-                val catalog = readCatalog()
-                when {
-                    catalog == null ->
-                        listOf(ContentImportOutcome.Rejected(null, "unable to read or parse bundled catalog.json"))
+    suspend fun bootstrap(): List<ContentImportOutcome> =
+        withContext(Dispatchers.IO) {
+            val catalog = readCatalog()
+            when {
+                catalog == null ->
+                    listOf(ContentImportOutcome.Rejected(null, "unable to read or parse bundled catalog.json"))
 
-                    else -> {
-                        val validation = ContentValidator.validateCatalog(catalog)
-                        if (validation is ContentValidation.Invalid) {
-                            listOf(ContentImportOutcome.Rejected(null, "invalid bundled catalog: ${validation.reason}"))
-                        } else {
-                            catalog.items.map { item -> evaluate(item) }
-                        }
+                else -> {
+                    val validation = ContentValidator.validateCatalog(catalog)
+                    if (validation is ContentValidation.Invalid) {
+                        listOf(ContentImportOutcome.Rejected(null, "invalid bundled catalog: ${validation.reason}"))
+                    } else {
+                        catalog.items.map { item -> evaluate(item) }
                     }
                 }
             }
+        }
 
     /**
      * The metadata refresh is gated on the version comparison, not run ahead of it.
@@ -71,50 +71,50 @@ class BundledContentBootstrapper
      * SKIP_OLDER means the local copy came from the CMS and is ahead of the bundle, so the
      * bundle is not the authority on any of its fields. IMPORT rewrites the whole row anyway.
      */
-        private suspend fun evaluate(item: ContentCatalogItemDto): ContentImportOutcome {
-            val localVersion = contentImporter.localVersion(item.id)
-            return when (decideContentVersionAction(item.version, localVersion)) {
-                ContentVersionAction.SKIP_OLDER -> ContentImportOutcome.SkippedOlderVersion(item.id, localVersion ?: 0)
-                ContentVersionAction.SKIP_UP_TO_DATE -> {
-                    contentImporter.refreshCatalogMetadata(item)
-                    ContentImportOutcome.SkippedUpToDate(item.id)
-                }
-
-                ContentVersionAction.IMPORT -> readAndImport(item)
-            }
-        }
-
-        private suspend fun readAndImport(item: ContentCatalogItemDto): ContentImportOutcome =
-            runCatching {
-                val file =
-                    json.decodeFromString<ContentFileDto>(readAsset(assetPath(item.contentUrl)).decodeToString())
-                contentImporter.importContentFile(item, file)
-            }.getOrElse {
-                ContentImportOutcome.Rejected(
-                    item.id,
-                    "unable to read bundled content file ${item.contentUrl}: ${it.message}",
-                )
+    private suspend fun evaluate(item: ContentCatalogItemDto): ContentImportOutcome {
+        val localVersion = contentImporter.localVersion(item.id)
+        return when (decideContentVersionAction(item.version, localVersion)) {
+            ContentVersionAction.SKIP_OLDER -> ContentImportOutcome.SkippedOlderVersion(item.id, localVersion ?: 0)
+            ContentVersionAction.SKIP_UP_TO_DATE -> {
+                contentImporter.refreshCatalogMetadata(item)
+                ContentImportOutcome.SkippedUpToDate(item.id)
             }
 
-        private fun readCatalog(): ContentCatalogDto? =
-            runCatching {
-                json.decodeFromString<ContentCatalogDto>(readAsset(CATALOG_FILE_NAME).decodeToString())
-            }.getOrNull()
-
-        private fun readAsset(relativePath: String): ByteArray =
-            context.assets.open("$CONTENT_ASSET_DIR/$relativePath").use {
-                it.readBytes()
-            }
-
-        /**
-         * `contentUrl` is always rooted at "/content/..." (the bundled asset path
-         * convention, ADR 0015); bundled assets are already rooted at [CONTENT_ASSET_DIR], so the
-         * leading segment is stripped to resolve the equivalent asset-relative path.
-         */
-        private fun assetPath(contentUrl: String): String = contentUrl.removePrefix("/$CONTENT_ASSET_DIR/")
-
-        private companion object {
-            const val CONTENT_ASSET_DIR = "content"
-            const val CATALOG_FILE_NAME = "catalog.json"
+            ContentVersionAction.IMPORT -> readAndImport(item)
         }
     }
+
+    private suspend fun readAndImport(item: ContentCatalogItemDto): ContentImportOutcome =
+        runCatching {
+            val file =
+                json.decodeFromString<ContentFileDto>(readAsset(assetPath(item.contentUrl)).decodeToString())
+            contentImporter.importContentFile(item, file)
+        }.getOrElse {
+            ContentImportOutcome.Rejected(
+                item.id,
+                "unable to read bundled content file ${item.contentUrl}: ${it.message}",
+            )
+        }
+
+    private fun readCatalog(): ContentCatalogDto? =
+        runCatching {
+            json.decodeFromString<ContentCatalogDto>(readAsset(CATALOG_FILE_NAME).decodeToString())
+        }.getOrNull()
+
+    private fun readAsset(relativePath: String): ByteArray =
+        context.assets.open("$CONTENT_ASSET_DIR/$relativePath").use {
+            it.readBytes()
+        }
+
+    /**
+     * `contentUrl` is always rooted at "/content/..." (the bundled asset path
+     * convention, ADR 0015); bundled assets are already rooted at [CONTENT_ASSET_DIR], so the
+     * leading segment is stripped to resolve the equivalent asset-relative path.
+     */
+    private fun assetPath(contentUrl: String): String = contentUrl.removePrefix("/$CONTENT_ASSET_DIR/")
+
+    private companion object {
+        const val CONTENT_ASSET_DIR = "content"
+        const val CATALOG_FILE_NAME = "catalog.json"
+    }
+}

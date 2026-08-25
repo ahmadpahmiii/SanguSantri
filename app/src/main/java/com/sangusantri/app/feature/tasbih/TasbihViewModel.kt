@@ -18,47 +18,47 @@ import javax.inject.Inject
  * active-session Flow, deriving the transient "restored" indicator (see [TasbihUiState.Active]). */
 @HiltViewModel
 class TasbihViewModel
-    @Inject
-    constructor(
-        private val repository: TasbihRepository,
-    ) : ViewModel() {
-        // Set once from this ViewModel instance's first non-null emission — deliberately not
-        // `rememberSaveable`/Room state, since "restored" must reset to a fresh judgement whenever a
-        // fresh ViewModel is created (new process, or the Tasbih tab's own back stack was fully
-        // exited and re-entered), matching the design spec's "shown once per cold start" intent.
-        private var restoredAnchorCaptured = false
-        private var restoredAnchorTimestamp: Long? = null
+@Inject
+constructor(
+    private val repository: TasbihRepository,
+) : ViewModel() {
+    // Set once from this ViewModel instance's first non-null emission — deliberately not
+    // `rememberSaveable`/Room state, since "restored" must reset to a fresh judgement whenever a
+    // fresh ViewModel is created (new process, or the Tasbih tab's own back stack was fully
+    // exited and re-entered), matching the design spec's "shown once per cold start" intent.
+    private var restoredAnchorCaptured = false
+    private var restoredAnchorTimestamp: Long? = null
 
-        val uiState: StateFlow<TasbihUiState> =
-            repository
-                .observeSession()
-                .map(::toUiState)
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                    initialValue = TasbihUiState.NoSession,
-                )
+    val uiState: StateFlow<TasbihUiState> =
+        repository
+            .observeSession()
+            .map(::toUiState)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                initialValue = TasbihUiState.NoSession,
+            )
 
-        fun onAction(action: TasbihUiAction) {
-            Breadcrumb.action(action)
-            when (action) {
-                TasbihUiAction.IncrementCounter ->
-                    viewModelScope.launch { repository.incrementCount() }
+    fun onAction(action: TasbihUiAction) {
+        Breadcrumb.action(action)
+        when (action) {
+            TasbihUiAction.IncrementCounter ->
+                viewModelScope.launch { repository.incrementCount() }
 
-                is TasbihUiAction.SelectPreset -> onSelectPreset(action.preset)
+            is TasbihUiAction.SelectPreset -> onSelectPreset(action.preset)
 
-                is TasbihUiAction.SetCustomTarget ->
-                    viewModelScope.launch { repository.startSession(TasbihTargetPreset.CUSTOM, action.value) }
+            is TasbihUiAction.SetCustomTarget ->
+                viewModelScope.launch { repository.startSession(TasbihTargetPreset.CUSTOM, action.value) }
 
-                is TasbihUiAction.RenameSession ->
-                    viewModelScope.launch { repository.renameSession(action.name) }
+            is TasbihUiAction.RenameSession ->
+                viewModelScope.launch { repository.renameSession(action.name) }
 
-                TasbihUiAction.RepeatRound -> onRepeatRound()
+            TasbihUiAction.RepeatRound -> onRepeatRound()
 
-                TasbihUiAction.FinishSession ->
-                    viewModelScope.launch { repository.resetSession() }
-            }
+            TasbihUiAction.FinishSession ->
+                viewModelScope.launch { repository.resetSession() }
         }
+    }
 
     /** Restarts the current target rather than picking a new one, so a custom target survives. */
     private fun onRepeatRound() {
@@ -66,37 +66,37 @@ class TasbihViewModel
         viewModelScope.launch { repository.startSession(active.targetPreset, active.targetValue) }
     }
 
-        private fun onSelectPreset(preset: TasbihTargetPreset) {
-            // CUSTOM is never dispatched via SelectPreset by the UI (it opens a dialog instead), but
-            // guard defensively rather than assume the caller always honours that contract.
-            if (preset == TasbihTargetPreset.CUSTOM) return
-            val targetValue =
-                when (preset) {
-                    TasbihTargetPreset.THIRTY_THREE -> TasbihTargetPreset.THIRTY_THREE_TARGET
-                    TasbihTargetPreset.ONE_HUNDRED -> TasbihTargetPreset.ONE_HUNDRED_TARGET
-                    TasbihTargetPreset.UNLIMITED -> null
-                    TasbihTargetPreset.CUSTOM -> return
-                }
-            viewModelScope.launch { repository.startSession(preset, targetValue) }
-        }
-
-        private fun toUiState(session: TasbihSession?): TasbihUiState {
-            if (session == null) return TasbihUiState.NoSession
-            if (!restoredAnchorCaptured) {
-                restoredAnchorCaptured = true
-                restoredAnchorTimestamp = session.updatedAtEpochMillis.takeIf { session.currentCount > 0 }
+    private fun onSelectPreset(preset: TasbihTargetPreset) {
+        // CUSTOM is never dispatched via SelectPreset by the UI (it opens a dialog instead), but
+        // guard defensively rather than assume the caller always honours that contract.
+        if (preset == TasbihTargetPreset.CUSTOM) return
+        val targetValue =
+            when (preset) {
+                TasbihTargetPreset.THIRTY_THREE -> TasbihTargetPreset.THIRTY_THREE_TARGET
+                TasbihTargetPreset.ONE_HUNDRED -> TasbihTargetPreset.ONE_HUNDRED_TARGET
+                TasbihTargetPreset.UNLIMITED -> null
+                TasbihTargetPreset.CUSTOM -> return
             }
-            return TasbihUiState.Active(
-                currentCount = session.currentCount,
-                targetValue = session.targetValue,
-                targetPreset = session.targetPreset,
-                sessionName = session.sessionName,
-                isTargetReached = session.isTargetReached,
-                isRestored = restoredAnchorTimestamp != null && session.updatedAtEpochMillis == restoredAnchorTimestamp,
-            )
-        }
-
-        private companion object {
-            const val STOP_TIMEOUT_MILLIS = 5_000L
-        }
+        viewModelScope.launch { repository.startSession(preset, targetValue) }
     }
+
+    private fun toUiState(session: TasbihSession?): TasbihUiState {
+        if (session == null) return TasbihUiState.NoSession
+        if (!restoredAnchorCaptured) {
+            restoredAnchorCaptured = true
+            restoredAnchorTimestamp = session.updatedAtEpochMillis.takeIf { session.currentCount > 0 }
+        }
+        return TasbihUiState.Active(
+            currentCount = session.currentCount,
+            targetValue = session.targetValue,
+            targetPreset = session.targetPreset,
+            sessionName = session.sessionName,
+            isTargetReached = session.isTargetReached,
+            isRestored = restoredAnchorTimestamp != null && session.updatedAtEpochMillis == restoredAnchorTimestamp,
+        )
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
+    }
+}

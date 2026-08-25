@@ -271,6 +271,8 @@
 
   <!-- Reader mode switch and source attribution (FR-016, PRD 6.5, ADR 0015) -->
   <string name="reader_overflow_content_description">Menu lainnya</string>
+  <string name="reader_toc_menu_action">Daftar isi</string>
+  <string name="reader_toc_title">Daftar Isi</string>
   <string name="reader_mode_toggle_full">Bacaan Lengkap</string>
   <string name="reader_mode_toggle_guided">Panduan</string>
   <string name="content_source_menu_action">Sumber</string>

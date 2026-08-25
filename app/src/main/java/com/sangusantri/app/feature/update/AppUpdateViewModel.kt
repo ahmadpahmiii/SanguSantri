@@ -59,7 +59,9 @@ constructor(
 
             // A previously started immediate flow was interrupted (e.g. process death) — resume
             // it directly, no need to re-evaluate the policy.
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+            if (appUpdateInfo.updateAvailability() ==
+                UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+            ) {
                 _uiState.value = AppUpdateUiState.RequireForceUpdate(appUpdateInfo)
                 return@launch
             }

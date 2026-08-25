@@ -1,5 +1,9 @@
 package com.sangusantri.app.data.content
 
+import com.sangusantri.app.data.content.ContentValidator.validateCatalog
+import com.sangusantri.app.data.content.ContentValidator.validateContentFile
+import com.sangusantri.app.data.content.ContentValidator.validateDetail
+import com.sangusantri.app.data.content.ContentValidator.validateList
 import com.sangusantri.app.data.content.dto.ContentCatalogDto
 import com.sangusantri.app.data.content.dto.ContentDetailDto
 import com.sangusantri.app.data.content.dto.ContentFileDto

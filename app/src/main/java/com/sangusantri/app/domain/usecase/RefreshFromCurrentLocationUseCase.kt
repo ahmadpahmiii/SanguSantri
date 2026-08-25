@@ -46,7 +46,7 @@ constructor(
     suspend operator fun invoke() {
         val granted =
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                    PackageManager.PERMISSION_GRANTED
+                PackageManager.PERMISSION_GRANTED
         if (!granted) return
 
         val detected = prayerScheduleRepository.detectAndSelectCity()

@@ -133,37 +133,37 @@ constructor(
         contentState.value = ContentState.Loading
         loadJob =
             viewModelScope.launch {
-                    try {
-                        val cached = contentRepository.getContentDetail(contentId)
-                        if (cached == null) {
-                            Log.w(TAG, "Sholawat content unavailable for id=$contentId: no catalogue row")
-                            contentState.value = ContentState.Unavailable
-                            return@launch
-                        }
-
-                        // Room first — the cached copy renders before any network call, and keeps
-                        // rendering if that call never succeeds. Same contract as the Amaliyah
-                        // reader; see ReaderViewModel.loadContent for the reasoning in full.
-                        if (cached.steps.isNotEmpty()) {
-                            contentState.value = ContentState.Available(cached)
-                        }
-
-                        val changed = contentDetailSyncManager.refresh(contentId, isSholawat = true)
-                        val fresh = if (changed) contentRepository.getContentDetail(contentId) else cached
-
-                        contentState.value =
-                            if (fresh == null || fresh.steps.isEmpty()) {
-                                Log.w(TAG, "Sholawat content unavailable for id=$contentId")
-                                ContentState.Unavailable
-                            } else {
-                                ContentState.Available(fresh)
-                            }
-                    } catch (cancellation: CancellationException) {
-                        throw cancellation
-                    } catch (unexpected: Exception) {
-                        Log.e(TAG, "Sholawat content load failed for id=$contentId", unexpected)
-                        contentState.value = ContentState.Error
+                try {
+                    val cached = contentRepository.getContentDetail(contentId)
+                    if (cached == null) {
+                        Log.w(TAG, "Sholawat content unavailable for id=$contentId: no catalogue row")
+                        contentState.value = ContentState.Unavailable
+                        return@launch
                     }
+
+                    // Room first — the cached copy renders before any network call, and keeps
+                    // rendering if that call never succeeds. Same contract as the Amaliyah
+                    // reader; see ReaderViewModel.loadContent for the reasoning in full.
+                    if (cached.steps.isNotEmpty()) {
+                        contentState.value = ContentState.Available(cached)
+                    }
+
+                    val changed = contentDetailSyncManager.refresh(contentId, isSholawat = true)
+                    val fresh = if (changed) contentRepository.getContentDetail(contentId) else cached
+
+                    contentState.value =
+                        if (fresh == null || fresh.steps.isEmpty()) {
+                            Log.w(TAG, "Sholawat content unavailable for id=$contentId")
+                            ContentState.Unavailable
+                        } else {
+                            ContentState.Available(fresh)
+                        }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (unexpected: Exception) {
+                    Log.e(TAG, "Sholawat content load failed for id=$contentId", unexpected)
+                    contentState.value = ContentState.Error
+                }
             }
     }
 

@@ -48,34 +48,34 @@ import kotlinx.coroutines.launch
 @Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = GuidedReaderViewModel.Factory::class)
 class GuidedReaderViewModel
-    @AssistedInject
-    constructor(
-        @Assisted private val contentId: String,
-        private val contentRepository: ContentRepository,
-        private val guidedReadingRepository: GuidedReadingRepository,
-        private val readerSettingsRepository: ReaderSettingsRepository,
-        private val readingPositionRepository: ReadingPositionRepository,
-        private val activityRepository: ActivityRepository,
-        private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
-    ) : ViewModel() {
-        @AssistedFactory
-        interface Factory {
-            fun create(contentId: String): GuidedReaderViewModel
-        }
+@AssistedInject
+constructor(
+    @Assisted private val contentId: String,
+    private val contentRepository: ContentRepository,
+    private val guidedReadingRepository: GuidedReadingRepository,
+    private val readerSettingsRepository: ReaderSettingsRepository,
+    private val readingPositionRepository: ReadingPositionRepository,
+    private val activityRepository: ActivityRepository,
+    private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
+) : ViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(contentId: String): GuidedReaderViewModel
+    }
 
-        private val contentState = MutableStateFlow<ContentState>(ContentState.Loading)
-        private val stepCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-        private val currentStepIndex = MutableStateFlow(0)
-        private val completedAtEpochMillis = MutableStateFlow<Long?>(null)
-        private var autoAdvanceJob: Job? = null
+    private val contentState = MutableStateFlow<ContentState>(ContentState.Loading)
+    private val stepCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+    private val currentStepIndex = MutableStateFlow(0)
+    private val completedAtEpochMillis = MutableStateFlow<Long?>(null)
+    private var autoAdvanceJob: Job? = null
 
-        // Set once per load from the restored session (or "now" for a genuinely new session) and
-        // preserved thereafter — the real, non-fabricated start of this reading session, used to
-        // compute Aktivitas' (0.0.3) completion-event duration. Never reset on individual step moves.
-        private var sessionStartedAtEpochMillis: Long = 0L
+    // Set once per load from the restored session (or "now" for a genuinely new session) and
+    // preserved thereafter — the real, non-fabricated start of this reading session, used to
+    // compute Aktivitas' (0.0.3) completion-event duration. Never reset on individual step moves.
+    private var sessionStartedAtEpochMillis: Long = 0L
 
-        private val _switchToFullReady = MutableStateFlow(false)
-        val switchToFullReady: StateFlow<Boolean> = _switchToFullReady
+    private val _switchToFullReady = MutableStateFlow(false)
+    val switchToFullReady: StateFlow<Boolean> = _switchToFullReady
 
     /** [ReaderSettings] with `arabicFont` overlaid from the shared [quranReaderSettingsRepository] —
      * mirrors [com.sangusantri.app.feature.reader.ReaderViewModel]'s identical merge. */
@@ -87,327 +87,327 @@ class GuidedReaderViewModel
             settings.copy(arabicFont = quranSettings.arabicFont)
         }
 
-        val uiState: StateFlow<GuidedReaderUiState> =
-            combine(
-                contentState,
-                stepCounts,
-                currentStepIndex,
-                completedAtEpochMillis,
-                mergedSettings,
-            ) { content, counts, index, completedAt, settings ->
-                content.toUiState(counts, index, completedAt, settings)
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = GuidedReaderUiState.Loading,
+    val uiState: StateFlow<GuidedReaderUiState> =
+        combine(
+            contentState,
+            stepCounts,
+            currentStepIndex,
+            completedAtEpochMillis,
+            mergedSettings,
+        ) { content, counts, index, completedAt, settings ->
+            content.toUiState(counts, index, completedAt, settings)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = GuidedReaderUiState.Loading,
+        )
+
+    /** Observed independently so the shared settings sheet reflects real values even while loading. */
+    val settings: StateFlow<ReaderSettings> =
+        mergedSettings.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = ReaderSettings(),
+        )
+
+    init {
+        loadContent()
+    }
+
+    fun onAction(action: GuidedReaderUiAction) {
+        when (action) {
+            GuidedReaderUiAction.Previous -> moveTo(currentStepIndex.value - 1)
+            GuidedReaderUiAction.Continue -> onContinue()
+            GuidedReaderUiAction.IncrementCounter -> onIncrement()
+            GuidedReaderUiAction.ResetCounter -> onResetCounter()
+            GuidedReaderUiAction.ConfirmCompletion -> onConfirmCompletion()
+            GuidedReaderUiAction.Retry -> loadContent()
+            GuidedReaderUiAction.SwitchToFull -> onSwitchToFull()
+        }
+    }
+
+    /**
+     * Maps the current step to the Full Reader's starting position (FR-016): writes it directly
+     * into the existing per-content [ReadingPosition] row with a safe zero offset, so the Full
+     * Reader simply restores its usual position on load and finds this step already current — no
+     * second progress model, no nav-key state.
+     */
+    private fun onSwitchToFull() {
+        val detail = availableDetail() ?: return
+        viewModelScope.launch {
+            val clampedIndex = currentStepIndex.value.coerceIn(0, detail.steps.lastIndex)
+            readingPositionRepository.savePosition(
+                ReadingPosition(
+                    contentId = detail.content.id,
+                    itemIndex = clampedIndex,
+                    itemOffset = 0,
+                    lastOpenedAtEpochMillis = System.currentTimeMillis(),
+                ),
             )
-
-        /** Observed independently so the shared settings sheet reflects real values even while loading. */
-        val settings: StateFlow<ReaderSettings> =
-            mergedSettings.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = ReaderSettings(),
-            )
-
-        init {
-            loadContent()
+            readerSettingsRepository.setLastReaderMode(ReaderMode.FULL)
+            _switchToFullReady.value = true
         }
+    }
 
-        fun onAction(action: GuidedReaderUiAction) {
-            when (action) {
-                GuidedReaderUiAction.Previous -> moveTo(currentStepIndex.value - 1)
-                GuidedReaderUiAction.Continue -> onContinue()
-                GuidedReaderUiAction.IncrementCounter -> onIncrement()
-                GuidedReaderUiAction.ResetCounter -> onResetCounter()
-                GuidedReaderUiAction.ConfirmCompletion -> onConfirmCompletion()
-                GuidedReaderUiAction.Retry -> loadContent()
-                GuidedReaderUiAction.SwitchToFull -> onSwitchToFull()
-            }
-        }
+    /**
+     * Handles the subset of [com.sangusantri.app.feature.reader.ReaderUiAction] the shared
+     * `ReaderSettingsSheet` can send from within the Guided Reader (appearance + progression mode).
+     * Scroll-position and retry actions belong to the Full Reader only and are no-ops here — the
+     * settings sheet never dispatches them.
+     */
+    fun onSettingsAction(action: ReaderUiAction) {
+        when (action) {
+            // Dispatched by the Full Reader's top bar, never by the settings sheet this handles.
+            is ReaderUiAction.SetThemeMode -> Unit
 
-        /**
-         * Maps the current step to the Full Reader's starting position (FR-016): writes it directly
-         * into the existing per-content [ReadingPosition] row with a safe zero offset, so the Full
-         * Reader simply restores its usual position on load and finds this step already current — no
-         * second progress model, no nav-key state.
-         */
-        private fun onSwitchToFull() {
-            val detail = availableDetail() ?: return
-            viewModelScope.launch {
-                val clampedIndex = currentStepIndex.value.coerceIn(0, detail.steps.lastIndex)
-                readingPositionRepository.savePosition(
-                    ReadingPosition(
-                        contentId = detail.content.id,
-                        itemIndex = clampedIndex,
-                        itemOffset = 0,
-                        lastOpenedAtEpochMillis = System.currentTimeMillis(),
-                    ),
-                )
-                readerSettingsRepository.setLastReaderMode(ReaderMode.FULL)
-                _switchToFullReady.value = true
-            }
-        }
+            is ReaderUiAction.SetArabicFont ->
+                viewModelScope.launch { quranReaderSettingsRepository.setArabicFont(action.font) }
 
-        /**
-         * Handles the subset of [com.sangusantri.app.feature.reader.ReaderUiAction] the shared
-         * `ReaderSettingsSheet` can send from within the Guided Reader (appearance + progression mode).
-         * Scroll-position and retry actions belong to the Full Reader only and are no-ops here — the
-         * settings sheet never dispatches them.
-         */
-        fun onSettingsAction(action: ReaderUiAction) {
-            when (action) {
-                // Dispatched by the Full Reader's top bar, never by the settings sheet this handles.
-                is ReaderUiAction.SetThemeMode -> Unit
+            is ReaderUiAction.SetArabicFontSize ->
+                viewModelScope.launch { readerSettingsRepository.setArabicFontSize(action.sp) }
 
-                is ReaderUiAction.SetArabicFont ->
-                    viewModelScope.launch { quranReaderSettingsRepository.setArabicFont(action.font) }
+            is ReaderUiAction.SetTranslationFontSize ->
+                viewModelScope.launch { readerSettingsRepository.setTranslationFontSize(action.sp) }
 
-                is ReaderUiAction.SetArabicFontSize ->
-                    viewModelScope.launch { readerSettingsRepository.setArabicFontSize(action.sp) }
+            is ReaderUiAction.SetArabicLineSpacing ->
+                viewModelScope.launch { readerSettingsRepository.setArabicLineSpacing(action.multiplier) }
 
-                is ReaderUiAction.SetTranslationFontSize ->
-                    viewModelScope.launch { readerSettingsRepository.setTranslationFontSize(action.sp) }
+            is ReaderUiAction.SetTranslationLineSpacing ->
+                viewModelScope.launch { readerSettingsRepository.setTranslationLineSpacing(action.multiplier) }
 
-                is ReaderUiAction.SetArabicLineSpacing ->
-                    viewModelScope.launch { readerSettingsRepository.setArabicLineSpacing(action.multiplier) }
+            is ReaderUiAction.SetShowTranslation ->
+                viewModelScope.launch { readerSettingsRepository.setShowTranslation(action.show) }
 
-                is ReaderUiAction.SetTranslationLineSpacing ->
-                    viewModelScope.launch { readerSettingsRepository.setTranslationLineSpacing(action.multiplier) }
-
-                is ReaderUiAction.SetShowTranslation ->
-                    viewModelScope.launch { readerSettingsRepository.setShowTranslation(action.show) }
-
-                is ReaderUiAction.ScrollPositionChanged,
-                is ReaderUiAction.PersistPositionNow,
-                ReaderUiAction.Retry,
-                ReaderUiAction.SwitchToGuided,
-                is ReaderUiAction.SwitchToGuidedAtStep,
+            is ReaderUiAction.ScrollPositionChanged,
+            is ReaderUiAction.PersistPositionNow,
+            ReaderUiAction.Retry,
+            ReaderUiAction.SwitchToGuided,
+            is ReaderUiAction.SwitchToGuidedAtStep,
                 -> Unit
-            }
         }
+    }
 
-        fun setProgressionMode(mode: GuidedProgressionMode) {
-            viewModelScope.launch { readerSettingsRepository.setGuidedProgressionMode(mode) }
-        }
+    fun setProgressionMode(mode: GuidedProgressionMode) {
+        viewModelScope.launch { readerSettingsRepository.setGuidedProgressionMode(mode) }
+    }
 
-        // Room/DataStore failures surface as unpredictable exception types; catching Exception here is
-        // the deliberate boundary that turns any of them into RecoverableError instead of a crash,
-        // mirroring ReaderViewModel's own loadContent boundary.
-        @Suppress("TooGenericExceptionCaught", "SwallowedException")
-        private fun loadContent() {
-            autoAdvanceJob?.cancel()
-            contentState.value = ContentState.Loading
-            viewModelScope.launch {
-                contentState.value =
-                    try {
-                        val detail = contentRepository.getContentDetail(contentId)
-                        if (detail == null || detail.steps.isEmpty()) {
-                            Log.w(
-                                TAG,
-                                "Content unavailable for id=$contentId: " +
-                                    "contentFound=${detail != null}, stepCount=${detail?.steps?.size ?: 0}",
-                            )
-                            ContentState.Unavailable
-                        } else {
-                            restoreProgress(detail)
-                            ContentState.Available(detail)
-                        }
-                    } catch (cancellation: CancellationException) {
-                        throw cancellation
-                    } catch (unexpected: Exception) {
-                        Log.e(TAG, "Guided content load failed for id=$contentId", unexpected)
-                        ContentState.Error
+    // Room/DataStore failures surface as unpredictable exception types; catching Exception here is
+    // the deliberate boundary that turns any of them into RecoverableError instead of a crash,
+    // mirroring ReaderViewModel's own loadContent boundary.
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun loadContent() {
+        autoAdvanceJob?.cancel()
+        contentState.value = ContentState.Loading
+        viewModelScope.launch {
+            contentState.value =
+                try {
+                    val detail = contentRepository.getContentDetail(contentId)
+                    if (detail == null || detail.steps.isEmpty()) {
+                        Log.w(
+                            TAG,
+                            "Content unavailable for id=$contentId: " +
+                                "contentFound=${detail != null}, stepCount=${detail?.steps?.size ?: 0}",
+                        )
+                        ContentState.Unavailable
+                    } else {
+                        restoreProgress(detail)
+                        ContentState.Available(detail)
                     }
-            }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (unexpected: Exception) {
+                    Log.e(TAG, "Guided content load failed for id=$contentId", unexpected)
+                    ContentState.Error
+                }
         }
+    }
 
-        private suspend fun restoreProgress(detail: ContentDetail) {
-            val session = guidedReadingRepository.getSession(detail.content.id)
-            val progress = guidedReadingRepository.getStepProgress(detail.content.id)
-            stepCounts.value = progress.associate { it.stepId to it.currentCount }
-            completedAtEpochMillis.value = session?.completedAtEpochMillis
-            sessionStartedAtEpochMillis = session?.startedAtEpochMillis ?: System.currentTimeMillis()
-            val restoredIndex = session?.currentStepId?.let { id -> detail.steps.indexOfFirst { it.id == id } }
-            currentStepIndex.value = restoredIndex?.takeIf { it >= 0 } ?: 0
-        }
+    private suspend fun restoreProgress(detail: ContentDetail) {
+        val session = guidedReadingRepository.getSession(detail.content.id)
+        val progress = guidedReadingRepository.getStepProgress(detail.content.id)
+        stepCounts.value = progress.associate { it.stepId to it.currentCount }
+        completedAtEpochMillis.value = session?.completedAtEpochMillis
+        sessionStartedAtEpochMillis = session?.startedAtEpochMillis ?: System.currentTimeMillis()
+        val restoredIndex = session?.currentStepId?.let { id -> detail.steps.indexOfFirst { it.id == id } }
+        currentStepIndex.value = restoredIndex?.takeIf { it >= 0 } ?: 0
+    }
 
     /**
      * Advancing is never gated on the counter: the tasbih is a companion, not a lock, and a
      * reader who counted on beads or wants to move on must not be held on a step
      * (product-owner decision, 2026-08-23 — it relaxes the PRD's original FR-007 wording).
      */
-        private fun onContinue() {
-            val detail = availableDetail() ?: return
-            if (currentStepIndex.value < detail.steps.lastIndex) moveTo(currentStepIndex.value + 1)
-        }
+    private fun onContinue() {
+        val detail = availableDetail() ?: return
+        if (currentStepIndex.value < detail.steps.lastIndex) moveTo(currentStepIndex.value + 1)
+    }
 
     // A short chain of independent guard clauses (no step / not a counter step / already at
     // target) — flat early returns read more clearly here than nesting every guard inside
     // `?.let`, mirroring ContentRepositoryImpl's own ReturnCount suppression.
-        @Suppress("ReturnCount")
-        private fun onIncrement() {
-            val detail = availableDetail() ?: return
-            val step = detail.steps.getOrNull(currentStepIndex.value) ?: return
-            // No target means no counter is rendered for this step, so an increment can only be a
-            // stale event from a step that just changed under the tap.
-            val target = step.effectiveRepeatTarget ?: return
-            val current = stepCounts.value[step.id] ?: 0
-            if (current >= target) return
+    @Suppress("ReturnCount")
+    private fun onIncrement() {
+        val detail = availableDetail() ?: return
+        val step = detail.steps.getOrNull(currentStepIndex.value) ?: return
+        // No target means no counter is rendered for this step, so an increment can only be a
+        // stale event from a step that just changed under the tap.
+        val target = step.effectiveRepeatTarget ?: return
+        val current = stepCounts.value[step.id] ?: 0
+        if (current >= target) return
 
-            val updated = current + 1
-            stepCounts.value = stepCounts.value + (step.id to updated)
-            persistCounter(detail.content.id, step.id, updated)
+        val updated = current + 1
+        stepCounts.value = stepCounts.value + (step.id to updated)
+        persistCounter(detail.content.id, step.id, updated)
 
-            if (updated >= target && settings.value.guidedProgressionMode == GuidedProgressionMode.AUTOMATIC) {
-                scheduleAutoAdvance()
-            }
-        }
-
-        private fun onResetCounter() {
-            val detail = availableDetail() ?: return
-            val step = detail.steps.getOrNull(currentStepIndex.value) ?: return
-            autoAdvanceJob?.cancel()
-            stepCounts.value = stepCounts.value + (step.id to 0)
-            persistCounter(detail.content.id, step.id, 0)
-        }
-
-        // completedAtEpochMillis.value != null is a defensive guard, not just the three existing
-        // step/counter checks — the Route navigates away as soon as isCompleted becomes true, but this
-        // ensures a stray re-trigger can never record a second Aktivitas (0.0.3) completion event for
-        // the same completion action (FR-007's "exactly one event" requirement).
-        @Suppress("ReturnCount")
-        private fun onConfirmCompletion() {
-            val available = contentState.value as? ContentState.Available ?: return
-            val detail = available.detail
-            if (currentStepIndex.value != detail.steps.lastIndex) return
-            if (completedAtEpochMillis.value != null) return
-
-            val now = System.currentTimeMillis()
-            completedAtEpochMillis.value = now
-            val stepId = detail.steps[currentStepIndex.value].id
-            val startedAt = sessionStartedAtEpochMillis
-            viewModelScope.launch {
-                guidedReadingRepository.saveSession(
-                    GuidedReadingSession(
-                        contentId = detail.content.id,
-                        currentStepId = stepId,
-                        lastOpenedAtEpochMillis = now,
-                        completedAtEpochMillis = now,
-                        startedAtEpochMillis = startedAt,
-                    ),
-                )
-                activityRepository.recordCompletion(
-                    amaliyahSlug = detail.content.id,
-                    amaliyahTitleId = detail.content.title,
-                    versionNumber = detail.content.version,
-                    startedAtEpochMillis = startedAt,
-                    completedAtEpochMillis = now,
-                )
-            }
-        }
-
-        private fun scheduleAutoAdvance() {
-            autoAdvanceJob?.cancel()
-            autoAdvanceJob =
-                viewModelScope.launch {
-                    delay(AUTO_ADVANCE_DELAY_MILLIS)
-                    val detail = availableDetail() ?: return@launch
-                    if (currentStepIndex.value < detail.steps.lastIndex) moveTo(currentStepIndex.value + 1)
-                }
-        }
-
-        private fun moveTo(index: Int) {
-            val detail = availableDetail() ?: return
-            autoAdvanceJob?.cancel()
-            val clamped = index.coerceIn(0, detail.steps.lastIndex)
-            currentStepIndex.value = clamped
-            persistSession(detail.content.id, detail.steps[clamped].id)
-        }
-
-        private fun persistSession(
-            contentId: String,
-            stepId: String,
-        ) {
-            val startedAt = sessionStartedAtEpochMillis
-            viewModelScope.launch {
-                guidedReadingRepository.saveSession(
-                    GuidedReadingSession(
-                        contentId = contentId,
-                        currentStepId = stepId,
-                        lastOpenedAtEpochMillis = System.currentTimeMillis(),
-                        completedAtEpochMillis = completedAtEpochMillis.value,
-                        startedAtEpochMillis = startedAt,
-                    ),
-                )
-            }
-        }
-
-        private fun persistCounter(
-            contentId: String,
-            stepId: String,
-            count: Int,
-        ) {
-            viewModelScope.launch {
-                guidedReadingRepository.saveStepProgress(
-                    StepProgress(
-                        contentId = contentId,
-                        stepId = stepId,
-                        currentCount = count,
-                        updatedAtEpochMillis = System.currentTimeMillis(),
-                    ),
-                )
-            }
-        }
-
-        private fun availableDetail(): ContentDetail? = (contentState.value as? ContentState.Available)?.detail
-
-        private sealed interface ContentState {
-            data object Loading : ContentState
-
-            data class Available(
-                val detail: ContentDetail,
-            ) : ContentState
-
-            data object Unavailable : ContentState
-
-            data object Error : ContentState
-
-            fun toUiState(
-                counts: Map<String, Int>,
-                index: Int,
-                completedAt: Long?,
-                settings: ReaderSettings,
-            ): GuidedReaderUiState =
-                when (this) {
-                    Loading -> GuidedReaderUiState.Loading
-                    Unavailable -> GuidedReaderUiState.ContentUnavailable
-                    Error -> GuidedReaderUiState.RecoverableError
-                    is Available -> {
-                        val steps = detail.steps
-                        val clampedIndex = index.coerceIn(0, steps.lastIndex)
-                        val step = steps[clampedIndex]
-                        GuidedReaderUiState.StepVisible(
-                            title = detail.content.title,
-                            contentId = detail.content.id,
-                            allSteps = steps,
-                            step = step,
-                            stepIndex = clampedIndex,
-                            stepCount = steps.size,
-                            currentCount = counts[step.id] ?: 0,
-                            settings = settings,
-                            isFirstStep = clampedIndex == 0,
-                            isLastStep = clampedIndex == steps.lastIndex,
-                            isCompleted = completedAt != null,
-                            sourceName = detail.content.sourceName,
-                        )
-                    }
-                }
-        }
-
-        private companion object {
-            const val TAG = "GuidedReaderViewModel"
-            const val STOP_TIMEOUT_MILLIS = 5_000L
-            const val AUTO_ADVANCE_DELAY_MILLIS = 500L
+        if (updated >= target && settings.value.guidedProgressionMode == GuidedProgressionMode.AUTOMATIC) {
+            scheduleAutoAdvance()
         }
     }
+
+    private fun onResetCounter() {
+        val detail = availableDetail() ?: return
+        val step = detail.steps.getOrNull(currentStepIndex.value) ?: return
+        autoAdvanceJob?.cancel()
+        stepCounts.value = stepCounts.value + (step.id to 0)
+        persistCounter(detail.content.id, step.id, 0)
+    }
+
+    // completedAtEpochMillis.value != null is a defensive guard, not just the three existing
+    // step/counter checks — the Route navigates away as soon as isCompleted becomes true, but this
+    // ensures a stray re-trigger can never record a second Aktivitas (0.0.3) completion event for
+    // the same completion action (FR-007's "exactly one event" requirement).
+    @Suppress("ReturnCount")
+    private fun onConfirmCompletion() {
+        val available = contentState.value as? ContentState.Available ?: return
+        val detail = available.detail
+        if (currentStepIndex.value != detail.steps.lastIndex) return
+        if (completedAtEpochMillis.value != null) return
+
+        val now = System.currentTimeMillis()
+        completedAtEpochMillis.value = now
+        val stepId = detail.steps[currentStepIndex.value].id
+        val startedAt = sessionStartedAtEpochMillis
+        viewModelScope.launch {
+            guidedReadingRepository.saveSession(
+                GuidedReadingSession(
+                    contentId = detail.content.id,
+                    currentStepId = stepId,
+                    lastOpenedAtEpochMillis = now,
+                    completedAtEpochMillis = now,
+                    startedAtEpochMillis = startedAt,
+                ),
+            )
+            activityRepository.recordCompletion(
+                amaliyahSlug = detail.content.id,
+                amaliyahTitleId = detail.content.title,
+                versionNumber = detail.content.version,
+                startedAtEpochMillis = startedAt,
+                completedAtEpochMillis = now,
+            )
+        }
+    }
+
+    private fun scheduleAutoAdvance() {
+        autoAdvanceJob?.cancel()
+        autoAdvanceJob =
+            viewModelScope.launch {
+                delay(AUTO_ADVANCE_DELAY_MILLIS)
+                val detail = availableDetail() ?: return@launch
+                if (currentStepIndex.value < detail.steps.lastIndex) moveTo(currentStepIndex.value + 1)
+            }
+    }
+
+    private fun moveTo(index: Int) {
+        val detail = availableDetail() ?: return
+        autoAdvanceJob?.cancel()
+        val clamped = index.coerceIn(0, detail.steps.lastIndex)
+        currentStepIndex.value = clamped
+        persistSession(detail.content.id, detail.steps[clamped].id)
+    }
+
+    private fun persistSession(
+        contentId: String,
+        stepId: String,
+    ) {
+        val startedAt = sessionStartedAtEpochMillis
+        viewModelScope.launch {
+            guidedReadingRepository.saveSession(
+                GuidedReadingSession(
+                    contentId = contentId,
+                    currentStepId = stepId,
+                    lastOpenedAtEpochMillis = System.currentTimeMillis(),
+                    completedAtEpochMillis = completedAtEpochMillis.value,
+                    startedAtEpochMillis = startedAt,
+                ),
+            )
+        }
+    }
+
+    private fun persistCounter(
+        contentId: String,
+        stepId: String,
+        count: Int,
+    ) {
+        viewModelScope.launch {
+            guidedReadingRepository.saveStepProgress(
+                StepProgress(
+                    contentId = contentId,
+                    stepId = stepId,
+                    currentCount = count,
+                    updatedAtEpochMillis = System.currentTimeMillis(),
+                ),
+            )
+        }
+    }
+
+    private fun availableDetail(): ContentDetail? = (contentState.value as? ContentState.Available)?.detail
+
+    private sealed interface ContentState {
+        data object Loading : ContentState
+
+        data class Available(
+            val detail: ContentDetail,
+        ) : ContentState
+
+        data object Unavailable : ContentState
+
+        data object Error : ContentState
+
+        fun toUiState(
+            counts: Map<String, Int>,
+            index: Int,
+            completedAt: Long?,
+            settings: ReaderSettings,
+        ): GuidedReaderUiState =
+            when (this) {
+                Loading -> GuidedReaderUiState.Loading
+                Unavailable -> GuidedReaderUiState.ContentUnavailable
+                Error -> GuidedReaderUiState.RecoverableError
+                is Available -> {
+                    val steps = detail.steps
+                    val clampedIndex = index.coerceIn(0, steps.lastIndex)
+                    val step = steps[clampedIndex]
+                    GuidedReaderUiState.StepVisible(
+                        title = detail.content.title,
+                        contentId = detail.content.id,
+                        allSteps = steps,
+                        step = step,
+                        stepIndex = clampedIndex,
+                        stepCount = steps.size,
+                        currentCount = counts[step.id] ?: 0,
+                        settings = settings,
+                        isFirstStep = clampedIndex == 0,
+                        isLastStep = clampedIndex == steps.lastIndex,
+                        isCompleted = completedAt != null,
+                        sourceName = detail.content.sourceName,
+                    )
+                }
+            }
+    }
+
+    private companion object {
+        const val TAG = "GuidedReaderViewModel"
+        const val STOP_TIMEOUT_MILLIS = 5_000L
+        const val AUTO_ADVANCE_DELAY_MILLIS = 500L
+    }
+}

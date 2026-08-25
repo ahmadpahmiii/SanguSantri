@@ -33,71 +33,71 @@ import javax.inject.Inject
  */
 @Suppress("TooManyFunctions")
 class ReaderSettingsRepositoryImpl
-    @Inject
-    constructor(
-        private val dataStore: DataStore<Preferences>,
-    ) : ReaderSettingsRepository {
-        override fun observe(): Flow<ReaderSettings> =
-            dataStore.data
-                .catch { error ->
-                    if (error is IOException) emit(emptyPreferences()) else throw error
-                }.map { preferences ->
-                    ReaderSettings(
-                        arabicFontSizeSp =
-                            coerceArabicFontSize(
-                                preferences[ARABIC_FONT_SIZE_SP] ?: ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP,
-                            ),
-                        translationFontSizeSp =
-                            coerceTranslationFontSize(
-                                preferences[TRANSLATION_FONT_SIZE_SP]
-                                    ?: ReaderSettings.DEFAULT_TRANSLATION_FONT_SIZE_SP,
-                            ),
-                        arabicLineSpacingMultiplier =
-                            coerceLineSpacing(
-                                preferences[ARABIC_LINE_SPACING] ?: ReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
-                            ),
-                        translationLineSpacingMultiplier =
-                            coerceLineSpacing(
-                                preferences[TRANSLATION_LINE_SPACING]
-                                    ?: ReaderSettings.DEFAULT_TRANSLATION_LINE_SPACING,
-                            ),
-                        showTranslation = preferences[SHOW_TRANSLATION] ?: true,
-                        lastReaderMode = preferences[LAST_READER_MODE]?.let(::parseReaderMode),
-                        guidedProgressionMode =
-                            preferences[GUIDED_PROGRESSION_MODE]?.let(::parseProgressionMode)
-                                ?: GuidedProgressionMode.MANUAL,
-                        sholawatTwoColumn = preferences[SHOLAWAT_TWO_COLUMN] ?: true,
-                        sholawatBaitGap = preferences[SHOLAWAT_BAIT_GAP] ?: true,
-                    )
-                }
+@Inject
+constructor(
+    private val dataStore: DataStore<Preferences>,
+) : ReaderSettingsRepository {
+    override fun observe(): Flow<ReaderSettings> =
+        dataStore.data
+            .catch { error ->
+                if (error is IOException) emit(emptyPreferences()) else throw error
+            }.map { preferences ->
+                ReaderSettings(
+                    arabicFontSizeSp =
+                        coerceArabicFontSize(
+                            preferences[ARABIC_FONT_SIZE_SP] ?: ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP,
+                        ),
+                    translationFontSizeSp =
+                        coerceTranslationFontSize(
+                            preferences[TRANSLATION_FONT_SIZE_SP]
+                                ?: ReaderSettings.DEFAULT_TRANSLATION_FONT_SIZE_SP,
+                        ),
+                    arabicLineSpacingMultiplier =
+                        coerceLineSpacing(
+                            preferences[ARABIC_LINE_SPACING] ?: ReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
+                        ),
+                    translationLineSpacingMultiplier =
+                        coerceLineSpacing(
+                            preferences[TRANSLATION_LINE_SPACING]
+                                ?: ReaderSettings.DEFAULT_TRANSLATION_LINE_SPACING,
+                        ),
+                    showTranslation = preferences[SHOW_TRANSLATION] ?: true,
+                    lastReaderMode = preferences[LAST_READER_MODE]?.let(::parseReaderMode),
+                    guidedProgressionMode =
+                        preferences[GUIDED_PROGRESSION_MODE]?.let(::parseProgressionMode)
+                            ?: GuidedProgressionMode.MANUAL,
+                    sholawatTwoColumn = preferences[SHOLAWAT_TWO_COLUMN] ?: true,
+                    sholawatBaitGap = preferences[SHOLAWAT_BAIT_GAP] ?: true,
+                )
+            }
 
-        override suspend fun setArabicFontSize(sp: Int) {
-            dataStore.edit { it[ARABIC_FONT_SIZE_SP] = coerceArabicFontSize(sp) }
-        }
+    override suspend fun setArabicFontSize(sp: Int) {
+        dataStore.edit { it[ARABIC_FONT_SIZE_SP] = coerceArabicFontSize(sp) }
+    }
 
-        override suspend fun setTranslationFontSize(sp: Int) {
-            dataStore.edit { it[TRANSLATION_FONT_SIZE_SP] = coerceTranslationFontSize(sp) }
-        }
+    override suspend fun setTranslationFontSize(sp: Int) {
+        dataStore.edit { it[TRANSLATION_FONT_SIZE_SP] = coerceTranslationFontSize(sp) }
+    }
 
-        override suspend fun setArabicLineSpacing(multiplier: Float) {
-            dataStore.edit { it[ARABIC_LINE_SPACING] = coerceLineSpacing(multiplier) }
-        }
+    override suspend fun setArabicLineSpacing(multiplier: Float) {
+        dataStore.edit { it[ARABIC_LINE_SPACING] = coerceLineSpacing(multiplier) }
+    }
 
-        override suspend fun setTranslationLineSpacing(multiplier: Float) {
-            dataStore.edit { it[TRANSLATION_LINE_SPACING] = coerceLineSpacing(multiplier) }
-        }
+    override suspend fun setTranslationLineSpacing(multiplier: Float) {
+        dataStore.edit { it[TRANSLATION_LINE_SPACING] = coerceLineSpacing(multiplier) }
+    }
 
-        override suspend fun setShowTranslation(show: Boolean) {
-            dataStore.edit { it[SHOW_TRANSLATION] = show }
-        }
+    override suspend fun setShowTranslation(show: Boolean) {
+        dataStore.edit { it[SHOW_TRANSLATION] = show }
+    }
 
-        override suspend fun setLastReaderMode(mode: ReaderMode) {
-            dataStore.edit { it[LAST_READER_MODE] = mode.name }
-        }
+    override suspend fun setLastReaderMode(mode: ReaderMode) {
+        dataStore.edit { it[LAST_READER_MODE] = mode.name }
+    }
 
-        override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
-            dataStore.edit { it[GUIDED_PROGRESSION_MODE] = mode.name }
-        }
+    override suspend fun setGuidedProgressionMode(mode: GuidedProgressionMode) {
+        dataStore.edit { it[GUIDED_PROGRESSION_MODE] = mode.name }
+    }
 
     override suspend fun setSholawatTwoColumn(enabled: Boolean) {
         dataStore.edit { it[SHOLAWAT_TWO_COLUMN] = enabled }
@@ -107,23 +107,23 @@ class ReaderSettingsRepositoryImpl
         dataStore.edit { it[SHOLAWAT_BAIT_GAP] = enabled }
     }
 
-        // A future stored value outside the current enum's names (e.g. after a renamed constant) falls
-        // back to null/MANUAL instead of crashing, the same corruption-safety net as the coerce* numeric
-        // bounds above.
-        private fun parseReaderMode(value: String): ReaderMode? = runCatching { ReaderMode.valueOf(value) }.getOrNull()
+    // A future stored value outside the current enum's names (e.g. after a renamed constant) falls
+    // back to null/MANUAL instead of crashing, the same corruption-safety net as the coerce* numeric
+    // bounds above.
+    private fun parseReaderMode(value: String): ReaderMode? = runCatching { ReaderMode.valueOf(value) }.getOrNull()
 
-        private fun parseProgressionMode(value: String): GuidedProgressionMode? =
-            runCatching { GuidedProgressionMode.valueOf(value) }.getOrNull()
+    private fun parseProgressionMode(value: String): GuidedProgressionMode? =
+        runCatching { GuidedProgressionMode.valueOf(value) }.getOrNull()
 
-        private companion object {
-            val ARABIC_FONT_SIZE_SP = intPreferencesKey("reader_arabic_font_size_sp")
-            val TRANSLATION_FONT_SIZE_SP = intPreferencesKey("reader_translation_font_size_sp")
-            val ARABIC_LINE_SPACING = floatPreferencesKey("reader_arabic_line_spacing")
-            val TRANSLATION_LINE_SPACING = floatPreferencesKey("reader_translation_line_spacing")
-            val SHOW_TRANSLATION = booleanPreferencesKey("reader_show_translation")
-            val LAST_READER_MODE = stringPreferencesKey("reader_last_mode")
-            val GUIDED_PROGRESSION_MODE = stringPreferencesKey("guided_progression_mode")
-            val SHOLAWAT_TWO_COLUMN = booleanPreferencesKey("sholawat_two_column")
-            val SHOLAWAT_BAIT_GAP = booleanPreferencesKey("sholawat_bait_gap")
-        }
+    private companion object {
+        val ARABIC_FONT_SIZE_SP = intPreferencesKey("reader_arabic_font_size_sp")
+        val TRANSLATION_FONT_SIZE_SP = intPreferencesKey("reader_translation_font_size_sp")
+        val ARABIC_LINE_SPACING = floatPreferencesKey("reader_arabic_line_spacing")
+        val TRANSLATION_LINE_SPACING = floatPreferencesKey("reader_translation_line_spacing")
+        val SHOW_TRANSLATION = booleanPreferencesKey("reader_show_translation")
+        val LAST_READER_MODE = stringPreferencesKey("reader_last_mode")
+        val GUIDED_PROGRESSION_MODE = stringPreferencesKey("guided_progression_mode")
+        val SHOLAWAT_TWO_COLUMN = booleanPreferencesKey("sholawat_two_column")
+        val SHOLAWAT_BAIT_GAP = booleanPreferencesKey("sholawat_bait_gap")
     }
+}

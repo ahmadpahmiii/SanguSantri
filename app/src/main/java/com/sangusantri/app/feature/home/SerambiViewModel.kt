@@ -265,11 +265,11 @@ constructor(
     }
 
     private suspend fun triggerCityDetection() {
-            _detectingCity.value = true
-            val detected = prayerScheduleRepository.detectAndSelectCity()
-            if (detected is CityDetection.Detected) prayerScheduleRepository.ensureScheduleCached(LocalDate.now())
-            _detectingCity.value = false
-        }
+        _detectingCity.value = true
+        val detected = prayerScheduleRepository.detectAndSelectCity()
+        if (detected is CityDetection.Detected) prayerScheduleRepository.ensureScheduleCached(LocalDate.now())
+        _detectingCity.value = false
+    }
 
     private data class HeaderData(
         val ayatHariIni: AyatHariIni?,

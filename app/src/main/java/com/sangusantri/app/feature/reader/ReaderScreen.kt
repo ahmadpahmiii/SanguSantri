@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -30,6 +29,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -59,8 +59,11 @@ import com.sangusantri.app.feature.reader.components.ReaderProgressHeader
 import com.sangusantri.app.feature.reader.components.ReaderRecoverableErrorState
 import com.sangusantri.app.feature.reader.components.ReaderSavedPositionStatus
 import com.sangusantri.app.feature.reader.components.ReaderStepItem
+import com.sangusantri.app.feature.reader.components.ReaderTocSheet
+import com.sangusantri.app.feature.reader.components.TocSectionItem
 import com.sangusantri.app.feature.reader.components.rememberInitialSavedPositionFlag
 import com.sangusantri.app.feature.reader.settings.ReaderSettingsSheet
+import kotlinx.coroutines.launch
 
 @Composable
 fun ReaderRoute(
@@ -100,6 +103,7 @@ fun ReaderScreen(
     modifier: Modifier = Modifier,
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showToc by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -109,6 +113,7 @@ fun ReaderScreen(
                 onBack = onBack,
                 onAction = onAction,
                 onOpenSettings = { showSettings = true },
+                onOpenToc = { showToc = true },
             )
         },
     ) { innerPadding ->
@@ -124,6 +129,8 @@ fun ReaderScreen(
             is ReaderUiState.ContentAvailable ->
                 ReaderStepList(
                     contentState = uiState,
+                    showToc = showToc,
+                    onDismissToc = { showToc = false },
                     onAction = onAction,
                     modifier = Modifier.padding(innerPadding),
                 )
@@ -150,6 +157,7 @@ private fun ReaderHeader(
     onBack: () -> Unit,
     onAction: (ReaderUiAction) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenToc: () -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column {
@@ -158,6 +166,7 @@ private fun ReaderHeader(
                 onBack = onBack,
                 onAction = onAction,
                 onOpenSettings = onOpenSettings,
+                onOpenToc = onOpenToc,
             )
             if ((uiState as? ReaderUiState.ContentAvailable)?.hasGuidedMode == true) {
                 ReaderModeToggle(
@@ -176,6 +185,7 @@ private fun ReaderTopBar(
     onBack: () -> Unit,
     onAction: (ReaderUiAction) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenToc: () -> Unit,
 ) {
     val contentState = uiState as? ReaderUiState.ContentAvailable
     val title = contentState?.title ?: stringResource(R.string.app_name)
@@ -204,10 +214,9 @@ private fun ReaderTopBar(
         actions = {
             ThemeToggleButton(onSelect = { onAction(ReaderUiAction.SetThemeMode(it)) })
             if (contentState != null) {
-                // Mode switching lives in the always-visible ReaderModeToggle below this bar, not
-                // in the overflow menu — one tap, both directions (Handoff §7).
                 ReaderOverflowMenu(
                     onOpenSettings = onOpenSettings,
+                    onOpenToc = onOpenToc,
                     sourceName = contentState.sourceName,
                 )
             }
@@ -218,6 +227,8 @@ private fun ReaderTopBar(
 @Composable
 private fun ReaderStepList(
     contentState: ReaderUiState.ContentAvailable,
+    showToc: Boolean,
+    onDismissToc: () -> Unit,
     onAction: (ReaderUiAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -227,6 +238,7 @@ private fun ReaderStepList(
             initialFirstVisibleItemScrollOffset = contentState.initialItemOffset,
         )
     val showSavedPosition = rememberInitialSavedPositionFlag(contentState.initialItemIndex)
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
@@ -239,11 +251,20 @@ private fun ReaderStepList(
         )
     }
 
-    // Kept as a fixed element above the LazyColumn (not a lazy item) so the existing
-    // position-persistence contract (lazy-list index == `contentState.steps` index) is unchanged.
     val currentItemIndex by remember {
         derivedStateOf { listState.firstVisibleItemIndex.coerceIn(0, contentState.steps.lastIndex) }
     }
+
+    val sections =
+        remember(contentState.steps) {
+            contentState.steps.mapIndexed { index, step ->
+                val sampleText = step.translation.ifBlank { step.arabicText }
+                TocSectionItem(
+                    stepIndex = index,
+                    title = if (sampleText.length > 35) sampleText.take(35) + "…" else sampleText,
+                )
+            }
+        }
 
     ReaderStepListContent(
         contentState = contentState,
@@ -251,6 +272,19 @@ private fun ReaderStepList(
         onAction = onAction,
         modifier = modifier,
     )
+
+    if (showToc) {
+        ReaderTocSheet(
+            sections = sections,
+            currentStepIndex = currentItemIndex,
+            onSelectSection = { targetStepIndex ->
+                coroutineScope.launch {
+                    listState.animateScrollToItem(targetStepIndex)
+                }
+            },
+            onDismiss = onDismissToc,
+        )
+    }
 }
 
 /** Bundles the composition-local rendering state [ReaderStepListContent] needs, under the parameter-count limit. */

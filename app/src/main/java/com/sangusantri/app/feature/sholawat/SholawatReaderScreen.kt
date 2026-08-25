@@ -242,25 +242,26 @@ private fun SholawatReaderStepList(
             contentPadding = PaddingValues(SanguSantriSpacing.default),
             verticalArrangement = Arrangement.spacedBy(verticalGap),
         ) {
-            if (pairHemistichs) {
-                // chunked(2) keeps every step: an odd count leaves a one-element final chunk,
-                // which SholawatBaytRow renders alone in the right column.
-                items(items = steps.chunked(BAYT_HEMISTICHS), key = { it.first().id }) { bayt ->
-                    SholawatBaytRow(
-                        bayt = bayt,
-                        showTranslation = settings.showTranslation,
-                        settings = settings,
-                        arabicFont = settings.arabicFont,
-                    )
-                }
-            } else {
-                items(items = steps, key = { it.id }) { step ->
-                    SholawatVerseBlock(
-                        step = step,
-                        showTranslation = settings.showTranslation,
-                        settings = settings,
-                        arabicFont = settings.arabicFont,
-                    )
+            // Rows, not steps: a bait can be two steps or one step carrying its own `۞`, and an
+            // item that mixes qasidah with prose has to draw each row the way that row reads.
+            val rows = steps.toSholawatReaderRows(pairHemistichs)
+            items(items = rows, key = { it.key }) { row ->
+                when (row) {
+                    is SholawatReaderRow.Bait ->
+                        SholawatBaytRow(
+                            bait = row,
+                            showTranslation = settings.showTranslation,
+                            settings = settings,
+                            arabicFont = settings.arabicFont,
+                        )
+
+                    is SholawatReaderRow.Verse ->
+                        SholawatVerseBlock(
+                            step = row.step,
+                            showTranslation = settings.showTranslation,
+                            settings = settings,
+                            arabicFont = settings.arabicFont,
+                        )
                 }
             }
         }
@@ -279,8 +280,6 @@ private fun SholawatReaderStepList(
 @Composable
 private fun twoColumnsFit(availableWidth: Dp): Boolean =
     availableWidth >= MIN_TWO_COLUMN_WIDTH && LocalDensity.current.fontScale <= MAX_TWO_COLUMN_FONT_SCALE
-
-private const val BAYT_HEMISTICHS = 2
 
 // ponytail: fixed thresholds. MIN_TWO_COLUMN_WIDTH is a small phone's width less the reader's
 // padding; MAX_TWO_COLUMN_FONT_SCALE sits below the 1.5x ACCESSIBILITY.md mandates so that scale

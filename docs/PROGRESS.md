@@ -1,5 +1,36 @@
 # SanguSantri Engineering Progress
 
+## Sholawat reader: a bait may arrive as one step (Maulid ad-Diba'i)
+
+**Status:** Implemented and verified on a Pixel 9 emulator against the live
+content API. `testDebugUnitTest` (228 tests), `detekt` and `ktlintCheck` all pass
+for the changed files.
+
+Maulid ad-Diba'i (CMS `maulid-dibai`, `layout = bayt`, 150 steps) is not uniformly
+qasidah: 94 of its steps are baits and 27 are prose, alternating chapter by chapter.
+Two things follow, and the reader now handles both:
+
+- **The bait is one step, not two.** NU stores a whole bait on one line with `۞`
+  between sadr and ajuz, so `ContentStep.baitHemistichs` cuts it at render time.
+  Splitting at import would have forced the Indonesian translation to be split too,
+  and only 36 of the 94 bait translations have a clean place to divide.
+- **Prose in the same item stays full width.** `toSholawatReaderRows` maps steps to
+  rows: a step carrying exactly one `۞` becomes a two-column `Bait`, anything else
+  becomes a full-width `Verse`. A single separator anywhere in the item switches the
+  whole item to bait-per-step, so Salamun Salam (paired steps, no separator) keeps
+  pairing two at a time exactly as before.
+
+`SholawatBaytRow` now takes the row rather than a `List<ContentStep>`, and renders a
+single whole-bait translation full width while keeping the two-cell layout for
+per-hemistich translations. Every existing narrowing still applies first — CMS
+layout, screen width, system font scale, and the user's own "Bait dua kolom" switch,
+which falls back to one bait per line with the stored `۞` visible.
+
+**Known limitation:** at the default 22sp on a 1080px-wide phone, most hemistichs
+still wrap to a second line — `TextAutoSize` will not go below the 16sp floor that
+`ACCESSIBILITY.md` protects, and a printed page is about twice as wide. Layout study
+with the printed edition side by side: `cms/docs/design/maulid-dibai-layout.html`.
+
 ## Documentation, security, and production-readiness pass (pre-Milestone 2)
 
 **Status:** Complete. Not a numbered milestone — no feature code shipped.

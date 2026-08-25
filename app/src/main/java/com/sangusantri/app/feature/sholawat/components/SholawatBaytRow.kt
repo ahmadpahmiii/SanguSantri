@@ -21,11 +21,11 @@ import androidx.compose.ui.unit.sp
 import com.sangusantri.app.core.designsystem.theme.SanguSantriSpacing
 import com.sangusantri.app.core.designsystem.theme.arabicTextStyle
 import com.sangusantri.app.core.designsystem.theme.translationTextStyle
-import com.sangusantri.app.domain.model.ContentStep
 import com.sangusantri.app.domain.model.QuranArabicFont
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.feature.quran.toFontFamily
 import com.sangusantri.app.feature.quran.withQuranFontFallback
+import com.sangusantri.app.feature.sholawat.SholawatReaderRow
 
 /**
  * One bait of a qasidah — two hemistichs side by side, sadr on the right and ajuz on the left, the
@@ -44,20 +44,24 @@ import com.sangusantri.app.feature.quran.withQuranFontFallback
  * cannot overflow a half-width cell. [arabicTextStyle] and [withQuranFontFallback] still supply the
  * typography and the glyph fallback; this is a width constraint, not a second Arabic type scale.
  *
- * [bayt] carries one or two steps. One means the item has an odd step count, which is a content
+ * [hemistichs] carries one or two. One means the item has an odd step count, which is a content
  * mistake the CMS editor refuses to save — but content already published this way still has to
  * read, so the orphan hemistich renders alone in the right column rather than being dropped.
+ *
+ * [translations] carries either one per hemistich (paired steps, each with its own translation) or
+ * a single entry for the whole bait (one step split on its `۞`, where the translation is one
+ * sentence). See [com.sangusantri.app.feature.sholawat.toSholawatReaderRows].
  */
 @Composable
 fun SholawatBaytRow(
-    bayt: List<ContentStep>,
+    bait: SholawatReaderRow.Bait,
     showTranslation: Boolean,
     settings: ReaderSettings,
     arabicFont: QuranArabicFont,
     modifier: Modifier = Modifier,
 ) {
-    val sadr = bayt.firstOrNull() ?: return
-    val ajuz = bayt.getOrNull(1)
+    val sadr = bait.hemistichs.firstOrNull() ?: return
+    val ajuz = bait.hemistichs.getOrNull(1)
 
     Column(modifier = modifier.fillMaxWidth()) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -66,7 +70,7 @@ fun SholawatBaytRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Hemistich(
-                    text = sadr.arabicText,
+                    text = sadr,
                     settings = settings,
                     arabicFont = arabicFont,
                     modifier = Modifier.weight(1f),
@@ -81,7 +85,7 @@ fun SholawatBaytRow(
                     Spacer(modifier = Modifier.weight(1f))
                 } else {
                     Hemistich(
-                        text = ajuz.arabicText,
+                        text = ajuz,
                         settings = settings,
                         arabicFont = arabicFont,
                         modifier = Modifier.weight(1f),
@@ -90,32 +94,42 @@ fun SholawatBaytRow(
             }
         }
 
-        if (showTranslation) {
+        if (showTranslation && bait.translations.any { it.isNotBlank() }) {
             Spacer(modifier = Modifier.height(SanguSantriSpacing.small))
-            // LTR, so each Indonesian line starts at its own cell's left edge — but the cells are
-            // ordered to sit under the hemistich they translate, which in an RTL bait puts the
-            // *second* hemistich on the left. Column position alone carries the pairing; there is
-            // deliberately no ordinal or other prefix on the text.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
-            ) {
-                if (ajuz == null) {
-                    Spacer(modifier = Modifier.weight(1f))
-                } else {
-                    HemistichTranslation(
-                        text = ajuz.translation,
-                        settings = settings,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                HemistichTranslation(
-                    text = sadr.translation,
-                    settings = settings,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            BaitTranslations(translations = bait.translations, settings = settings)
         }
+    }
+}
+
+/**
+ * One translation means the whole bait is translated as a single sentence (the CMS stored the bait
+ * as one step), so it runs full width rather than being cut in half to sit under two columns it
+ * does not divide along. Two means each hemistich has its own.
+ */
+@Composable
+private fun BaitTranslations(
+    translations: List<String>,
+    settings: ReaderSettings,
+    modifier: Modifier = Modifier,
+) {
+    if (translations.size < 2) {
+        HemistichTranslation(
+            text = translations.first(),
+            settings = settings,
+            modifier = modifier.fillMaxWidth(),
+        )
+        return
+    }
+    // LTR, so each Indonesian line starts at its own cell's left edge — but the cells are ordered
+    // to sit under the hemistich they translate, which in an RTL bait puts the *second* hemistich
+    // on the left. Column position alone carries the pairing; there is deliberately no ordinal or
+    // other prefix on the text.
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
+    ) {
+        HemistichTranslation(text = translations[1], settings = settings, modifier = Modifier.weight(1f))
+        HemistichTranslation(text = translations[0], settings = settings, modifier = Modifier.weight(1f))
     }
 }
 

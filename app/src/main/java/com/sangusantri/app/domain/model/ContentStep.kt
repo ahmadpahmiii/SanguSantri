@@ -31,6 +31,36 @@ data class ContentStep(
 }
 
 /**
+ * The two hemistichs of a bait the CMS stored as **one** step, or `null` when this step is not one.
+ *
+ * A printed qasidah - and NU, which is where the text comes from - writes a whole bait on one line
+ * with `۞` between sadr and ajuz. The text therefore already says where the bait divides, so the
+ * reader cuts it here at render time instead of the CMS storing two half-steps. That is why Maulid
+ * ad-Diba'i imports as 150 rows and not 244: NU translates a bait as one Indonesian sentence, and
+ * only 36 of its 94 baits offer a clean place to split that sentence, so splitting on the way in
+ * would have guessed wrong 58 times.
+ *
+ * **Exactly one separator, or this is not a bait.** Shalawat Tarhim has steps carrying two, and a
+ * step with two would otherwise be cut into three columns - a form the text does not have.
+ * Callers must also honour the item's [com.sangusantri.app.domain.model.ContentLayout]: a `۞` in a
+ * stacked item is punctuation the reciter reads past, not an instruction to build columns.
+ */
+val ContentStep.baitHemistichs: List<String>?
+    get() {
+        val parts = arabicText.split(BAIT_SEPARATOR)
+        if (parts.size != BAIT_HEMISTICHS) return null
+        return parts.map { it.trim() }.takeIf { halves -> halves.all { it.isNotEmpty() } }
+    }
+
+/**
+ * The separator the CMS stores *inside* the step text (U+06DE), which is not the rosette
+ * [com.sangusantri.app.feature.sholawat.components] draws between the two rendered columns.
+ */
+private const val BAIT_SEPARATOR = "۞"
+
+private const val BAIT_HEMISTICHS = 2
+
+/**
  * Whether these steps support Panduan (guided) mode at all. Guided mode *is* the tasbih counter
  * walk-through, so content where nothing is counted — Sholawat, a plain doa — has no guided mode
  * to offer, and the reading-mode gate, the mode-switch pill and the overflow entry all disappear

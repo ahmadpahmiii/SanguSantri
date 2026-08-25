@@ -75,14 +75,20 @@ private fun AmalanDayDot(state: AmalanDayState) {
     val tertiary = MaterialTheme.colorScheme.tertiary
     when (state) {
         AmalanDayState.COMPLETE ->
-            Box(modifier = Modifier
-                .size(DotSize)
-                .background(primary, CircleShape))
+            Box(
+                modifier =
+                    Modifier
+                        .size(DotSize)
+                        .background(primary, CircleShape),
+            )
 
         AmalanDayState.INCOMPLETE ->
-            Box(modifier = Modifier
-                .size(DotSize)
-                .border(DotStroke, outline, CircleShape))
+            Box(
+                modifier =
+                    Modifier
+                        .size(DotSize)
+                        .border(DotStroke, outline, CircleShape),
+            )
 
         // Dashed rings are not a Compose primitive at this size; a half-alpha ring reads as
         // "paused" and still differs from both filled and plain-outline in greyscale.
@@ -96,9 +102,12 @@ private fun AmalanDayDot(state: AmalanDayState) {
             )
 
         AmalanDayState.PENDING ->
-            Box(modifier = Modifier
-                .size(DotSize)
-                .border(TodayStroke, tertiary, CircleShape))
+            Box(
+                modifier =
+                    Modifier
+                        .size(DotSize)
+                        .border(TodayStroke, tertiary, CircleShape),
+            )
     }
 }
 

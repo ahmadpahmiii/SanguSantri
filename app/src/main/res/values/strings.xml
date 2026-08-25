@@ -807,4 +807,15 @@
   <!-- A city is chosen but its month has not been fetched yet — never "pick a city", which would
        send the user to do something they have already done. -->
   <string name="widget_prayer_schedule_pending">Jadwal belum tersedia</string>
+
+  <!-- Permission Bottom Sheet (First-launch / Subsequent Re-open) -->
+  <string name="permission_bottom_sheet_title">Izin Aplikasi Diperlukan</string>
+  <string name="permission_bottom_sheet_subtitle">Aktifkan izin berikut agar fitur SanguSantri dapat berfungsi dengan optimal:</string>
+  <string name="permission_location_title">Lokasi (Arah Kiblat &amp; Jadwal Sholat)</string>
+  <string name="permission_location_description">Menentukan jadwal sholat otomatis dan menghitung arah kiblat yang presisi sesuai lokasi Anda saat ini.</string>
+  <string name="permission_notification_title">Notifikasi (Adzan &amp; Pengingat)</string>
+  <string name="permission_notification_description">Mengumandangkan adzan dan mengirimkan pengingat waktu sholat tepat waktu agar tidak terlewat.</string>
+  <string name="permission_action_grant">Aktifkan Izin</string>
+  <string name="permission_action_settings">Buka Pengaturan</string>
+  <string name="permission_action_dismiss">Nanti Saja</string>
 </resources>

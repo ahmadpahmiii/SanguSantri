@@ -26,10 +26,11 @@ import javax.inject.Inject
  * read coerces stored values back into range, so a value persisted by a wider bound in a future
  * release (or corrupted on disk) always falls back to a safe, currently valid value instead of
  * being rendered as-is.
+ *
+ * One setter per preference key is the natural, unavoidable shape of a DataStore adapter —
+ * splitting it would mean two stores for one set of reader preferences. Same rationale as
+ * SanguSantriDatabase's own suppression.
  */
-// One setter per preference key is the natural, unavoidable shape of a DataStore adapter —
-// splitting it would mean two stores for one set of reader preferences. Same rationale as
-// SanguSantriDatabase's own suppression.
 @Suppress("TooManyFunctions")
 class ReaderSettingsRepositoryImpl
     @Inject

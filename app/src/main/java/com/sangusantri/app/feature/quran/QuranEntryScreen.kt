@@ -219,20 +219,6 @@ private fun QuranEntryMessage(
             ) {
                 Text(text = actionLabel)
             }
-            // Raw, non-sensitive failure detail (never a credential, header, body, or Arabic/
-            // translation content — see QuranSyncManager's ioReason/reason strings) so a real user
-            // hitting a production failure can read and copy exactly what went wrong when
-            // reporting it, instead of only a generic message.
-            /* if (!detail.isNullOrBlank()) {
-                 SelectionContainer {
-                     Text(
-                         text = detail,
-                         style = MaterialTheme.typography.labelSmall,
-                         color = QuranMutedText,
-                         textAlign = TextAlign.Center,
-                     )
-                 }
-             }*/
         },
     )
 }

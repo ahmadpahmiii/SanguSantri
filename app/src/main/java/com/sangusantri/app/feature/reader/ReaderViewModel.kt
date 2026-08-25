@@ -41,10 +41,11 @@ import kotlinx.coroutines.launch
  * [ReaderSettings] so appearance changes apply without a reload, and persists the visible reading
  * position — debounced, and flushed immediately on [ReaderUiAction.PersistPositionNow] (dispatched
  * on `Lifecycle.Event.ON_STOP`) — per content id.
+ *
+ * The Full Reader genuinely depends on all of these: content, saved position, its own settings, the
+ * shared Arabic-font setting, the guided-mode handover, and now the detail refresh that keeps an
+ * open item current. Collapsing them into a wrapper would hide the dependencies, not remove them.
  */
-// The Full Reader genuinely depends on all of these: content, saved position, its own settings, the
-// shared Arabic-font setting, the guided-mode handover, and now the detail refresh that keeps an
-// open item current. Collapsing them into a wrapper would hide the dependencies, not remove them.
 @Suppress("LongParameterList")
 @OptIn(FlowPreview::class)
 @HiltViewModel(assistedFactory = ReaderViewModel.Factory::class)

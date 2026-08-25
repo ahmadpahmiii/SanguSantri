@@ -3,6 +3,14 @@
 package com.sangusantri.app.feature.home
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -37,16 +45,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -73,28 +84,18 @@ fun SerambiRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
-    // Every resume, not just first composition. The ViewModel survives backgrounding, so its init
-    // block alone would mean a reader who leaves the app open never sees anything the CMS publishes.
-    // This is cheap on purpose: the two category listings carry no steps, so an unchanged catalogue
-    // costs two 304s, and offline it costs two failed requests that change nothing on screen.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refresh()
     }
 
-    // First launch only: ask for location so the prayer schedule can set itself up. Denying is a
-    // normal outcome — the prayer section then invites picking a city by hand, and nothing else in
-    // the app is affected. The prompt is marked as shown either way, so it never nags.
-    val shouldAskForLocation by viewModel.shouldAskForLocation.collectAsStateWithLifecycle()
-    val detectingCity by viewModel.detectingCity.collectAsStateWithLifecycle()
-    val locationLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            viewModel.onLocationPermissionResult(granted)
-        }
-    LaunchedEffect(shouldAskForLocation) {
-        if (shouldAskForLocation) locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-    }
+    SerambiPermissionGate(
+        viewModel = viewModel,
+        context = context,
+    )
 
+    val detectingCity by viewModel.detectingCity.collectAsStateWithLifecycle()
     val screenActions =
         actions.copy(
             onDismissResume = viewModel::dismissResume,
@@ -109,6 +110,155 @@ fun SerambiRoute(
     )
     AppUpdateGate(snackbarHostState = snackbarHostState)
 }
+
+@Composable
+private fun SerambiPermissionGate(
+    viewModel: SerambiViewModel,
+    context: Context,
+) {
+    var locationGranted by remember { mutableStateOf(hasLocationPermission(context)) }
+    var notificationGranted by remember { mutableStateOf(hasNotificationPermission(context)) }
+    var dismissedBottomSheetThisSession by rememberSaveable { mutableStateOf(false) }
+
+    val shouldAskForInitialPermissions by viewModel.shouldAskForInitialPermissions.collectAsStateWithLifecycle()
+    val hasInitialPromptBeenShown by viewModel.hasInitialPromptBeenShown.collectAsStateWithLifecycle()
+
+    val permissionsLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            val locResult = results[Manifest.permission.ACCESS_COARSE_LOCATION] ?: locationGranted
+            val notifResult =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    results[Manifest.permission.POST_NOTIFICATIONS] ?: notificationGranted
+                } else {
+                    true
+                }
+            locationGranted = locResult
+            notificationGranted = notifResult
+            viewModel.onInitialPermissionsResult(locResult)
+        }
+
+    LaunchedEffect(shouldAskForInitialPermissions) {
+        if (shouldAskForInitialPermissions) {
+            permissionsLauncher.launch(requiredAppPermissions())
+        }
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        val latestLocation = hasLocationPermission(context)
+        val latestNotification = hasNotificationPermission(context)
+        if (!locationGranted && latestLocation) {
+            viewModel.onLocationPermissionGranted()
+        }
+        locationGranted = latestLocation
+        notificationGranted = latestNotification
+    }
+
+    RationalePermissionSheet(
+        hasInitialPromptBeenShown = hasInitialPromptBeenShown,
+        locationGranted = locationGranted,
+        notificationGranted = notificationGranted,
+        dismissedThisSession = dismissedBottomSheetThisSession,
+        context = context,
+        onRequestPermissions = {
+            permissionsLauncher.launch(missingAppPermissions(locationGranted, notificationGranted))
+        },
+        onDismiss = { dismissedBottomSheetThisSession = true },
+    )
+}
+
+@Suppress("LongParameterList")
+@Composable
+private fun RationalePermissionSheet(
+    hasInitialPromptBeenShown: Boolean,
+    locationGranted: Boolean,
+    notificationGranted: Boolean,
+    dismissedThisSession: Boolean,
+    context: Context,
+    onRequestPermissions: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val needsLocation = !locationGranted
+    val needsNotification = !notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    val hasMissingPermissions = needsLocation || needsNotification
+    if (!hasInitialPromptBeenShown || !hasMissingPermissions || dismissedThisSession) return
+
+    val isPermanentlyDenied = isAnyPermissionPermanentlyDenied(context, needsLocation, needsNotification)
+    PermissionBottomSheet(
+        showLocation = needsLocation,
+        showNotification = needsNotification,
+        permanentlyDenied = isPermanentlyDenied,
+        actions =
+            PermissionSheetActions(
+                onGrantPermissions = onRequestPermissions,
+                onOpenSettings = { context.startActivity(appSettingsIntent(context)) },
+                onDismiss = onDismiss,
+            ),
+    )
+}
+
+private fun requiredAppPermissions(): Array<String> =
+    buildList {
+        add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }.toTypedArray()
+
+private fun missingAppPermissions(
+    locationGranted: Boolean,
+    notificationGranted: Boolean,
+): Array<String> =
+    buildList {
+        if (!locationGranted) add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }.toTypedArray()
+
+private fun isAnyPermissionPermanentlyDenied(
+    context: Context,
+    needsLocation: Boolean,
+    needsNotification: Boolean,
+): Boolean {
+    val activity = context.findActivity() ?: return false
+    val locDenied =
+        needsLocation && !activity.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
+    val notifDenied =
+        needsNotification &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !activity.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+    return locDenied || notifDenied
+}
+
+private fun hasLocationPermission(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+    ) == PackageManager.PERMISSION_GRANTED
+
+private fun hasNotificationPermission(context: Context): Boolean =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+    } else {
+        true
+    }
+
+private fun Context.findActivity(): Activity? {
+    var current = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
+}
+
+private fun appSettingsIntent(context: Context): Intent =
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.fromParts("package", context.packageName, null)
+    }
 
 /**
  * Beranda, rebuilt to the revamp handoff (§1). Top to bottom: greeting row with the app-wide theme

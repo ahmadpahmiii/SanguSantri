@@ -137,7 +137,7 @@ import com.sangusantri.app.data.local.entity.TasbihSessionEntity
         AyatHariIniEntity::class,
     ],
     version = 10,
-    exportSchema = true,
+    exportSchema = false,
 )
 // One abstract getter per Room DAO is the natural, unavoidable shape of a Room @Database class.
 @Suppress("TooManyFunctions")

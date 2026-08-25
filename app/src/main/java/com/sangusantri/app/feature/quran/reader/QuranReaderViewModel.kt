@@ -39,9 +39,10 @@ import kotlin.math.roundToInt
  * verses from Room, applies live reader settings, tracks long-press ayat selection for the action
  * sheet, and records reading-position/session progress only after the visible ayat actually
  * changes (QUR-FR-011/017) — never on mere open/close.
+ *
+ * Seven collaborators: the repositories the reader reads through, the murottal trio, and the
+ * continuity holder. Each is a distinct dependency, with no shared seam to fold any pair into.
  */
-// Seven collaborators: the repositories the reader reads through, the murottal trio, and the
-// continuity holder. Each is a distinct dependency, with no shared seam to fold any pair into.
 @OptIn(ExperimentalCoroutinesApi::class)
 @Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = QuranReaderViewModel.Factory::class)

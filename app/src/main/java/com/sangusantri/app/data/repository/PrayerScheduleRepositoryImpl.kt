@@ -188,9 +188,9 @@ constructor(
 
     override suspend fun scheduleOn(date: LocalDate): PrayerSchedule? {
         val prefs = preferences.first()
-        val cityId = prefs[SELECTED_CITY_ID] ?: return null
-        val day = dao.observeDay(cityId, date.format(ISO_DATE)).first() ?: return null
-        return day.toSchedule(dao.observeCity(cityId).first()?.name ?: "", prefs)
+        val cityId = prefs[SELECTED_CITY_ID]
+        val day = cityId?.let { dao.observeDay(it, date.format(ISO_DATE)).first() }
+        return day?.toSchedule(cityId?.let { dao.observeCity(it).first()?.name }.orEmpty(), prefs)
     }
 
     private fun PrayerScheduleDayEntity.toSchedule(

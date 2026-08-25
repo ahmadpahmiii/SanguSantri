@@ -208,9 +208,10 @@ private fun ActivityHistorySections(
 @Composable
 private fun ActivityEmptyState(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(SanguSantriSpacing.large),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(SanguSantriSpacing.large),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(SanguSantriSpacing.default),
     ) {

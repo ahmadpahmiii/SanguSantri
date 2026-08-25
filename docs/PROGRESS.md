@@ -1,5 +1,18 @@
 # SanguSantri Engineering Progress
 
+## Permissions onboarding: Location and Adzan Notification with Rationale Bottom Sheet
+
+**Status:** Implemented and verified locally. `ktlintCheck`, `detekt`, `lintDebug`,
+`testDebugUnitTest`, and `assembleDebug` all pass.
+
+- **First launch permissions**: Requests both `ACCESS_COARSE_LOCATION` (for Kiblat
+  and Prayer Times) and `POST_NOTIFICATIONS` (for Adzan and prayer notifications on
+  Android 13+) when the user first launches the app.
+- **Subsequent launch rationale**: If permissions were denied, shows a Material 3
+  `PermissionBottomSheet` explaining why Location and Notification permissions are
+  needed, with direct actions to grant permissions or open App Settings if
+  permanently denied.
+
 ## Sholawat reader: a bait may arrive as one step (Maulid ad-Diba'i)
 
 **Status:** Implemented and verified on a Pixel 9 emulator against the live

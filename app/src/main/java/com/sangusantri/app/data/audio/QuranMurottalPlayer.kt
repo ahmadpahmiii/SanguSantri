@@ -39,10 +39,11 @@ import javax.inject.Singleton
  * A [Singleton] because the reader, the mushaf page, the hub's "Sedang diputar" block and
  * [QuranMurottalService] must all see one playback, not one per screen. The service hosts *this*
  * player instance, which is what lets recitation continue after the reader is left.
+ *
+ * Transport controls (play/pause/next/previous/stop/speed) plus the queue-advance helpers are the
+ * natural surface of a player; splitting them across classes would only move the same calls behind
+ * an extra hop, the way `QuranRepository` documents for its own cohesive bounded context.
  */
-// Transport controls (play/pause/next/previous/stop/speed) plus the queue-advance helpers are the
-// natural surface of a player; splitting them across classes would only move the same calls behind
-// an extra hop, the way `QuranRepository` documents for its own cohesive bounded context.
 @Suppress("TooManyFunctions")
 @Singleton
 class QuranMurottalPlayer

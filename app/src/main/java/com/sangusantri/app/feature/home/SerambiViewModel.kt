@@ -214,13 +214,23 @@ constructor(
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
-    /** Emits once, on the very first launch, so Beranda can ask for location to set the prayer
-     * schedule up. Never re-emits — a denied permission must not turn into a prompt every launch. */
-    val shouldAskForLocation: StateFlow<Boolean> =
+    /** Emits once, on the very first launch, so Beranda can ask for location & notification permissions
+     * to set the prayer schedule & adzan notifications up. Never re-emits — a denied permission
+     * transitions to the subsequent launch bottom sheet check. */
+    val shouldAskForInitialPermissions: StateFlow<Boolean> =
         combine(
             prayerScheduleRepository.observeLocationPromptShown(),
             prayerScheduleRepository.observeSelectedCity(),
         ) { alreadyAsked, city -> !alreadyAsked && city == null }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+
+    /** Backward compatibility alias for [shouldAskForInitialPermissions]. */
+    val shouldAskForLocation: StateFlow<Boolean> get() = shouldAskForInitialPermissions
+
+    /** Whether the initial permission prompt has already been shown to the user on a previous session. */
+    val hasInitialPromptBeenShown: StateFlow<Boolean> =
+        prayerScheduleRepository
+            .observeLocationPromptShown()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
 
     private val _detectingCity = MutableStateFlow(false)
@@ -230,22 +240,36 @@ constructor(
     val detectingCity: StateFlow<Boolean> = _detectingCity.asStateFlow()
 
     /**
-     * Called once the permission dialog has been answered, either way.
+     * Called once the initial permissions prompt has been answered.
      *
-     * A grant should mean the reader never sees "pilih kota" at all — detection runs immediately and
-     * the schedule follows. It can still fail (no fix, geocoder unreachable, a position outside
-     * Indonesia), and the manual picker stays as the fallback rather than a guessed city.
+     * Marks the prompt as shown. If location was granted, runs city detection and caches the schedule.
      */
-    fun onLocationPermissionResult(granted: Boolean) {
+    fun onInitialPermissionsResult(locationGranted: Boolean) {
         viewModelScope.launch {
             prayerScheduleRepository.markLocationPromptShown()
-            if (!granted) return@launch
+            if (!locationGranted) return@launch
+            triggerCityDetection()
+        }
+    }
+
+    /** Backward compatibility alias for [onInitialPermissionsResult]. */
+    fun onLocationPermissionResult(granted: Boolean) = onInitialPermissionsResult(granted)
+
+    /**
+     * Called when location permission is granted subsequently (e.g. via PermissionBottomSheet or App Settings).
+     */
+    fun onLocationPermissionGranted() {
+        viewModelScope.launch {
+            triggerCityDetection()
+        }
+    }
+
+    private suspend fun triggerCityDetection() {
             _detectingCity.value = true
             val detected = prayerScheduleRepository.detectAndSelectCity()
             if (detected is CityDetection.Detected) prayerScheduleRepository.ensureScheduleCached(LocalDate.now())
             _detectingCity.value = false
         }
-    }
 
     private data class HeaderData(
         val ayatHariIni: AyatHariIni?,

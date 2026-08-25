@@ -19,6 +19,7 @@ import java.time.LocalDate
  * A whole month is fetched per call and cached, so the schedule keeps working offline for the rest
  * of the month.
  */
+@Suppress("TooManyFunctions")
 interface PrayerScheduleRepository {
     fun observeToday(): Flow<PrayerSchedule?>
 

@@ -40,6 +40,7 @@ class AdzanPlaybackService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    @Suppress("ReturnCount")
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,

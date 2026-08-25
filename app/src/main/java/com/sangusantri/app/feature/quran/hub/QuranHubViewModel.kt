@@ -46,10 +46,11 @@ private data class QuranHubAudioData(
  * Owns the Quran hub (QUR-FR-005/006/007/011/012): three tabs backed entirely by Room via
  * [QuranRepository], a last-read card, and local case/diacritic-tolerant surah search. Corpus
  * update scheduling is application-owned and never a hub/ViewModel network side effect.
+ *
+ * Three tab/search setters, three transport controls, the per-surah download actions and the theme
+ * toggle — each one a distinct thing the hub's UI can do, with no shared logic to fold them into.
+ * Same reasoning as [QuranRepository]'s own suppression.
  */
-// Three tab/search setters, three transport controls, the per-surah download actions and the theme
-// toggle — each one a distinct thing the hub's UI can do, with no shared logic to fold them into.
-// Same reasoning as [QuranRepository]'s own suppression.
 @Suppress("TooManyFunctions")
 @HiltViewModel
 class QuranHubViewModel

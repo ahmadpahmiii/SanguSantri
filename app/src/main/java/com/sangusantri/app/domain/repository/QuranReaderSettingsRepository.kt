@@ -12,10 +12,11 @@ import kotlinx.coroutines.flow.Flow
  * with its own default values and ranges. [setArabicFont] and `setThemeMode` are the two
  * exceptions: both are app-wide settings that also apply to the amaliyah reader
  * ([com.sangusantri.app.domain.model.ReaderSettings]), read from here rather than duplicated into
- * a second store. */
-
-// One setter per independently persisted preference is this interface's whole job; the murottal
-// additions follow the same one-key-one-method shape as the type and theme settings above.
+ * a second store.
+ *
+ * One setter per independently persisted preference is this interface's whole job; the murottal
+ * additions follow the same one-key-one-method shape as the type and theme settings above.
+ */
 @Suppress("TooManyFunctions")
 interface QuranReaderSettingsRepository {
     fun observe(): Flow<QuranReaderSettings>

@@ -22,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -54,6 +55,10 @@ class SanguSantriApplication :
 
     override fun onCreate() {
         super.onCreate()
+
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
         // Cheap and synchronous (creating an already-existing channel is a no-op) — safe to call
         // on every launch, unlike the network-touching work below.
         ReminderNotificationChannel.ensureCreated(this)

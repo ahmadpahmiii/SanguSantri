@@ -294,6 +294,7 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.okhttp)
+    debugImplementation(libs.okhttp.logging.interceptor)
 
     // In-app HTTP inspector (debug only) — same API in both artifacts, so call sites never branch
     // on build type; library-no-op is a stub with every method a no-op, keeping it out of release.
@@ -331,4 +332,6 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    debugImplementation(libs.timber)
 }

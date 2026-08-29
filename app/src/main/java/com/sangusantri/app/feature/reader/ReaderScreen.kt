@@ -258,7 +258,7 @@ private fun ReaderStepList(
     val sections =
         remember(contentState.steps) {
             contentState.steps.mapIndexed { index, step ->
-                val sampleText = step.translation.ifBlank { step.arabicText }
+                val sampleText = step.arabicText.ifBlank { step.translation }
                 TocSectionItem(
                     stepIndex = index,
                     title = if (sampleText.length > 35) sampleText.take(35) + "…" else sampleText,

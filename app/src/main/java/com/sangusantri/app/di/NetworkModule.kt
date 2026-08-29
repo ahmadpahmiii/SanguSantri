@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.File
@@ -65,7 +66,15 @@ object NetworkModule {
             .followSslRedirects(false)
             .addInterceptor(ResponseSizeLimitInterceptor())
             .addInterceptor(chuckerInterceptor)
-            .build()
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    addInterceptor(
+                        HttpLoggingInterceptor().apply {
+                            level = HttpLoggingInterceptor.Level.BODY
+                        },
+                    )
+                }
+            }.build()
 
     @Provides
     @Singleton

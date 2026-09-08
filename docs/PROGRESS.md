@@ -8954,3 +8954,301 @@ standing validation gate and were not requested.
 ### Next recommended milestone
 
 Unchanged: answer concept-doc §8.4/§8.5, or Nahwu Quiz `0.0.5`.
+
+---
+
+## 2026-09-08 — Data-layer refactor: one shape for every repository
+
+A principal-level review of the data layer, then the five-phase refactor the
+product owner approved from it. Behaviour is unchanged by design; what changed is
+where the code lives and how many ways there are to say the same thing.
+
+### What the review found
+
+**1. The content feature had no repository.** `ContentRepository`'s own KDoc said
+"implementations must never read from the network directly", so the CMS client
+lived in `ContentSyncManager`/`ContentDetailSyncManager` — injected into three
+ViewModels (`SerambiViewModel`, `ReaderViewModel`, `SholawatReaderViewModel`).
+The UI layer was driving cache invalidation. That is why `ReaderViewModel` had to
+read the cache, call `refresh()`, get a `Boolean`, and read the cache *again*;
+and why the previous session's Beranda empty state needed a `contentSyncFailed`
+flag inside a ViewModel.
+
+Meanwhile four repositories (`PrayerSchedule`, `Kiblat`, `AyatHariIni`, `Quran`)
+*did* own their remote source. Two contradictory offline-first architectures were
+running side by side.
+
+**2. Eight result vocabularies** for "did the network-and-persist work":
+`SyncResult`, `QuranSyncResult`, `QuranTafsirFetchOutcome`, `ContentImportOutcome`,
+`NahwuQuizBootstrapOutcome`, `CityDetection`, `kotlin.Result`, and a bare
+`Boolean`. Plus three structurally identical validation types
+(`ContentValidation`, `QuranValidation`, `NahwuQuizValidation` — all
+`Valid | Invalid(reason)`).
+
+**3. No safe API call.** Four call sites hand-rolled the same five steps.
+`PrayerScheduleRepositoryImpl` and `KiblatRepositoryImpl` used
+`runCatching { … ?: error("unavailable") }`, which erases the difference between
+"offline, retry later" and "the server is answering wrongly, retrying is
+pointless".
+
+**4. ktlint was fighting the team.** 5,124 violations, from a default nobody
+chose.
+
+### Phase 0 — ktlint
+
+`.editorconfig` set `ij_kotlin_code_style_defaults` but never
+`ktlint_code_style`, so the Gradle plugin defaulted to `ktlint_official`, which
+forces `class Foo` / `@Inject` / `constructor(` onto three lines
+(`standard:annotation`) and cascades `standard:indent` repo-wide. The owner had
+been hand-editing files back to the one-line form.
+
+Pinned `ktlint_code_style = intellij_idea`, plus
+`ktlint_function_signature_rule_force_multiline_when_parameter_count_greater_or_equal_than = 2`
+— needed because `intellij_idea` alone also relaxes *function* signatures, which
+collapsed multi-parameter Composables onto 180-character lines ktlint then could
+not re-wrap. With it pinned, only class signatures change shape.
+
+**5,124 → 0.** 79 files were then normalised to `class Foo @Inject constructor(`.
+`ktlintFormat` is safe to run again, and `ktlintCheck` is a real gate.
+
+### Phases 1–3 — the shared primitives (`core/`)
+
+* `core/network/ApiResult.kt` — `Success` / `NetworkError` / `HttpError(code)` /
+  `MalformedResponse`, with `Failure.isRetryable` computed once. Replaces all
+  eight vocabularies.
+* `core/network/SafeApiCall.kt` — `safeApiCall(source) { … }`, plus `.unwrap()`
+  for service envelopes and `.validate()` for structural checks. One log line per
+  failure, at the one place every failure passes through.
+* `core/network/ApiEnvelope.kt` — Kemenag (`code`/`res`) and myquran (`status`)
+  both hide payloads behind a body-level success flag; both now implement one
+  interface so `unwrap` handles them.
+* `core/validation/Validation.kt` — one type, with a `Validation.of(reasonOrNull)`
+  factory that removes the repeated `reason?.let(::Invalid) ?: Valid`.
+* `core/result/Resource.kt` + `NetworkBoundResource.kt` — the offline-first read
+  the owner specified: cache renders immediately, refresh runs *genuinely* in
+  parallel (`channelFlow` + `combine`, so a write from anywhere else still
+  reaches the UI mid-refresh), empty cache shows Loading then Success or Error.
+  `Resource` carries `data` in all three states so a screen never loses its cache
+  to a failed refresh.
+
+### Phase 4 — content
+
+`ContentImporter` → `ContentLocalDataSource` (it was never an importer; the
+"import" vocabulary was left over from the bundled-asset pipeline deleted
+earlier the same day). `ContentImportOutcome` → `ContentWriteOutcome`.
+`importListItem`/`importRemoteDetail` → `saveListItem`/`saveDetail`. New
+`ContentRemoteDataSource`. `ContentSyncManager`, `ContentDetailSyncManager` and
+`SyncResult` deleted — folded into `ContentRepositoryImpl`, which is where they
+always belonged.
+
+`ContentApiService` went from four methods to two: the category is a path
+segment against a new `ContentCategory` enum, which retires
+`refresh(contentId, isSholawat = true)` — a boolean that silently asked the wrong
+endpoint if inverted.
+
+`ContentRepository` now exposes `observeActiveContent(): Flow<Resource<List<Content>>>`
+and `observeContentDetail(id): Flow<Resource<ContentDetail>>`, plus cache-only
+`getContentById`/`getCachedContentDetail` for callers that must not touch the
+network (alarm receiver, resume widget), and `refreshCatalogue()` for the worker.
+Added `ContentDao.observeById` and `ContentStepDao.observeByContentId` — new
+`@Query` methods only, **not** a schema change, so no `@Database` bump and no
+data wipe.
+
+Beranda's `contentSyncFailed` flag is gone; `contentUnavailable` now comes from
+`Resource.isUnavailable()`. Resume-refresh still works with no lifecycle callback
+at all: `WhileSubscribed` re-subscribes on return, and re-subscribing re-runs the
+fetch. "Coba lagi" uses the same mechanism (`retryTrigger` + `flatMapLatest`), so
+there is no second refresh path to keep in step.
+
+### Phase 5 — Quran, Prayer, Ayat
+
+* `QuranSyncManager` keeps its bounded-concurrency/retry/atomic-replace algorithm
+  untouched; only its network plumbing changed —
+  `attemptSingleFetch`/`toFetchOutcome`/`classifyHttpFailure`/`ioReason` and the
+  private `FetchOutcome` type all collapse into one composed `safeApiCall` line.
+  `QuranSyncResult` deleted.
+* `QuranTafsirManager` rewritten (56 → 52 lines, but all five guard clauses gone).
+  "The ayat I asked for is not in the response" is now a validation failure like
+  any other.
+* `PrayerScheduleRepositoryImpl` and `KiblatRepositoryImpl` lose
+  `runCatching { … ?: error(…) }`; `ensureCitiesCached`/`ensureScheduleCached`/
+  `refreshDirection` return `ApiResult`. `refreshDirection` also now rejects a
+  non-finite bearing explicitly — that is the NaN crash triaged on 2026-09-08,
+  defended at the source instead of at each reader.
+* `AyatHariIniRemoteSource` became the `safeApiCall` + schema-check boundary;
+  `AyatHariIniSyncManager` keeps only its date gate and its write.
+
+### `ContentEntity.version` — decided, with evidence
+
+Traced end to end: `GuidedReaderViewModel:301` stamps it onto
+`AmaliyahCompletionEvent.versionNumber`, which Aktivitas renders as
+`"Versi %1$d · %2$s"`. So it was user-visible — and misleading. It used to be the
+CMS's published edition number, which meant something. It is now a purely *local*
+counter incremented whenever *this device* noticed the steps change, so two
+phones show different "Versi" for the same completion and a fresh install shows
+"Versi 1" for content corrected five times.
+
+**Stopped rendering it; kept the column.** Dropping the column is a Room schema
+change, and the standing destructive-migration policy would wipe every user's
+tasbih history, progress, reminders and downloaded Quran to remove one unused
+int. The event row keeps it as an audit snapshot.
+
+### Documentation
+
+* `docs/engineering/CODING_STANDARD.md` — new §Data layer (the layering, the
+  `networkBoundResource` contract, the `safeApiCall` contract, endpoint shape)
+  and §Formatting. Prohibited-patterns list extended.
+* `CLAUDE.md` — hard constraints so a future session cannot reintroduce a sync
+  manager in a ViewModel or a second result type.
+
+### Validation
+
+`ktlintCheck`, `detekt`, `lint`, `assembleDebug`, `compileDebugUnitTestKotlin`,
+`compileDebugAndroidTestKotlin` — all `BUILD SUCCESSFUL`.
+
+`testDebugUnitTest`: **219 tests, 0 failures, 0 errors.** Run deliberately as
+regression cover for a refactor of this size, which is the exception
+`CLAUDE.md`'s temporary constraint allows.
+
+306 files changed, +6,274 / −7,698 (net −1,424).
+
+### Known limitations
+
+* **Not verified on a device.** `adb devices` was empty for this whole session.
+  Nothing here changes a screen's *appearance*, but three behaviours are worth a
+  manual pass: Beranda offline empty state and its "Coba lagi"; opening an
+  amaliyah offline whose detail was never fetched (should show unavailable, not a
+  blank reader); and Jadwal Sholat/Kiblat refresh failure paths, which changed
+  result type.
+* **Instrumented tests compile but were not run** — no device.
+* `ContentSyncManagerTest` and `ContentDetailSyncManagerTest` were deleted with
+  the classes they covered. Their subject matter now lives in
+  `ContentRepositoryImpl` and has no direct replacement test; the CMS contract is
+  still covered by `CmsApiContractTest` and the write path by
+  `ContentLocalDataSourceTest`.
+* `NahwuQuizBootstrapOutcome` and `CityDetection` were **not** collapsed into
+  `ApiResult`. Both carry domain meaning beyond transport success (`AlreadySeeded`,
+  `Unavailable` vs `Detected(city)`), so folding them in would lose information
+  rather than remove duplication.
+
+### Next recommended milestone
+
+Manual on-device verification of the three paths above, then unchanged: answer
+concept-doc §8.4/§8.5.
+
+---
+
+## 2026-09-08 — Two bugs from the data-layer refactor, found on device
+
+Reported by the product owner: the catalogue endpoints were being hit twice at
+once, and Ratib al-Haddad opened to an empty state. Both reproduced and fixed on
+an emulator (Pixel 9, API 35).
+
+### Bug 1 — every catalogue endpoint fetched twice, simultaneously
+
+**A regression from the refactor.** `observeActiveContent()` refreshes when it is
+*collected*, and `SerambiViewModel` collects it twice: once through `baseData`
+for the featured list, and once through `activeContent` for the resume widget.
+Two collectors meant two complete catalogue syncs at the same instant — two
+`GET /api/v1/amaliyah` and two `GET /api/v1/sholawat`. Two screens alive during a
+navigation transition made it four.
+
+Before the refactor this could not happen: `observeActiveContent()` was a pure
+Room flow (free to collect any number of times) and the sync was one explicit
+`ContentSyncManager.sync()` call.
+
+Two things were wrong and both are fixed:
+
+* **`ContentModule` bound `ContentRepositoryImpl` unscoped**, so Hilt built a
+  fresh repository for every injecting ViewModel. Now `@Singleton` — which is
+  also what makes shared state below possible at all.
+* **`refreshCatalogue()` now shares one in-flight refresh.** A `Mutex` alone
+  would only serialise the two calls, still sending every request twice; sharing
+  a `Deferred` makes the second caller *await the first*. It runs on a new
+  `@ApplicationScope` (`di/CoroutineScopeModule.kt`) rather than a caller's
+  scope, because the first collector going away is routine — `WhileSubscribed`
+  drops subscriptions constantly — and must not cancel a refresh the second
+  collector is still waiting on.
+
+**Verified on device:** cold start and resume each now produce exactly one
+`amaliyah` and one `sholawat` request (counted in logcat's OkHttp output).
+
+### Bug 2 — Ratib al-Haddad (and every unopened item) showed an empty state
+
+Two independent causes, one pre-existing and one introduced by the refactor. The
+CMS payload was ruled out first: all 17 amaliyah details were fetched and checked
+against every `ContentValidator.validateDetail` rule, and against cross-item step
+id collisions (`content_steps.id` is a primary key, so a shared id would abort an
+insert). All 17 valid, no collisions.
+
+**Cause A — the reading-mode gate read cache only (pre-existing).**
+`ReaderEntryViewModel` called `getCachedContentDetail(...)` and showed
+`ContentUnavailable` when it found no steps. But a list sync creates content rows
+with **no steps** — steps arrive from the detail endpoint when an item is first
+opened — so every amaliyah the reader had never opened looked exactly like
+content that does not exist. The gate then blocked entry before the reader, which
+*would* have fetched, ever ran. Ratib al-Haddad was reported because it happened
+to be unopened; Tahlil and Istighosah worked only because they had been opened
+before. This predates the refactor (`git show HEAD` has the same cache-only read).
+
+Fixed by having the gate consume the same offline-first stream the reader does,
+waiting for it to settle: `observeContentDetail(id).first { it !is Resource.Loading }`.
+An item whose steps are already cached settles on the first emission and never
+waits.
+
+**Cause B — a Room invalidation race in `networkBoundResource` (introduced).**
+With Cause A fixed the gate *still* failed, and the device logs showed why: the
+detail fetch returned `200` with a 30,773-byte body, and 157 ms later the gate
+reported no steps.
+
+The `channelFlow` + `combine` design collected `query()` continuously and paired
+it with a separately-tracked fetch outcome. Room's invalidation is asynchronous,
+so a collection started *before* the write was still holding the pre-write value
+at the instant the fetch reported success — producing a "succeeded, and here is
+the stale empty cache" emission, which `first { it !is Resource.Loading }`
+faithfully accepted.
+
+`networkBoundResource` now emits the cache, awaits the fetch, then **re-collects
+`query()` afresh**. A new collection reads current Room state, so the stale
+pairing is unrepresentable. The cost is that Room is not observed *during* the
+fetch — an acceptable trade, since the cache is already on screen by then, and
+the previous behaviour was simply wrong. Chasing "genuinely parallel" over
+"correct" was the wrong call in the original implementation.
+
+**Verified on device:** Jelajahi → Ratib al-Haddad now opens the Bacaan
+Lengkap/Panduan chooser, and Bacaan Lengkap renders "44 langkah" with the full
+text.
+
+### Files modified
+
+* `app/src/main/java/com/sangusantri/app/core/result/NetworkBoundResource.kt`
+* `app/src/main/java/com/sangusantri/app/data/repository/ContentRepositoryImpl.kt`
+* `app/src/main/java/com/sangusantri/app/di/ContentModule.kt`
+* `app/src/main/java/com/sangusantri/app/feature/reader/ReaderEntryViewModel.kt`
+
+### Files created
+
+* `app/src/main/java/com/sangusantri/app/di/CoroutineScopeModule.kt` —
+  `@ApplicationScope` qualifier and provider.
+
+### Validation
+
+`ktlintCheck`, `detekt`, `lint`, `assembleDebug`, `compileDebugAndroidTestKotlin`
+— `BUILD SUCCESSFUL`. `testDebugUnitTest`: 219 tests, 0 failures.
+
+Manual on-device (Pixel 9 emulator, API 35), after `pm clear`:
+
+* Beranda renders the CMS catalogue.
+* Cold start: exactly one `amaliyah` + one `sholawat` request.
+* Resume from Home: exactly one of each.
+* Jelajahi lists 17 items.
+* Ratib al-Haddad → mode chooser → Bacaan Lengkap → 44 steps rendered.
+
+### Known limitations
+
+* **No regression test covers either bug.** The double-fetch would be caught by a
+  MockWebServer test asserting one request per endpoint per collection, and the
+  invalidation race by a Room-backed test asserting `networkBoundResource` never
+  emits `Success` with pre-write data. Both are worth adding; neither exists.
+* The offline empty state and "Coba lagi" on Beranda still have not been
+  exercised — that needs airplane mode on a fresh install, which was not run.

@@ -11,9 +11,7 @@ import org.junit.runner.Description
 
 /** Swaps [Dispatchers.Main] for a [TestDispatcher] sharing [runTest]'s scheduler (nowinandroid pattern). */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(
-    val testDispatcher: TestDispatcher = StandardTestDispatcher(),
-) : TestWatcher() {
+class MainDispatcherRule(val testDispatcher: TestDispatcher = StandardTestDispatcher()) : TestWatcher() {
     override fun starting(description: Description) = Dispatchers.setMain(testDispatcher)
 
     override fun finished(description: Description) = Dispatchers.resetMain()

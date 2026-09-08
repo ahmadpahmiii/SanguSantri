@@ -32,36 +32,33 @@ class SanguSantriDatabaseTest {
     }
 
     @Test
-    fun upsertThenGetByKeyReturnsTheStoredEntity() =
-        runTest {
-            val dao = database.appMetadataDao()
-            val entity = AppMetadataEntity(key = "schema_version", value = "1", updatedAtEpochMillis = 100L)
+    fun upsertThenGetByKeyReturnsTheStoredEntity() = runTest {
+        val dao = database.appMetadataDao()
+        val entity = AppMetadataEntity(key = "schema_version", value = "1", updatedAtEpochMillis = 100L)
 
-            dao.upsert(entity)
-            val result = dao.getByKey("schema_version")
+        dao.upsert(entity)
+        val result = dao.getByKey("schema_version")
 
-            assertEquals(entity, result)
-        }
-
-    @Test
-    fun getByKeyReturnsNullWhenTheKeyIsMissing() =
-        runTest {
-            val dao = database.appMetadataDao()
-
-            val result = dao.getByKey("missing_key")
-
-            assertNull(result)
-        }
+        assertEquals(entity, result)
+    }
 
     @Test
-    fun upsertReplacesTheExistingValueForTheSameKey() =
-        runTest {
-            val dao = database.appMetadataDao()
-            dao.upsert(AppMetadataEntity(key = "schema_version", value = "1", updatedAtEpochMillis = 100L))
+    fun getByKeyReturnsNullWhenTheKeyIsMissing() = runTest {
+        val dao = database.appMetadataDao()
 
-            dao.upsert(AppMetadataEntity(key = "schema_version", value = "2", updatedAtEpochMillis = 200L))
-            val result = dao.getByKey("schema_version")
+        val result = dao.getByKey("missing_key")
 
-            assertEquals("2", result?.value)
-        }
+        assertNull(result)
+    }
+
+    @Test
+    fun upsertReplacesTheExistingValueForTheSameKey() = runTest {
+        val dao = database.appMetadataDao()
+        dao.upsert(AppMetadataEntity(key = "schema_version", value = "1", updatedAtEpochMillis = 100L))
+
+        dao.upsert(AppMetadataEntity(key = "schema_version", value = "2", updatedAtEpochMillis = 200L))
+        val result = dao.getByKey("schema_version")
+
+        assertEquals("2", result?.value)
+    }
 }

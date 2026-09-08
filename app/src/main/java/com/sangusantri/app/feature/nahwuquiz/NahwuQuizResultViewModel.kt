@@ -31,9 +31,7 @@ sealed interface NahwuQuizResultUiState {
 }
 
 @HiltViewModel(assistedFactory = NahwuQuizResultViewModel.Factory::class)
-class NahwuQuizResultViewModel
-@AssistedInject
-constructor(
+class NahwuQuizResultViewModel @AssistedInject constructor(
     @Assisted private val attemptId: String,
     private val nahwuQuizRepository: NahwuQuizRepository,
 ) : ViewModel() {

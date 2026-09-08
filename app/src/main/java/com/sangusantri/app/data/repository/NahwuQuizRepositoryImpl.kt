@@ -22,9 +22,7 @@ import javax.inject.Inject
 // this into two repositories for one over-threshold function would be an artificial boundary with
 // no real domain reason, which CODING_STANDARD.md also warns against.
 @Suppress("TooManyFunctions")
-class NahwuQuizRepositoryImpl
-@Inject
-constructor(
+class NahwuQuizRepositoryImpl @Inject constructor(
     private val packageDao: NahwuQuizPackageDao,
     private val questionDao: NahwuQuizQuestionDao,
     private val attemptDao: NahwuQuizAttemptDao,
@@ -43,12 +41,11 @@ constructor(
             }
         }
 
-    private fun answeredCountFor(attempt: NahwuQuizAttemptEntity?): Int? =
-        when {
-            attempt == null -> null
-            attempt.completedAtEpochMillis != null -> attempt.totalCount
-            else -> attempt.currentQuestionIndex
-        }
+    private fun answeredCountFor(attempt: NahwuQuizAttemptEntity?): Int? = when {
+        attempt == null -> null
+        attempt.completedAtEpochMillis != null -> attempt.totalCount
+        else -> attempt.currentQuestionIndex
+    }
 
     override fun observeActiveAttempt(): Flow<NahwuQuizActiveAttempt?> =
         attemptDao.observeMostRecentActive().map { row ->
@@ -115,21 +112,19 @@ constructor(
     override suspend fun getPreviousScorePercent(
         packageId: String,
         excludingAttemptId: String,
-    ): Int? =
-        attemptDao
-            .getCompletedForPackage(packageId)
-            .firstOrNull { it.id != excludingAttemptId }
-            ?.toDomain()
-            ?.scorePercent
+    ): Int? = attemptDao
+        .getCompletedForPackage(packageId)
+        .firstOrNull { it.id != excludingAttemptId }
+        ?.toDomain()
+        ?.scorePercent
 
     private fun statusFor(
         quizPackage: NahwuQuizPackage,
         latestAttempt: NahwuQuizAttemptEntity?,
-    ): NahwuQuizPackageStatus =
-        when {
-            quizPackage.questionCount == 0 -> NahwuQuizPackageStatus.UNAVAILABLE
-            latestAttempt == null -> NahwuQuizPackageStatus.NEW
-            latestAttempt.completedAtEpochMillis != null -> NahwuQuizPackageStatus.COMPLETED
-            else -> NahwuQuizPackageStatus.IN_PROGRESS
-        }
+    ): NahwuQuizPackageStatus = when {
+        quizPackage.questionCount == 0 -> NahwuQuizPackageStatus.UNAVAILABLE
+        latestAttempt == null -> NahwuQuizPackageStatus.NEW
+        latestAttempt.completedAtEpochMillis != null -> NahwuQuizPackageStatus.COMPLETED
+        else -> NahwuQuizPackageStatus.IN_PROGRESS
+    }
 }

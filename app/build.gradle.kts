@@ -142,12 +142,11 @@ fun quranHexDigestToBytes(hex: String): ByteArray {
 // comma-separated list lets both be accepted without weakening the check itself — each candidate
 // still requires an exact match; this only widens which of Google's own re-signing certificates
 // count as legitimate.
-fun quranHexDigestListToBytesList(commaSeparatedHex: String): List<ByteArray> =
-    commaSeparatedHex
-        .split(",")
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .map(::quranHexDigestToBytes)
+fun quranHexDigestListToBytesList(commaSeparatedHex: String): List<ByteArray> = commaSeparatedHex
+    .split(",")
+    .map { it.trim() }
+    .filter { it.isNotEmpty() }
+    .map(::quranHexDigestToBytes)
 
 fun quranCByteArrayLiteral(bytes: ByteArray): String =
     bytes.joinToString(prefix = "{", postfix = "}", separator = ", ") { "0x%02X".format(it.toInt() and 0xFF) }

@@ -18,9 +18,7 @@ import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 /** Selects the newest genuinely resumable local activity across the app's bounded contexts. */
-class SerambiResumeCoordinator
-@Inject
-constructor(
+class SerambiResumeCoordinator @Inject constructor(
     private val contentRepository: ContentRepository,
     private val readingPositionRepository: ReadingPositionRepository,
     private val guidedReadingRepository: GuidedReadingRepository,
@@ -72,7 +70,7 @@ constructor(
                 guidedSession.lastOpenedAtEpochMillis >= (fullPosition?.lastOpenedAtEpochMillis ?: Long.MIN_VALUE)
         val contentId = if (useGuided) guidedSession?.contentId else fullPosition?.contentId
         val content = items.find { it.id == contentId }
-        val detail = content?.let { contentRepository.getContentDetail(it.id) }
+        val detail = content?.let { contentRepository.getCachedContentDetail(it.id) }
         if (content == null || detail == null || detail.steps.isEmpty()) return null
 
         val currentIndex =
@@ -108,13 +106,12 @@ constructor(
         )
     }
 
-    private fun TasbihSession.toResumeItem() =
-        SerambiResumeItem.Tasbih(
-            sessionName = sessionName,
-            currentCount = currentCount.coerceAtLeast(0),
-            targetCount = targetValue,
-            lastActivityAtEpochMillis = updatedAtEpochMillis,
-        )
+    private fun TasbihSession.toResumeItem() = SerambiResumeItem.Tasbih(
+        sessionName = sessionName,
+        currentCount = currentCount.coerceAtLeast(0),
+        targetCount = targetValue,
+        lastActivityAtEpochMillis = updatedAtEpochMillis,
+    )
 
     private data class ResumeSources(
         val quranReadingState: QuranReadingState?,

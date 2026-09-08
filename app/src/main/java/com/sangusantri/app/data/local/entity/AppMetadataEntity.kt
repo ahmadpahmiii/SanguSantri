@@ -9,8 +9,4 @@ import androidx.room.PrimaryKey
  * tables are added alongside the features that need them.
  */
 @Entity(tableName = "app_metadata")
-data class AppMetadataEntity(
-    @PrimaryKey val key: String,
-    val value: String,
-    val updatedAtEpochMillis: Long,
-)
+data class AppMetadataEntity(@PrimaryKey val key: String, val value: String, val updatedAtEpochMillis: Long)

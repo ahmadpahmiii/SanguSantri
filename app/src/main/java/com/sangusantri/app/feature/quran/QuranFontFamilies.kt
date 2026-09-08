@@ -12,12 +12,11 @@ val QuranLpmqFontFamily = FontFamily(Font(R.font.lpmq_isep_misbah))
 val QuranHafsFontFamily = FontFamily(Font(R.font.kfgqpc_hafs_uthmanic))
 val QuranAmiriFontFamily = FontFamily(Font(R.font.amiri_quran_regular))
 
-fun QuranArabicFont.toFontFamily(): FontFamily =
-    when (this) {
-        QuranArabicFont.LPMQ_ISEP_MISBAH -> QuranLpmqFontFamily
-        QuranArabicFont.KFGQPC_HAFS -> QuranHafsFontFamily
-        QuranArabicFont.AMIRI_QURAN -> QuranAmiriFontFamily
-    }
+fun QuranArabicFont.toFontFamily(): FontFamily = when (this) {
+    QuranArabicFont.LPMQ_ISEP_MISBAH -> QuranLpmqFontFamily
+    QuranArabicFont.KFGQPC_HAFS -> QuranHafsFontFamily
+    QuranArabicFont.AMIRI_QURAN -> QuranAmiriFontFamily
+}
 
 /**
  * Keeps the selected face for the corpus it supports, while rendering the complete word in the

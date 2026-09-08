@@ -3,6 +3,7 @@ package com.sangusantri.app.feature.reader
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.ReaderMode
 import com.sangusantri.app.domain.model.hasGuidedMode
 import com.sangusantri.app.domain.repository.ContentRepository
@@ -23,67 +24,82 @@ import kotlinx.coroutines.launch
  * remembers the choice and resolves the gate for the current visit.
  */
 @HiltViewModel(assistedFactory = ReaderEntryViewModel.Factory::class)
-class ReaderEntryViewModel
-    @AssistedInject
-    constructor(
-        @Assisted private val contentId: String,
-        private val contentRepository: ContentRepository,
-        private val readerSettingsRepository: ReaderSettingsRepository,
-    ) : ViewModel() {
-        @AssistedFactory
-        interface Factory {
-            fun create(contentId: String): ReaderEntryViewModel
-        }
+class ReaderEntryViewModel @AssistedInject constructor(
+    @Assisted private val contentId: String,
+    private val contentRepository: ContentRepository,
+    private val readerSettingsRepository: ReaderSettingsRepository,
+) : ViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(contentId: String): ReaderEntryViewModel
+    }
 
-        private val _uiState = MutableStateFlow<ReaderEntryUiState>(ReaderEntryUiState.Loading)
-        val uiState: StateFlow<ReaderEntryUiState> = _uiState
+    private val _uiState = MutableStateFlow<ReaderEntryUiState>(ReaderEntryUiState.Loading)
+    val uiState: StateFlow<ReaderEntryUiState> = _uiState
 
-        init {
-            resolve()
-        }
+    init {
+        resolve()
+    }
 
-        fun selectMode(mode: ReaderMode) {
-            viewModelScope.launch { readerSettingsRepository.setLastReaderMode(mode) }
-            _uiState.value = ReaderEntryUiState.Resolved(mode)
-        }
+    fun selectMode(mode: ReaderMode) {
+        viewModelScope.launch { readerSettingsRepository.setLastReaderMode(mode) }
+        _uiState.value = ReaderEntryUiState.Resolved(mode)
+    }
 
-        @Suppress("TooGenericExceptionCaught", "SwallowedException")
-        private fun resolve() {
-            viewModelScope.launch {
-                val detail =
-                    try {
-                        contentRepository.getContentDetail(contentId)?.takeIf { it.steps.isNotEmpty() }
-                    } catch (cancellation: CancellationException) {
-                        throw cancellation
-                    } catch (unexpected: Exception) {
-                        Log.e(TAG, "Reader entry availability check failed for id=$contentId", unexpected)
-                        null
-                    }
-
-                if (detail == null) {
-                    Log.w(TAG, "Content unavailable or has no steps for id=$contentId")
-                    _uiState.value = ReaderEntryUiState.ContentUnavailable
-                    return@launch
+    /**
+     * Waits for the offline-first detail stream to settle, then decides.
+     *
+     * This used to read the cache only, and that silently blocked entry to most of the catalogue:
+     * a list sync creates a content row with **no steps** — steps arrive from the detail endpoint
+     * when an item is first opened — so every amaliyah the reader had never opened looked exactly
+     * like content that does not exist. Ratib al-Haddad was reported; every unopened item behaved
+     * the same way.
+     *
+     * `first { it !is Resource.Loading }` is what makes the gate wait for that first fetch instead
+     * of judging the item before it has happened. An item whose steps are already cached settles on
+     * the first emission and never waits at all.
+     */
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun resolve() {
+        viewModelScope.launch {
+            val detail =
+                try {
+                    contentRepository
+                        .observeContentDetail(contentId)
+                        .first { it !is Resource.Loading }
+                        .data
+                        ?.takeIf { it.steps.isNotEmpty() }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (unexpected: Exception) {
+                    Log.e(TAG, "Reader entry availability check failed for id=$contentId", unexpected)
+                    null
                 }
 
-                // Content where nothing is counted has no Panduan mode, so there is no choice to
-                // offer and no remembered choice to honour — it always opens in Bacaan Lengkap.
-                if (!detail.steps.hasGuidedMode()) {
-                    _uiState.value = ReaderEntryUiState.Resolved(ReaderMode.FULL)
-                    return@launch
-                }
-
-                val rememberedMode = readerSettingsRepository.observe().first().lastReaderMode
-                _uiState.value =
-                    if (rememberedMode != null) {
-                        ReaderEntryUiState.Resolved(rememberedMode)
-                    } else {
-                        ReaderEntryUiState.ModeChooser(detail.content.title)
-                    }
+            if (detail == null) {
+                Log.w(TAG, "Content unavailable or has no steps for id=$contentId")
+                _uiState.value = ReaderEntryUiState.ContentUnavailable
+                return@launch
             }
-        }
 
-        private companion object {
-            const val TAG = "ReaderEntryViewModel"
+            // Content where nothing is counted has no Panduan mode, so there is no choice to
+            // offer and no remembered choice to honour — it always opens in Bacaan Lengkap.
+            if (!detail.steps.hasGuidedMode()) {
+                _uiState.value = ReaderEntryUiState.Resolved(ReaderMode.FULL)
+                return@launch
+            }
+
+            val rememberedMode = readerSettingsRepository.observe().first().lastReaderMode
+            _uiState.value =
+                if (rememberedMode != null) {
+                    ReaderEntryUiState.Resolved(rememberedMode)
+                } else {
+                    ReaderEntryUiState.ModeChooser(detail.content.title)
+                }
         }
     }
+
+    private companion object {
+        const val TAG = "ReaderEntryViewModel"
+    }
+}

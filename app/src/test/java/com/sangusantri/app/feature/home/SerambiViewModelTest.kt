@@ -1,7 +1,7 @@
 package com.sangusantri.app.feature.home
 
-import com.sangusantri.app.data.sync.ContentSyncManager
-import com.sangusantri.app.data.sync.SyncResult
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.AyatHariIni
 import com.sangusantri.app.domain.model.CityDetection
@@ -51,11 +51,11 @@ import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
 import com.sangusantri.app.domain.repository.TasbihRepository
 import com.sangusantri.app.domain.usecase.ObserveAmalanHarianUseCase
-import com.sangusantri.app.testing.stubContentApiService
-import com.sangusantri.app.testing.stubContentImporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -70,13 +70,12 @@ class SerambiViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun uiStateStartsAsLoadingBeforeRepositoryEmits() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                createViewModel(FakeContentRepository(flowOf(listOf(tahlil))))
+    fun uiStateStartsAsLoadingBeforeRepositoryEmits() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            createViewModel(FakeContentRepository(flowOf(listOf(tahlil))))
 
-            assertEquals(SerambiUiState.Loading, viewModel.uiState.value)
-        }
+        assertEquals(SerambiUiState.Loading, viewModel.uiState.value)
+    }
 
     /*
      * Two things make collecting this particular StateFlow awkward, and both bite silently:
@@ -96,32 +95,30 @@ class SerambiViewModelTest {
      * its current value, so the collector exists only to make WhileSubscribed start the pipeline.
      */
     @Test
-    fun uiStateBecomesLoadedWithRepositoryContent() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                createViewModel(FakeContentRepository(flowOf(listOf(tahlil, istighosah))))
+    fun uiStateBecomesLoadedWithRepositoryContent() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            createViewModel(FakeContentRepository(flowOf(listOf(tahlil, istighosah))))
 
-            backgroundScope.launch { viewModel.uiState.collect {} }
-            runCurrent()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        runCurrent()
 
-            // Field-wise, not whole-object: Loaded also carries `now` from a live clock, so equality
-            // against a Loaded built with default values could never hold.
-            val state = viewModel.uiState.value as SerambiUiState.Loaded
-            assertEquals(listOf(tahlil, istighosah), state.items)
-        }
+        // Field-wise, not whole-object: Loaded also carries `now` from a live clock, so equality
+        // against a Loaded built with default values could never hold.
+        val state = viewModel.uiState.value as SerambiUiState.Loaded
+        assertEquals(listOf(tahlil, istighosah), state.items)
+    }
 
     @Test
-    fun emptyCatalogueIsLoadedWithEmptyListNotLoading() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                createViewModel(FakeContentRepository(flowOf(emptyList())))
+    fun emptyCatalogueIsLoadedWithEmptyListNotLoading() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            createViewModel(FakeContentRepository(flowOf(emptyList())))
 
-            backgroundScope.launch { viewModel.uiState.collect {} }
-            runCurrent()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        runCurrent()
 
-            val state = viewModel.uiState.value as SerambiUiState.Loaded
-            assertEquals(emptyList<Content>(), state.items)
-        }
+        val state = viewModel.uiState.value as SerambiUiState.Loaded
+        assertEquals(emptyList<Content>(), state.items)
+    }
 
     @Test
     fun sholawatCategoryItemsAreExcludedFromItemsButGateHasSholawatContent() =
@@ -137,32 +134,30 @@ class SerambiViewModelTest {
             assertEquals(true, state.hasSholawatContent)
         }
 
-    private fun createViewModel(contentRepository: ContentRepository): SerambiViewModel =
-        SerambiViewModel(
-            contentRepository = contentRepository,
-            reminderRepository = FakeReminderRepository(),
-            nahwuQuizRepository = FakeNahwuQuizRepository(),
-            prayerScheduleRepository = FakePrayerScheduleRepository(),
-            settingsRepository = FakeQuranReaderSettingsRepository(),
-            ayatHariIniRepository = FakeAyatHariIniRepository(),
-            kiblatRepository = FakeKiblatRepository(),
-            resumeCoordinator =
-                SerambiResumeCoordinator(
-                    contentRepository = contentRepository,
-                    readingPositionRepository = FakeReadingPositionRepository(),
-                    guidedReadingRepository = FakeGuidedReadingRepository(),
-                    quranRepository = FakeQuranRepository(),
-                    tasbihRepository = FakeTasbihRepository(),
-                    homePreferencesRepository = FakeHomePreferencesRepository(),
-                ),
-            contentSyncManager = FakeContentSyncManager(),
-            observeAmalanHarian =
-                ObserveAmalanHarianUseCase(
-                    tasbihRepository = FakeTasbihRepository(),
-                    quranRepository = FakeQuranRepository(),
-                    amalanRepository = FakeAmalanRepository(),
-                ),
-        )
+    private fun createViewModel(contentRepository: ContentRepository): SerambiViewModel = SerambiViewModel(
+        contentRepository = contentRepository,
+        reminderRepository = FakeReminderRepository(),
+        nahwuQuizRepository = FakeNahwuQuizRepository(),
+        prayerScheduleRepository = FakePrayerScheduleRepository(),
+        settingsRepository = FakeQuranReaderSettingsRepository(),
+        ayatHariIniRepository = FakeAyatHariIniRepository(),
+        kiblatRepository = FakeKiblatRepository(),
+        resumeCoordinator =
+            SerambiResumeCoordinator(
+                contentRepository = contentRepository,
+                readingPositionRepository = FakeReadingPositionRepository(),
+                guidedReadingRepository = FakeGuidedReadingRepository(),
+                quranRepository = FakeQuranRepository(),
+                tasbihRepository = FakeTasbihRepository(),
+                homePreferencesRepository = FakeHomePreferencesRepository(),
+            ),
+        observeAmalanHarian =
+            ObserveAmalanHarianUseCase(
+                tasbihRepository = FakeTasbihRepository(),
+                quranRepository = FakeQuranRepository(),
+                amalanRepository = FakeAmalanRepository(),
+            ),
+    )
 
     private companion object {
         val tahlil =
@@ -188,16 +183,18 @@ class SerambiViewModelTest {
     }
 }
 
-private class FakeContentRepository(
-    private val content: Flow<List<Content>>,
-) : ContentRepository {
-    override fun observeActiveContent(): Flow<List<Content>> = content
+private class FakeContentRepository(private val content: Flow<List<Content>>) : ContentRepository {
+    override fun observeActiveContent(): Flow<Resource<List<Content>>> = content.map { Resource.Success(it) }
 
     override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content? = null
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail? = null
+    override suspend fun getCachedContentDetail(contentId: String): ContentDetail? = null
+
+    override fun observeContentDetail(contentId: String): Flow<Resource<ContentDetail>> = emptyFlow()
+
+    override suspend fun refreshCatalogue(): ApiResult<Unit> = ApiResult.Success(Unit)
 }
 
 private class FakeReminderRepository : ReminderRepository {
@@ -341,7 +338,7 @@ private class FakeQuranRepository : QuranRepository {
 private class FakeAyatHariIniRepository : AyatHariIniRepository {
     override suspend fun forDate(date: LocalDate): AyatHariIni? = null
 
-    override suspend fun sync(): Result<Unit> = Result.success(Unit)
+    override suspend fun sync(): ApiResult<Unit> = ApiResult.Success(Unit)
 }
 
 /** No bearing ever computed, so Beranda's prayer block shows no kiblat pill — the same rule as the
@@ -349,7 +346,7 @@ private class FakeAyatHariIniRepository : AyatHariIniRepository {
 private class FakeKiblatRepository : KiblatRepository {
     override fun observeDirection(): Flow<KiblatDirection?> = flowOf(null)
 
-    override suspend fun refreshDirection(): Result<KiblatDirection> =
+    override suspend fun refreshDirection(): ApiResult<KiblatDirection> =
         throw UnsupportedOperationException("not needed by SerambiViewModelTest")
 }
 
@@ -411,7 +408,7 @@ private class FakePrayerScheduleRepository : PrayerScheduleRepository {
 
     override fun observeCities(query: String): Flow<List<PrayerCity>> = flowOf(emptyList())
 
-    override suspend fun ensureCitiesCached(): Result<Unit> = Result.success(Unit)
+    override suspend fun ensureCitiesCached(): ApiResult<Unit> = ApiResult.Success(Unit)
 
     override suspend fun selectCity(cityId: String) = Unit
 
@@ -421,7 +418,7 @@ private class FakePrayerScheduleRepository : PrayerScheduleRepository {
 
     override suspend fun markLocationPromptShown() = Unit
 
-    override suspend fun ensureScheduleCached(month: LocalDate): Result<Unit> = Result.success(Unit)
+    override suspend fun ensureScheduleCached(month: LocalDate): ApiResult<Unit> = ApiResult.Success(Unit)
 
     override suspend fun setNotificationMode(
         prayer: PrayerName,
@@ -429,12 +426,4 @@ private class FakePrayerScheduleRepository : PrayerScheduleRepository {
     ) = Unit
 
     override suspend fun scheduleOn(date: LocalDate): PrayerSchedule? = null
-}
-
-private class FakeContentSyncManager :
-    ContentSyncManager(
-        api = stubContentApiService(),
-        contentImporter = stubContentImporter(),
-    ) {
-    override suspend fun sync(): SyncResult = SyncResult.Completed(emptyList(), emptyList(), emptyList())
 }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -18,9 +19,7 @@ import javax.inject.Inject
  * items — deliberately not Explore's full catalogue — filtered by a title-or-ayah search. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class SholawatListViewModel
-@Inject
-constructor(
+class SholawatListViewModel @Inject constructor(
     contentRepository: ContentRepository,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -28,7 +27,7 @@ constructor(
 
     val uiState: StateFlow<SholawatListUiState> =
         combine(
-            contentRepository.observeActiveContent(),
+            contentRepository.observeActiveContent().map { it.data.orEmpty() },
             query,
             query.flatMapLatest(contentRepository::observeContentIdsMatchingStepText),
         ) { items, searchQuery, stepMatchedIds ->

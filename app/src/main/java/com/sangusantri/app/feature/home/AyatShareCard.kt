@@ -124,27 +124,26 @@ fun AyatShareCard(
  *
  * Measured in one pass, so there is no intermediate frame at the wrong size to flicker.
  */
-private fun Modifier.scaleDownToFit(): Modifier =
-    layout { measurable, constraints ->
-        val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
-        val available = constraints.maxHeight
-        val scale =
-            if (placeable.height > available && placeable.height > 0) {
-                available.toFloat() / placeable.height
-            } else {
-                1f
-            }
-        layout(constraints.maxWidth, available) {
-            placeable.placeWithLayer(
-                x = 0,
-                y = ((available - placeable.height * scale) / 2).roundToInt(),
-            ) {
-                scaleX = scale
-                scaleY = scale
-                transformOrigin = TransformOrigin(0.5f, 0f)
-            }
+private fun Modifier.scaleDownToFit(): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+    val available = constraints.maxHeight
+    val scale =
+        if (placeable.height > available && placeable.height > 0) {
+            available.toFloat() / placeable.height
+        } else {
+            1f
+        }
+    layout(constraints.maxWidth, available) {
+        placeable.placeWithLayer(
+            x = 0,
+            y = ((available - placeable.height * scale) / 2).roundToInt(),
+        ) {
+            scaleX = scale
+            scaleY = scale
+            transformOrigin = TransformOrigin(0.5f, 0f)
         }
     }
+}
 
 private val CardCornerRadius = 16.dp
 private val CardPadding = 24.dp

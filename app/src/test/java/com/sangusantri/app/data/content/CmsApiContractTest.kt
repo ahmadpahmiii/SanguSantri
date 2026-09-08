@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.content
 
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.content.dto.ContentDetailDto
 import com.sangusantri.app.data.content.dto.ContentListResponseDto
 import com.sangusantri.app.data.remote.ayat.AyatHariIniValidator
@@ -51,7 +52,7 @@ class CmsApiContractTest {
 
             assertEquals(ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION, response.schemaVersion)
             assertTrue(fixture, response.items.isNotEmpty())
-            assertTrue(fixture, ContentValidator.validateList(response) is ContentValidation.Valid)
+            assertTrue(fixture, ContentValidator.validateList(response) is Validation.Valid)
         }
     }
 
@@ -62,7 +63,7 @@ class CmsApiContractTest {
 
             assertEquals(ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION, detail.schemaVersion)
             assertTrue(fixture, detail.steps.isNotEmpty())
-            assertTrue(fixture, ContentValidator.validateDetail(detail) is ContentValidation.Valid)
+            assertTrue(fixture, ContentValidator.validateDetail(detail) is Validation.Valid)
         }
     }
 
@@ -150,7 +151,7 @@ class CmsApiContractTest {
         listOf("cmsapi/detail-layout-absent.json", "cmsapi/detail-layout-unknown.json").forEach { fixture ->
             val detail = json.decodeFromString<ContentDetailDto>(readFixture(fixture))
 
-            assertTrue(fixture, ContentValidator.validateDetail(detail) is ContentValidation.Valid)
+            assertTrue(fixture, ContentValidator.validateDetail(detail) is Validation.Valid)
             assertEquals(fixture, ContentLayout.STACKED, detail.layout.toContentLayout())
         }
     }

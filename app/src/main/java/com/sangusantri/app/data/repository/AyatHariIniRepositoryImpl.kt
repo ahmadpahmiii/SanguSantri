@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.repository
 
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import com.sangusantri.app.data.local.entity.AyatHariIniEntity
 import com.sangusantri.app.data.sync.ayat.AyatHariIniSyncManager
@@ -10,9 +11,7 @@ import java.time.LocalDate
 import java.util.Locale
 import javax.inject.Inject
 
-class AyatHariIniRepositoryImpl
-@Inject
-constructor(
+class AyatHariIniRepositoryImpl @Inject constructor(
     private val database: SanguSantriDatabase,
     private val syncManager: AyatHariIniSyncManager,
 ) : AyatHariIniRepository {
@@ -42,7 +41,7 @@ constructor(
         return scheduled?.toDomain()
     }
 
-    override suspend fun sync(): Result<Unit> = syncManager.syncIfNeeded()
+    override suspend fun sync(): ApiResult<Unit> = syncManager.syncIfNeeded()
 }
 
 /**

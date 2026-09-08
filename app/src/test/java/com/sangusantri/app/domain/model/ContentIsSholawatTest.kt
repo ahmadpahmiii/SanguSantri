@@ -35,17 +35,16 @@ class ContentIsSholawatTest {
         assertFalse(content(category = null).isSholawat)
     }
 
-    private fun content(category: String?) =
-        Content(
-            id = "id",
-            title = "[FIXTURE]",
-            description = "[FIXTURE]",
-            imageUrl = null,
-            category = category,
-            version = 1,
-            order = 0,
-            isActive = true,
-            sourceName = "[FIXTURE]",
-            sourceUrl = "https://example.com",
-        )
+    private fun content(category: String?) = Content(
+        id = "id",
+        title = "[FIXTURE]",
+        description = "[FIXTURE]",
+        imageUrl = null,
+        category = category,
+        version = 1,
+        order = 0,
+        isActive = true,
+        sourceName = "[FIXTURE]",
+        sourceUrl = "https://example.com",
+    )
 }

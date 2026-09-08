@@ -6,6 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.network.safeApiCall
+import com.sangusantri.app.core.network.unwrap
 import com.sangusantri.app.data.location.DeviceLocationSource
 import com.sangusantri.app.data.remote.prayertimes.api.PrayerTimesApiService
 import com.sangusantri.app.domain.model.KiblatDirection
@@ -29,49 +32,59 @@ import javax.inject.Inject
  * Both figures are cached, so the compass keeps working with no network and no further location
  * reads.
  */
-class KiblatRepositoryImpl
-@Inject
-constructor(
+class KiblatRepositoryImpl @Inject constructor(
     private val locationSource: DeviceLocationSource,
     private val apiService: PrayerTimesApiService,
     private val dataStore: DataStore<Preferences>,
 ) : KiblatRepository {
-    override fun observeDirection(): Flow<KiblatDirection?> =
-        dataStore.data
-            .catch { error ->
-                if (error is IOException) emit(emptyPreferences()) else throw error
-            }.map { preferences ->
-                // `takeIf { it.isFinite() }` is not paranoia: a NaN written here once outlives the
-                // session and every later launch reads it back, which is how the compass crash of
-                // 0.0.5-0.0.7 repeated ~3x per affected reader. No direction beats a poisoned one.
-                val stored = preferences[BEARING_DEGREES]
-                val bearing = stored?.takeIf { it.isFinite() } ?: return@map null
-                // A bearing cached before distances were stored has none to report; treating it
-                // as far away keeps that reader's compass behaving exactly as it did before.
-                KiblatDirection(
-                    bearingDegrees = bearing,
-                    distanceMetres = preferences[DISTANCE_METRES] ?: Float.MAX_VALUE,
-                )
-            }
-
-    override suspend fun refreshDirection(): Result<KiblatDirection> =
-        runCatching {
-            val location = locationSource.currentLocation() ?: error("no location available")
-            val response = apiService.getQibla(coarseCoordinate(location.latitude, location.longitude))
-            val payload = response.body()?.takeIf { response.isSuccessful && it.status }
-            val reportedBearing = payload?.data?.direction?.toFloat()
-            val bearing = reportedBearing?.takeIf { it.isFinite() } ?: error("qibla unavailable")
-            val direction =
-                KiblatDirection(
-                    bearingDegrees = bearing,
-                    distanceMetres = distanceToKaabaMetres(location.latitude, location.longitude),
-                )
-            dataStore.edit {
-                it[BEARING_DEGREES] = direction.bearingDegrees
-                it[DISTANCE_METRES] = direction.distanceMetres
-            }
-            direction
+    override fun observeDirection(): Flow<KiblatDirection?> = dataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }.map { preferences ->
+            // `takeIf { it.isFinite() }` is not paranoia: a NaN written here once outlives the
+            // session and every later launch reads it back, which is how the compass crash of
+            // 0.0.5-0.0.7 repeated ~3x per affected reader. No direction beats a poisoned one.
+            val stored = preferences[BEARING_DEGREES]
+            val bearing = stored?.takeIf { it.isFinite() } ?: return@map null
+            // A bearing cached before distances were stored has none to report; treating it
+            // as far away keeps that reader's compass behaving exactly as it did before.
+            KiblatDirection(
+                bearingDegrees = bearing,
+                distanceMetres = preferences[DISTANCE_METRES] ?: Float.MAX_VALUE,
+            )
         }
+
+    // Guard clauses: no location, request failed, bearing unusable. Each is a different failure
+    // the caller distinguishes, so they stay separate returns rather than one nested expression.
+    @Suppress("ReturnCount")
+    override suspend fun refreshDirection(): ApiResult<KiblatDirection> {
+        val location =
+            locationSource.currentLocation()
+                ?: return ApiResult.NetworkError("qibla: no location available")
+        val source = "qibla"
+        val result = safeApiCall(source) {
+            apiService.getQibla(coarseCoordinate(location.latitude, location.longitude))
+        }.unwrap(source)
+        val qibla = when (result) {
+            is ApiResult.Failure -> return result
+            is ApiResult.Success -> result.data
+        }
+        // A non-finite bearing would reach `Math.round` in the compass and crash it — the
+        // NaN crash triaged on 2026-09-08. Rejected here rather than defended at every reader.
+        val bearing =
+            qibla.direction.toFloat().takeIf { it.isFinite() }
+                ?: return ApiResult.MalformedResponse("qibla: non-finite bearing")
+        val direction =
+            KiblatDirection(
+                bearingDegrees = bearing,
+                distanceMetres = distanceToKaabaMetres(location.latitude, location.longitude),
+            )
+        dataStore.edit {
+            it[BEARING_DEGREES] = direction.bearingDegrees
+            it[DISTANCE_METRES] = direction.distanceMetres
+        }
+        return ApiResult.Success(direction)
+    }
 
     private companion object {
         val BEARING_DEGREES = floatPreferencesKey("kiblat_bearing_degrees")

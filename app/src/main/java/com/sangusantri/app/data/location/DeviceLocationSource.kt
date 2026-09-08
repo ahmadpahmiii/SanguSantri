@@ -31,11 +31,7 @@ import kotlin.coroutines.resume
  * runs on [Dispatchers.IO]. Calling the geocoder from the main dispatcher is exactly the bug that
  * made city detection fail silently the first time this shipped.
  */
-class DeviceLocationSource
-@Inject
-constructor(
-    @ApplicationContext private val context: Context,
-) {
+class DeviceLocationSource @Inject constructor(@ApplicationContext private val context: Context) {
     fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
@@ -49,10 +45,9 @@ constructor(
      * for it. Relying on the cache alone is why "detect my city" appeared to do nothing right after
      * the permission dialog.
      */
-    suspend fun currentLocation(): Location? =
-        withContext(Dispatchers.IO) {
-            lastKnownLocation() ?: requestSingleFix()
-        }
+    suspend fun currentLocation(): Location? = withContext(Dispatchers.IO) {
+        lastKnownLocation() ?: requestSingleFix()
+    }
 
     fun lastKnownLocation(): Location? {
         val manager =
@@ -127,17 +122,16 @@ constructor(
      * inconsistently across devices and regions.
      */
     @Suppress("DEPRECATION")
-    suspend fun kabkotaCandidates(location: Location): List<String> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                Geocoder(context, Locale("id", "ID"))
-                    .getFromLocation(location.latitude, location.longitude, 1)
-                    .orEmpty()
-                    .firstOrNull()
-                    ?.let { address -> listOfNotNull(address.subAdminArea, address.locality, address.adminArea) }
-                    .orEmpty()
-            }.getOrDefault(emptyList())
-        }
+    suspend fun kabkotaCandidates(location: Location): List<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            Geocoder(context, Locale("id", "ID"))
+                .getFromLocation(location.latitude, location.longitude, 1)
+                .orEmpty()
+                .firstOrNull()
+                ?.let { address -> listOfNotNull(address.subAdminArea, address.locality, address.adminArea) }
+                .orEmpty()
+        }.getOrDefault(emptyList())
+    }
 
     private companion object {
         const val FIX_TIMEOUT_MILLIS = 10_000L

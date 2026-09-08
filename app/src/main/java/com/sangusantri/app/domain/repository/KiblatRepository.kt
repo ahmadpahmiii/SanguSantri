@@ -1,5 +1,6 @@
 package com.sangusantri.app.domain.repository
 
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.domain.model.KiblatDirection
 import kotlinx.coroutines.flow.Flow
 
@@ -20,5 +21,5 @@ interface KiblatRepository {
 
     /** Requires `ACCESS_COARSE_LOCATION` to have been granted; returns a failure otherwise, or when
      * no last-known position is available and the source cannot be reached. */
-    suspend fun refreshDirection(): Result<KiblatDirection>
+    suspend fun refreshDirection(): ApiResult<KiblatDirection>
 }

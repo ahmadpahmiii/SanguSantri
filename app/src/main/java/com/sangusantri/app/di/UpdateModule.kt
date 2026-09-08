@@ -52,9 +52,8 @@ object UpdateProvidersModule {
 
     @Provides
     @Singleton
-    fun provideAppUpdateManager(
-        @ApplicationContext context: Context,
-    ): AppUpdateManager = AppUpdateManagerFactory.create(context)
+    fun provideAppUpdateManager(@ApplicationContext context: Context): AppUpdateManager =
+        AppUpdateManagerFactory.create(context)
 
     private const val RELEASE_FETCH_INTERVAL_SECONDS = 3_600L
 }

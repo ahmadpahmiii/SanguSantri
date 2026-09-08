@@ -34,7 +34,4 @@ interface QuranReadingSessionDao {
 }
 
 /** Projection for [QuranReadingSessionDao.observeSessionPages] — not a table. */
-data class QuranSessionPageRow(
-    val readAtEpochMillis: Long,
-    val page: Int,
-)
+data class QuranSessionPageRow(val readAtEpochMillis: Long, val page: Int)

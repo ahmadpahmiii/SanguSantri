@@ -1,5 +1,6 @@
 package com.sangusantri.app.domain.repository
 
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.PrayerCity
 import com.sangusantri.app.domain.model.PrayerName
@@ -31,7 +32,7 @@ interface PrayerScheduleRepository {
     fun observeCities(query: String): Flow<List<PrayerCity>>
 
     /** Fetches the ~517-city list on first use. No-op once cached. */
-    suspend fun ensureCitiesCached(): Result<Unit>
+    suspend fun ensureCitiesCached(): ApiResult<Unit>
 
     suspend fun selectCity(cityId: String)
 
@@ -51,7 +52,7 @@ interface PrayerScheduleRepository {
     suspend fun markLocationPromptShown()
 
     /** Fetches [month]'s schedule for the selected city if it is not already cached. */
-    suspend fun ensureScheduleCached(month: LocalDate): Result<Unit>
+    suspend fun ensureScheduleCached(month: LocalDate): ApiResult<Unit>
 
     /** Per-prayer reminder settings — real user state, independent of where the times come from. */
     suspend fun setNotificationMode(

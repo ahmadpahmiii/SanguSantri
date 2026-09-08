@@ -10,13 +10,9 @@ import com.sangusantri.app.domain.model.ReaderMode
 sealed interface ReaderEntryUiState {
     data object Loading : ReaderEntryUiState
 
-    data class ModeChooser(
-        val title: String,
-    ) : ReaderEntryUiState
+    data class ModeChooser(val title: String) : ReaderEntryUiState
 
-    data class Resolved(
-        val mode: ReaderMode,
-    ) : ReaderEntryUiState
+    data class Resolved(val mode: ReaderMode) : ReaderEntryUiState
 
     /** No content for the id, or it has no steps — handled the same as the readers themselves. */
     data object ContentUnavailable : ReaderEntryUiState

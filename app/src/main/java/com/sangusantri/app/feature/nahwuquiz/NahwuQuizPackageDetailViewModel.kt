@@ -20,17 +20,13 @@ import kotlinx.coroutines.flow.stateIn
 sealed interface NahwuQuizPackageDetailUiState {
     data object Loading : NahwuQuizPackageDetailUiState
 
-    data class Content(
-        val summary: NahwuQuizPackageSummary,
-    ) : NahwuQuizPackageDetailUiState
+    data class Content(val summary: NahwuQuizPackageSummary) : NahwuQuizPackageDetailUiState
 
     data object NotFound : NahwuQuizPackageDetailUiState
 }
 
 @HiltViewModel(assistedFactory = NahwuQuizPackageDetailViewModel.Factory::class)
-class NahwuQuizPackageDetailViewModel
-@AssistedInject
-constructor(
+class NahwuQuizPackageDetailViewModel @AssistedInject constructor(
     @Assisted private val packageId: String,
     nahwuQuizRepository: NahwuQuizRepository,
 ) : ViewModel() {

@@ -26,24 +26,21 @@ import javax.inject.Inject
  * The streak is deliberately **not** here — `ObserveAmalanHarianUseCase` owns it, because "did this
  * day count" follows Amalan Harian's two-target rule rather than "did anything happen".
  */
-class ObserveActivityOverviewUseCase
-@Inject
-constructor(
+class ObserveActivityOverviewUseCase @Inject constructor(
     private val activityRepository: ActivityRepository,
     private val tasbihRepository: TasbihRepository,
     private val reminderRepository: ReminderRepository,
     private val quranRepository: QuranRepository,
 ) {
-    operator fun invoke(): Flow<ActivityOverview> =
-        combine(
-            activityRepository.observeCompletions(),
-            tasbihRepository.observeHistory(),
-            reminderRepository.observeAll(),
-            quranRepository.observeReadingSessions(),
-            quranRepository.observeSurahs(),
-        ) { completions, tasbihHistory, reminders, quranSessions, surahs ->
-            buildOverview(completions, tasbihHistory, reminders, quranSessions, surahs)
-        }
+    operator fun invoke(): Flow<ActivityOverview> = combine(
+        activityRepository.observeCompletions(),
+        tasbihRepository.observeHistory(),
+        reminderRepository.observeAll(),
+        quranRepository.observeReadingSessions(),
+        quranRepository.observeSurahs(),
+    ) { completions, tasbihHistory, reminders, quranSessions, surahs ->
+        buildOverview(completions, tasbihHistory, reminders, quranSessions, surahs)
+    }
 
     @Suppress("LongParameterList")
     private fun buildOverview(

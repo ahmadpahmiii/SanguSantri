@@ -17,11 +17,7 @@ import javax.inject.Inject
 /** Owns Standalone Tasbih screen state (0.0.2) — a thin wrapper around [TasbihRepository]'s single
  * active-session Flow, deriving the transient "restored" indicator (see [TasbihUiState.Active]). */
 @HiltViewModel
-class TasbihViewModel
-@Inject
-constructor(
-    private val repository: TasbihRepository,
-) : ViewModel() {
+class TasbihViewModel @Inject constructor(private val repository: TasbihRepository) : ViewModel() {
     // Set once from this ViewModel instance's first non-null emission — deliberately not
     // `rememberSaveable`/Room state, since "restored" must reset to a fresh judgement whenever a
     // fresh ViewModel is created (new process, or the Tasbih tab's own back stack was fully

@@ -16,9 +16,7 @@ import javax.inject.Inject
  * failure — a missing/malformed policy must never crash the app or block the user, so every
  * failure path returns `null` (never thrown) after recording it, never silently.
  */
-class AppUpdatePolicyRepositoryImpl
-@Inject
-constructor(
+class AppUpdatePolicyRepositoryImpl @Inject constructor(
     private val remoteConfig: FirebaseRemoteConfig,
     private val remoteConfigFetcher: RemoteConfigFetcher,
     private val json: Json,

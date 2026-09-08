@@ -3,16 +3,19 @@ package com.sangusantri.app.data.sync.quran
 import android.util.Log
 import androidx.room.withTransaction
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.network.safeApiCall
+import com.sangusantri.app.core.network.unwrap
+import com.sangusantri.app.core.network.validate
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import com.sangusantri.app.data.local.entity.AppMetadataEntity
 import com.sangusantri.app.data.mapper.toEntity
-import com.sangusantri.app.data.remote.quran.QuranValidation
 import com.sangusantri.app.data.remote.quran.QuranValidator
 import com.sangusantri.app.data.remote.quran.api.QuranApiService
 import com.sangusantri.app.data.remote.quran.dto.QuranAyatDto
 import com.sangusantri.app.data.remote.quran.dto.QuranEnvelopeDto
 import com.sangusantri.app.data.remote.quran.dto.QuranSurahDto
-import com.sangusantri.app.data.sync.isRetryableHttpStatus
 import com.sangusantri.app.data.sync.quran.QuranSyncManager.Companion.BOUNDED_CONCURRENCY
 import com.sangusantri.app.data.sync.quran.QuranSyncManager.Companion.MAX_FETCH_ATTEMPTS
 import kotlinx.coroutines.CancellationException
@@ -26,9 +29,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import retrofit2.Response
-import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
@@ -62,9 +63,7 @@ import javax.inject.Inject
  * mirrors [com.sangusantri.app.data.repository.QuranRepositoryImpl]'s own, for the same reason.
  */
 @Suppress("TooManyFunctions")
-class QuranSyncManager
-@Inject
-constructor(
+class QuranSyncManager @Inject constructor(
     private val api: QuranApiService,
     private val database: SanguSantriDatabase,
 ) {
@@ -86,40 +85,38 @@ constructor(
     suspend fun sync(
         stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
-    ): QuranSyncResult =
-        withContext(Dispatchers.IO) {
-            require(stableVersion > 0)
-            cacheMutex.withLock { runCatchingSync(stableVersion, onProgress) }
-        }
+    ): ApiResult<Unit> = withContext(Dispatchers.IO) {
+        require(stableVersion > 0)
+        cacheMutex.withLock { runCatchingSync(stableVersion, onProgress) }
+    }
 
     // Last line of defence: whatever goes wrong inside a sync attempt (network loss, the caller
     // coroutine being cancelled because the user closed the app or navigated away, or a genuinely
-    // unexpected bug) must resolve to a QuranSyncResult, never an uncaught exception — the caller
+    // unexpected bug) must resolve to an ApiResult, never an uncaught exception — the caller
     // may be running on viewModelScope, which crashes the process on an uncaught exception.
     // Cancellation is rethrown, never swallowed, so structured concurrency still works correctly.
     @Suppress("TooGenericExceptionCaught")
     private suspend fun runCatchingSync(
         stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): QuranSyncResult =
-        try {
-            performSync(stableVersion, onProgress)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (unexpected: Exception) {
-            Log.w(TAG, "unexpected sync failure: ${unexpected::class.java.simpleName}")
-            FirebaseCrashlytics.getInstance().recordException(unexpected)
-            // Deliberately not cleared: whatever was cached is still valid, validated data: an
-            // unexpected failure here (e.g. mid-commit) can only be helped, never hurt, by keeping it
-            // for the next attempt.
-            QuranSyncResult.RetryableFailure("unexpected sync error")
-        }
+    ): ApiResult<Unit> = try {
+        performSync(stableVersion, onProgress)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (unexpected: Exception) {
+        Log.w(TAG, "unexpected sync failure: ${unexpected::class.java.simpleName}")
+        FirebaseCrashlytics.getInstance().recordException(unexpected)
+        // Deliberately not cleared: whatever was cached is still valid, validated data: an
+        // unexpected failure here (e.g. mid-commit) can only be helped, never hurt, by keeping it
+        // for the next attempt.
+        ApiResult.NetworkError("unexpected sync error")
+    }
 
     @Suppress("ReturnCount")
     private suspend fun performSync(
         stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): QuranSyncResult {
+    ): ApiResult<Unit> {
         if (cachedForStableVersion != stableVersion) {
             cachedSurahs = null
             cachedAyatBySurah.clear()
@@ -127,11 +124,11 @@ constructor(
         }
         val surahs =
             cachedSurahs ?: when (val outcome = fetchSurahs()) {
-                is FetchOutcome.Failure -> return outcome.result
-                is FetchOutcome.Success -> outcome.value.also { cachedSurahs = it }
+                is ApiResult.Failure -> return outcome
+                is ApiResult.Success -> outcome.data.also { cachedSurahs = it }
             }
         val result = fetchAndCommit(surahs, stableVersion, onProgress)
-        if (result is QuranSyncResult.Completed || result is QuranSyncResult.PermanentFailure) {
+        if (result is ApiResult.Success || (result is ApiResult.Failure && !result.isRetryable)) {
             // Completed: the cache is now stale, Room has it. PermanentFailure: the cached data
             // itself may be implicated (e.g. cross-surah duplicate ayat) — safer to discard and
             // start clean than to keep retrying against data that provoked a permanent failure.
@@ -151,18 +148,18 @@ constructor(
         surahs: List<QuranSurahDto>,
         stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): QuranSyncResult {
+    ): ApiResult<Unit> {
         val ayatOutcome = fetchPendingAyat(surahs, onProgress)
-        if (ayatOutcome is FetchOutcome.Failure) return ayatOutcome.result
+        if (ayatOutcome is ApiResult.Failure) return ayatOutcome
         val allAyat = surahs.flatMap { cachedAyatBySurah.getValue(it.id) }
 
         val globalValidation = QuranValidator.validateGlobalUniqueness(allAyat)
-        if (globalValidation is QuranValidation.Invalid) {
-            return QuranSyncResult.PermanentFailure(globalValidation.reason)
+        if (globalValidation is Validation.Invalid) {
+            return ApiResult.MalformedResponse(globalValidation.reason)
         }
 
         commit(surahs, allAyat, stableVersion)
-        return QuranSyncResult.Completed
+        return ApiResult.Success(Unit)
     }
 
     /**
@@ -193,11 +190,10 @@ constructor(
         }
     }
 
-    private suspend fun fetchSurahs(): FetchOutcome<List<QuranSurahDto>> =
-        fetchWithRetry(
-            source = "surah list",
-            validateData = QuranValidator::validateSurahList,
-        ) { api.getSurahs(first = 1, count = QuranValidator.EXPECTED_SURAH_COUNT) }
+    private suspend fun fetchSurahs(): ApiResult<List<QuranSurahDto>> = fetchWithRetry(
+        source = "surah list",
+        validateData = QuranValidator::validateSurahList,
+    ) { api.getSurahs(first = 1, count = QuranValidator.EXPECTED_SURAH_COUNT) }
 
     /** Only surahs not already in [cachedAyatBySurah] are fetched — the point of the whole cache.
      * A concurrent [ConcurrentHashMap] write per surah is required here: up to [BOUNDED_CONCURRENCY]
@@ -205,36 +201,34 @@ constructor(
     private suspend fun fetchPendingAyat(
         surahs: List<QuranSurahDto>,
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): FetchOutcome<Unit> =
-        coroutineScope {
-            val pending = surahs.filterNot { cachedAyatBySurah.containsKey(it.id) }
-            val completedCount = AtomicInteger(cachedAyatBySurah.size)
-            onProgress(completedCount.get(), surahs.size)
-            if (pending.isEmpty()) {
-                return@coroutineScope FetchOutcome.Success(Unit)
-            }
-
-            val semaphore = Semaphore(BOUNDED_CONCURRENCY)
-            val results =
-                pending
-                    .map { surah ->
-                        async {
-                            val outcome = semaphore.withPermit { fetchAyatForSurah(surah) }
-                            if (outcome is FetchOutcome.Success) {
-                                cachedAyatBySurah[surah.id] = outcome.value
-                            }
-                            onProgress(completedCount.incrementAndGet(), surahs.size)
-                            outcome
-                        }
-                    }.awaitAll()
-            results.filterIsInstance<FetchOutcome.Failure>().firstOrNull() ?: FetchOutcome.Success(Unit)
+    ): ApiResult<Unit> = coroutineScope {
+        val pending = surahs.filterNot { cachedAyatBySurah.containsKey(it.id) }
+        val completedCount = AtomicInteger(cachedAyatBySurah.size)
+        onProgress(completedCount.get(), surahs.size)
+        if (pending.isEmpty()) {
+            return@coroutineScope ApiResult.Success(Unit)
         }
 
-    private suspend fun fetchAyatForSurah(surah: QuranSurahDto): FetchOutcome<List<QuranAyatDto>> =
-        fetchWithRetry(
-            source = "ayat surah ${surah.id}",
-            validateData = { ayats -> QuranValidator.validateAyatForSurah(surah, ayats) },
-        ) { api.getAyat(surah.id) }
+        val semaphore = Semaphore(BOUNDED_CONCURRENCY)
+        val results =
+            pending
+                .map { surah ->
+                    async {
+                        val outcome = semaphore.withPermit { fetchAyatForSurah(surah) }
+                        if (outcome is ApiResult.Success) {
+                            cachedAyatBySurah[surah.id] = outcome.data
+                        }
+                        onProgress(completedCount.incrementAndGet(), surahs.size)
+                        outcome
+                    }
+                }.awaitAll()
+        results.filterIsInstance<ApiResult.Failure>().firstOrNull() ?: ApiResult.Success(Unit)
+    }
+
+    private suspend fun fetchAyatForSurah(surah: QuranSurahDto): ApiResult<List<QuranAyatDto>> = fetchWithRetry(
+        source = "ayat surah ${surah.id}",
+        validateData = { ayats -> QuranValidator.validateAyatForSurah(surah, ayats) },
+    ) { api.getAyat(surah.id) }
 
     /**
      * Transparently retries a single request up to [MAX_FETCH_ATTEMPTS] times when the failure is
@@ -243,16 +237,16 @@ constructor(
      * pooled connection) without ever surfacing a failure to the caller. A permanent failure
      * (malformed body, non-retryable HTTP status) is never retried.
      */
-    private suspend fun <T> fetchWithRetry(
+    private suspend fun <T : Any> fetchWithRetry(
         source: String,
-        validateData: (T) -> QuranValidation,
+        validateData: (T) -> Validation,
         call: suspend () -> Response<QuranEnvelopeDto<T>>,
-    ): FetchOutcome<T> {
+    ): ApiResult<T> {
         var attempt = 1
         while (true) {
             val outcome = attemptSingleFetch(source, validateData, call)
-            val retryable = outcome is FetchOutcome.Failure && outcome.result is QuranSyncResult.RetryableFailure
-            if (outcome is FetchOutcome.Success || !retryable || attempt >= MAX_FETCH_ATTEMPTS) {
+            val retryable = outcome is ApiResult.Failure && outcome.isRetryable
+            if (outcome is ApiResult.Success || !retryable || attempt >= MAX_FETCH_ATTEMPTS) {
                 return outcome
             }
             Log.w(TAG, "$source attempt $attempt failed, retrying")
@@ -261,74 +255,19 @@ constructor(
         }
     }
 
-    @Suppress("ReturnCount")
-    private suspend fun <T> attemptSingleFetch(
+    /**
+     * One request, its envelope unwrapped and its payload structurally validated.
+     *
+     * Everything that used to live here — the `IOException`/`SerializationException` catches, the
+     * `isSuccessful` check, the null-body check, the envelope check, the HTTP retryability
+     * classification — is now [safeApiCall] and its two composers, shared with every other
+     * endpoint in the app.
+     */
+    private suspend fun <T : Any> attemptSingleFetch(
         source: String,
-        validateData: (T) -> QuranValidation,
+        validateData: (T) -> Validation,
         call: suspend () -> Response<QuranEnvelopeDto<T>>,
-    ): FetchOutcome<T> {
-        val response =
-            try {
-                call()
-            } catch (io: IOException) {
-                Log.w(TAG, "$source fetch failed: ${io::class.java.simpleName}")
-                return FetchOutcome.Failure(
-                    QuranSyncResult.RetryableFailure("$source network error: ${ioReason(io)}"),
-                )
-            } catch (malformed: SerializationException) {
-                Log.w(TAG, "$source fetch malformed: ${malformed::class.java.simpleName}")
-                return FetchOutcome.Failure(QuranSyncResult.PermanentFailure("malformed $source body"))
-            }
-        return toFetchOutcome(response, source, validateData)
-    }
-
-    @Suppress("ReturnCount")
-    private fun <T> toFetchOutcome(
-        response: Response<QuranEnvelopeDto<T>>,
-        source: String,
-        validateData: (T) -> QuranValidation,
-    ): FetchOutcome<T> {
-        if (!response.isSuccessful) {
-            return FetchOutcome.Failure(classifyHttpFailure(response.code(), source))
-        }
-        val envelope =
-            response.body() ?: return FetchOutcome.Failure(QuranSyncResult.PermanentFailure("empty $source body"))
-        val envelopeValidation = QuranValidator.validateEnvelope(envelope.code, envelope.res)
-        if (envelopeValidation is QuranValidation.Invalid) {
-            return FetchOutcome.Failure(QuranSyncResult.PermanentFailure("$source: ${envelopeValidation.reason}"))
-        }
-        val dataValidation = validateData(envelope.data)
-        if (dataValidation is QuranValidation.Invalid) {
-            return FetchOutcome.Failure(QuranSyncResult.PermanentFailure("$source: ${dataValidation.reason}"))
-        }
-        return FetchOutcome.Success(envelope.data)
-    }
-
-    // Safe to surface to the UI: OkHttp/our own IOExceptions at this layer carry only
-    // host/protocol-level detail (timeouts, DNS, TLS) or QuranAuthInterceptor's own fixed
-    // "Kemenag credential unavailable" message — never a response body, header, or credential
-    // value (docs/security/SECURITY_BASELINE.md's log-redaction rule covers those, not this).
-    private fun ioReason(io: IOException): String = io.message ?: io::class.java.simpleName
-
-    private fun classifyHttpFailure(
-        code: Int,
-        source: String,
-    ): QuranSyncResult =
-        if (isRetryableHttpStatus(code)) {
-            QuranSyncResult.RetryableFailure("$source HTTP $code")
-        } else {
-            QuranSyncResult.PermanentFailure("$source HTTP $code")
-        }
-
-    private sealed interface FetchOutcome<out T> {
-        data class Success<T>(
-            val value: T,
-        ) : FetchOutcome<T>
-
-        data class Failure(
-            val result: QuranSyncResult,
-        ) : FetchOutcome<Nothing>
-    }
+    ): ApiResult<T> = safeApiCall(source, call).unwrap(source).validate(source, validateData)
 
     private companion object {
         const val TAG = "QuranSyncManager"

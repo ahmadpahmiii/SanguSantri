@@ -15,9 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ActivityViewModel
-@Inject
-constructor(
+class ActivityViewModel @Inject constructor(
     observeActivityOverview: ObserveActivityOverviewUseCase,
     observeAmalanHarian: ObserveAmalanHarianUseCase,
     private val amalanRepository: AmalanRepository,

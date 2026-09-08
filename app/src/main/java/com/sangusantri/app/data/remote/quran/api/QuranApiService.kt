@@ -21,12 +21,8 @@ interface QuranApiService {
     ): Response<QuranEnvelopeDto<List<QuranSurahDto>>>
 
     @GET("ayat/local/{noSurah}")
-    suspend fun getAyat(
-        @Path("noSurah") surahNumber: Int,
-    ): Response<QuranEnvelopeDto<List<QuranAyatDto>>>
+    suspend fun getAyat(@Path("noSurah") surahNumber: Int): Response<QuranEnvelopeDto<List<QuranAyatDto>>>
 
     @GET("ayat/local/tafsir/{ayatId}")
-    suspend fun getTafsir(
-        @Path("ayatId") remoteAyatId: Long,
-    ): Response<QuranEnvelopeDto<List<QuranTafsirDto>>>
+    suspend fun getTafsir(@Path("ayatId") remoteAyatId: Long): Response<QuranEnvelopeDto<List<QuranTafsirDto>>>
 }

@@ -32,9 +32,7 @@ import javax.inject.Singleton
  * cheaper than the bookkeeping resumption would need.
  */
 @Singleton
-class QuranAudioDownloader
-@Inject
-constructor(
+class QuranAudioDownloader @Inject constructor(
     @QuranAudioHttpClient private val httpClient: OkHttpClient,
     private val store: QuranAudioStore,
 ) {
@@ -73,26 +71,25 @@ constructor(
     private suspend fun fetchAyah(
         surahNumber: Int,
         ayahNumber: Int,
-    ): Boolean =
-        withContext(Dispatchers.IO) {
-            store.ensureDirectory()
-            val target = store.file(surahNumber, ayahNumber)
-            val partial = store.partialFile(surahNumber, ayahNumber)
-            val request = Request.Builder().url(QuranAudioSource.ayahAudioUrl(surahNumber, ayahNumber)).build()
-            runCatching {
-                httpClient.newCall(request).execute().use { response ->
-                    require(response.isSuccessful) { "audio request failed: ${response.code}" }
-                    partial.sink().buffer().use { sink -> sink.writeAll(response.body.source()) }
-                }
-                // Only a fully written file gets the real name, so presence always means playable.
-                require(partial.length() > 0) { "empty audio body" }
-                require(partial.renameTo(target)) { "could not finalise ${target.name}" }
-            }.onFailure {
-                partial.delete()
-                // A cancelled download must stay cancelled rather than be reported as a failure.
-                currentCoroutineContext().ensureActive()
-            }.isSuccess
-        }
+    ): Boolean = withContext(Dispatchers.IO) {
+        store.ensureDirectory()
+        val target = store.file(surahNumber, ayahNumber)
+        val partial = store.partialFile(surahNumber, ayahNumber)
+        val request = Request.Builder().url(QuranAudioSource.ayahAudioUrl(surahNumber, ayahNumber)).build()
+        runCatching {
+            httpClient.newCall(request).execute().use { response ->
+                require(response.isSuccessful) { "audio request failed: ${response.code}" }
+                partial.sink().buffer().use { sink -> sink.writeAll(response.body.source()) }
+            }
+            // Only a fully written file gets the real name, so presence always means playable.
+            require(partial.length() > 0) { "empty audio body" }
+            require(partial.renameTo(target)) { "could not finalise ${target.name}" }
+        }.onFailure {
+            partial.delete()
+            // A cancelled download must stay cancelled rather than be reported as a failure.
+            currentCoroutineContext().ensureActive()
+        }.isSuccess
+    }
 
     /**
      * Downloads a whole surah ayah by ayah, emitting progress as each lands. Cancelling collection
@@ -101,20 +98,19 @@ constructor(
     fun downloadSurah(
         surahNumber: Int,
         ayatCount: Int,
-    ): Flow<QuranAudioDownloadProgress> =
-        flow {
-            var completed = 0
-            var bytes = 0L
+    ): Flow<QuranAudioDownloadProgress> = flow {
+        var completed = 0
+        var bytes = 0L
+        emit(progress(surahNumber, completed, ayatCount, bytes))
+        for (ayah in 1..ayatCount) {
+            currentCoroutineContext().ensureActive()
+            if (!downloadAyah(surahNumber, ayah)) continue
+            completed++
+            bytes += store.file(surahNumber, ayah).length()
             emit(progress(surahNumber, completed, ayatCount, bytes))
-            for (ayah in 1..ayatCount) {
-                currentCoroutineContext().ensureActive()
-                if (!downloadAyah(surahNumber, ayah)) continue
-                completed++
-                bytes += store.file(surahNumber, ayah).length()
-                emit(progress(surahNumber, completed, ayatCount, bytes))
-            }
-            store.refresh()
         }
+        store.refresh()
+    }
 
     private fun progress(
         surahNumber: Int,

@@ -100,7 +100,7 @@ fun SerambiRoute(
         actions.copy(
             onDismissResume = viewModel::dismissResume,
             onThemeModeSelected = viewModel::setThemeMode,
-            onRetryContent = viewModel::refresh,
+            onRetryContent = viewModel::retryContent,
         )
     SerambiScreen(
         uiState = uiState,
@@ -197,24 +197,22 @@ private fun RationalePermissionSheet(
     )
 }
 
-private fun requiredAppPermissions(): Array<String> =
-    buildList {
-        add(Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }.toTypedArray()
+private fun requiredAppPermissions(): Array<String> = buildList {
+    add(Manifest.permission.ACCESS_COARSE_LOCATION)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}.toTypedArray()
 
 private fun missingAppPermissions(
     locationGranted: Boolean,
     notificationGranted: Boolean,
-): Array<String> =
-    buildList {
-        if (!locationGranted) add(Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }.toTypedArray()
+): Array<String> = buildList {
+    if (!locationGranted) add(Manifest.permission.ACCESS_COARSE_LOCATION)
+    if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}.toTypedArray()
 
 private fun isAnyPermissionPermanentlyDenied(
     context: Context,
@@ -226,16 +224,15 @@ private fun isAnyPermissionPermanentlyDenied(
         needsLocation && !activity.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
     val notifDenied =
         needsNotification &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                !activity.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !activity.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
     return locDenied || notifDenied
 }
 
-private fun hasLocationPermission(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_COARSE_LOCATION,
-    ) == PackageManager.PERMISSION_GRANTED
+private fun hasLocationPermission(context: Context): Boolean = ContextCompat.checkSelfPermission(
+    context,
+    Manifest.permission.ACCESS_COARSE_LOCATION,
+) == PackageManager.PERMISSION_GRANTED
 
 private fun hasNotificationPermission(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -256,10 +253,9 @@ private fun Context.findActivity(): Activity? {
     return null
 }
 
-private fun appSettingsIntent(context: Context): Intent =
-    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-        data = Uri.fromParts("package", context.packageName, null)
-    }
+private fun appSettingsIntent(context: Context): Intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+    data = Uri.fromParts("package", context.packageName, null)
+}
 
 /**
  * Beranda, rebuilt to the revamp handoff (§1). Top to bottom: greeting row with the app-wide theme
@@ -557,27 +553,25 @@ private fun CircularAction(
 }
 
 @Composable
-private fun SerambiResumeItem.resumeTitle(): String =
-    when (this) {
-        is SerambiResumeItem.Amaliyah -> title
-        is SerambiResumeItem.Quran -> surahName
-        is SerambiResumeItem.Tasbih -> sessionName ?: stringResource(R.string.beranda_resume_tasbih_title)
-    }
+private fun SerambiResumeItem.resumeTitle(): String = when (this) {
+    is SerambiResumeItem.Amaliyah -> title
+    is SerambiResumeItem.Quran -> surahName
+    is SerambiResumeItem.Tasbih -> sessionName ?: stringResource(R.string.beranda_resume_tasbih_title)
+}
 
 @Composable
-private fun SerambiResumeItem.resumeSupporting(): String =
-    when (this) {
-        is SerambiResumeItem.Amaliyah ->
-            stringResource(R.string.beranda_resume_amaliyah_supporting, current, total)
+private fun SerambiResumeItem.resumeSupporting(): String = when (this) {
+    is SerambiResumeItem.Amaliyah ->
+        stringResource(R.string.beranda_resume_amaliyah_supporting, current, total)
 
-        is SerambiResumeItem.Quran ->
-            stringResource(R.string.beranda_resume_quran_supporting, ayatNumber, totalAyat)
+    is SerambiResumeItem.Quran ->
+        stringResource(R.string.beranda_resume_quran_supporting, ayatNumber, totalAyat)
 
-        is SerambiResumeItem.Tasbih ->
-            targetCount
-                ?.let { stringResource(R.string.beranda_resume_tasbih_supporting, currentCount, it) }
-                ?: stringResource(R.string.beranda_resume_tasbih_supporting_unlimited, currentCount)
-    }
+    is SerambiResumeItem.Tasbih ->
+        targetCount
+            ?.let { stringResource(R.string.beranda_resume_tasbih_supporting, currentCount, it) }
+            ?: stringResource(R.string.beranda_resume_tasbih_supporting_unlimited, currentCount)
+}
 
 private fun SerambiActions.continueResume(item: SerambiResumeItem) {
     when (item) {

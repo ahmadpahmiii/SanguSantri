@@ -116,7 +116,10 @@ private fun LegendItem(
     label: String,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(percent = 50)).background(color))
+        Box(modifier = Modifier
+            .size(6.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(color))
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
@@ -134,7 +137,9 @@ private fun HijriCalendarAgendaRow(
     val hijriMonthNames = stringArrayResource(R.array.hijri_month_names).toList()
     val badgeColor = if (event.kind == HijriEventKind.FASTING) palette.amber else palette.coral
     Row(
-        modifier = Modifier.fillMaxWidth().padding(SanguSantriSpacing.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(SanguSantriSpacing.small),
         horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {

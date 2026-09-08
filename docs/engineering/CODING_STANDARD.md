@@ -33,7 +33,12 @@ Claude must not introduce:
 * `BaseViewModel`, `BaseRepository`, generic `BaseUseCase`.
 * A generic application-wide `UiState`.
 * God ViewModels, god repositories, god composables.
-* Network calls from composables; DAO calls from ViewModels.
+* Network calls from composables; DAO calls from ViewModels; API services,
+  sync managers or schedulers injected into ViewModels (see Data layer below).
+* A second network-result type alongside `ApiResult`, or a second
+  validation-result type alongside `Validation`.
+* Hand-rolled `try`/`catch (IOException)` around a Retrofit call — use
+  `safeApiCall`.
 * Hardcoded Arabic religious content in Kotlin, hardcoded user-facing
   strings, hardcoded production URLs, secrets in source control.
 * `GlobalScope`; a custom or partial destructive database migration that
@@ -47,6 +52,109 @@ Claude must not introduce:
 * Fake religious content presented as real content (see `CLAUDE.md` Content
   Safety).
 * Build-success claims without execution evidence.
+
+## Data layer — one shape, no exceptions
+
+Established 2026-09-08 by a principal-level review that found two contradictory
+offline-first architectures running side by side, eight vocabularies for "did the
+network call work", and the CMS client living in three ViewModels.
+
+### The layering
+
+```
+Room (source of truth)   ←  LocalDataSource   ←┐
+                                               ├─ RepositoryImpl  →  ViewModel
+Retrofit (upstream)      ←  RemoteDataSource  ←┘
+```
+
+* **The repository owns the network.** It is the only layer that knows both
+  sides exist. A repository interface that forbids itself from refreshing is not
+  a repository, it is a DAO facade — and the network then has nowhere to live but
+  the ViewModel.
+* **A ViewModel never injects an API service, a sync manager, a scheduler, or a
+  DAO.** If a screen needs a refresh, it collects a flow that refreshes itself.
+* **A `LocalDataSource` owns transactional Room writes** — the multi-table,
+  all-or-nothing kind. Single-table reads go straight through the DAO.
+* **A `RemoteDataSource` owns `safeApiCall`, envelope unwrapping and structural
+  validation.** Retrofit's `Response`, HTTP status codes and
+  `SerializationException` stop there. Nothing above it imports `retrofit2`.
+* Do not create a `*SyncManager` or `*Importer`. Those names describe a pipeline
+  that no longer exists; the write path of a repository belongs in that
+  repository. A `WorkManager` worker is the exception, and it calls the
+  repository like everyone else.
+
+### Reading: `networkBoundResource`
+
+Every read that has both a cache and an upstream goes through
+`core/result/NetworkBoundResource.kt`. Do not hand-roll "read cache, fire
+refresh, re-read":
+
+```kotlin
+override fun observeThing(): Flow<Resource<List<Thing>>> = networkBoundResource(
+    query = { dao.observeAll().map { it.map(Entity::toDomain) } },
+    fetch = ::refreshThings,          // performs the refresh AND persists it
+    isEmpty = List<Thing>::isEmpty,
+)
+```
+
+`fetch` returns only an outcome, never data — everything rendered comes from
+`query`, so a network DTO cannot reach the UI and a partial refresh cannot leave
+the screen disagreeing with Room.
+
+`Resource` carries `data` in all three states. A screen renders the cache on
+`Error` and stays quiet; `Resource.isUnavailable()` is the one case worth
+interrupting someone for (nothing cached *and* the refresh failed).
+
+### Calling: `safeApiCall`
+
+One function, `core/network/SafeApiCall.kt`. It catches `IOException` and
+`SerializationException`, checks `isSuccessful`, null-checks the body, and logs
+once. Compose it with `.unwrap(source)` for a service envelope and
+`.validate(source, ::validator)` for structural checks:
+
+```kotlin
+suspend fun getThing(id: String): ApiResult<ThingDto> {
+    val source = "thing/$id"
+    return safeApiCall(source) { api.getThing(id) }.unwrap(source).validate(source, Validator::validate)
+}
+```
+
+* **`ApiResult` is the only network-result type.** Do not invent
+  `FooSyncResult`, `FooFetchOutcome`, or return a bare `Boolean` or
+  `kotlin.Result` from a data source. `Failure.isRetryable` is the single answer
+  to "should I try again", and computing it anywhere else means two answers.
+* `runCatching { … } ?: error("unavailable")` around an HTTP call is prohibited:
+  it erases the distinction between "offline, retry later" and "the server is
+  answering wrongly, retrying is pointless".
+* **`Validation` is the only validation-result type** (`core/validation/`).
+  Validators return `Validation.of(reasonOrNull)`.
+* A response body whose service reports success in a body field implements
+  `ApiEnvelope`, so `unwrap` handles it — do not check `status`/`code` at the
+  call site.
+
+### Endpoints
+
+Where two routes differ only by a path segment, take the segment as a parameter
+against a closed enum. Four methods and a boolean at every call site
+(`refresh(id, isSholawat = true)`) is how the wrong endpoint gets asked.
+
+## Formatting
+
+`.editorconfig` sets `ktlint_code_style = intellij_idea`. ktlint's own default
+(`ktlint_official`) forces a class with an annotated constructor onto three
+lines and indents the whole body an extra level; nobody chose it, and it left
+the repo 5,124 violations out of compliance with itself.
+
+Write:
+
+```kotlin
+@HiltViewModel
+class FooViewModel @Inject constructor(
+    private val repository: FooRepository,
+) : ViewModel()
+```
+
+`ktlintFormat` is safe to run and `ktlintCheck` must be clean before any commit.
 
 ## No-duplication rule
 

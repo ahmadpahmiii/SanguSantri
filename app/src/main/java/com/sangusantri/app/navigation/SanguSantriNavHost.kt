@@ -88,21 +88,15 @@ private data object TasbihHistory : NavKey
 
 /** The reading-mode gate (PRD 8.2) — stable identifier only (the catalog content id, ADR 0015), per FR-002/FR-003. */
 @Serializable
-private data class ReaderGate(
-    val contentId: String,
-) : NavKey
+private data class ReaderGate(val contentId: String) : NavKey
 
 /** The Milestone 3 Full Reader (Bacaan Lengkap). */
 @Serializable
-private data class FullReader(
-    val contentId: String,
-) : NavKey
+private data class FullReader(val contentId: String) : NavKey
 
 /** The Milestone 4 Guided Reader (Panduan). */
 @Serializable
-private data class GuidedReader(
-    val contentId: String,
-) : NavKey
+private data class GuidedReader(val contentId: String) : NavKey
 
 /** Jadwal Sholat + Kiblat — a Beranda entry point only, never a bottom-nav destination. Kiblat has
  * no key of its own: the handoff folds it into this screen. */
@@ -129,9 +123,7 @@ private data object KalenderHijriah : NavKey
 private data object SholawatList : NavKey
 
 @Serializable
-private data class SholawatReader(
-    val contentId: String,
-) : NavKey
+private data class SholawatReader(val contentId: String) : NavKey
 
 /** `0.0.5`, Nahwu Quiz — also never a bottom-nav destination (ADR 0013), reached only from
  * Beranda's "Belajar" entry point. */
@@ -142,32 +134,22 @@ private data object NahwuQuizLanding : NavKey
 private data object NahwuQuizPackages : NavKey
 
 @Serializable
-private data class NahwuQuizPackageDetail(
-    val packageId: String,
-) : NavKey
+private data class NahwuQuizPackageDetail(val packageId: String) : NavKey
 
 /** A gate, same pattern as [ReaderGate]: replaced (not left underneath) by [NahwuQuizSession]
  * once "Mulai kuis" is tapped, so back from the session returns to [NahwuQuizPackageDetail], not
  * a stale instruction screen. */
 @Serializable
-private data class NahwuQuizInstruction(
-    val packageId: String,
-) : NavKey
+private data class NahwuQuizInstruction(val packageId: String) : NavKey
 
 @Serializable
-private data class NahwuQuizSession(
-    val packageId: String,
-) : NavKey
+private data class NahwuQuizSession(val packageId: String) : NavKey
 
 @Serializable
-private data class NahwuQuizResult(
-    val attemptId: String,
-) : NavKey
+private data class NahwuQuizResult(val attemptId: String) : NavKey
 
 @Serializable
-private data class NahwuQuizHistory(
-    val packageId: String,
-) : NavKey
+private data class NahwuQuizHistory(val packageId: String) : NavKey
 
 /** `0.0.6`, standalone Al-Qur'an Kemenag — reached only from a Beranda entry point, never a
  * bottom-nav destination (QUR-FR-001). [QuranEntry] is the same "gate, replaced once resolved"
@@ -179,10 +161,7 @@ private data object QuranEntry : NavKey
 private data object QuranHub : NavKey
 
 @Serializable
-private data class QuranReader(
-    val surahNumber: Int,
-    val targetAyat: Int?,
-) : NavKey
+private data class QuranReader(val surahNumber: Int, val targetAyat: Int?) : NavKey
 
 @Serializable
 private data object QuranSettings : NavKey
@@ -280,83 +259,81 @@ fun SanguSantriNavHost(
 }
 
 @Composable
-private fun rootDestinations(): List<RootDestination> =
-    listOf(
-        RootDestination(
-            key = Serambi,
-            label = stringResource(R.string.nav_beranda_label),
-            icon = { selected ->
-                Icon(
-                    imageVector = if (selected) Icons.Filled.Home else Icons.Outlined.Home,
-                    contentDescription = null,
-                )
-            },
-        ),
-        RootDestination(
-            key = Aktivitas,
-            label = stringResource(R.string.nav_aktivitas_label),
-            icon = { selected ->
-                Icon(
-                    imageVector = if (selected) Icons.Filled.History else Icons.Outlined.History,
-                    contentDescription = null,
-                )
-            },
-        ),
-        RootDestination(
-            key = Tasbih,
-            label = stringResource(R.string.nav_tasbih_label),
-            icon = { selected -> TasbihIcon(filled = selected) },
-        ),
-    )
+private fun rootDestinations(): List<RootDestination> = listOf(
+    RootDestination(
+        key = Serambi,
+        label = stringResource(R.string.nav_beranda_label),
+        icon = { selected ->
+            Icon(
+                imageVector = if (selected) Icons.Filled.Home else Icons.Outlined.Home,
+                contentDescription = null,
+            )
+        },
+    ),
+    RootDestination(
+        key = Aktivitas,
+        label = stringResource(R.string.nav_aktivitas_label),
+        icon = { selected ->
+            Icon(
+                imageVector = if (selected) Icons.Filled.History else Icons.Outlined.History,
+                contentDescription = null,
+            )
+        },
+    ),
+    RootDestination(
+        key = Tasbih,
+        label = stringResource(R.string.nav_tasbih_label),
+        icon = { selected -> TasbihIcon(filled = selected) },
+    ),
+)
 
 /** Builds every [NavKey]'s composable — split out of [SanguSantriNavHost] to keep that function short. */
-private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) =
-    entryProvider {
-        entry<Serambi> {
-            SerambiRoute(
-                onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
-                actions =
-                    SerambiActions(
-                        onExploreClick = { topLevelBackStack.add(Explore) },
-                        onPengingatClick = { topLevelBackStack.add(Pengingat) },
-                        onBelajarClick = { topLevelBackStack.add(NahwuQuizLanding) },
-                        onQuranClick = { topLevelBackStack.add(QuranEntry) },
-                        onContinueAmaliyah = { contentId, mode ->
-                            topLevelBackStack.add(
-                                when (mode) {
-                                    ReaderMode.FULL -> FullReader(contentId)
-                                    ReaderMode.GUIDED -> GuidedReader(contentId)
-                                },
-                            )
-                        },
-                        onContinueQuran = { surahNumber, ayatNumber ->
-                            topLevelBackStack.add(QuranReader(surahNumber, ayatNumber))
-                        },
-                        onContinueTasbih = { topLevelBackStack.addTopLevel(Tasbih) },
-                        onHijriCalendarClick = { topLevelBackStack.add(KalenderHijriah) },
-                        onSholawatClick = { topLevelBackStack.add(SholawatList) },
-                        onAmalanClick = { topLevelBackStack.addTopLevel(Aktivitas) },
-                        onPrayerScheduleClick = { topLevelBackStack.add(JadwalSholat) },
-                        // Kiblat lives inside Jadwal Sholat (handoff decision) — same destination.
-                        onKiblatClick = { topLevelBackStack.add(JadwalSholat) },
-                    ),
-            )
-        }
-        standaloneEntries(topLevelBackStack)
-        activityEntries(topLevelBackStack)
-        nahwuQuizEntries(topLevelBackStack)
-        quranEntries(topLevelBackStack)
-        entry<Tasbih> {
-            TasbihRoute(onHistoryClick = { topLevelBackStack.add(TasbihHistory) })
-        }
-        entry<TasbihHistory> {
-            TasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
-        }
-        readerEntries(topLevelBackStack)
-        entry<JadwalSholat> {
-            JadwalSholatRoute(onBack = { topLevelBackStack.removeLast() })
-        }
+private fun sanguSantriEntryProvider(topLevelBackStack: TopLevelBackStack) = entryProvider {
+    entry<Serambi> {
+        SerambiRoute(
+            onContentSelected = { contentId -> topLevelBackStack.add(ReaderGate(contentId)) },
+            actions =
+                SerambiActions(
+                    onExploreClick = { topLevelBackStack.add(Explore) },
+                    onPengingatClick = { topLevelBackStack.add(Pengingat) },
+                    onBelajarClick = { topLevelBackStack.add(NahwuQuizLanding) },
+                    onQuranClick = { topLevelBackStack.add(QuranEntry) },
+                    onContinueAmaliyah = { contentId, mode ->
+                        topLevelBackStack.add(
+                            when (mode) {
+                                ReaderMode.FULL -> FullReader(contentId)
+                                ReaderMode.GUIDED -> GuidedReader(contentId)
+                            },
+                        )
+                    },
+                    onContinueQuran = { surahNumber, ayatNumber ->
+                        topLevelBackStack.add(QuranReader(surahNumber, ayatNumber))
+                    },
+                    onContinueTasbih = { topLevelBackStack.addTopLevel(Tasbih) },
+                    onHijriCalendarClick = { topLevelBackStack.add(KalenderHijriah) },
+                    onSholawatClick = { topLevelBackStack.add(SholawatList) },
+                    onAmalanClick = { topLevelBackStack.addTopLevel(Aktivitas) },
+                    onPrayerScheduleClick = { topLevelBackStack.add(JadwalSholat) },
+                    // Kiblat lives inside Jadwal Sholat (handoff decision) — same destination.
+                    onKiblatClick = { topLevelBackStack.add(JadwalSholat) },
+                ),
+        )
     }
+    standaloneEntries(topLevelBackStack)
+    activityEntries(topLevelBackStack)
+    nahwuQuizEntries(topLevelBackStack)
+    quranEntries(topLevelBackStack)
+    entry<Tasbih> {
+        TasbihRoute(onHistoryClick = { topLevelBackStack.add(TasbihHistory) })
+    }
+    entry<TasbihHistory> {
+        TasbihHistoryRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+    readerEntries(topLevelBackStack)
+    entry<JadwalSholat> {
+        JadwalSholatRoute(onBack = { topLevelBackStack.removeLast() })
+    }
+}
 
 /** Beranda-reached, non-bottom-nav destinations with no further sub-entries of their own —
  * split out to keep [sanguSantriEntryProvider] short. */

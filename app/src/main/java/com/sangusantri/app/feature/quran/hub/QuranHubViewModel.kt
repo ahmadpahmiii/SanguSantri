@@ -53,9 +53,7 @@ private data class QuranHubAudioData(
  */
 @Suppress("TooManyFunctions")
 @HiltViewModel
-class QuranHubViewModel
-@Inject
-constructor(
+class QuranHubViewModel @Inject constructor(
     private val quranRepository: QuranRepository,
     private val settingsRepository: QuranReaderSettingsRepository,
     private val murottalPlayer: QuranMurottalPlayer,
@@ -182,13 +180,12 @@ constructor(
 
 /** A surah's trailing audio state. Partial coverage is deliberately not reported as stored — a
  * half-downloaded surah must not advertise itself as playable offline. */
-private fun QuranHubAudioData.audioStateOf(surah: QuranSurah): QuranSurahAudioState =
-    when {
-        download?.surahNumber == surah.number -> QuranSurahAudioState.DOWNLOADING
-        library.isSurahComplete(surah.number, surah.ayatCount) -> QuranSurahAudioState.STORED
-        library.storedAyahCount(surah.number) > 0 -> QuranSurahAudioState.PARTIAL
-        else -> QuranSurahAudioState.NONE
-    }
+private fun QuranHubAudioData.audioStateOf(surah: QuranSurah): QuranSurahAudioState = when {
+    download?.surahNumber == surah.number -> QuranSurahAudioState.DOWNLOADING
+    library.isSurahComplete(surah.number, surah.ayatCount) -> QuranSurahAudioState.STORED
+    library.storedAyahCount(surah.number) > 0 -> QuranSurahAudioState.PARTIAL
+    else -> QuranSurahAudioState.NONE
+}
 
 /** Case/diacritic-tolerant Latin-name match, or an exact surah-number match (QUR-FR-006) — local
  * only, never a network request. */
@@ -202,10 +199,9 @@ private fun List<QuranSurah>.filteredBySearch(query: String): List<QuranSurah> {
     }
 }
 
-private fun String.normalizedForSearch(): String =
-    Normalizer
-        .normalize(this, Normalizer.Form.NFD)
-        .replace(DIACRITIC_MARK_REGEX, "")
-        .lowercase(Locale.ROOT)
+private fun String.normalizedForSearch(): String = Normalizer
+    .normalize(this, Normalizer.Form.NFD)
+    .replace(DIACRITIC_MARK_REGEX, "")
+    .lowercase(Locale.ROOT)
 
 private val DIACRITIC_MARK_REGEX = Regex("\\p{Mn}+")

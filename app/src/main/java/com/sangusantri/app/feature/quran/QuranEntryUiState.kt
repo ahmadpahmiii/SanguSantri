@@ -5,14 +5,9 @@ package com.sangusantri.app.feature.quran
 sealed interface QuranEntryUiState {
     data object Checking : QuranEntryUiState
 
-    data class Preparing(
-        val completed: Int,
-        val total: Int,
-    ) : QuranEntryUiState
+    data class Preparing(val completed: Int, val total: Int) : QuranEntryUiState
 
-    data class PreparationFailed(
-        val reason: String,
-    ) : QuranEntryUiState
+    data class PreparationFailed(val reason: String) : QuranEntryUiState
 
     data object OfflineNoLocalData : QuranEntryUiState
 

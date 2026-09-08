@@ -25,9 +25,7 @@ import javax.inject.Singleton
  * Deliberately small: a flag, and the surahs either side of the one being read.
  */
 @Singleton
-class QuranReaderContinuity
-@Inject
-constructor() {
+class QuranReaderContinuity @Inject constructor() {
     private val _chromeVisible = MutableStateFlow(true)
     val chromeVisible: StateFlow<Boolean> = _chromeVisible.asStateFlow()
 
@@ -42,8 +40,7 @@ constructor() {
 
     private val snapshots =
         object : LinkedHashMap<Int, QuranReaderRoomData>(SNAPSHOT_LIMIT, LOAD_FACTOR, true) {
-            override fun removeEldestEntry(eldest: Map.Entry<Int, QuranReaderRoomData>): Boolean =
-                size > SNAPSHOT_LIMIT
+            override fun removeEldestEntry(eldest: Map.Entry<Int, QuranReaderRoomData>): Boolean = size > SNAPSHOT_LIMIT
         }
 
     @Synchronized

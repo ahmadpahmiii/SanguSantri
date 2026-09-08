@@ -16,23 +16,22 @@ data class HijriCalendarPalette(
 )
 
 @Composable
-fun hijriCalendarPalette(): HijriCalendarPalette =
-    if (isSystemInDarkTheme()) {
-        HijriCalendarPalette(
-            teal = HijriTealDark,
-            tealSoft = HijriTealSoftDark,
-            amber = HijriAmberDark,
-            amberSoft = HijriAmberSoftDark,
-            coral = HijriCoralDark,
-            coralSoft = HijriCoralSoftDark,
-        )
-    } else {
-        HijriCalendarPalette(
-            teal = HijriTealLight,
-            tealSoft = HijriTealSoftLight,
-            amber = HijriAmberLight,
-            amberSoft = HijriAmberSoftLight,
-            coral = HijriCoralLight,
-            coralSoft = HijriCoralSoftLight,
-        )
-    }
+fun hijriCalendarPalette(): HijriCalendarPalette = if (isSystemInDarkTheme()) {
+    HijriCalendarPalette(
+        teal = HijriTealDark,
+        tealSoft = HijriTealSoftDark,
+        amber = HijriAmberDark,
+        amberSoft = HijriAmberSoftDark,
+        coral = HijriCoralDark,
+        coralSoft = HijriCoralSoftDark,
+    )
+} else {
+    HijriCalendarPalette(
+        teal = HijriTealLight,
+        tealSoft = HijriTealSoftLight,
+        amber = HijriAmberLight,
+        amberSoft = HijriAmberSoftLight,
+        coral = HijriCoralLight,
+        coralSoft = HijriCoralSoftLight,
+    )
+}

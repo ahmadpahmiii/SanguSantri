@@ -21,9 +21,7 @@ import androidx.navigation3.runtime.NavKey
  * switching away and back. Popping within a tab ([removeLast]) only ever affects that tab's own
  * stack, so back navigation from a child flow returns to its own root, never another tab's screen.
  */
-class TopLevelBackStack(
-    startKey: NavKey,
-) {
+class TopLevelBackStack(startKey: NavKey) {
     private val topLevelStacks: LinkedHashMap<NavKey, SnapshotStateList<NavKey>> =
         linkedMapOf(startKey to mutableStateListOf(startKey))
 

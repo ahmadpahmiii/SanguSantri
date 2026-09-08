@@ -21,9 +21,7 @@ import okio.buffer
  * request. Checks `Content-Length` first when present, and also enforces the limit while the body
  * is actually read, since a missing or understated `Content-Length` must not bypass the cap.
  */
-class ResponseSizeLimitInterceptor(
-    private val maxBytes: Long = DEFAULT_MAX_BYTES,
-) : Interceptor {
+class ResponseSizeLimitInterceptor(private val maxBytes: Long = DEFAULT_MAX_BYTES) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val response = chain.proceed(chain.request())
         val body = response.body ?: return response
@@ -34,10 +32,8 @@ class ResponseSizeLimitInterceptor(
         return response.newBuilder().body(SizeLimitedResponseBody(body, maxBytes)).build()
     }
 
-    private class SizeLimitedResponseBody(
-        private val delegate: ResponseBody,
-        private val maxBytes: Long,
-    ) : ResponseBody() {
+    private class SizeLimitedResponseBody(private val delegate: ResponseBody, private val maxBytes: Long) :
+        ResponseBody() {
         private val limitedSource by lazy { SizeLimitedSource(delegate.source(), maxBytes).buffer() }
 
         override fun contentType(): MediaType? = delegate.contentType()
@@ -47,10 +43,7 @@ class ResponseSizeLimitInterceptor(
         override fun source(): BufferedSource = limitedSource
     }
 
-    private class SizeLimitedSource(
-        delegate: Source,
-        private val maxBytes: Long,
-    ) : ForwardingSource(delegate) {
+    private class SizeLimitedSource(delegate: Source, private val maxBytes: Long) : ForwardingSource(delegate) {
         private var totalRead = 0L
 
         override fun read(

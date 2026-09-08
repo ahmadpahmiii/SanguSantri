@@ -8,11 +8,8 @@ import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import javax.inject.Inject
 
 /** Reads and writes reading position via Room, keyed by content id. */
-class ReadingPositionRepositoryImpl
-@Inject
-constructor(
-    private val readingPositionDao: ReadingPositionDao,
-) : ReadingPositionRepository {
+class ReadingPositionRepositoryImpl @Inject constructor(private val readingPositionDao: ReadingPositionDao) :
+    ReadingPositionRepository {
     override suspend fun getPosition(contentId: String): ReadingPosition? =
         readingPositionDao.getByContentId(contentId)?.toDomain()
 

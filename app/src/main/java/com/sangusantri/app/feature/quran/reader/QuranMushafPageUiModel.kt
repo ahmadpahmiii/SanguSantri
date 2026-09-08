@@ -8,11 +8,7 @@ package com.sangusantri.app.feature.quran.reader
  * page's ayat by surah is the official mapping — every ayat already states its own `halaman`, so
  * nothing here is invented, hardcoded, or inferred.
  */
-data class QuranMushafPageUiModel(
-    val page: Int,
-    val juz: Int,
-    val segments: List<QuranMushafSegment>,
-)
+data class QuranMushafPageUiModel(val page: Int, val juz: Int, val segments: List<QuranMushafSegment>)
 
 /** The run of one surah's ayat that falls on a single halaman. */
 data class QuranMushafSegment(

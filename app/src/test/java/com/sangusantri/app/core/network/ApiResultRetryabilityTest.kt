@@ -1,4 +1,4 @@
-package com.sangusantri.app.data.sync
+package com.sangusantri.app.core.network
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -6,7 +6,7 @@ import org.junit.Test
 
 /** Pure JVM coverage for [isRetryableHttpStatus] (section 19: HTTP status classification, retryable
  * versus permanent failure classification) — no MockWebServer or Room needed. */
-class ContentSyncHttpClassificationTest {
+class ApiResultRetryabilityTest {
     @Test
     fun requestTimeoutAndRateLimitAreRetryable() {
         assertTrue(isRetryableHttpStatus(408))

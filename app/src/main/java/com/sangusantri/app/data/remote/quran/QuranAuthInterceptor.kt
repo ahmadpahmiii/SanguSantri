@@ -13,11 +13,7 @@ import javax.inject.Inject
  * defensive layer it also refuses to attach credentials to a request whose host is not exactly
  * [QURAN_API_HOST], so headers can never leak to a redirect target on a different origin.
  */
-class QuranAuthInterceptor
-@Inject
-constructor(
-    private val credentialProvider: QuranCredentialProvider,
-) : Interceptor {
+class QuranAuthInterceptor @Inject constructor(private val credentialProvider: QuranCredentialProvider) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         if (request.url.host != QURAN_API_HOST) {

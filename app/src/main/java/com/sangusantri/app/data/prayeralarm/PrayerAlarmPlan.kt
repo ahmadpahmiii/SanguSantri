@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.prayeralarm
 
+import com.sangusantri.app.data.prayeralarm.PrayerAlarmPlan.TARHIM_LEAD
 import com.sangusantri.app.domain.model.PrayerName
 import com.sangusantri.app.domain.model.PrayerNotificationMode
 import com.sangusantri.app.domain.model.PrayerSchedule
@@ -20,11 +21,7 @@ enum class AdzanTrack {
  * when [tracks] is empty — by posting an ordinary notification and letting the device's own profile
  * decide how loud that is.
  */
-data class PrayerAlarmEvent(
-    val at: LocalDateTime,
-    val prayer: PrayerName,
-    val tracks: List<AdzanTrack>,
-)
+data class PrayerAlarmEvent(val at: LocalDateTime, val prayer: PrayerName, val tracks: List<AdzanTrack>)
 
 /**
  * Turns a day's schedule plus the reader's per-row settings into the moments an alarm must fire.

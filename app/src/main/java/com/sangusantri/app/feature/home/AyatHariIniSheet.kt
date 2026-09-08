@@ -226,30 +226,28 @@ private fun Context.copyAyatText(ayat: AyatHariIni) {
  * and the cache directory is not a gallery. `null` on failure, so the caller can say so rather than
  * open a share sheet with nothing behind it.
  */
-private fun Context.writeShareImage(captured: ImageBitmap): Uri? =
-    runCatching {
-        val software =
-            captured.asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false)
-                ?: return@runCatching null
-        val scaled = Bitmap.createScaledBitmap(software, SHARE_IMAGE_PX, SHARE_IMAGE_PX, true)
-        val file = File(cacheDir, SHARE_DIRECTORY).apply { mkdirs() }.resolve(SHARE_FILE_NAME)
-        file.outputStream().use { scaled.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, it) }
-        FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-    }.getOrNull()
+private fun Context.writeShareImage(captured: ImageBitmap): Uri? = runCatching {
+    val software =
+        captured.asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false)
+            ?: return@runCatching null
+    val scaled = Bitmap.createScaledBitmap(software, SHARE_IMAGE_PX, SHARE_IMAGE_PX, true)
+    val file = File(cacheDir, SHARE_DIRECTORY).apply { mkdirs() }.resolve(SHARE_FILE_NAME)
+    file.outputStream().use { scaled.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, it) }
+    FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+}.getOrNull()
 
 private fun Context.buildShareIntent(
     uri: Uri,
     ayat: AyatHariIni,
-): Intent =
-    Intent.createChooser(
-        Intent(Intent.ACTION_SEND).apply {
-            type = "image/png"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_TEXT, ayatPlainText(ayat))
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        },
-        null,
-    )
+): Intent = Intent.createChooser(
+    Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TEXT, ayatPlainText(ayat))
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    },
+    null,
+)
 
 private const val SHARE_DIRECTORY = "shared_images"
 private const val SHARE_FILE_NAME = "ayat-hari-ini.png"

@@ -46,9 +46,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalCoroutinesApi::class)
 @Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = QuranReaderViewModel.Factory::class)
-class QuranReaderViewModel
-@AssistedInject
-constructor(
+class QuranReaderViewModel @AssistedInject constructor(
     @Assisted("surah") private val surahNumber: Int,
     @Assisted("targetAyat") private val targetAyatNumber: Int?,
     private val quranRepository: QuranRepository,
@@ -463,20 +461,19 @@ data class QuranReaderRoomData(
     val basmalahArabic: String,
 )
 
-internal fun QuranVerse.toReaderUiModel(surahName: String): QuranReaderAyatUiModel =
-    QuranReaderAyatUiModel(
-        remoteId = remoteId,
-        surahNumber = surahNumber,
-        surahName = surahName,
-        ayatNumber = ayatNumber,
-        juz = juz,
-        page = page,
-        arabicText = arabicText,
-        translation = translation,
-        note = note,
-        footnoteNumber = footnoteNumber,
-        footnoteText = footnoteText,
-    )
+internal fun QuranVerse.toReaderUiModel(surahName: String): QuranReaderAyatUiModel = QuranReaderAyatUiModel(
+    remoteId = remoteId,
+    surahNumber = surahNumber,
+    surahName = surahName,
+    ayatNumber = ayatNumber,
+    juz = juz,
+    page = page,
+    arabicText = arabicText,
+    translation = translation,
+    note = note,
+    footnoteNumber = footnoteNumber,
+    footnoteText = footnoteText,
+)
 
 /**
  * Groups a window of verses into the halaman they are printed on, and each halaman into the surahs

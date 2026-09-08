@@ -149,44 +149,40 @@ class AdzanPlaybackService : Service() {
         super.onDestroy()
     }
 
-    private fun notification(prayer: PrayerName) =
-        NotificationCompat
-            .Builder(this, PrayerNotificationChannels.ADZAN_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(getString(R.string.prayer_notification_title, getString(prayer.labelRes())))
-            .setContentText(getString(R.string.prayer_notification_body))
-            .setContentIntent(openSchedulePendingIntent())
-            .setOngoing(true)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .addAction(0, getString(R.string.prayer_adzan_stop), stopPendingIntent())
-            .build()
+    private fun notification(prayer: PrayerName) = NotificationCompat
+        .Builder(this, PrayerNotificationChannels.ADZAN_CHANNEL_ID)
+        .setSmallIcon(R.mipmap.ic_launcher)
+        .setContentTitle(getString(R.string.prayer_notification_title, getString(prayer.labelRes())))
+        .setContentText(getString(R.string.prayer_notification_body))
+        .setContentIntent(openSchedulePendingIntent())
+        .setOngoing(true)
+        .setCategory(NotificationCompat.CATEGORY_ALARM)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .addAction(0, getString(R.string.prayer_adzan_stop), stopPendingIntent())
+        .build()
 
-    private fun stopPendingIntent(): PendingIntent =
-        PendingIntent.getService(
-            this,
-            REQUEST_STOP,
-            Intent(this, AdzanPlaybackService::class.java).setAction(ACTION_STOP),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    private fun stopPendingIntent(): PendingIntent = PendingIntent.getService(
+        this,
+        REQUEST_STOP,
+        Intent(this, AdzanPlaybackService::class.java).setAction(ACTION_STOP),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
-    private fun openSchedulePendingIntent(): PendingIntent =
-        PendingIntent.getActivity(
-            this,
-            REQUEST_OPEN,
-            Intent(this, MainActivity::class.java).apply {
-                putExtra(MainActivity.EXTRA_OPEN_PRAYER_SCHEDULE, true)
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    private fun openSchedulePendingIntent(): PendingIntent = PendingIntent.getActivity(
+        this,
+        REQUEST_OPEN,
+        Intent(this, MainActivity::class.java).apply {
+            putExtra(MainActivity.EXTRA_OPEN_PRAYER_SCHEDULE, true)
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        },
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
-    private fun AdzanTrack.rawResId(): Int =
-        when (this) {
-            AdzanTrack.TARHIM -> R.raw.tarhim
-            AdzanTrack.ADZAN_SUBUH -> R.raw.adzan_subuh
-            AdzanTrack.ADZAN -> R.raw.adzan
-        }
+    private fun AdzanTrack.rawResId(): Int = when (this) {
+        AdzanTrack.TARHIM -> R.raw.tarhim
+        AdzanTrack.ADZAN_SUBUH -> R.raw.adzan_subuh
+        AdzanTrack.ADZAN -> R.raw.adzan
+    }
 
     companion object {
         private const val TAG = "AdzanPlayback"
@@ -201,10 +197,9 @@ class AdzanPlaybackService : Service() {
             context: Context,
             prayer: PrayerName,
             tracks: List<AdzanTrack>,
-        ): Intent =
-            Intent(context, AdzanPlaybackService::class.java).apply {
-                putExtra(EXTRA_PRAYER, prayer.name)
-                putExtra(EXTRA_TRACKS, tracks.map { it.name }.toTypedArray())
-            }
+        ): Intent = Intent(context, AdzanPlaybackService::class.java).apply {
+            putExtra(EXTRA_PRAYER, prayer.name)
+            putExtra(EXTRA_TRACKS, tracks.map { it.name }.toTypedArray())
+        }
     }
 }

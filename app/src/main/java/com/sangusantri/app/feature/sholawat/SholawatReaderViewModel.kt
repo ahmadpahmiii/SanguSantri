@@ -3,7 +3,7 @@ package com.sangusantri.app.feature.sholawat
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sangusantri.app.data.sync.ContentDetailSyncManager
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.ReaderSettings
 import com.sangusantri.app.domain.repository.ContentRepository
@@ -14,12 +14,14 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -37,14 +39,11 @@ import kotlinx.coroutines.launch
  * a single app-wide choice, exactly as the Full and Guided Readers handle it.
  */
 @HiltViewModel(assistedFactory = SholawatReaderViewModel.Factory::class)
-class SholawatReaderViewModel
-@AssistedInject
-constructor(
+class SholawatReaderViewModel @AssistedInject constructor(
     @Assisted private val contentId: String,
     private val contentRepository: ContentRepository,
     private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
     private val readerSettingsRepository: ReaderSettingsRepository,
-    private val contentDetailSyncManager: ContentDetailSyncManager,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -123,74 +122,54 @@ constructor(
         viewModelScope.launch { readerSettingsRepository.setSholawatBaitGap(enabled) }
     }
 
-    // Room failures surface as unpredictable exception types; catching Exception here is the
-    // deliberate boundary that turns any of them into RecoverableError instead of a crash
-    // (matches ReaderViewModel's boundary). CancellationException is rethrown so
-    // loadJob.cancel() is never swallowed.
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    /** One offline-first stream from the repository. Same contract as the Amaliyah reader; see
+     * [com.sangusantri.app.feature.reader.ReaderViewModel.loadContent] for the reasoning in full. */
     private fun loadContent() {
         loadJob?.cancel()
         contentState.value = ContentState.Loading
         loadJob =
-            viewModelScope.launch {
-                try {
-                    val cached = contentRepository.getContentDetail(contentId)
-                    if (cached == null) {
-                        Log.w(TAG, "Sholawat content unavailable for id=$contentId: no catalogue row")
-                        contentState.value = ContentState.Unavailable
-                        return@launch
-                    }
-
-                    // Room first — the cached copy renders before any network call, and keeps
-                    // rendering if that call never succeeds. Same contract as the Amaliyah
-                    // reader; see ReaderViewModel.loadContent for the reasoning in full.
-                    if (cached.steps.isNotEmpty()) {
-                        contentState.value = ContentState.Available(cached)
-                    }
-
-                    val changed = contentDetailSyncManager.refresh(contentId, isSholawat = true)
-                    val fresh = if (changed) contentRepository.getContentDetail(contentId) else cached
-
-                    contentState.value =
-                        if (fresh == null || fresh.steps.isEmpty()) {
-                            Log.w(TAG, "Sholawat content unavailable for id=$contentId")
-                            ContentState.Unavailable
-                        } else {
-                            ContentState.Available(fresh)
-                        }
-                } catch (cancellation: CancellationException) {
-                    throw cancellation
-                } catch (unexpected: Exception) {
-                    Log.e(TAG, "Sholawat content load failed for id=$contentId", unexpected)
+            contentRepository
+                .observeContentDetail(contentId)
+                .onEach { contentState.value = it.toContentState() }
+                .catch { failure ->
+                    Log.e(TAG, "Sholawat content load failed for id=$contentId", failure)
                     contentState.value = ContentState.Error
-                }
+                }.launchIn(viewModelScope)
+    }
+
+    private fun Resource<ContentDetail>.toContentState(): ContentState {
+        val detail = data
+        return when {
+            detail != null && detail.steps.isNotEmpty() -> ContentState.Available(detail)
+            this is Resource.Loading -> ContentState.Loading
+            else -> {
+                Log.w(TAG, "Sholawat content unavailable for id=$contentId")
+                ContentState.Unavailable
             }
+        }
     }
 
     private sealed interface ContentState {
         data object Loading : ContentState
 
-        data class Available(
-            val detail: ContentDetail,
-        ) : ContentState
+        data class Available(val detail: ContentDetail) : ContentState
 
         data object Unavailable : ContentState
 
         data object Error : ContentState
 
-        fun toUiState(settings: ReaderSettings): SholawatReaderUiState =
-            when (this) {
-                Loading -> SholawatReaderUiState.Loading
-                Unavailable -> SholawatReaderUiState.Unavailable
-                Error -> SholawatReaderUiState.RecoverableError
-                is Available ->
-                    SholawatReaderUiState.ContentAvailable(
-                        title = detail.content.title,
-                        steps = detail.steps,
-                        layout = detail.content.layout,
-                        settings = settings,
-                    )
-            }
+        fun toUiState(settings: ReaderSettings): SholawatReaderUiState = when (this) {
+            Loading -> SholawatReaderUiState.Loading
+            Unavailable -> SholawatReaderUiState.Unavailable
+            Error -> SholawatReaderUiState.RecoverableError
+            is Available ->
+                SholawatReaderUiState.ContentAvailable(
+                    title = detail.content.title,
+                    steps = detail.steps,
+                    layout = detail.content.layout,
+                    settings = settings,
+                )
+        }
     }
 
     private companion object {

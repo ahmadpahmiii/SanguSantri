@@ -89,11 +89,7 @@ internal fun ReminderList(
     }
 }
 
-private data class ReminderRowActions(
-    val onToggle: () -> Unit,
-    val onEdit: () -> Unit,
-    val onDelete: () -> Unit,
-)
+private data class ReminderRowActions(val onToggle: () -> Unit, val onEdit: () -> Unit, val onDelete: () -> Unit)
 
 @Composable
 private fun ReminderRow(

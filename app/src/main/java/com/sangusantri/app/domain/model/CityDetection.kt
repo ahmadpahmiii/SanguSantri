@@ -9,14 +9,10 @@ package com.sangusantri.app.domain.model
  * times, the app hands the reader a pre-filled picker and lets them confirm.
  */
 sealed interface CityDetection {
-    data class Detected(
-        val city: PrayerCity,
-    ) : CityDetection
+    data class Detected(val city: PrayerCity) : CityDetection
 
     /** A place name was resolved but not to exactly one city; [query] pre-fills the picker. */
-    data class Ambiguous(
-        val query: String,
-    ) : CityDetection
+    data class Ambiguous(val query: String) : CityDetection
 
     /** No permission, no position, or the geocoder returned nothing. */
     data object Unavailable : CityDetection

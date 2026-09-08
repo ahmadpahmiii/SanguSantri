@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.data.remote.quran.QuranStableVersionConfig
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -14,9 +15,7 @@ import kotlinx.coroutines.CancellationException
  * keeps the previous Room snapshot and finishes this work; the scheduler's durable cooldown owns
  * the next attempt so WorkManager cannot repeatedly redownload the large corpus. */
 @HiltWorker
-class QuranUpdateWorker
-@AssistedInject
-constructor(
+class QuranUpdateWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val syncManager: QuranSyncManager,
@@ -34,10 +33,10 @@ constructor(
 
         return try {
             when (syncManager.sync(targetVersion)) {
-                is QuranSyncResult.Completed -> Result.success()
-                is QuranSyncResult.RetryableFailure,
-                is QuranSyncResult.PermanentFailure,
-                    -> {
+                is ApiResult.Success -> Result.success()
+                // Retryable or not, this job does not retry: the scheduler's own version gate
+                // decides when to try again, and a WorkManager retry would race it.
+                is ApiResult.Failure -> {
                     syncMetadata.recordFailedUpdateAttempt(targetVersion)
                     Result.success()
                 }

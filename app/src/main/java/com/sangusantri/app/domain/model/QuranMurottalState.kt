@@ -1,9 +1,7 @@
 package com.sangusantri.app.domain.model
 
 /** Playback speeds offered by the murottal panel's segmented control (design frame `4c`). */
-enum class QuranMurottalSpeed(
-    val multiplier: Float,
-) {
+enum class QuranMurottalSpeed(val multiplier: Float) {
     SLOW(0.75f),
     NORMAL(1f),
     FAST(1.25f),

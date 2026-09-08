@@ -36,24 +36,21 @@ object QuranNetworkModule {
     fun provideQuranOkHttpClient(
         authInterceptor: QuranAuthInterceptor,
         chuckerInterceptor: ChuckerInterceptor,
-    ): OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .followRedirects(false)
-            .followSslRedirects(false)
-            .addInterceptor(authInterceptor)
-            .addInterceptor(ResponseSizeLimitInterceptor())
-            .addInterceptor(chuckerInterceptor)
-            .build()
+    ): OkHttpClient = OkHttpClient
+        .Builder()
+        .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .addInterceptor(authInterceptor)
+        .addInterceptor(ResponseSizeLimitInterceptor())
+        .addInterceptor(chuckerInterceptor)
+        .build()
 
     @Provides
     @Singleton
-    fun provideQuranApiService(
-        @QuranHttpClient okHttpClient: OkHttpClient,
-    ): QuranApiService {
+    fun provideQuranApiService(@QuranHttpClient okHttpClient: OkHttpClient): QuranApiService {
         val json = Json { ignoreUnknownKeys = true }
         return Retrofit
             .Builder()

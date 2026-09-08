@@ -89,11 +89,10 @@ class SanguSantriApplication :
 
     /** Catalog item images (`Content.imageUrl`): a network-capable Coil `ImageLoader`
      * is opt-in per Coil 3 — without this, [coil3.compose.AsyncImage] can only load local models. */
-    override fun newImageLoader(context: PlatformContext): ImageLoader =
-        ImageLoader
-            .Builder(context)
-            .components { add(OkHttpNetworkFetcherFactory()) }
-            .build()
+    override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader
+        .Builder(context)
+        .components { add(OkHttpNetworkFetcherFactory()) }
+        .build()
 
     private fun logNahwuQuizBootstrapOutcome(outcome: NahwuQuizBootstrapOutcome) {
         when (outcome) {

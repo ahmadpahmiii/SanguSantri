@@ -1,13 +1,17 @@
 package com.sangusantri.app.feature.sholawat
 
 import androidx.lifecycle.SavedStateHandle
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -22,33 +26,31 @@ class SholawatListViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun uiStateStartsAsLoadingBeforeRepositoryEmits() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                SholawatListViewModel(
-                    FakeListContentRepository(flowOf(listOf(sholawatNariyah))),
-                    SavedStateHandle(),
-                )
+    fun uiStateStartsAsLoadingBeforeRepositoryEmits() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            SholawatListViewModel(
+                FakeListContentRepository(flowOf(listOf(sholawatNariyah))),
+                SavedStateHandle(),
+            )
 
-            assertEquals(SholawatListUiState.Loading, viewModel.uiState.value)
-        }
+        assertEquals(SholawatListUiState.Loading, viewModel.uiState.value)
+    }
 
     @Test
-    fun onlyShalawatCategoryItemsAreListed() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                SholawatListViewModel(
-                    FakeListContentRepository(flowOf(listOf(sholawatNariyah, tahlil))),
-                    SavedStateHandle(),
-                )
+    fun onlyShalawatCategoryItemsAreListed() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            SholawatListViewModel(
+                FakeListContentRepository(flowOf(listOf(sholawatNariyah, tahlil))),
+                SavedStateHandle(),
+            )
 
-            val collected = mutableListOf<SholawatListUiState>()
-            val job = launch { viewModel.uiState.toList(collected) }
-            advanceUntilIdle()
-            job.cancel()
+        val collected = mutableListOf<SholawatListUiState>()
+        val job = launch { viewModel.uiState.toList(collected) }
+        advanceUntilIdle()
+        job.cancel()
 
-            assertEquals(SholawatListUiState.ContentReady(listOf(sholawatNariyah)), collected.last())
-        }
+        assertEquals(SholawatListUiState.ContentReady(listOf(sholawatNariyah)), collected.last())
+    }
 
     private companion object {
         val sholawatNariyah =
@@ -68,14 +70,16 @@ class SholawatListViewModelTest {
     }
 }
 
-private class FakeListContentRepository(
-    private val content: Flow<List<Content>>,
-) : ContentRepository {
-    override fun observeActiveContent(): Flow<List<Content>> = content
+private class FakeListContentRepository(private val content: Flow<List<Content>>) : ContentRepository {
+    override fun observeActiveContent(): Flow<Resource<List<Content>>> = content.map { Resource.Success(it) }
 
     override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content? = null
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail? = null
+    override suspend fun getCachedContentDetail(contentId: String): ContentDetail? = null
+
+    override fun observeContentDetail(contentId: String): Flow<Resource<ContentDetail>> = emptyFlow()
+
+    override suspend fun refreshCatalogue(): ApiResult<Unit> = ApiResult.Success(Unit)
 }

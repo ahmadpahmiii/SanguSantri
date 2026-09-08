@@ -297,11 +297,7 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
      * Two reads, not one, because the schedule and the chosen city become known at different
      * moments — see the header comment in [buildViews].
      */
-    private data class PanelData(
-        val schedule: PrayerSchedule?,
-        val cityName: String?,
-        val ayat: AyatHariIni?,
-    )
+    private data class PanelData(val schedule: PrayerSchedule?, val cityName: String?, val ayat: AyatHariIni?)
 
     /**
      * The panel's width and height in dp for the orientation it is actually being shown in.
@@ -411,10 +407,7 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         )
     }
 
-    private data class TextSizesSp(
-        val name: Float,
-        val time: Float,
-    )
+    private data class TextSizesSp(val name: Float, val time: Float)
 
     /**
      * "Kam, 20 Agu · 7 Rabiul Awal" — the compact twin of `JadwalSholatScreen`'s `formatWithHijri`,
@@ -462,13 +455,12 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
 
     /** Keyed on the concrete provider, so the two picker entries keep separate alarms instead of
      * overwriting each other's through a shared request code. */
-    private fun flipPendingIntent(context: Context): PendingIntent =
-        PendingIntent.getBroadcast(
-            context,
-            javaClass.name.hashCode(),
-            updateIntent(context, javaClass),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    private fun flipPendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        javaClass.name.hashCode(),
+        updateIntent(context, javaClass),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private fun openScheduleIntent(context: Context): PendingIntent {
         val intent =
@@ -509,10 +501,9 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         private fun widgetIds(
             context: Context,
             provider: Class<out PrayerTimesWidgetProvider>,
-        ): IntArray =
-            AppWidgetManager
-                .getInstance(context)
-                .getAppWidgetIds(ComponentName(context, provider))
+        ): IntArray = AppWidgetManager
+            .getInstance(context)
+            .getAppWidgetIds(ComponentName(context, provider))
 
         /**
          * `ACTION_APPWIDGET_UPDATE` rather than a private action: `AppWidgetProvider.onReceive`
@@ -523,11 +514,10 @@ open class PrayerTimesWidgetProvider : AppWidgetProvider() {
         private fun updateIntent(
             context: Context,
             provider: Class<out PrayerTimesWidgetProvider>,
-        ): Intent =
-            Intent(context, provider).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds(context, provider))
-            }
+        ): Intent = Intent(context, provider).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds(context, provider))
+        }
 
         /** Roughly four home-screen cells — below it the panel shows the vertical list instead. */
         private const val WIDE_MIN_WIDTH_DP = 200

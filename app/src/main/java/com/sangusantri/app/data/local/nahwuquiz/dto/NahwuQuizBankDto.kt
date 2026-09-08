@@ -7,10 +7,7 @@ import kotlinx.serialization.Serializable
  * "bundled static JSON question bank", not remote sync, so there is no second source to reconcile
  * against and no per-item version field to gate a fetch on. */
 @Serializable
-data class NahwuQuizBankDto(
-    val schemaVersion: Int,
-    val packages: List<NahwuQuizPackageDto>,
-)
+data class NahwuQuizBankDto(val schemaVersion: Int, val packages: List<NahwuQuizPackageDto>)
 
 @Serializable
 data class NahwuQuizPackageDto(

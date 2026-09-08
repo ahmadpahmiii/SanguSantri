@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.repository
 
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import com.sangusantri.app.data.local.entity.QuranBookmarkEntity
 import com.sangusantri.app.data.local.entity.QuranReadingSessionEntity
@@ -8,8 +9,6 @@ import com.sangusantri.app.data.local.quran.QuranLocalDataset
 import com.sangusantri.app.data.mapper.toDomain
 import com.sangusantri.app.data.remote.quran.QuranStableVersionConfig
 import com.sangusantri.app.data.sync.quran.QuranSyncManager
-import com.sangusantri.app.data.sync.quran.QuranSyncResult
-import com.sangusantri.app.data.sync.quran.QuranTafsirFetchOutcome
 import com.sangusantri.app.data.sync.quran.QuranTafsirManager
 import com.sangusantri.app.domain.model.QuranBookmark
 import com.sangusantri.app.domain.model.QuranPreparationResult
@@ -29,9 +28,7 @@ import javax.inject.Inject
 
 // Mirrors QuranRepository's own TooManyFunctions suppression — one cohesive implementation.
 @Suppress("TooManyFunctions")
-class QuranRepositoryImpl
-@Inject
-constructor(
+class QuranRepositoryImpl @Inject constructor(
     private val database: SanguSantriDatabase,
     private val syncManager: QuranSyncManager,
     private val localDataset: QuranLocalDataset,
@@ -87,27 +84,21 @@ constructor(
 
     override suspend fun ensureInitialPreparation(
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): QuranPreparationResult =
-        syncMutex.withLock {
-            if (hasLocalDataset()) {
-                QuranPreparationResult.Ready
-            } else {
-                runSync(stableVersionConfig.fetchStableVersion(), onProgress)
-            }
+    ): QuranPreparationResult = syncMutex.withLock {
+        if (hasLocalDataset()) {
+            QuranPreparationResult.Ready
+        } else {
+            runSync(stableVersionConfig.fetchStableVersion(), onProgress)
         }
+    }
 
     private suspend fun runSync(
         stableVersion: Int,
         onProgress: (completed: Int, total: Int) -> Unit = { _, _ -> },
-    ): QuranPreparationResult =
-        when (val result = syncManager.sync(stableVersion, onProgress)) {
-            is QuranSyncResult.Completed -> QuranPreparationResult.Ready
-            is QuranSyncResult.RetryableFailure ->
-                QuranPreparationResult.Failed(retryable = true, reason = result.reason)
-
-            is QuranSyncResult.PermanentFailure ->
-                QuranPreparationResult.Failed(retryable = false, reason = result.reason)
-        }
+    ): QuranPreparationResult = when (val result = syncManager.sync(stableVersion, onProgress)) {
+        is ApiResult.Success -> QuranPreparationResult.Ready
+        is ApiResult.Failure -> QuranPreparationResult.Failed(result.isRetryable, result.reason)
+    }
 
     override suspend fun toggleBookmark(
         surahNumber: Int,
@@ -156,7 +147,7 @@ constructor(
 
     override suspend fun fetchTafsir(remoteAyatId: Long): QuranTafsirResult =
         when (val outcome = tafsirManager.fetchAndCache(remoteAyatId)) {
-            is QuranTafsirFetchOutcome.Success -> QuranTafsirResult.Success(outcome.entity.toDomain())
-            is QuranTafsirFetchOutcome.Failure -> QuranTafsirResult.Failure(outcome.retryable)
+            is ApiResult.Success -> QuranTafsirResult.Success(outcome.data.toDomain())
+            is ApiResult.Failure -> QuranTafsirResult.Failure(outcome.isRetryable)
         }
 }

@@ -139,10 +139,21 @@ every document for every task.
 * UI / domain / data boundaries: Room is the source of truth; the UI must
   never render directly from network DTOs; no DAO access from ViewModels;
   no network calls from composables.
+* **The repository owns the network** (established 2026-09-08 — full contract in
+  `docs/engineering/CODING_STANDARD.md` §Data layer). A ViewModel must never
+  inject an API service, a sync manager, a scheduler, or a DAO; if a screen needs
+  a refresh it collects a flow that refreshes itself. Every cache-plus-upstream
+  read goes through `core/result/networkBoundResource`, every HTTP call through
+  `core/network/safeApiCall`, and `ApiResult`/`Validation` are the *only* result
+  types for those — do not add a `*SyncResult`, `*FetchOutcome`, or a
+  `*SyncManager`/`*Importer` class.
 * Do not create: `BaseViewModel`, `BaseRepository`, generic `BaseUseCase`,
   pass-through use cases, duplicate models without a boundary reason,
   duplicate navigation systems, duplicate themes/design tokens. Full list:
   `docs/engineering/CODING_STANDARD.md`.
+* Class signatures are `class Foo @Inject constructor(` on one line —
+  `.editorconfig` pins `ktlint_code_style = intellij_idea` for exactly this.
+  `ktlintFormat` is safe to run; `ktlintCheck` must be clean.
 * Create a use case only when it contains meaningful or reusable business
   logic.
 * Before adding a class, search the repository for an existing equivalent.

@@ -47,9 +47,7 @@ import kotlinx.coroutines.launch
  */
 @Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = GuidedReaderViewModel.Factory::class)
-class GuidedReaderViewModel
-@AssistedInject
-constructor(
+class GuidedReaderViewModel @AssistedInject constructor(
     @Assisted private val contentId: String,
     private val contentRepository: ContentRepository,
     private val guidedReadingRepository: GuidedReadingRepository,
@@ -201,7 +199,7 @@ constructor(
         viewModelScope.launch {
             contentState.value =
                 try {
-                    val detail = contentRepository.getContentDetail(contentId)
+                    val detail = contentRepository.getCachedContentDetail(contentId)
                     if (detail == null || detail.steps.isEmpty()) {
                         Log.w(
                             TAG,
@@ -365,9 +363,7 @@ constructor(
     private sealed interface ContentState {
         data object Loading : ContentState
 
-        data class Available(
-            val detail: ContentDetail,
-        ) : ContentState
+        data class Available(val detail: ContentDetail) : ContentState
 
         data object Unavailable : ContentState
 
@@ -378,31 +374,30 @@ constructor(
             index: Int,
             completedAt: Long?,
             settings: ReaderSettings,
-        ): GuidedReaderUiState =
-            when (this) {
-                Loading -> GuidedReaderUiState.Loading
-                Unavailable -> GuidedReaderUiState.ContentUnavailable
-                Error -> GuidedReaderUiState.RecoverableError
-                is Available -> {
-                    val steps = detail.steps
-                    val clampedIndex = index.coerceIn(0, steps.lastIndex)
-                    val step = steps[clampedIndex]
-                    GuidedReaderUiState.StepVisible(
-                        title = detail.content.title,
-                        contentId = detail.content.id,
-                        allSteps = steps,
-                        step = step,
-                        stepIndex = clampedIndex,
-                        stepCount = steps.size,
-                        currentCount = counts[step.id] ?: 0,
-                        settings = settings,
-                        isFirstStep = clampedIndex == 0,
-                        isLastStep = clampedIndex == steps.lastIndex,
-                        isCompleted = completedAt != null,
-                        sourceName = detail.content.sourceName,
-                    )
-                }
+        ): GuidedReaderUiState = when (this) {
+            Loading -> GuidedReaderUiState.Loading
+            Unavailable -> GuidedReaderUiState.ContentUnavailable
+            Error -> GuidedReaderUiState.RecoverableError
+            is Available -> {
+                val steps = detail.steps
+                val clampedIndex = index.coerceIn(0, steps.lastIndex)
+                val step = steps[clampedIndex]
+                GuidedReaderUiState.StepVisible(
+                    title = detail.content.title,
+                    contentId = detail.content.id,
+                    allSteps = steps,
+                    step = step,
+                    stepIndex = clampedIndex,
+                    stepCount = steps.size,
+                    currentCount = counts[step.id] ?: 0,
+                    settings = settings,
+                    isFirstStep = clampedIndex == 0,
+                    isLastStep = clampedIndex == steps.lastIndex,
+                    isCompleted = completedAt != null,
+                    sourceName = detail.content.sourceName,
+                )
             }
+        }
     }
 
     private companion object {

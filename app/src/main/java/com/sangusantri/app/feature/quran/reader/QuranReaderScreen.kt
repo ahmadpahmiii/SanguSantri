@@ -149,42 +149,39 @@ fun QuranReaderRoute(
     )
 }
 
-private fun QuranReaderViewModel.bodyActions() =
-    QuranReaderBodyActions(
-        onAyatLongPress = ::onAyatLongPress,
-        onDismissActionSheet = ::onDismissActionSheet,
-        onToggleBookmark = ::onToggleBookmark,
-        onMarkLastRead = ::onMarkLastRead,
-        onOpenTafsir = ::onOpenTafsir,
-        onDismissTafsirSheet = ::onDismissTafsirSheet,
-        onRetryTafsir = ::onRetryTafsir,
-        onVisibleAyatChanged = ::onVisibleAyatChanged,
-        onToggleTheme = ::setThemeMode,
-        onPlayAyat = ::onPlayAyat,
-        onPlayFromHere = ::onPlayFromHere,
-        onPlaySingleAyat = ::onPlaySingleAyat,
-        onRepeatAyat = ::onRepeatAyat,
-    )
+private fun QuranReaderViewModel.bodyActions() = QuranReaderBodyActions(
+    onAyatLongPress = ::onAyatLongPress,
+    onDismissActionSheet = ::onDismissActionSheet,
+    onToggleBookmark = ::onToggleBookmark,
+    onMarkLastRead = ::onMarkLastRead,
+    onOpenTafsir = ::onOpenTafsir,
+    onDismissTafsirSheet = ::onDismissTafsirSheet,
+    onRetryTafsir = ::onRetryTafsir,
+    onVisibleAyatChanged = ::onVisibleAyatChanged,
+    onToggleTheme = ::setThemeMode,
+    onPlayAyat = ::onPlayAyat,
+    onPlayFromHere = ::onPlayFromHere,
+    onPlaySingleAyat = ::onPlaySingleAyat,
+    onRepeatAyat = ::onRepeatAyat,
+)
 
-private fun QuranReaderViewModel.miniPlayerActions() =
-    QuranMiniPlayerActions(
-        onTogglePlayPause = ::onTogglePlayPause,
-        onSkipPrevious = ::onSkipToPreviousAyat,
-        onSkipNext = ::onSkipToNextAyat,
-        onClose = ::onStopPlayback,
-        onOpenPanel = ::onOpenMurottalPanel,
-        onRetry = ::onRetryPlayback,
-    )
+private fun QuranReaderViewModel.miniPlayerActions() = QuranMiniPlayerActions(
+    onTogglePlayPause = ::onTogglePlayPause,
+    onSkipPrevious = ::onSkipToPreviousAyat,
+    onSkipNext = ::onSkipToNextAyat,
+    onClose = ::onStopPlayback,
+    onOpenPanel = ::onOpenMurottalPanel,
+    onRetry = ::onRetryPlayback,
+)
 
-private fun QuranReaderViewModel.panelActions() =
-    QuranMurottalPanelActions(
-        onSelectSpeed = ::onSelectMurottalSpeed,
-        onToggleContinueAcrossSurah = ::onToggleContinueAcrossSurah,
-        onToggleKeepScreenOn = ::onToggleKeepScreenOn,
-        onDownloadAudio = ::onDownloadSurahAudio,
-        onCancelDownload = ::onCancelSurahAudioDownload,
-        onDismiss = ::onDismissMurottalPanel,
-    )
+private fun QuranReaderViewModel.panelActions() = QuranMurottalPanelActions(
+    onSelectSpeed = ::onSelectMurottalSpeed,
+    onToggleContinueAcrossSurah = ::onToggleContinueAcrossSurah,
+    onToggleKeepScreenOn = ::onToggleKeepScreenOn,
+    onDownloadAudio = ::onDownloadSurahAudio,
+    onCancelDownload = ::onCancelSurahAudioDownload,
+    onDismiss = ::onDismissMurottalPanel,
+)
 
 /** The reader's window-level effects, grouped so the route composable stays readable as they
  * accumulate: screen brightness, the murottal wake lock, the notification prompt, and cross-surah
@@ -394,25 +391,23 @@ fun QuranReaderScreen(
 private fun quranReaderTitle(
     targetUnresolved: Boolean,
     readerContent: QuranReaderUiState.Content?,
-): String =
-    if (targetUnresolved) {
-        stringResource(R.string.quran_hub_title)
-    } else {
-        readerContent?.surahName.orEmpty()
-    }
+): String = if (targetUnresolved) {
+    stringResource(R.string.quran_hub_title)
+} else {
+    readerContent?.surahName.orEmpty()
+}
 
 @Composable
 private fun quranReaderPosition(
     targetUnresolved: Boolean,
     currentAyat: QuranReaderAyatUiModel?,
-): String =
-    if (targetUnresolved) {
-        stringResource(R.string.quran_reader_unavailable_subtitle)
-    } else {
-        currentAyat
-            ?.let { stringResource(R.string.quran_reader_position, it.juz, it.page) }
-            .orEmpty()
-    }
+): String = if (targetUnresolved) {
+    stringResource(R.string.quran_reader_unavailable_subtitle)
+} else {
+    currentAyat
+        ?.let { stringResource(R.string.quran_reader_position, it.juz, it.page) }
+        .orEmpty()
+}
 
 @Suppress("LongParameterList")
 @Composable
@@ -874,10 +869,7 @@ private val FollowingAudioIconSize = 16.dp
  * The pairing is the point. Holding a bare offset let the previous ayah's position survive a page
  * change and be applied to the next page, which scrolled clean past that page's opening ayah.
  */
-internal data class QuranMeasuredAyatOffset(
-    val ayatNumber: Int,
-    val offsetPx: Float,
-)
+internal data class QuranMeasuredAyatOffset(val ayatNumber: Int, val offsetPx: Float)
 
 /** Where the recited ayah is placed when a follow scroll runs — a fifth of the way down, so the line
  * before it stays visible for context instead of the ayah sitting flush against the top edge. */

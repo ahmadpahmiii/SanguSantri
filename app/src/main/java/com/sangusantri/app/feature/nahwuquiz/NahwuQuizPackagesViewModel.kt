@@ -21,17 +21,13 @@ import javax.inject.Inject
 sealed interface NahwuQuizPackagesUiState {
     data object Loading : NahwuQuizPackagesUiState
 
-    data class Content(
-        val summaries: List<NahwuQuizPackageSummary>,
-    ) : NahwuQuizPackagesUiState
+    data class Content(val summaries: List<NahwuQuizPackageSummary>) : NahwuQuizPackagesUiState
 
     data object ContentUnavailable : NahwuQuizPackagesUiState
 }
 
 @HiltViewModel
-class NahwuQuizPackagesViewModel
-@Inject
-constructor(
+class NahwuQuizPackagesViewModel @Inject constructor(
     private val nahwuQuizRepository: NahwuQuizRepository,
     private val nahwuQuizBootstrapper: NahwuQuizBootstrapper,
 ) : ViewModel() {

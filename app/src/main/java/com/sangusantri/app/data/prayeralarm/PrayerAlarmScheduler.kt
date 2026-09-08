@@ -28,9 +28,7 @@ import javax.inject.Singleton
  * reminder, it is a wrong one. That is what `USE_EXACT_ALARM` in the manifest is declared for.
  */
 @Singleton
-class PrayerAlarmScheduler
-@Inject
-constructor(
+class PrayerAlarmScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: PrayerScheduleRepository,
 ) {
@@ -70,24 +68,22 @@ constructor(
 
     /** Tomorrow, fetching the month first if the calendar has just rolled over into one that was
      * never cached — otherwise the chain would go quiet on the 1st until the app is next opened. */
-    private suspend fun tomorrowSchedule(tomorrow: LocalDate) =
-        repository.scheduleOn(tomorrow) ?: run {
-            repository.ensureScheduleCached(tomorrow)
-            repository.scheduleOn(tomorrow)
-        }
+    private suspend fun tomorrowSchedule(tomorrow: LocalDate) = repository.scheduleOn(tomorrow) ?: run {
+        repository.ensureScheduleCached(tomorrow)
+        repository.scheduleOn(tomorrow)
+    }
 
     private fun canScheduleExact(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager?.canScheduleExactAlarms() == true
 
     /** One request code for the app's single prayer alarm; `FLAG_UPDATE_CURRENT` replaces the extras
      * of the previously armed one rather than stacking a second alarm beside it. */
-    private fun pendingIntent(intent: Intent): PendingIntent =
-        PendingIntent.getBroadcast(
-            context,
-            REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    private fun pendingIntent(intent: Intent): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        REQUEST_CODE,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private companion object {
         const val TAG = "PrayerAlarm"

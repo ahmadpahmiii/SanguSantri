@@ -60,10 +60,7 @@ data class AmalanHarian(
 }
 
 /** One day in the seven-day strip. */
-data class AmalanDay(
-    val date: LocalDate,
-    val state: AmalanDayState,
-)
+data class AmalanDay(val date: LocalDate, val state: AmalanDayState)
 
 enum class AmalanDayState {
     /** Both targets met (or dzikir alone on an udzur day). */

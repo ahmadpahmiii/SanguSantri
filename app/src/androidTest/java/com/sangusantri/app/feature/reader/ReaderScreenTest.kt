@@ -31,7 +31,7 @@ import javax.inject.Inject
  * A dedicated, clearly-fixture-labelled content item is inserted directly via the injected DAOs
  * (independent of whatever the CMS currently publishes, and of whether it is reachable at all) —
  * guarded by a `getById` check so reruns on the same emulator stay idempotent, mirroring
- * [com.sangusantri.app.data.content.ContentImporter]'s own idempotency pattern.
+ * [com.sangusantri.app.data.content.ContentLocalDataSource]'s own idempotency pattern.
  *
  * Reader preferences live in the real, shared preferences DataStore — not a fake — so every test
  * clears it in `@Before` (not just resets the one field it touches) to guarantee the mode gate

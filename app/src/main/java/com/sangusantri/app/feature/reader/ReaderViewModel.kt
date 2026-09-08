@@ -3,7 +3,7 @@ package com.sangusantri.app.feature.reader
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sangusantri.app.data.sync.ContentDetailSyncManager
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.ContentDetail
 import com.sangusantri.app.domain.model.GuidedReadingSession
 import com.sangusantri.app.domain.model.ReaderMode
@@ -19,7 +19,6 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -28,6 +27,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
@@ -49,16 +49,13 @@ import kotlinx.coroutines.launch
 @Suppress("LongParameterList")
 @OptIn(FlowPreview::class)
 @HiltViewModel(assistedFactory = ReaderViewModel.Factory::class)
-class ReaderViewModel
-@AssistedInject
-constructor(
+class ReaderViewModel @AssistedInject constructor(
     @Assisted private val contentId: String,
     private val contentRepository: ContentRepository,
     private val readingPositionRepository: ReadingPositionRepository,
     private val readerSettingsRepository: ReaderSettingsRepository,
     private val guidedReadingRepository: GuidedReadingRepository,
     private val quranReaderSettingsRepository: QuranReaderSettingsRepository,
-    private val contentDetailSyncManager: ContentDetailSyncManager,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -194,54 +191,43 @@ constructor(
     // Room/DataStore failures surface as unpredictable exception types; catching Exception here is
     // the deliberate boundary that turns any of them into RecoverableError instead of a crash or a
     // raw error string (OFFLINE_FIRST.md "Application resilience"). CancellationException is
-    // rethrown so structured concurrency (e.g. loadJob.cancel()) is never swallowed.
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    /**
+     * Collects the repository's offline-first stream for this item — no cache read, no refresh
+     * call, no re-read.
+     *
+     * That whole sequence used to live here: read the cache, render it, ask
+     * `ContentDetailSyncManager` whether anything changed, then read the cache *again* if it said
+     * yes. It is now one flow, and the reader also picks up a correction written by anything else
+     * (the sync worker, another screen) instead of only the one it asked for itself.
+     */
     private fun loadContent() {
         loadJob?.cancel()
         contentState.value = ContentState.Loading
         loadJob =
-            viewModelScope.launch {
-                try {
-                    val cached = contentRepository.getContentDetail(contentId)
-                    if (cached == null) {
-                        Log.w(TAG, "Content unavailable for id=$contentId: no catalogue row")
-                        contentState.value = ContentState.Unavailable
-                        return@launch
-                    }
-
-                    // Room first, always. Whatever is already cached renders now; the network
-                    // never gates the reader (PRD 12.1). An item opened before has its steps
-                    // here, so this is the frame the reader actually sees.
-                    if (cached.steps.isNotEmpty()) {
-                        contentState.value = available(cached)
-                    }
-
-                    // Then refresh, every open. An unchanged item costs a 304 and no body, and
-                    // this is the only thing that brings a correction published since the last
-                    // open to a reader who never closes the app. An item whose detail has never
-                    // been fetched — a row the list created but nobody opened yet — has no steps
-                    // to show, so for it this fetch is the load, and its failure is visible.
-                    val changed = contentDetailSyncManager.refresh(contentId, cached.content.isSholawat)
-                    val fresh = if (changed) contentRepository.getContentDetail(contentId) else cached
-
-                    contentState.value =
-                        if (fresh == null || fresh.steps.isEmpty()) {
-                            Log.w(
-                                TAG,
-                                "Content unavailable for id=$contentId: " +
-                                    "stepCount=${fresh?.steps?.size ?: 0}, refreshChanged=$changed",
-                            )
-                            ContentState.Unavailable
-                        } else {
-                            available(fresh)
-                        }
-                } catch (cancellation: CancellationException) {
-                    throw cancellation
-                } catch (unexpected: Exception) {
-                    Log.e(TAG, "Reader content load failed for id=$contentId", unexpected)
+            contentRepository
+                .observeContentDetail(contentId)
+                .onEach { contentState.value = it.toContentState() }
+                .catch { failure ->
+                    Log.e(TAG, "Reader content load failed for id=$contentId", failure)
                     contentState.value = ContentState.Error
-                }
+                }.launchIn(viewModelScope)
+    }
+
+    /**
+     * A cached copy always wins, whatever the refresh did — an offline reader keeps reading.
+     * [ContentState.Unavailable] is reserved for genuinely having nothing: an item the list sync
+     * created whose detail has never been fetched, opened for the first time with no network.
+     */
+    private suspend fun Resource<ContentDetail>.toContentState(): ContentState {
+        val detail = data
+        return when {
+            detail != null && detail.steps.isNotEmpty() -> available(detail)
+            this is Resource.Loading -> ContentState.Loading
+            else -> {
+                Log.w(TAG, "Content unavailable for id=$contentId: stepCount=${detail?.steps?.size ?: 0}")
+                ContentState.Unavailable
             }
+        }
     }
 
     private suspend fun available(detail: ContentDetail): ContentState.Available {
@@ -276,38 +262,31 @@ constructor(
     private sealed interface ContentState {
         data object Loading : ContentState
 
-        data class Available(
-            val detail: ContentDetail,
-            val restoredPosition: ScrollPosition,
-        ) : ContentState
+        data class Available(val detail: ContentDetail, val restoredPosition: ScrollPosition) : ContentState
 
         data object Unavailable : ContentState
 
         data object Error : ContentState
 
-        fun toUiState(settings: ReaderSettings): ReaderUiState =
-            when (this) {
-                Loading -> ReaderUiState.Loading
-                Unavailable -> ReaderUiState.ContentUnavailable
-                Error -> ReaderUiState.RecoverableError
-                is Available ->
-                    ReaderUiState.ContentAvailable(
-                        title = detail.content.title,
-                        contentId = detail.content.id,
-                        steps = detail.steps,
-                        settings = settings,
-                        initialItemIndex = restoredPosition.itemIndex,
-                        initialItemOffset = restoredPosition.itemOffset,
-                        sourceName = detail.content.sourceName,
-                        hasGuidedMode = detail.steps.hasGuidedMode(),
-                    )
-            }
+        fun toUiState(settings: ReaderSettings): ReaderUiState = when (this) {
+            Loading -> ReaderUiState.Loading
+            Unavailable -> ReaderUiState.ContentUnavailable
+            Error -> ReaderUiState.RecoverableError
+            is Available ->
+                ReaderUiState.ContentAvailable(
+                    title = detail.content.title,
+                    contentId = detail.content.id,
+                    steps = detail.steps,
+                    settings = settings,
+                    initialItemIndex = restoredPosition.itemIndex,
+                    initialItemOffset = restoredPosition.itemOffset,
+                    sourceName = detail.content.sourceName,
+                    hasGuidedMode = detail.steps.hasGuidedMode(),
+                )
+        }
     }
 
-    private data class ScrollPosition(
-        val itemIndex: Int,
-        val itemOffset: Int,
-    )
+    private data class ScrollPosition(val itemIndex: Int, val itemOffset: Int)
 
     private companion object {
         const val TAG = "ReaderViewModel"

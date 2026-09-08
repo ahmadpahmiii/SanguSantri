@@ -32,7 +32,5 @@ interface PrayerTimesApiService {
 
     /** [coordinate] is `lat,lon` in decimal degrees. */
     @GET("qibla/{coordinate}")
-    suspend fun getQibla(
-        @Path("coordinate") coordinate: String,
-    ): Response<PrayerEnvelopeDto<QiblaDto>>
+    suspend fun getQibla(@Path("coordinate") coordinate: String): Response<PrayerEnvelopeDto<QiblaDto>>
 }

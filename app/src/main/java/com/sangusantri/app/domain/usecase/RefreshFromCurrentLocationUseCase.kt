@@ -35,9 +35,7 @@ import javax.inject.Inject
  * across a city, and this refresh is automatic — it must not push an error over a city detection
  * that just succeeded.
  */
-class RefreshFromCurrentLocationUseCase
-@Inject
-constructor(
+class RefreshFromCurrentLocationUseCase @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val prayerScheduleRepository: PrayerScheduleRepository,
     private val kiblatRepository: KiblatRepository,

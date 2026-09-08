@@ -22,23 +22,21 @@ fun arabicTextStyle(
     lineSpacingMultiplier: Float,
     fontWeight: FontWeight = FontWeight.Normal,
     fontFamily: FontFamily = FontFamily.Default,
-): TextStyle =
-    TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = fontWeight,
-        fontSize = fontSizeSp.sp,
-        lineHeight = lineSpacingMultiplier.em,
-        textAlign = TextAlign.Right,
-    )
+): TextStyle = TextStyle(
+    fontFamily = fontFamily,
+    fontWeight = fontWeight,
+    fontSize = fontSizeSp.sp,
+    lineHeight = lineSpacingMultiplier.em,
+    textAlign = TextAlign.Right,
+)
 
 fun translationTextStyle(
     fontSizeSp: Int,
     lineSpacingMultiplier: Float,
-): TextStyle =
-    TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = fontSizeSp.sp,
-        lineHeight = lineSpacingMultiplier.em,
-        letterSpacing = 0.15.sp,
-    )
+): TextStyle = TextStyle(
+    fontFamily = FontFamily.Default,
+    fontWeight = FontWeight.Normal,
+    fontSize = fontSizeSp.sp,
+    lineHeight = lineSpacingMultiplier.em,
+    letterSpacing = 0.15.sp,
+)

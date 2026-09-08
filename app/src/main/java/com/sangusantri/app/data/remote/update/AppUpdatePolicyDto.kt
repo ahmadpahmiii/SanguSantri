@@ -11,8 +11,7 @@ data class AppUpdatePolicyDto(
     @SerialName("force_update_versions") val forceUpdateVersions: List<Int> = emptyList(),
 )
 
-fun AppUpdatePolicyDto.toDomain(): AppUpdatePolicy =
-    AppUpdatePolicy(
-        minimumVersionCode = minimumVersionCode,
-        forceUpdateVersionCodes = forceUpdateVersions.toSet(),
-    )
+fun AppUpdatePolicyDto.toDomain(): AppUpdatePolicy = AppUpdatePolicy(
+    minimumVersionCode = minimumVersionCode,
+    forceUpdateVersionCodes = forceUpdateVersions.toSet(),
+)

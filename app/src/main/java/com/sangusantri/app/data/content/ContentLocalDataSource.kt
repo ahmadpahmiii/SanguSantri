@@ -1,6 +1,7 @@
 package com.sangusantri.app.data.content
 
 import androidx.room.withTransaction
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.content.dto.ContentDetailDto
 import com.sangusantri.app.data.content.dto.ContentListItemDto
 import com.sangusantri.app.data.content.dto.ContentStepDto
@@ -16,19 +17,15 @@ import javax.inject.Inject
  * [com.sangusantri.app.data.sync.ContentSyncManager] and
  * [com.sangusantri.app.data.sync.ContentDetailSyncManager].
  *
- * Two entry points: [importListItem] takes a metadata listing that makes an item visible, and
- * [importRemoteDetail] takes a detail that brings its steps and decides against Room whether
+ * Two entry points: [saveListItem] takes a metadata listing that makes an item visible, and
+ * [saveDetail] takes a detail that brings its steps and decides against Room whether
  * anything actually changed.
  *
  * Both converge on the same guarantee: a content item's steps are replaced atomically or not at
  * all, and a brand new item is not visible in Room — and therefore not on Beranda — until its
  * write succeeds.
  */
-class ContentImporter
-@Inject
-constructor(
-    private val database: SanguSantriDatabase,
-) {
+class ContentLocalDataSource @Inject constructor(private val database: SanguSantriDatabase) {
     private val contentDao get() = database.contentDao()
     private val contentStepDao get() = database.contentStepDao()
     private val readingPositionDao get() = database.readingPositionDao()
@@ -41,17 +38,17 @@ constructor(
      * A brand-new item gets a row here *without steps*, which is a deliberate change from the
      * old contract: the list is what Beranda draws from, and an item has to be visible before
      * the reader can tap it to fetch its detail. Until that happens the row has no steps and
-     * empty source attribution; [importRemoteDetail] fills both in.
+     * empty source attribution; [saveDetail] fills both in.
      *
      * Existing rows keep their steps, their local revision counter, their progress, and their
      * layout — nothing here touches content, only how the card looks and whether it is shown.
      * `layout` in particular is *not* on the list contract, so writing it here would overwrite a
      * known-good value with a default on every Beranda resume.
      */
-    suspend fun importListItem(item: ContentListItemDto): ContentImportOutcome {
+    suspend fun saveListItem(item: ContentListItemDto): ContentWriteOutcome {
         val validation = ContentValidator.validateListItem(item)
-        if (validation is ContentValidation.Invalid) {
-            return ContentImportOutcome.Rejected(item.id, validation.reason)
+        if (validation is Validation.Invalid) {
+            return ContentWriteOutcome.Rejected(item.id, validation.reason)
         }
 
         val existing = contentDao.getById(item.id)
@@ -82,12 +79,12 @@ constructor(
                 ),
             )
             if (existing == null) {
-                ContentImportOutcome.Imported(item.id)
+                ContentWriteOutcome.Imported(item.id)
             } else {
-                ContentImportOutcome.SkippedUpToDate(item.id)
+                ContentWriteOutcome.SkippedUpToDate(item.id)
             }
         }.getOrElse { failure ->
-            ContentImportOutcome.Rejected(item.id, "database failure during list import: ${failure.message}")
+            ContentWriteOutcome.Rejected(item.id, "database failure during list import: ${failure.message}")
         }
     }
 
@@ -105,16 +102,16 @@ constructor(
      * records it against every completion, and that history is meant to outlive the content.
      */
     @Suppress("ReturnCount")
-    suspend fun importRemoteDetail(detail: ContentDetailDto): ContentImportOutcome {
+    suspend fun saveDetail(detail: ContentDetailDto): ContentWriteOutcome {
         val validation = ContentValidator.validateDetail(detail)
-        if (validation is ContentValidation.Invalid) {
-            return ContentImportOutcome.Rejected(detail.id, validation.reason)
+        if (validation is Validation.Invalid) {
+            return ContentWriteOutcome.Rejected(detail.id, validation.reason)
         }
 
         val existing =
             contentDao.getById(detail.id)
                 ?: return writeDetailOrReject(detail, version = FIRST_VERSION, replacesSteps = false) {
-                    ContentImportOutcome.Imported(detail.id)
+                    ContentWriteOutcome.Imported(detail.id)
                 }
 
         val storedSteps = contentStepDao.getByContentId(detail.id)
@@ -122,12 +119,12 @@ constructor(
         // empty lists — that would leave the reader permanently empty.
         if (storedSteps.isNotEmpty() && stepsUnchanged(storedSteps, detail.steps)) {
             refreshDetailMetadata(detail, existing)
-            return ContentImportOutcome.SkippedUpToDate(detail.id)
+            return ContentWriteOutcome.SkippedUpToDate(detail.id)
         }
 
         val nextVersion = if (storedSteps.isEmpty()) existing.version else existing.version + 1
         return writeDetailOrReject(detail, nextVersion, replacesSteps = storedSteps.isNotEmpty()) {
-            ContentImportOutcome.Replaced(detail.id, existing.version, nextVersion)
+            ContentWriteOutcome.Replaced(detail.id, existing.version, nextVersion)
         }
     }
 
@@ -151,14 +148,13 @@ constructor(
     private fun stepsUnchanged(
         stored: List<ContentStepEntity>,
         incoming: List<ContentStepDto>,
-    ): Boolean =
-        stored.size == incoming.size &&
-            stored.zip(incoming).all { (storedStep, incomingStep) ->
-                storedStep.id == incomingStep.id &&
-                    storedStep.arabicText == incomingStep.arabicText &&
-                    storedStep.translation == incomingStep.translation &&
-                    storedStep.repeatTarget == incomingStep.repeatTarget
-            }
+    ): Boolean = stored.size == incoming.size &&
+        stored.zip(incoming).all { (storedStep, incomingStep) ->
+            storedStep.id == incomingStep.id &&
+                storedStep.arabicText == incomingStep.arabicText &&
+                storedStep.translation == incomingStep.translation &&
+                storedStep.repeatTarget == incomingStep.repeatTarget
+        }
 
     /** The no-rewrite path for a detail whose steps are identical: refresh the fields the
      * detail owns and leave steps, revision and progress alone. */
@@ -189,16 +185,15 @@ constructor(
         detail: ContentDetailDto,
         version: Int,
         replacesSteps: Boolean,
-        onSuccess: () -> ContentImportOutcome,
-    ): ContentImportOutcome =
-        try {
-            writeDetail(detail, version, replacesSteps)
-            onSuccess()
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (databaseFailure: Exception) {
-            ContentImportOutcome.Rejected(detail.id, "database failure during import: ${databaseFailure.message}")
-        }
+        onSuccess: () -> ContentWriteOutcome,
+    ): ContentWriteOutcome = try {
+        writeDetail(detail, version, replacesSteps)
+        onSuccess()
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (databaseFailure: Exception) {
+        ContentWriteOutcome.Rejected(detail.id, "database failure during import: ${databaseFailure.message}")
+    }
 
     private suspend fun writeDetail(
         detail: ContentDetailDto,

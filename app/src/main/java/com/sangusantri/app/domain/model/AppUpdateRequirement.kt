@@ -13,9 +13,8 @@ enum class AppUpdateRequirement {
 fun decideAppUpdateRequirement(
     installedVersionCode: Int,
     policy: AppUpdatePolicy,
-): AppUpdateRequirement =
-    when {
-        installedVersionCode < policy.minimumVersionCode -> AppUpdateRequirement.FORCE
-        installedVersionCode in policy.forceUpdateVersionCodes -> AppUpdateRequirement.FORCE
-        else -> AppUpdateRequirement.FLEXIBLE
-    }
+): AppUpdateRequirement = when {
+    installedVersionCode < policy.minimumVersionCode -> AppUpdateRequirement.FORCE
+    installedVersionCode in policy.forceUpdateVersionCodes -> AppUpdateRequirement.FORCE
+    else -> AppUpdateRequirement.FLEXIBLE
+}

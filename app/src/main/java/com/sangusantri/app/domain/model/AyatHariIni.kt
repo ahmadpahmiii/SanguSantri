@@ -43,12 +43,11 @@ enum class QuoteKind {
         /** Unknown values become [OTHER] rather than dropping the quote: the field is decorative,
          * and losing a day's reading over a value this app has not been taught yet would be a
          * worse outcome than filing it plainly. */
-        fun fromWire(value: String?): QuoteKind =
-            when (value?.lowercase()) {
-                "quran" -> QURAN
-                "hadith" -> HADITH
-                else -> OTHER
-            }
+        fun fromWire(value: String?): QuoteKind = when (value?.lowercase()) {
+            "quran" -> QURAN
+            "hadith" -> HADITH
+            else -> OTHER
+        }
     }
 }
 

@@ -7,7 +7,4 @@ import com.sangusantri.app.domain.model.GuidedProgressionMode
  * shared-parameter-count limit while still being reused (not duplicated) by both readers — `null`
  * when opened from the Full Reader, which has no progression concept.
  */
-data class ProgressionModeControl(
-    val mode: GuidedProgressionMode,
-    val onChange: (GuidedProgressionMode) -> Unit,
-)
+data class ProgressionModeControl(val mode: GuidedProgressionMode, val onChange: (GuidedProgressionMode) -> Unit)

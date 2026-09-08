@@ -1,12 +1,12 @@
 package com.sangusantri.app.data.sync.ayat
 
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.data.local.dao.AyatHariIniDao
 import com.sangusantri.app.data.local.entity.AyatHariIniEntity
 import com.sangusantri.app.data.remote.ayat.AyatHariIniRemoteSource
 import com.sangusantri.app.data.remote.ayat.AyatHariIniValidator
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.io.IOException
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -27,39 +27,21 @@ import javax.inject.Inject
  * for a value that changes once a day. Scheduling is meant to be done ahead of time, and the brief
  * says so.
  */
-class AyatHariIniSyncManager
-@Inject
-constructor(
+class AyatHariIniSyncManager @Inject constructor(
     private val remoteSource: AyatHariIniRemoteSource,
     private val dao: AyatHariIniDao,
 ) {
     private val mutex = Mutex()
 
-    suspend fun syncIfNeeded(today: LocalDate = LocalDate.now()): Result<Unit> =
-        mutex.withLock {
-            if (dao.getByEpochDay(today.toEpochDay()) != null) {
-                Result.success(Unit)
-            } else {
-                sync(today)
-            }
-        }
+    suspend fun syncIfNeeded(today: LocalDate = LocalDate.now()): ApiResult<Unit> = mutex.withLock {
+        if (dao.getByEpochDay(today.toEpochDay()) != null) ApiResult.Success(Unit) else sync(today)
+    }
 
-    private suspend fun sync(today: LocalDate): Result<Unit> =
-        runCatching {
-            val response = remoteSource.fetchSchedule()
-            val body = response.body()
-            if (!response.isSuccessful || body == null) {
-                throw IOException("ayat-hari-ini schedule unavailable (HTTP ${response.code()})")
-            }
-            // An unknown schema version means the CMS moved on without the app. Keeping the existing
-            // cache is the safe outcome: a reader sees yesterday's schedule continue rather than an
-            // empty header, and an app update fixes it. This is what makes the version 1 → 2 change
-            // — which swapped a reference for the text itself — safe to ship on either side first.
-            if (body.schemaVersion != AyatHariIniValidator.SUPPORTED_SCHEMA_VERSION) {
-                throw IOException("unsupported ayat-hari-ini schemaVersion ${body.schemaVersion}")
-            }
+    private suspend fun sync(today: LocalDate): ApiResult<Unit> = when (val result = remoteSource.fetchSchedule()) {
+        is ApiResult.Failure -> result
+        is ApiResult.Success -> {
             val entries =
-                AyatHariIniValidator.validate(body.items).map { selection ->
+                AyatHariIniValidator.validate(result.data.items).map { selection ->
                     AyatHariIniEntity(
                         epochDay = selection.date.toEpochDay(),
                         kind = selection.kind.name,
@@ -72,7 +54,9 @@ constructor(
                     )
                 }
             dao.replaceFrom(entries, pruneBeforeEpochDay = today.minusDays(RETENTION_DAYS).toEpochDay())
+            ApiResult.Success(Unit)
         }
+    }
 
     private companion object {
         /** How much of the past is kept. Not for display — Beranda only ever asks for today — but

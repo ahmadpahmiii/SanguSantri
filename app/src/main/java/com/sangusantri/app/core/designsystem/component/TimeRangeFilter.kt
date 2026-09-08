@@ -19,12 +19,11 @@ import com.sangusantri.app.core.designsystem.theme.SanguSantriTheme
 enum class TimeRangeFilter { ALL, LAST_7_DAYS, LAST_30_DAYS }
 
 @Composable
-private fun TimeRangeFilter.label(): String =
-    when (this) {
-        TimeRangeFilter.ALL -> stringResource(R.string.activity_filter_all)
-        TimeRangeFilter.LAST_7_DAYS -> stringResource(R.string.activity_filter_last_7_days)
-        TimeRangeFilter.LAST_30_DAYS -> stringResource(R.string.activity_filter_last_30_days)
-    }
+private fun TimeRangeFilter.label(): String = when (this) {
+    TimeRangeFilter.ALL -> stringResource(R.string.activity_filter_all)
+    TimeRangeFilter.LAST_7_DAYS -> stringResource(R.string.activity_filter_last_7_days)
+    TimeRangeFilter.LAST_30_DAYS -> stringResource(R.string.activity_filter_last_30_days)
+}
 
 @Composable
 fun TimeRangeFilterChips(
@@ -48,12 +47,11 @@ fun <T> List<T>.filterByTimeRange(
     range: TimeRangeFilter,
     nowEpochMillis: Long,
     timestampOf: (T) -> Long,
-): List<T> =
-    when (range) {
-        TimeRangeFilter.ALL -> this
-        TimeRangeFilter.LAST_7_DAYS -> filter { nowEpochMillis - timestampOf(it) <= MILLIS_7_DAYS }
-        TimeRangeFilter.LAST_30_DAYS -> filter { nowEpochMillis - timestampOf(it) <= MILLIS_30_DAYS }
-    }
+): List<T> = when (range) {
+    TimeRangeFilter.ALL -> this
+    TimeRangeFilter.LAST_7_DAYS -> filter { nowEpochMillis - timestampOf(it) <= MILLIS_7_DAYS }
+    TimeRangeFilter.LAST_30_DAYS -> filter { nowEpochMillis - timestampOf(it) <= MILLIS_30_DAYS }
+}
 
 private const val MILLIS_7_DAYS = 7L * 24 * 60 * 60 * 1000
 private const val MILLIS_30_DAYS = 30L * 24 * 60 * 60 * 1000

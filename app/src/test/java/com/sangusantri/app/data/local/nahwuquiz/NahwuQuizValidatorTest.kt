@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.local.nahwuquiz
 
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.local.nahwuquiz.dto.NahwuQuizBankDto
 import com.sangusantri.app.data.local.nahwuquiz.dto.NahwuQuizPackageDto
 import com.sangusantri.app.data.local.nahwuquiz.dto.NahwuQuizQuestionDto
@@ -11,7 +12,7 @@ class NahwuQuizValidatorTest {
     fun validBankPassesValidation() {
         val result = NahwuQuizValidator.validate(validBank())
 
-        assertTrue(result is NahwuQuizValidation.Valid)
+        assertTrue(result is Validation.Valid)
     }
 
     @Test
@@ -55,7 +56,7 @@ class NahwuQuizValidatorTest {
                 bank.copy(packages = listOf(bank.packages[0].copy(questions = emptyList()))),
             )
 
-        assertTrue(result is NahwuQuizValidation.Valid)
+        assertTrue(result is Validation.Valid)
     }
 
     @Test
@@ -91,8 +92,8 @@ class NahwuQuizValidatorTest {
         assertInvalid(result)
     }
 
-    private fun assertInvalid(result: NahwuQuizValidation) {
-        assertTrue(result is NahwuQuizValidation.Invalid)
+    private fun assertInvalid(result: Validation) {
+        assertTrue(result is Validation.Invalid)
     }
 
     private fun bankWithSingleQuestion(question: NahwuQuizQuestionDto): NahwuQuizBankDto {
@@ -100,31 +101,29 @@ class NahwuQuizValidatorTest {
         return bank.copy(packages = listOf(bank.packages[0].copy(questions = listOf(question))))
     }
 
-    private fun validQuestion(): NahwuQuizQuestionDto =
-        NahwuQuizQuestionDto(
-            id = "q1",
-            stem = "[FIXTURE] Pertanyaan contoh.",
-            optionA = "[FIXTURE] A",
-            optionB = "[FIXTURE] B",
-            optionC = "[FIXTURE] C",
-            optionD = "[FIXTURE] D",
-            correctOption = "B",
-            explanation = null,
-        )
+    private fun validQuestion(): NahwuQuizQuestionDto = NahwuQuizQuestionDto(
+        id = "q1",
+        stem = "[FIXTURE] Pertanyaan contoh.",
+        optionA = "[FIXTURE] A",
+        optionB = "[FIXTURE] B",
+        optionC = "[FIXTURE] C",
+        optionD = "[FIXTURE] D",
+        correctOption = "B",
+        explanation = null,
+    )
 
-    private fun validBank(): NahwuQuizBankDto =
-        NahwuQuizBankDto(
-            schemaVersion = NahwuQuizValidator.SUPPORTED_SCHEMA_VERSION,
-            packages =
-                listOf(
-                    NahwuQuizPackageDto(
-                        id = "nahwu-dasar-fixture",
-                        title = "[FIXTURE] Nahwu Dasar",
-                        description = "[FIXTURE] Paket contoh.",
-                        order = 1,
-                        isActive = true,
-                        questions = listOf(validQuestion()),
-                    ),
+    private fun validBank(): NahwuQuizBankDto = NahwuQuizBankDto(
+        schemaVersion = NahwuQuizValidator.SUPPORTED_SCHEMA_VERSION,
+        packages =
+            listOf(
+                NahwuQuizPackageDto(
+                    id = "nahwu-dasar-fixture",
+                    title = "[FIXTURE] Nahwu Dasar",
+                    description = "[FIXTURE] Paket contoh.",
+                    order = 1,
+                    isActive = true,
+                    questions = listOf(validQuestion()),
                 ),
-        )
+            ),
+    )
 }

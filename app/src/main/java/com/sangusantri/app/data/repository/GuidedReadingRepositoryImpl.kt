@@ -9,9 +9,7 @@ import com.sangusantri.app.domain.model.StepProgress
 import com.sangusantri.app.domain.repository.GuidedReadingRepository
 import javax.inject.Inject
 
-class GuidedReadingRepositoryImpl
-@Inject
-constructor(
+class GuidedReadingRepositoryImpl @Inject constructor(
     private val sessionDao: GuidedReadingSessionDao,
     private val stepProgressDao: StepProgressDao,
 ) : GuidedReadingRepository {

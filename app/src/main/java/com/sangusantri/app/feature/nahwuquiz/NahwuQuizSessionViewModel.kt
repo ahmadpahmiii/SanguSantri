@@ -33,9 +33,7 @@ import kotlinx.coroutines.launch
  * [NahwuQuizSessionUiAction.Continue] branch is what catches it up.
  */
 @HiltViewModel(assistedFactory = NahwuQuizSessionViewModel.Factory::class)
-class NahwuQuizSessionViewModel
-@AssistedInject
-constructor(
+class NahwuQuizSessionViewModel @AssistedInject constructor(
     @Assisted private val packageId: String,
     private val nahwuQuizRepository: NahwuQuizRepository,
 ) : ViewModel() {
@@ -166,9 +164,7 @@ constructor(
 
         data object Error : InternalState
 
-        data class Done(
-            val attemptId: String,
-        ) : InternalState
+        data class Done(val attemptId: String) : InternalState
 
         data class Session(
             val packageTitle: String,
@@ -181,24 +177,23 @@ constructor(
             val correctOption: NahwuQuizOptionKey?,
         ) : InternalState
 
-        fun toUiState(): NahwuQuizSessionUiState =
-            when (this) {
-                Loading -> NahwuQuizSessionUiState.Loading
-                Unavailable -> NahwuQuizSessionUiState.ContentUnavailable
-                Error -> NahwuQuizSessionUiState.RecoverableError
-                is Done -> NahwuQuizSessionUiState.Completed(attemptId)
-                is Session ->
-                    NahwuQuizSessionUiState.QuestionVisible(
-                        packageTitle = packageTitle,
-                        questionIndex = displayedIndex,
-                        questionCount = questions.size,
-                        question = questions[displayedIndex],
-                        selectedOption = selectedOption,
-                        isSubmitted = isSubmitted,
-                        isCorrect = isCorrect,
-                        correctOption = correctOption,
-                    )
-            }
+        fun toUiState(): NahwuQuizSessionUiState = when (this) {
+            Loading -> NahwuQuizSessionUiState.Loading
+            Unavailable -> NahwuQuizSessionUiState.ContentUnavailable
+            Error -> NahwuQuizSessionUiState.RecoverableError
+            is Done -> NahwuQuizSessionUiState.Completed(attemptId)
+            is Session ->
+                NahwuQuizSessionUiState.QuestionVisible(
+                    packageTitle = packageTitle,
+                    questionIndex = displayedIndex,
+                    questionCount = questions.size,
+                    question = questions[displayedIndex],
+                    selectedOption = selectedOption,
+                    isSubmitted = isSubmitted,
+                    isCorrect = isCorrect,
+                    correctOption = correctOption,
+                )
+        }
     }
 
     private companion object {

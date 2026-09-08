@@ -23,21 +23,16 @@ import javax.inject.Inject
  * [UDZUR_SINCE] plus today is expanded on read, so a phone left untouched for a week still reports
  * those days correctly, and turning the toggle off is what freezes the range into [UDZUR_DATES].
  */
-class AmalanRepositoryImpl
-@Inject
-constructor(
-    private val dataStore: DataStore<Preferences>,
-) : AmalanRepository {
+class AmalanRepositoryImpl @Inject constructor(private val dataStore: DataStore<Preferences>) : AmalanRepository {
     private val preferences: Flow<Preferences> =
         dataStore.data.catch { error ->
             if (error is IOException) emit(emptyPreferences()) else throw error
         }
 
-    override fun observeUdzurDates(): Flow<Set<LocalDate>> =
-        preferences.map { stored ->
-            val closed = stored[UDZUR_DATES].orEmpty().mapNotNull(::parseDate)
-            closed.toSet() + openRange(stored[UDZUR_SINCE])
-        }
+    override fun observeUdzurDates(): Flow<Set<LocalDate>> = preferences.map { stored ->
+        val closed = stored[UDZUR_DATES].orEmpty().mapNotNull(::parseDate)
+        closed.toSet() + openRange(stored[UDZUR_SINCE])
+    }
 
     override fun observeUdzurActive(): Flow<Boolean> = preferences.map { it[UDZUR_SINCE] != null }
 

@@ -5,7 +5,4 @@ package com.sangusantri.app.data.remote.quran
  * never stored — held only in memory for the process lifetime by
  * [com.sangusantri.app.data.remote.quran.QuranCredentialProvider].
  */
-data class QuranCredential(
-    val username: String,
-    val token: String,
-)
+data class QuranCredential(val username: String, val token: String)

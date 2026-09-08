@@ -52,54 +52,50 @@ class QuranReadingSessionDaoTest {
 
     /** Ayat 1..5 sit on page 1, 6..10 on page 2 — a session covering 4..7 therefore spans two. */
     @Test
-    fun aSessionReportsEveryMushafPageItsAyatRangeCovers() =
-        runTest {
-            seedSurah()
-            insertSession(startAyat = 4, endAyat = 7)
+    fun aSessionReportsEveryMushafPageItsAyatRangeCovers() = runTest {
+        seedSurah()
+        insertSession(startAyat = 4, endAyat = 7)
 
-            val pages = database.quranReadingSessionDao().observeSessionPages().first()
+        val pages = database.quranReadingSessionDao().observeSessionPages().first()
 
-            assertEquals(listOf(1, 2), pages.map { it.page }.sorted())
-        }
+        assertEquals(listOf(1, 2), pages.map { it.page }.sorted())
+    }
 
     /** Ten ayat on one page is one halaman, not ten — the `DISTINCT` the daily target relies on. */
     @Test
-    fun manyAyatOnOnePageCountOnce() =
-        runTest {
-            seedSurah()
-            insertSession(startAyat = 1, endAyat = 5)
+    fun manyAyatOnOnePageCountOnce() = runTest {
+        seedSurah()
+        insertSession(startAyat = 1, endAyat = 5)
 
-            val pages = database.quranReadingSessionDao().observeSessionPages().first()
+        val pages = database.quranReadingSessionDao().observeSessionPages().first()
 
-            assertEquals(listOf(1), pages.map { it.page })
-        }
-
-    @Test
-    fun eachSessionKeepsItsOwnTimestampSoDaysCanBeSeparated() =
-        runTest {
-            seedSurah()
-            insertSession(startAyat = 1, endAyat = 2, readAt = YESTERDAY_MILLIS)
-            insertSession(startAyat = 6, endAyat = 7, readAt = TODAY_MILLIS)
-
-            val pages = database.quranReadingSessionDao().observeSessionPages().first()
-
-            assertEquals(
-                setOf(YESTERDAY_MILLIS to 1, TODAY_MILLIS to 2),
-                pages.mapTo(mutableSetOf()) { it.readAtEpochMillis to it.page },
-            )
-        }
+        assertEquals(listOf(1), pages.map { it.page })
+    }
 
     @Test
-    fun aSessionWhoseVersesAreNotDownloadedContributesNoPages() =
-        runTest {
-            seedSurah()
-            // Surah 2 has no verse rows in this database.
-            insertSession(surahNumber = 2, startAyat = 1, endAyat = 10)
+    fun eachSessionKeepsItsOwnTimestampSoDaysCanBeSeparated() = runTest {
+        seedSurah()
+        insertSession(startAyat = 1, endAyat = 2, readAt = YESTERDAY_MILLIS)
+        insertSession(startAyat = 6, endAyat = 7, readAt = TODAY_MILLIS)
 
-            val pages = database.quranReadingSessionDao().observeSessionPages().first()
+        val pages = database.quranReadingSessionDao().observeSessionPages().first()
 
-            assertEquals(emptyList<Int>(), pages.map { it.page })
-        }
+        assertEquals(
+            setOf(YESTERDAY_MILLIS to 1, TODAY_MILLIS to 2),
+            pages.mapTo(mutableSetOf()) { it.readAtEpochMillis to it.page },
+        )
+    }
+
+    @Test
+    fun aSessionWhoseVersesAreNotDownloadedContributesNoPages() = runTest {
+        seedSurah()
+        // Surah 2 has no verse rows in this database.
+        insertSession(surahNumber = 2, startAyat = 1, endAyat = 10)
+
+        val pages = database.quranReadingSessionDao().observeSessionPages().first()
+
+        assertEquals(emptyList<Int>(), pages.map { it.page })
+    }
 
     private suspend fun seedSurah() {
         database.quranSurahDao().insertAll(

@@ -74,11 +74,10 @@ class ResponseSizeLimitInterceptorTest {
         assertThrows(IOException::class.java) { response.use { it.body.string() } }
     }
 
-    private fun client() =
-        OkHttpClient
-            .Builder()
-            .addInterceptor(ResponseSizeLimitInterceptor(maxBytes))
-            .build()
+    private fun client() = OkHttpClient
+        .Builder()
+        .addInterceptor(ResponseSizeLimitInterceptor(maxBytes))
+        .build()
 
     private fun request() = Request.Builder().url(server.url("/catalog.json")).build()
 }

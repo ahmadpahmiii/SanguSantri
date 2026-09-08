@@ -20,30 +20,26 @@ import javax.inject.Inject
  * capability Aktivitas' own spec calls for.
  */
 @HiltViewModel
-class ActivityTasbihHistoryViewModel
-    @Inject
-    constructor(
-        tasbihRepository: TasbihRepository,
-    ) : ViewModel() {
-        private val filter = MutableStateFlow(TimeRangeFilter.ALL)
+class ActivityTasbihHistoryViewModel @Inject constructor(tasbihRepository: TasbihRepository) : ViewModel() {
+    private val filter = MutableStateFlow(TimeRangeFilter.ALL)
 
-        val uiState: StateFlow<ActivityTasbihHistoryUiState> =
-            combine(tasbihRepository.observeHistory(), filter) { entries, range ->
-                ActivityTasbihHistoryUiState(
-                    filter = range,
-                    entries = entries.filterByTimeRange(range, System.currentTimeMillis()) { it.endedAtEpochMillis },
-                )
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = ActivityTasbihHistoryUiState(),
+    val uiState: StateFlow<ActivityTasbihHistoryUiState> =
+        combine(tasbihRepository.observeHistory(), filter) { entries, range ->
+            ActivityTasbihHistoryUiState(
+                filter = range,
+                entries = entries.filterByTimeRange(range, System.currentTimeMillis()) { it.endedAtEpochMillis },
             )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = ActivityTasbihHistoryUiState(),
+        )
 
-        fun onFilterSelected(range: TimeRangeFilter) {
-            filter.value = range
-        }
-
-        private companion object {
-            const val STOP_TIMEOUT_MILLIS = 5_000L
-        }
+    fun onFilterSelected(range: TimeRangeFilter) {
+        filter.value = range
     }
+
+    private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
+    }
+}

@@ -321,21 +321,20 @@ private val previewCounterStep =
         repeatTarget = 33,
     )
 
-private fun previewStepVisible(currentCount: Int = 12) =
-    GuidedReaderUiState.StepVisible(
-        title = "Tahlil",
-        contentId = "preview-content",
-        allSteps = listOf(previewCounterStep),
-        step = previewCounterStep,
-        stepIndex = 4,
-        stepCount = 22,
-        currentCount = currentCount,
-        settings = ReaderSettings(),
-        isFirstStep = false,
-        isLastStep = false,
-        isCompleted = false,
-        sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
-    )
+private fun previewStepVisible(currentCount: Int = 12) = GuidedReaderUiState.StepVisible(
+    title = "Tahlil",
+    contentId = "preview-content",
+    allSteps = listOf(previewCounterStep),
+    step = previewCounterStep,
+    stepIndex = 4,
+    stepCount = 22,
+    currentCount = currentCount,
+    settings = ReaderSettings(),
+    isFirstStep = false,
+    isLastStep = false,
+    isCompleted = false,
+    sourceName = "NU Online — Bacaan Tahlil Singkat, Lengkap dengan Doa dan Terjemahannya",
+)
 
 private val previewCallbacks =
     GuidedReaderCallbacks(

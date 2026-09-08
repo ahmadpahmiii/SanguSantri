@@ -18,11 +18,10 @@ object ReminderScheduleCalculator {
     fun nextTrigger(
         schedule: ReminderSchedule,
         now: ZonedDateTime = ZonedDateTime.now(),
-    ): ZonedDateTime =
-        when (schedule) {
-            is ReminderSchedule.Weekly -> nextWeeklyTrigger(schedule, now)
-            is ReminderSchedule.HijriDate -> nextHijriTrigger(schedule, now)
-        }
+    ): ZonedDateTime = when (schedule) {
+        is ReminderSchedule.Weekly -> nextWeeklyTrigger(schedule, now)
+        is ReminderSchedule.HijriDate -> nextHijriTrigger(schedule, now)
+    }
 
     /** The Hijri month length for [hijriYear]/[hijriMonth] — the creation form uses this to only
      * ever offer a valid day-of-month (Hijri months vary 29–30 days). */

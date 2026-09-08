@@ -34,9 +34,7 @@ import javax.inject.Inject
  * this falls back to offering a flexible update (or doing nothing) instead of blocking.
  */
 @HiltViewModel
-class AppUpdateViewModel
-@Inject
-constructor(
+class AppUpdateViewModel @Inject constructor(
     private val appUpdatePolicyRepository: AppUpdatePolicyRepository,
     private val appUpdateManager: AppUpdateManager,
 ) : ViewModel() {
@@ -113,24 +111,23 @@ constructor(
     private fun resolveUiState(
         requirement: AppUpdateRequirement,
         appUpdateInfo: AppUpdateInfo,
-    ): AppUpdateUiState =
-        when (requirement) {
-            AppUpdateRequirement.FORCE ->
-                if (appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
-                    AppUpdateUiState.RequireForceUpdate(appUpdateInfo)
-                } else {
-                    FirebaseCrashlytics.getInstance().recordException(
-                        IllegalStateException(
-                            "in_app_update policy requires FORCE but Play Core cannot deliver an " +
-                                "immediate update — failing open",
-                        ),
-                    )
-                    offerFlexibleOrIdle(appUpdateInfo)
-                }
+    ): AppUpdateUiState = when (requirement) {
+        AppUpdateRequirement.FORCE ->
+            if (appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+                AppUpdateUiState.RequireForceUpdate(appUpdateInfo)
+            } else {
+                FirebaseCrashlytics.getInstance().recordException(
+                    IllegalStateException(
+                        "in_app_update policy requires FORCE but Play Core cannot deliver an " +
+                            "immediate update — failing open",
+                    ),
+                )
+                offerFlexibleOrIdle(appUpdateInfo)
+            }
 
-            AppUpdateRequirement.FLEXIBLE -> offerFlexibleOrIdle(appUpdateInfo)
-            AppUpdateRequirement.NONE -> AppUpdateUiState.Idle
-        }
+        AppUpdateRequirement.FLEXIBLE -> offerFlexibleOrIdle(appUpdateInfo)
+        AppUpdateRequirement.NONE -> AppUpdateUiState.Idle
+    }
 
     private fun offerFlexibleOrIdle(appUpdateInfo: AppUpdateInfo): AppUpdateUiState =
         if (appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
@@ -140,13 +137,12 @@ constructor(
         }
 
     @Suppress("TooGenericExceptionCaught")
-    private suspend fun requestAppUpdateInfoOrNull(): AppUpdateInfo? =
-        try {
-            appUpdateManager.requestAppUpdateInfo()
-        } catch (e: Exception) {
-            ignorePlayCoreFailure(e)
-            null
-        }
+    private suspend fun requestAppUpdateInfoOrNull(): AppUpdateInfo? = try {
+        appUpdateManager.requestAppUpdateInfo()
+    } catch (e: Exception) {
+        ignorePlayCoreFailure(e)
+        null
+    }
 
     /**
      * Play Core's own failures are not this app's bugs and were never actionable: every one of them

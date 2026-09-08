@@ -163,10 +163,7 @@ fun SholawatReaderScreen(
 }
 
 /** Bundles the top bar's two action callbacks so its parameter list stays within the shared limit. */
-private data class SholawatTopBarActions(
-    val onToggleTranslation: () -> Unit,
-    val onOpenSettings: () -> Unit,
-)
+private data class SholawatTopBarActions(val onToggleTranslation: () -> Unit, val onOpenSettings: () -> Unit)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

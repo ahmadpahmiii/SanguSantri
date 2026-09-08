@@ -8,13 +8,8 @@ sealed interface QuranTafsirUiState {
     /** No cache yet — the very first fetch for this ayat is in flight. */
     data object Loading : QuranTafsirUiState
 
-    data class Loaded(
-        val tafsir: QuranTafsir,
-        val isRefreshing: Boolean,
-    ) : QuranTafsirUiState
+    data class Loaded(val tafsir: QuranTafsir, val isRefreshing: Boolean) : QuranTafsirUiState
 
     /** No cache, and the fetch failed. */
-    data class Unavailable(
-        val retryable: Boolean,
-    ) : QuranTafsirUiState
+    data class Unavailable(val retryable: Boolean) : QuranTafsirUiState
 }

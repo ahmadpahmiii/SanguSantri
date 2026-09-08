@@ -14,6 +14,11 @@ interface ContentDao {
     @Query("SELECT * FROM content WHERE id = :id")
     suspend fun getById(id: String): ContentEntity?
 
+    /** The live version of [getById]. Steps and metadata change independently — a title or layout
+     * correction touches no step — so the reader observes both and combines them. */
+    @Query("SELECT * FROM content WHERE id = :id")
+    fun observeById(id: String): Flow<ContentEntity?>
+
     @Query("SELECT * FROM content WHERE isActive = 1 ORDER BY `order` ASC")
     fun observeActive(): Flow<List<ContentEntity>>
 

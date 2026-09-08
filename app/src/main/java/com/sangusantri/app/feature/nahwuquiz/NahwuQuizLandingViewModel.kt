@@ -14,16 +14,10 @@ import javax.inject.Inject
 /** Landing has no loading gate of its own — its text is static, and the optional "Lanjutkan kuis"
  * card (design spec state 12) simply appears once [NahwuQuizRepository.observeActiveAttempt]
  * resolves, never blocking the rest of the screen. */
-data class NahwuQuizLandingUiState(
-    val activeAttempt: NahwuQuizActiveAttempt?,
-)
+data class NahwuQuizLandingUiState(val activeAttempt: NahwuQuizActiveAttempt?)
 
 @HiltViewModel
-class NahwuQuizLandingViewModel
-@Inject
-constructor(
-    nahwuQuizRepository: NahwuQuizRepository,
-) : ViewModel() {
+class NahwuQuizLandingViewModel @Inject constructor(nahwuQuizRepository: NahwuQuizRepository) : ViewModel() {
     val uiState: StateFlow<NahwuQuizLandingUiState> =
         nahwuQuizRepository
             .observeActiveAttempt()

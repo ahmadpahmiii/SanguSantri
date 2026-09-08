@@ -260,23 +260,21 @@ private fun buildReminder(
     contentId: String,
     label: String,
     schedule: ReminderSchedule,
-): Reminder =
-    Reminder(
-        id = existing?.id ?: UUID.randomUUID().toString(),
-        contentId = contentId,
-        label = label,
-        schedule = schedule,
-        isEnabled = existing?.isEnabled ?: true,
-        nextTriggerAtEpochMillis =
-            ReminderScheduleCalculator.nextTrigger(schedule, ZonedDateTime.now()).toInstant().toEpochMilli(),
-        createdAtEpochMillis = existing?.createdAtEpochMillis ?: System.currentTimeMillis(),
-    )
+): Reminder = Reminder(
+    id = existing?.id ?: UUID.randomUUID().toString(),
+    contentId = contentId,
+    label = label,
+    schedule = schedule,
+    isEnabled = existing?.isEnabled ?: true,
+    nextTriggerAtEpochMillis =
+        ReminderScheduleCalculator.nextTrigger(schedule, ZonedDateTime.now()).toInstant().toEpochMilli(),
+    createdAtEpochMillis = existing?.createdAtEpochMillis ?: System.currentTimeMillis(),
+)
 
-private fun presetFor(existing: Reminder?): ReminderPreset =
-    when {
-        existing == null -> ReminderPreset.TAHLIL_THURSDAY_NIGHT
-        else -> ReminderPreset.CUSTOM
-    }
+private fun presetFor(existing: Reminder?): ReminderPreset = when {
+    existing == null -> ReminderPreset.TAHLIL_THURSDAY_NIGHT
+    else -> ReminderPreset.CUSTOM
+}
 
 @Composable
 private fun ReminderPresetChips(

@@ -1,10 +1,7 @@
 package com.sangusantri.app.domain.model
 
 /** One of a question's four fixed answer slots. */
-data class NahwuQuizOption(
-    val key: NahwuQuizOptionKey,
-    val text: String,
-)
+data class NahwuQuizOption(val key: NahwuQuizOptionKey, val text: String)
 
 /**
  * One bundled multiple-choice question (`0.0.5`). [correctOption] is part of this model because

@@ -15,6 +15,11 @@ interface ContentStepDao {
     @Query("SELECT * FROM content_steps WHERE contentId = :contentId ORDER BY position ASC")
     suspend fun getByContentId(contentId: String): List<ContentStepEntity>
 
+    /** The live version of [getByContentId], so an open reader re-renders when a detail refresh
+     * replaces this item's steps rather than showing the copy it loaded on entry. */
+    @Query("SELECT * FROM content_steps WHERE contentId = :contentId ORDER BY position ASC")
+    fun observeByContentId(contentId: String): Flow<List<ContentStepEntity>>
+
     /**
      * Ids of items whose step text contains [pattern] — catalogue "search by ayah". [pattern] is
      * the already-escaped needle without its wildcards; the caller escapes because `%`/`_` typed

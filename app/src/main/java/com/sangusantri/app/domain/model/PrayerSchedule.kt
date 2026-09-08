@@ -42,11 +42,7 @@ data class PrayerTime(
  * — this app never recomputes or adjusts a prayer time. [source] names the publisher so the screen
  * can attribute it.
  */
-data class PrayerSchedule(
-    val times: List<PrayerTime>,
-    val location: String,
-    val source: String,
-) {
+data class PrayerSchedule(val times: List<PrayerTime>, val location: String, val source: String) {
     /**
      * The next entry due after [now], rolling over into tomorrow once the day's last has passed —
      * after Isya the next entry really is tomorrow's Imsak, and the block must say so rather than

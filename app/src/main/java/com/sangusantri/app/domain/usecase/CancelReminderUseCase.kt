@@ -5,9 +5,7 @@ import com.sangusantri.app.domain.repository.ReminderRepository
 import javax.inject.Inject
 
 /** Deletes a reminder from Room and unschedules its alarm together — never one without the other. */
-class CancelReminderUseCase
-@Inject
-constructor(
+class CancelReminderUseCase @Inject constructor(
     private val reminderRepository: ReminderRepository,
     private val alarmScheduler: ReminderAlarmScheduler,
 ) {

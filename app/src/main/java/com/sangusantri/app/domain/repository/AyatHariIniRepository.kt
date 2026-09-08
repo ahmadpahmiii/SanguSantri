@@ -1,5 +1,6 @@
 package com.sangusantri.app.domain.repository
 
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.domain.model.AyatHariIni
 import java.time.LocalDate
 
@@ -23,5 +24,5 @@ interface AyatHariIniRepository {
      * Refreshes the cached schedule from the CMS. Safe to call on every launch: it no-ops when the
      * cache already covers today, so a normal day costs no request.
      */
-    suspend fun sync(): Result<Unit>
+    suspend fun sync(): ApiResult<Unit>
 }

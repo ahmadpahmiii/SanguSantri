@@ -6,7 +6,5 @@ import com.sangusantri.app.domain.model.Reminder
 internal sealed interface FormTarget {
     data object New : FormTarget
 
-    data class Edit(
-        val reminder: Reminder,
-    ) : FormTarget
+    data class Edit(val reminder: Reminder) : FormTarget
 }

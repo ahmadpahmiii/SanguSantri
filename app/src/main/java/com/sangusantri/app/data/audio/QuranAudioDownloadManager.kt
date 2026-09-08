@@ -20,9 +20,7 @@ import javax.inject.Singleton
  * than in a `viewModelScope`.
  */
 @Singleton
-class QuranAudioDownloadManager
-@Inject
-constructor(
+class QuranAudioDownloadManager @Inject constructor(
     private val downloader: QuranAudioDownloader,
     private val store: QuranAudioStore,
 ) {

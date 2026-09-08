@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.network.safeApiCall
+import com.sangusantri.app.core.network.unwrap
 import com.sangusantri.app.data.local.dao.PrayerTimesDao
 import com.sangusantri.app.data.local.entity.PrayerCityEntity
 import com.sangusantri.app.data.local.entity.PrayerScheduleDayEntity
@@ -47,9 +50,7 @@ import javax.inject.Inject
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Suppress("TooManyFunctions")
-class PrayerScheduleRepositoryImpl
-@Inject
-constructor(
+class PrayerScheduleRepositoryImpl @Inject constructor(
     private val dao: PrayerTimesDao,
     private val apiService: PrayerTimesApiService,
     private val locationSource: DeviceLocationSource,
@@ -60,47 +61,47 @@ constructor(
             if (error is IOException) emit(emptyPreferences()) else throw error
         }
 
-    override fun observeToday(): Flow<PrayerSchedule?> =
-        preferences
-            .map { it[SELECTED_CITY_ID] }
-            .flatMapLatest { cityId ->
-                if (cityId == null) {
-                    flowOf(null)
-                } else {
-                    combine(
-                        dao.observeDay(cityId, LocalDate.now().format(ISO_DATE)),
-                        dao.observeCity(cityId),
-                        preferences,
-                    ) { day, city, prefs ->
-                        day?.toSchedule(city?.name ?: "", prefs)
-                    }
+    override fun observeToday(): Flow<PrayerSchedule?> = preferences
+        .map { it[SELECTED_CITY_ID] }
+        .flatMapLatest { cityId ->
+            if (cityId == null) {
+                flowOf(null)
+            } else {
+                combine(
+                    dao.observeDay(cityId, LocalDate.now().format(ISO_DATE)),
+                    dao.observeCity(cityId),
+                    preferences,
+                ) { day, city, prefs ->
+                    day?.toSchedule(city?.name ?: "", prefs)
                 }
             }
-
-    override fun observeSelectedCity(): Flow<PrayerCity?> =
-        preferences
-            .map { it[SELECTED_CITY_ID] }
-            .flatMapLatest { cityId ->
-                if (cityId == null) flowOf(null) else dao.observeCity(cityId).map { it?.toDomain() }
-            }
-
-    override fun observeCities(query: String): Flow<List<PrayerCity>> =
-        if (query.isBlank()) {
-            dao.observeCities(CITY_PAGE_LIMIT).map { rows -> rows.map { it.toDomain() } }
-        } else {
-            dao.searchCities(query.lowercase(), CITY_PAGE_LIMIT).map { rows -> rows.map { it.toDomain() } }
         }
 
-    override suspend fun ensureCitiesCached(): Result<Unit> {
-        if (dao.cityCount() > 0) return Result.success(Unit)
-        return runCatching {
-            val response = apiService.getCities()
-            val cities =
-                response.body()?.takeIf { response.isSuccessful && it.status }?.data
-                    ?: error("city list unavailable")
-            dao.upsertCities(
-                cities.map { PrayerCityEntity(id = it.id, name = it.lokasi, searchName = it.lokasi.lowercase()) },
-            )
+    override fun observeSelectedCity(): Flow<PrayerCity?> = preferences
+        .map { it[SELECTED_CITY_ID] }
+        .flatMapLatest { cityId ->
+            if (cityId == null) flowOf(null) else dao.observeCity(cityId).map { it?.toDomain() }
+        }
+
+    override fun observeCities(query: String): Flow<List<PrayerCity>> = if (query.isBlank()) {
+        dao.observeCities(CITY_PAGE_LIMIT).map { rows -> rows.map { it.toDomain() } }
+    } else {
+        dao.searchCities(query.lowercase(), CITY_PAGE_LIMIT).map { rows -> rows.map { it.toDomain() } }
+    }
+
+    override suspend fun ensureCitiesCached(): ApiResult<Unit> {
+        if (dao.cityCount() > 0) return ApiResult.Success(Unit)
+        val source = "prayer city list"
+        return when (val result = safeApiCall(source) { apiService.getCities() }.unwrap(source)) {
+            is ApiResult.Failure -> result
+            is ApiResult.Success -> {
+                dao.upsertCities(
+                    result.data.map {
+                        PrayerCityEntity(id = it.id, name = it.lokasi, searchName = it.lokasi.lowercase())
+                    },
+                )
+                ApiResult.Success(Unit)
+            }
         }
     }
 
@@ -108,20 +109,19 @@ constructor(
         dataStore.edit { it[SELECTED_CITY_ID] = cityId }
     }
 
-    override suspend fun detectAndSelectCity(): CityDetection =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                ensureCitiesCached().getOrThrow()
-                // currentLocation(), not lastKnownLocation(): right after the permission grant there
-                // is often nothing cached, and that is exactly when this runs.
-                val location = locationSource.currentLocation() ?: return@runCatching CityDetection.Unavailable
-                val candidates = locationSource.kabkotaCandidates(location)
-                if (candidates.isEmpty()) return@runCatching CityDetection.Unavailable
-                resolveCity(candidates)
-            }.onFailure { failure ->
-                Log.w(TAG, "city detection failed: ${failure.message}")
-            }.getOrDefault(CityDetection.Unavailable)
-        }
+    override suspend fun detectAndSelectCity(): CityDetection = withContext(Dispatchers.IO) {
+        runCatching {
+            if (ensureCitiesCached() is ApiResult.Failure) return@runCatching CityDetection.Unavailable
+            // currentLocation(), not lastKnownLocation(): right after the permission grant there
+            // is often nothing cached, and that is exactly when this runs.
+            val location = locationSource.currentLocation() ?: return@runCatching CityDetection.Unavailable
+            val candidates = locationSource.kabkotaCandidates(location)
+            if (candidates.isEmpty()) return@runCatching CityDetection.Unavailable
+            resolveCity(candidates)
+        }.onFailure { failure ->
+            Log.w(TAG, "city detection failed: ${failure.message}")
+        }.getOrDefault(CityDetection.Unavailable)
+    }
 
     /**
      * Turns the geocoder's place names into a city, or admits it cannot.
@@ -151,31 +151,31 @@ constructor(
         return resolved ?: CityDetection.Ambiguous(candidates.first().pickerQuery())
     }
 
-    override fun observeLocationPromptShown(): Flow<Boolean> =
-        preferences.map { it[LOCATION_PROMPT_SHOWN] ?: false }
+    override fun observeLocationPromptShown(): Flow<Boolean> = preferences.map { it[LOCATION_PROMPT_SHOWN] ?: false }
 
     override suspend fun markLocationPromptShown() {
         dataStore.edit { it[LOCATION_PROMPT_SHOWN] = true }
     }
 
-    override suspend fun ensureScheduleCached(month: LocalDate): Result<Unit> {
+    override suspend fun ensureScheduleCached(month: LocalDate): ApiResult<Unit> {
         val cityId = preferences.first()[SELECTED_CITY_ID]
         val monthPrefix = month.format(ISO_MONTH)
         // Nothing to do without a city, or when the month is already complete in Room — the second
         // case is what lets a returning reader open the screen offline without an error.
         val alreadyCached =
             cityId != null && dao.countDaysInMonth(cityId, monthPrefix) >= month.lengthOfMonth()
-        if (cityId == null || alreadyCached) return Result.success(Unit)
-        return runCatching {
-            val response = apiService.getSchedule(cityId, monthPrefix)
-            val schedule =
-                response.body()?.takeIf { response.isSuccessful && it.status }?.data
-                    ?: error("schedule unavailable")
-            dao.upsertScheduleDays(
-                schedule.jadwal.map { (date, entry) -> entry.toEntity(cityId, date) },
-            )
-            // A month either side of today is all this screen can show; the rest is dead weight.
-            dao.deleteDaysBefore(month.minusMonths(1).withDayOfMonth(1).format(ISO_DATE))
+        if (cityId == null || alreadyCached) return ApiResult.Success(Unit)
+        val source = "prayer schedule $cityId/$monthPrefix"
+        return when (
+            val result = safeApiCall(source) { apiService.getSchedule(cityId, monthPrefix) }.unwrap(source)
+        ) {
+            is ApiResult.Failure -> result
+            is ApiResult.Success -> {
+                dao.upsertScheduleDays(result.data.jadwal.map { (date, entry) -> entry.toEntity(cityId, date) })
+                // A month either side of today is all this screen can show; the rest is dead weight.
+                dao.deleteDaysBefore(month.minusMonths(1).withDayOfMonth(1).format(ISO_DATE))
+                ApiResult.Success(Unit)
+            }
         }
     }
 
@@ -249,8 +249,7 @@ constructor(
     /** A different key from `0.0.4`'s boolean one — the setting gained a third state, and reading a
      * boolean back out of a string key throws rather than degrading. The old key is simply left
      * behind; DataStore ignores it and it costs a few bytes once. */
-    private fun notificationKey(prayer: PrayerName) =
-        stringPreferencesKey("prayer_notification_mode_${prayer.name}")
+    private fun notificationKey(prayer: PrayerName) = stringPreferencesKey("prayer_notification_mode_${prayer.name}")
 
     private companion object {
         const val TAG = "PrayerSchedule"
@@ -273,11 +272,10 @@ constructor(
 
 /** Reduces "KAB. KUDUS", "Kabupaten Kudus" and "KOTA SEMARANG" to the bare name both sides can be
  * compared on. */
-private fun String.normalizeKabkota(): String =
-    uppercase(Locale.ROOT)
-        .replace(Regex("^(KABUPATEN|KAB\\.|KAB|KOTA ADM\\.|KOTA ADMINISTRASI|KOTA)\\s+"), "")
-        .replace(Regex("[^A-Z ]"), "")
-        .trim()
+private fun String.normalizeKabkota(): String = uppercase(Locale.ROOT)
+    .replace(Regex("^(KABUPATEN|KAB\\.|KAB|KOTA ADM\\.|KOTA ADMINISTRASI|KOTA)\\s+"), "")
+    .replace(Regex("[^A-Z ]"), "")
+    .trim()
 
 /**
  * Cities whose name plausibly denotes [candidate].

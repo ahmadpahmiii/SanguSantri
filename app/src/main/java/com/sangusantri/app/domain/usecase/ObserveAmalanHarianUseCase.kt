@@ -25,22 +25,19 @@ import javax.inject.Inject
  * bridged rather than broken. Combining three repositories with real aggregation logic is exactly
  * where `CODING_STANDARD.md` says a use case belongs.
  */
-class ObserveAmalanHarianUseCase
-@Inject
-constructor(
+class ObserveAmalanHarianUseCase @Inject constructor(
     private val tasbihRepository: TasbihRepository,
     private val quranRepository: QuranRepository,
     private val amalanRepository: AmalanRepository,
 ) {
-    operator fun invoke(zoneId: ZoneId = ZoneId.systemDefault()): Flow<AmalanHarian> =
-        combine(
-            tasbihRepository.observeHistory(),
-            quranRepository.observeReadingPages(),
-            amalanRepository.observeUdzurDates(),
-            amalanRepository.observeUdzurActive(),
-        ) { tasbihHistory, readingPages, udzurDates, udzurActive ->
-            build(tasbihHistory, readingPages, udzurDates, udzurActive, zoneId)
-        }
+    operator fun invoke(zoneId: ZoneId = ZoneId.systemDefault()): Flow<AmalanHarian> = combine(
+        tasbihRepository.observeHistory(),
+        quranRepository.observeReadingPages(),
+        amalanRepository.observeUdzurDates(),
+        amalanRepository.observeUdzurActive(),
+    ) { tasbihHistory, readingPages, udzurDates, udzurActive ->
+        build(tasbihHistory, readingPages, udzurDates, udzurActive, zoneId)
+    }
 
     private fun build(
         tasbihHistory: List<TasbihHistoryEntry>,
@@ -141,19 +138,17 @@ constructor(
     private fun week(
         today: LocalDate,
         outcome: (LocalDate) -> AmalanDayState,
-    ): List<AmalanDay> =
-        (WEEK_LENGTH - 1 downTo 0).map { back ->
-            val date = today.minusDays(back.toLong())
-            val state = outcome(date)
-            AmalanDay(
-                date = date,
-                // Today has not failed at anything yet, so it shows as pending rather than missed.
-                state = if (date == today && state == AmalanDayState.INCOMPLETE) AmalanDayState.PENDING else state,
-            )
-        }
+    ): List<AmalanDay> = (WEEK_LENGTH - 1 downTo 0).map { back ->
+        val date = today.minusDays(back.toLong())
+        val state = outcome(date)
+        AmalanDay(
+            date = date,
+            // Today has not failed at anything yet, so it shows as pending rather than missed.
+            state = if (date == today && state == AmalanDayState.INCOMPLETE) AmalanDayState.PENDING else state,
+        )
+    }
 
-    private fun Long.toLocalDate(zoneId: ZoneId): LocalDate =
-        Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
+    private fun Long.toLocalDate(zoneId: ZoneId): LocalDate = Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
 
     private companion object {
         const val WEEK_LENGTH = 7

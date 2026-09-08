@@ -39,7 +39,9 @@ fun HijriCalendarSelectedSummary(
     val pasaranNames = stringArrayResource(R.array.hijri_calendar_pasaran_names).toList()
 
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = SanguSantriSpacing.small),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = SanguSantriSpacing.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(

@@ -29,30 +29,24 @@ import javax.inject.Singleton
  * Resolved once and held in memory for the process lifetime, never persisted to disk.
  */
 @Singleton
-class QuranCredentialProvider
-@Inject
-constructor(
-    @param:ApplicationContext private val context: Context,
-) {
+class QuranCredentialProvider @Inject constructor(@param:ApplicationContext private val context: Context) {
     private val cachedCredential: QuranCredential? by lazy { resolveCredential() }
 
     fun getCredential(): QuranCredential? = cachedCredential
 
-    private fun resolveCredential(): QuranCredential? =
-        if (BuildConfig.DEBUG) {
-            QuranDebugCredentialOverride.resolve() ?: DEBUG_FIXTURE_CREDENTIAL
-        } else {
-            releaseSigningCertificateSha256()?.let(QuranNativeCredentialBridge::getCredential)
-        }
+    private fun resolveCredential(): QuranCredential? = if (BuildConfig.DEBUG) {
+        QuranDebugCredentialOverride.resolve() ?: DEBUG_FIXTURE_CREDENTIAL
+    } else {
+        releaseSigningCertificateSha256()?.let(QuranNativeCredentialBridge::getCredential)
+    }
 
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    private fun releaseSigningCertificateSha256(): ByteArray? =
-        try {
-            val signatures = signingSignatures()
-            if (signatures.size != 1) null else sha256(signatures[0].toByteArray())
-        } catch (unexpected: Exception) {
-            null
-        }
+    private fun releaseSigningCertificateSha256(): ByteArray? = try {
+        val signatures = signingSignatures()
+        if (signatures.size != 1) null else sha256(signatures[0].toByteArray())
+    } catch (unexpected: Exception) {
+        null
+    }
 
     @Suppress("DEPRECATION")
     private fun signingSignatures(): Array<Signature> {

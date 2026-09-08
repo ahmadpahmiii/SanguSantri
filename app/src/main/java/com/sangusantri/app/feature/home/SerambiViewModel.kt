@@ -3,8 +3,8 @@ package com.sangusantri.app.feature.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sangusantri.app.data.sync.ContentSyncManager
-import com.sangusantri.app.data.sync.SyncResult
+import com.sangusantri.app.core.result.Resource
+import com.sangusantri.app.core.result.isUnavailable
 import com.sangusantri.app.domain.model.AmalanHarian
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.AyatHariIni
@@ -22,6 +22,7 @@ import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReminderRepository
 import com.sangusantri.app.domain.usecase.ObserveAmalanHarianUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -48,6 +50,7 @@ import javax.inject.Inject
  * façade would add an indirection that exists only to satisfy a count.
  */
 @Suppress("LongParameterList")
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SerambiViewModel @Inject constructor(
     contentRepository: ContentRepository,
@@ -58,33 +61,48 @@ class SerambiViewModel @Inject constructor(
     private val ayatHariIniRepository: AyatHariIniRepository,
     kiblatRepository: KiblatRepository,
     private val resumeCoordinator: SerambiResumeCoordinator,
-    private val contentSyncManager: ContentSyncManager,
     observeAmalanHarian: ObserveAmalanHarianUseCase,
 ) : ViewModel() {
+    /**
+     * The catalogue and the state of the refresh behind it, in one stream.
+     *
+     * The repository owns the CMS call now, so there is no `contentSyncFailed` flag here any more
+     * and no explicit catalogue refresh for Beranda to remember to call: collecting this *is* the
+     * refresh, and [Resource.Error] is how "we never reached the CMS" arrives.
+     *
+     * Resume still refreshes, without any lifecycle callback doing it: `WhileSubscribed` drops the
+     * subscription shortly after Beranda leaves the screen and re-subscribes on return, and
+     * re-subscribing re-runs the fetch. [retryContent] uses the same mechanism deliberately —
+     * re-collecting is the only way to retry, so there is no second refresh path to keep in step.
+     */
+    private val retryTrigger = MutableStateFlow(0)
+
+    private val catalogue: Flow<Resource<List<Content>>> =
+        retryTrigger.flatMapLatest { contentRepository.observeActiveContent() }
+
     // Sholawat (0.0.8) deliberately has its own list + reader (feature/sholawat), not the
     // Full/Guided Amaliyah reader Beranda's featured section and resume widget route through — so
     // it must never appear in `activeContent`, only be counted for `hasSholawatContent`'s gate.
-    private val rawActiveContent = contentRepository.observeActiveContent()
     private val activeContent =
-        rawActiveContent.map { items -> items.filterNot { it.isSholawat } }
-
-    /**
-     * Whether the last catalogue sync failed. Only consulted when Room holds no content at all —
-     * see [SerambiUiState.Loaded.contentUnavailable]. A failure with content already cached is
-     * silent, which is the whole point of offline-first.
-     */
-    private val contentSyncFailed = MutableStateFlow(false)
+        catalogue.map { resource -> resource.data.orEmpty().filterNot { it.isSholawat } }
 
     private val baseData: Flow<BaseData> =
         combine(
-            activeContent,
-            rawActiveContent.map { items -> items.any { it.isSholawat } },
+            catalogue,
             reminderRepository.observeNearestEnabled(),
             nahwuQuizRepository.observePackageSummaries().map { it.isNotEmpty() },
             nahwuQuizRepository.observeActiveAttempt(),
-        ) { items, hasSholawatContent, nearestReminder, hasNahwuQuizContent, activeQuiz ->
-            BaseData(items, hasSholawatContent, nearestReminder, hasNahwuQuizContent, activeQuiz != null)
-        }.combine(contentSyncFailed) { base, failed -> base.copy(contentSyncFailed = failed) }
+        ) { content, nearestReminder, hasNahwuQuizContent, activeQuiz ->
+            val items = content.data.orEmpty()
+            BaseData(
+                items = items.filterNot { it.isSholawat },
+                hasSholawatContent = items.any { it.isSholawat },
+                nearestReminder = nearestReminder,
+                hasNahwuQuizContent = hasNahwuQuizContent,
+                hasActiveNahwuQuiz = activeQuiz != null,
+                contentUnavailable = content.isUnavailable(),
+            )
+        }
 
     /** One tick a minute is all the next-prayer block's countdown, position line, and highlighted
      * row need; the second-precision countdown belongs to Jadwal Sholat, not Beranda. */
@@ -143,7 +161,7 @@ class SerambiViewModel @Inject constructor(
                 hasNahwuQuizContent = base.hasNahwuQuizContent,
                 hasActiveNahwuQuiz = base.hasActiveNahwuQuiz,
                 hasSholawatContent = base.hasSholawatContent,
-                contentSyncFailed = base.contentSyncFailed,
+                contentUnavailable = base.contentUnavailable,
                 resumeItem = resumeItem,
                 prayerSchedule = prayerSchedule,
                 now = now,
@@ -163,39 +181,24 @@ class SerambiViewModel @Inject constructor(
     }
 
     /**
-     * Everything Beranda pulls from the CMS, in one call, safe to run on every resume.
+     * What Beranda still has to ask for explicitly on resume.
+     *
+     * The catalogue is *not* here any more: [catalogue] refreshes itself whenever it is collected,
+     * which is exactly as often as this screen is on-screen. What remains is the ayat window, whose
+     * cache is keyed by date rather than by liveness, so nothing about collecting it says "check
+     * whether today's entry exists yet".
      *
      * Called from `Lifecycle.Event.ON_RESUME` rather than only from [init]: a ViewModel survives
      * backgrounding, so init alone means a reader who leaves the app open for a week never sees
      * anything published in it. Resume is the moment they are actually looking.
-     *
-     * The cost of doing this often is what the `schemaVersion` 3 split bought. The two category
-     * listings are a few hundred bytes each and carry no steps, so their ETags do not move when
-     * someone corrects a word inside an item — the common resume is two `304`s and no body.
-     * Offline it is two failed requests that change nothing; Room has already drawn the screen.
      */
     fun refresh() {
-        refreshContentCatalogue()
         refreshAyatHariIni()
     }
 
-    /**
-     * Pulls the published catalogue so a publish or unpublish in the CMS lands here without
-     * waiting for the background sync window.
-     *
-     * A failure is silent whenever Room already holds content — a stale catalogue is exactly what
-     * an offline reader wants, and there is nothing for them to act on. The one case that is not
-     * silent is a first launch that never reached the CMS: there is no bundled content any more,
-     * so an empty Room plus a failed sync is a blank screen unless Beranda says why.
-     */
-    private fun refreshContentCatalogue() {
-        viewModelScope.launch {
-            val result =
-                runCatching { contentSyncManager.sync() }
-                    .onFailure { Log.w(TAG, "Beranda content refresh failed", it) }
-                    .getOrNull()
-            contentSyncFailed.value = result !is SyncResult.Completed
-        }
+    /** "Coba lagi" on the empty state. Re-subscribes [catalogue], which re-runs its fetch. */
+    fun retryContent() {
+        retryTrigger.update { it + 1 }
     }
 
     /**
@@ -296,7 +299,7 @@ class SerambiViewModel @Inject constructor(
         val nearestReminder: Reminder?,
         val hasNahwuQuizContent: Boolean,
         val hasActiveNahwuQuiz: Boolean,
-        val contentSyncFailed: Boolean = false,
+        val contentUnavailable: Boolean = false,
     )
 
     private companion object {

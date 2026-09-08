@@ -9,8 +9,4 @@ import androidx.navigation3.runtime.NavKey
  * tokens.md`'s navigation table; no Pengingat/Nahwu Quiz/Pesantren/Profil item, ever, per the
  * project's explicit exclusion).
  */
-data class RootDestination(
-    val key: NavKey,
-    val label: String,
-    val icon: @Composable (selected: Boolean) -> Unit,
-)
+data class RootDestination(val key: NavKey, val label: String, val icon: @Composable (selected: Boolean) -> Unit)

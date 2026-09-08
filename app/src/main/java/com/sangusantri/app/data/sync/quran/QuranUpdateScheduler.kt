@@ -15,9 +15,7 @@ import javax.inject.Inject
 /** Checks the lightweight Remote Config version and enqueues one corpus replacement only when its
  * monotonic target is newer than the complete local dataset. There is deliberately no periodic or
  * calendar-based Quran sync. */
-class QuranUpdateScheduler
-@Inject
-constructor(
+class QuranUpdateScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val localDataset: QuranLocalDataset,
     private val syncMetadata: QuranSyncMetadata,

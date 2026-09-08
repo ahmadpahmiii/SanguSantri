@@ -18,20 +18,18 @@ class SanguSantriPreferencesTest {
     private val testKey = stringPreferencesKey("test_key")
 
     @After
-    fun clearPreferences() =
-        runTest {
-            context.sanguSantriPreferencesDataStore.edit { it.clear() }
-        }
+    fun clearPreferences() = runTest {
+        context.sanguSantriPreferencesDataStore.edit { it.clear() }
+    }
 
     @Test
-    fun writtenValueIsReadBack() =
-        runTest {
-            context.sanguSantriPreferencesDataStore.edit { preferences ->
-                preferences[testKey] = "foundation"
-            }
-
-            val storedValue = context.sanguSantriPreferencesDataStore.data.first()[testKey]
-
-            assertEquals("foundation", storedValue)
+    fun writtenValueIsReadBack() = runTest {
+        context.sanguSantriPreferencesDataStore.edit { preferences ->
+            preferences[testKey] = "foundation"
         }
+
+        val storedValue = context.sanguSantriPreferencesDataStore.data.first()[testKey]
+
+        assertEquals("foundation", storedValue)
+    }
 }

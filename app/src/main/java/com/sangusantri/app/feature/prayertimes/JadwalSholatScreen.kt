@@ -526,12 +526,11 @@ private fun PrayerRow(
     }
 }
 
-private fun PrayerNotificationMode.icon(): ImageVector =
-    when (this) {
-        PrayerNotificationMode.ADZAN -> Icons.Outlined.VolumeUp
-        PrayerNotificationMode.BAWAAN -> Icons.Outlined.Notifications
-        PrayerNotificationMode.NONAKTIF -> Icons.Outlined.NotificationsOff
-    }
+private fun PrayerNotificationMode.icon(): ImageVector = when (this) {
+    PrayerNotificationMode.ADZAN -> Icons.Outlined.VolumeUp
+    PrayerNotificationMode.BAWAAN -> Icons.Outlined.Notifications
+    PrayerNotificationMode.NONAKTIF -> Icons.Outlined.NotificationsOff
+}
 
 /**
  * How one row announces itself. Three choices, not a toggle: "with adzan" and "the device's own
@@ -640,25 +639,23 @@ private fun NotificationModeRow(
     }
 }
 
-private fun PrayerNotificationMode.titleRes(): Int =
-    when (this) {
-        PrayerNotificationMode.ADZAN -> R.string.jadwal_sholat_notification_mode_adzan
-        PrayerNotificationMode.BAWAAN -> R.string.jadwal_sholat_notification_mode_bawaan
-        PrayerNotificationMode.NONAKTIF -> R.string.jadwal_sholat_notification_mode_off
-    }
+private fun PrayerNotificationMode.titleRes(): Int = when (this) {
+    PrayerNotificationMode.ADZAN -> R.string.jadwal_sholat_notification_mode_adzan
+    PrayerNotificationMode.BAWAAN -> R.string.jadwal_sholat_notification_mode_bawaan
+    PrayerNotificationMode.NONAKTIF -> R.string.jadwal_sholat_notification_mode_off
+}
 
-private fun PrayerNotificationMode.supportingRes(prayer: PrayerName): Int =
-    when (this) {
-        PrayerNotificationMode.ADZAN ->
-            when (prayer) {
-                PrayerName.IMSAK -> R.string.jadwal_sholat_notification_adzan_imsak
-                PrayerName.SUBUH -> R.string.jadwal_sholat_notification_adzan_subuh
-                else -> R.string.jadwal_sholat_notification_adzan_other
-            }
+private fun PrayerNotificationMode.supportingRes(prayer: PrayerName): Int = when (this) {
+    PrayerNotificationMode.ADZAN ->
+        when (prayer) {
+            PrayerName.IMSAK -> R.string.jadwal_sholat_notification_adzan_imsak
+            PrayerName.SUBUH -> R.string.jadwal_sholat_notification_adzan_subuh
+            else -> R.string.jadwal_sholat_notification_adzan_other
+        }
 
-        PrayerNotificationMode.BAWAAN -> R.string.jadwal_sholat_notification_bawaan_supporting
-        PrayerNotificationMode.NONAKTIF -> R.string.jadwal_sholat_notification_off_supporting
-    }
+    PrayerNotificationMode.BAWAAN -> R.string.jadwal_sholat_notification_bawaan_supporting
+    PrayerNotificationMode.NONAKTIF -> R.string.jadwal_sholat_notification_off_supporting
+}
 
 @Suppress("LongMethod")
 /**
@@ -782,15 +779,14 @@ private fun KiblatDirection.formattedDistance(): String? {
     }
 }
 
-private fun PrayerName.icon(): ImageVector =
-    when (this) {
-        PrayerName.IMSAK -> Icons.Outlined.WbTwilight
-        PrayerName.SUBUH -> Icons.Outlined.Brightness5
-        PrayerName.ZUHUR -> Icons.Outlined.LightMode
-        PrayerName.ASAR -> Icons.Outlined.Brightness5
-        PrayerName.MAGRIB -> Icons.Outlined.WbTwilight
-        PrayerName.ISYA -> Icons.Outlined.Bedtime
-    }
+private fun PrayerName.icon(): ImageVector = when (this) {
+    PrayerName.IMSAK -> Icons.Outlined.WbTwilight
+    PrayerName.SUBUH -> Icons.Outlined.Brightness5
+    PrayerName.ZUHUR -> Icons.Outlined.LightMode
+    PrayerName.ASAR -> Icons.Outlined.Brightness5
+    PrayerName.MAGRIB -> Icons.Outlined.WbTwilight
+    PrayerName.ISYA -> Icons.Outlined.Bedtime
+}
 
 private fun Duration?.formatCountdown(): String {
     if (this == null) return "--.--.--"

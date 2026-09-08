@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
-import com.sangusantri.app.data.content.ContentImporter
+import com.sangusantri.app.data.content.ContentLocalDataSource
 import com.sangusantri.app.data.content.ContentValidator
 import com.sangusantri.app.data.content.dto.ContentDetailDto
 import com.sangusantri.app.data.content.dto.ContentStepDto
@@ -28,7 +28,7 @@ import javax.inject.Inject
  * Exercises Serambi against the real Hilt graph — the offline-first path (FR-001, FR-002): Serambi
  * renders from Room, with no network involved.
  *
- * Content is seeded through the injected [ContentImporter] with clearly-fixture-labelled items
+ * Content is seeded through the injected [ContentLocalDataSource] with clearly-fixture-labelled items
  * rather than by letting the CMS sync run, so the assertions never depend on what the CMS happens
  * to publish today or on the emulator having a network at all.
  *
@@ -46,7 +46,7 @@ class SerambiScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Inject
-    lateinit var contentImporter: ContentImporter
+    lateinit var localDataSource: ContentLocalDataSource
 
     @Inject
     lateinit var preferencesDataStore: DataStore<Preferences>
@@ -56,8 +56,8 @@ class SerambiScreenTest {
         hiltRule.inject()
         runBlocking {
             preferencesDataStore.edit { it.clear() }
-            contentImporter.importRemoteDetail(fixture(FIRST_FIXTURE_TITLE, order = 0))
-            contentImporter.importRemoteDetail(fixture(SECOND_FIXTURE_TITLE, order = 1))
+            localDataSource.saveDetail(fixture(FIRST_FIXTURE_TITLE, order = 0))
+            localDataSource.saveDetail(fixture(SECOND_FIXTURE_TITLE, order = 1))
         }
     }
 

@@ -81,10 +81,7 @@ fun ReaderTocSheet(
     }
 }
 
-data class TocSectionItem(
-    val stepIndex: Int,
-    val title: String,
-)
+data class TocSectionItem(val stepIndex: Int, val title: String)
 
 @Composable
 private fun TocRowItem(

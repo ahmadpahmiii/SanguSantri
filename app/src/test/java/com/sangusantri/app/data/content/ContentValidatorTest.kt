@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.content
 
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.content.dto.ContentDetailDto
 import com.sangusantri.app.data.content.dto.ContentListItemDto
 import com.sangusantri.app.data.content.dto.ContentListResponseDto
@@ -14,7 +15,7 @@ import org.junit.Test
 class ContentValidatorTest {
     @Test
     fun validListPassesValidation() {
-        assertTrue(ContentValidator.validateList(validList()) is ContentValidation.Valid)
+        assertTrue(ContentValidator.validateList(validList()) is Validation.Valid)
     }
 
     @Test
@@ -71,17 +72,17 @@ class ContentValidatorTest {
     fun httpsImageUrlIsAccepted() {
         val item = validItem().copy(imageUrl = "https://images.example/tahlil.png")
 
-        assertTrue(ContentValidator.validateListItem(item) is ContentValidation.Valid)
+        assertTrue(ContentValidator.validateListItem(item) is Validation.Valid)
     }
 
     @Test
     fun absentImageUrlIsAccepted() {
-        assertTrue(ContentValidator.validateListItem(validItem().copy(imageUrl = null)) is ContentValidation.Valid)
+        assertTrue(ContentValidator.validateListItem(validItem().copy(imageUrl = null)) is Validation.Valid)
     }
 
     @Test
     fun validDetailPassesValidation() {
-        assertTrue(ContentValidator.validateDetail(validDetail()) is ContentValidation.Valid)
+        assertTrue(ContentValidator.validateDetail(validDetail()) is Validation.Valid)
     }
 
     @Test
@@ -130,11 +131,11 @@ class ContentValidatorTest {
     fun detailAbsentRepeatTargetIsAccepted() {
         val detail = validDetail().copy(steps = listOf(validStep().copy(repeatTarget = null)))
 
-        assertTrue(ContentValidator.validateDetail(detail) is ContentValidation.Valid)
+        assertTrue(ContentValidator.validateDetail(detail) is Validation.Valid)
     }
 
-    private fun assertInvalid(result: ContentValidation) {
-        assertTrue(result is ContentValidation.Invalid)
+    private fun assertInvalid(result: Validation) {
+        assertTrue(result is Validation.Invalid)
     }
 
     private fun assertInvalidImageUrl(imageUrl: String) {
@@ -147,35 +148,32 @@ class ContentValidatorTest {
 
     private fun listWith(vararg items: ContentListItemDto) = validList().copy(items = items.toList())
 
-    private fun validList() =
-        ContentListResponseDto(
-            schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
-            items = listOf(validItem()),
-        )
+    private fun validList() = ContentListResponseDto(
+        schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
+        items = listOf(validItem()),
+    )
 
-    private fun validItem() =
-        ContentListItemDto(
-            id = "tahlil",
-            title = "Tahlil",
-            description = "[FIXTURE] Tahlil",
-            imageUrl = null,
-            category = "Amaliyah",
-            order = 1,
-        )
+    private fun validItem() = ContentListItemDto(
+        id = "tahlil",
+        title = "Tahlil",
+        description = "[FIXTURE] Tahlil",
+        imageUrl = null,
+        category = "Amaliyah",
+        order = 1,
+    )
 
-    private fun validDetail() =
-        ContentDetailDto(
-            schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
-            id = "tahlil",
-            title = "Tahlil",
-            description = "[FIXTURE] Tahlil",
-            imageUrl = null,
-            category = "Amaliyah",
-            order = 1,
-            sourceName = "NON-PRODUCTION FIXTURE",
-            sourceUrl = "https://example.invalid/fixture",
-            steps = listOf(validStep()),
-        )
+    private fun validDetail() = ContentDetailDto(
+        schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
+        id = "tahlil",
+        title = "Tahlil",
+        description = "[FIXTURE] Tahlil",
+        imageUrl = null,
+        category = "Amaliyah",
+        order = 1,
+        sourceName = "NON-PRODUCTION FIXTURE",
+        sourceUrl = "https://example.invalid/fixture",
+        steps = listOf(validStep()),
+    )
 
     private fun validStep() =
         ContentStepDto(id = "s1", arabicText = "[FIXTURE-AR]", translation = "[FIXTURE]", repeatTarget = 1)

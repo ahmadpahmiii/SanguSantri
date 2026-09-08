@@ -110,10 +110,9 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         fun intent(
             context: Context,
             event: PrayerAlarmEvent?,
-        ): Intent =
-            Intent(context, PrayerAlarmReceiver::class.java).apply {
-                putExtra(EXTRA_PRAYER, event?.prayer?.name)
-                putExtra(EXTRA_TRACKS, event?.tracks?.map { it.name }?.toTypedArray())
-            }
+        ): Intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
+            putExtra(EXTRA_PRAYER, event?.prayer?.name)
+            putExtra(EXTRA_TRACKS, event?.tracks?.map { it.name }?.toTypedArray())
+        }
     }
 }

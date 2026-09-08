@@ -35,12 +35,11 @@ class NahwuQuizSessionViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun uiStateStartsAsLoadingBeforeQuestionsResolve() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel()
+    fun uiStateStartsAsLoadingBeforeQuestionsResolve() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
 
-            assertEquals(NahwuQuizSessionUiState.Loading, viewModel.uiState.value)
-        }
+        assertEquals(NahwuQuizSessionUiState.Loading, viewModel.uiState.value)
+    }
 
     @Test
     fun uiStateBecomesQuestionVisibleWithFirstQuestionAndWithholdsCorrectOption() =
@@ -62,115 +61,109 @@ class NahwuQuizSessionViewModelTest {
         }
 
     @Test
-    fun uiStateBecomesContentUnavailableWhenPackageHasNoQuestions() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(repository = FakeNahwuQuizRepository(questions = emptyList()))
-            val job = subscribeToSessionState(viewModel)
+    fun uiStateBecomesContentUnavailableWhenPackageHasNoQuestions() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(repository = FakeNahwuQuizRepository(questions = emptyList()))
+        val job = subscribeToSessionState(viewModel)
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            assertEquals(NahwuQuizSessionUiState.ContentUnavailable, viewModel.uiState.value)
-            job.cancel()
-        }
-
-    @Test
-    fun submittingCorrectOptionRevealsCorrectness() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel()
-            val job = subscribeToSessionState(viewModel)
-            advanceUntilIdle()
-
-            viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(questions[0].correctOption))
-            viewModel.onAction(NahwuQuizSessionUiAction.Submit)
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-            check(state is NahwuQuizSessionUiState.QuestionVisible)
-            assertTrue(state.isSubmitted)
-            assertEquals(true, state.isCorrect)
-            assertEquals(questions[0].correctOption, state.correctOption)
-            job.cancel()
-        }
+        assertEquals(NahwuQuizSessionUiState.ContentUnavailable, viewModel.uiState.value)
+        job.cancel()
+    }
 
     @Test
-    fun submittingIncorrectOptionStillRevealsTheCorrectOption() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel()
-            val job = subscribeToSessionState(viewModel)
-            advanceUntilIdle()
+    fun submittingCorrectOptionRevealsCorrectness() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        val job = subscribeToSessionState(viewModel)
+        advanceUntilIdle()
 
-            val wrongOption = questions[0].options.first { it.key != questions[0].correctOption }.key
-            viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(wrongOption))
-            viewModel.onAction(NahwuQuizSessionUiAction.Submit)
-            advanceUntilIdle()
+        viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(questions[0].correctOption))
+        viewModel.onAction(NahwuQuizSessionUiAction.Submit)
+        advanceUntilIdle()
 
-            val state = viewModel.uiState.value
-            check(state is NahwuQuizSessionUiState.QuestionVisible)
-            assertEquals(false, state.isCorrect)
-            assertEquals(questions[0].correctOption, state.correctOption)
-            job.cancel()
-        }
-
-    @Test
-    fun continueAfterFeedbackAdvancesToNextQuestionAndResetsSelection() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel()
-            val job = subscribeToSessionState(viewModel)
-            advanceUntilIdle()
-
-            viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(questions[0].correctOption))
-            viewModel.onAction(NahwuQuizSessionUiAction.Submit)
-            advanceUntilIdle()
-            viewModel.onAction(NahwuQuizSessionUiAction.Continue)
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-            check(state is NahwuQuizSessionUiState.QuestionVisible)
-            assertEquals(1, state.questionIndex)
-            assertEquals(questions[1].id, state.question.id)
-            assertNull(state.selectedOption)
-            assertTrue(!state.isSubmitted)
-            job.cancel()
-        }
+        val state = viewModel.uiState.value
+        check(state is NahwuQuizSessionUiState.QuestionVisible)
+        assertTrue(state.isSubmitted)
+        assertEquals(true, state.isCorrect)
+        assertEquals(questions[0].correctOption, state.correctOption)
+        job.cancel()
+    }
 
     @Test
-    fun continueOnLastQuestionCompletesTheAttempt() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val repository = FakeNahwuQuizRepository(questions = listOf(questions[0]))
-            val viewModel = createViewModel(repository = repository)
-            val job = subscribeToSessionState(viewModel)
-            advanceUntilIdle()
+    fun submittingIncorrectOptionStillRevealsTheCorrectOption() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        val job = subscribeToSessionState(viewModel)
+        advanceUntilIdle()
 
-            viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(questions[0].correctOption))
-            viewModel.onAction(NahwuQuizSessionUiAction.Submit)
-            advanceUntilIdle()
-            viewModel.onAction(NahwuQuizSessionUiAction.Continue)
-            advanceUntilIdle()
+        val wrongOption = questions[0].options.first { it.key != questions[0].correctOption }.key
+        viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(wrongOption))
+        viewModel.onAction(NahwuQuizSessionUiAction.Submit)
+        advanceUntilIdle()
 
-            val state = viewModel.uiState.value
-            check(state is NahwuQuizSessionUiState.Completed)
-            val completedAttempt = repository.attemptOrNull(state.attemptId)
-            assertTrue(completedAttempt?.isCompleted == true)
-            assertEquals(1, completedAttempt?.correctCount)
-            job.cancel()
-        }
+        val state = viewModel.uiState.value
+        check(state is NahwuQuizSessionUiState.QuestionVisible)
+        assertEquals(false, state.isCorrect)
+        assertEquals(questions[0].correctOption, state.correctOption)
+        job.cancel()
+    }
 
     @Test
-    fun resumingAnInProgressAttemptStartsAtItsSavedIndex() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val repository = FakeNahwuQuizRepository(questions = questions)
-            repository.seedInProgressAttempt(packageId = PACKAGE_ID, questionIndex = 1, correctCount = 1)
-            val viewModel = createViewModel(repository = repository)
-            val job = subscribeToSessionState(viewModel)
+    fun continueAfterFeedbackAdvancesToNextQuestionAndResetsSelection() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        val job = subscribeToSessionState(viewModel)
+        advanceUntilIdle()
 
-            advanceUntilIdle()
+        viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(questions[0].correctOption))
+        viewModel.onAction(NahwuQuizSessionUiAction.Submit)
+        advanceUntilIdle()
+        viewModel.onAction(NahwuQuizSessionUiAction.Continue)
+        advanceUntilIdle()
 
-            val state = viewModel.uiState.value
-            check(state is NahwuQuizSessionUiState.QuestionVisible)
-            assertEquals(1, state.questionIndex)
-            assertEquals(questions[1].id, state.question.id)
-            job.cancel()
-        }
+        val state = viewModel.uiState.value
+        check(state is NahwuQuizSessionUiState.QuestionVisible)
+        assertEquals(1, state.questionIndex)
+        assertEquals(questions[1].id, state.question.id)
+        assertNull(state.selectedOption)
+        assertTrue(!state.isSubmitted)
+        job.cancel()
+    }
+
+    @Test
+    fun continueOnLastQuestionCompletesTheAttempt() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeNahwuQuizRepository(questions = listOf(questions[0]))
+        val viewModel = createViewModel(repository = repository)
+        val job = subscribeToSessionState(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onAction(NahwuQuizSessionUiAction.SelectOption(questions[0].correctOption))
+        viewModel.onAction(NahwuQuizSessionUiAction.Submit)
+        advanceUntilIdle()
+        viewModel.onAction(NahwuQuizSessionUiAction.Continue)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        check(state is NahwuQuizSessionUiState.Completed)
+        val completedAttempt = repository.attemptOrNull(state.attemptId)
+        assertTrue(completedAttempt?.isCompleted == true)
+        assertEquals(1, completedAttempt?.correctCount)
+        job.cancel()
+    }
+
+    @Test
+    fun resumingAnInProgressAttemptStartsAtItsSavedIndex() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeNahwuQuizRepository(questions = questions)
+        repository.seedInProgressAttempt(packageId = PACKAGE_ID, questionIndex = 1, correctCount = 1)
+        val viewModel = createViewModel(repository = repository)
+        val job = subscribeToSessionState(viewModel)
+
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        check(state is NahwuQuizSessionUiState.QuestionVisible)
+        assertEquals(1, state.questionIndex)
+        assertEquals(questions[1].id, state.question.id)
+        job.cancel()
+    }
 
     private fun createViewModel(repository: NahwuQuizRepository = FakeNahwuQuizRepository(questions = questions)) =
         NahwuQuizSessionViewModel(packageId = PACKAGE_ID, nahwuQuizRepository = repository)
@@ -217,9 +210,7 @@ class NahwuQuizSessionViewModelTest {
 /** In-memory fake mirroring `NahwuQuizRepositoryImpl`'s real attempt-advancement semantics
  * (`submitAnswer` advances the index atomically, `completeAttempt` is a separate call) — the
  * behaviour under test is the state machine in [NahwuQuizSessionViewModel], not this fake. */
-private class FakeNahwuQuizRepository(
-    private val questions: List<NahwuQuizQuestion>,
-) : NahwuQuizRepository {
+private class FakeNahwuQuizRepository(private val questions: List<NahwuQuizQuestion>) : NahwuQuizRepository {
     private val attempts = mutableMapOf<String, NahwuQuizAttempt>()
     private var nextAttemptId = 0
 
@@ -247,15 +238,14 @@ private class FakeNahwuQuizRepository(
 
     override fun observeActiveAttempt(): Flow<NahwuQuizActiveAttempt?> = flowOf(null)
 
-    override suspend fun getPackage(packageId: String): NahwuQuizPackage =
-        NahwuQuizPackage(
-            id = packageId,
-            title = "[FIXTURE] Nahwu Dasar",
-            description = "[FIXTURE]",
-            order = 1,
-            isActive = true,
-            questionCount = questions.size,
-        )
+    override suspend fun getPackage(packageId: String): NahwuQuizPackage = NahwuQuizPackage(
+        id = packageId,
+        title = "[FIXTURE] Nahwu Dasar",
+        description = "[FIXTURE]",
+        order = 1,
+        isActive = true,
+        questionCount = questions.size,
+    )
 
     override suspend fun getQuestions(packageId: String): List<NahwuQuizQuestion> = questions
 

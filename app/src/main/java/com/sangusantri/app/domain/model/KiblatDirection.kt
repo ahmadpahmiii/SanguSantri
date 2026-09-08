@@ -10,10 +10,7 @@ package com.sangusantri.app.domain.model
  * point past which the app must stop drawing a needle it cannot stand behind and tell the reader
  * to face Baitullah directly instead.
  */
-data class KiblatDirection(
-    val bearingDegrees: Float,
-    val distanceMetres: Float,
-) {
+data class KiblatDirection(val bearingDegrees: Float, val distanceMetres: Float) {
     val isTooCloseForCompass: Boolean get() = distanceMetres < COMPASS_MINIMUM_DISTANCE_METRES
 
     private companion object {

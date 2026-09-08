@@ -11,14 +11,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class ExploreViewModel
-@Inject
-constructor(
+class ExploreViewModel @Inject constructor(
     contentRepository: ContentRepository,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -27,7 +26,7 @@ constructor(
 
     val uiState: StateFlow<ExploreUiState> =
         combine(
-            contentRepository.observeActiveContent(),
+            contentRepository.observeActiveContent().map { it.data.orEmpty() },
             query,
             selectedCategory,
             query.flatMapLatest(contentRepository::observeContentIdsMatchingStepText),

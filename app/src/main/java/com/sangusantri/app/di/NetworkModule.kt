@@ -42,39 +42,37 @@ object NetworkModule {
      */
     @Provides
     @Singleton
-    fun provideHttpCache(
-        @ApplicationContext context: Context,
-    ): Cache = Cache(File(context.cacheDir, HTTP_CACHE_DIR), HTTP_CACHE_BYTES)
+    fun provideHttpCache(@ApplicationContext context: Context): Cache =
+        Cache(File(context.cacheDir, HTTP_CACHE_DIR), HTTP_CACHE_BYTES)
 
     @Provides
     @Singleton
     fun provideOkHttpClient(
         chuckerInterceptor: ChuckerInterceptor,
         cache: Cache,
-    ): OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .cache(cache)
-            .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            // Matches the Quran, myquran, and murottal clients. ContentValidator pins every
-            // contentUrl to an origin-relative path so content can only come from the configured
-            // content API origin; following a redirect would hand that decision back to
-            // whatever the host answered with, defeating the pin.
-            .followRedirects(false)
-            .followSslRedirects(false)
-            .addInterceptor(ResponseSizeLimitInterceptor())
-            .addInterceptor(chuckerInterceptor)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    addInterceptor(
-                        HttpLoggingInterceptor().apply {
-                            level = HttpLoggingInterceptor.Level.BODY
-                        },
-                    )
-                }
-            }.build()
+    ): OkHttpClient = OkHttpClient
+        .Builder()
+        .cache(cache)
+        .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        // Matches the Quran, myquran, and murottal clients. ContentValidator pins every
+        // contentUrl to an origin-relative path so content can only come from the configured
+        // content API origin; following a redirect would hand that decision back to
+        // whatever the host answered with, defeating the pin.
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .addInterceptor(ResponseSizeLimitInterceptor())
+        .addInterceptor(chuckerInterceptor)
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(
+                    HttpLoggingInterceptor().apply {
+                        level = HttpLoggingInterceptor.Level.BODY
+                    },
+                )
+            }
+        }.build()
 
     @Provides
     @Singleton
@@ -85,13 +83,12 @@ object NetworkModule {
     fun provideRetrofit(
         okHttpClient: OkHttpClient,
         json: Json,
-    ): Retrofit =
-        Retrofit
-            .Builder()
-            .baseUrl(BuildConfig.CONTENT_API_BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
+    ): Retrofit = Retrofit
+        .Builder()
+        .baseUrl(BuildConfig.CONTENT_API_BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
 
     @Provides
     @Singleton

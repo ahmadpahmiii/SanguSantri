@@ -32,17 +32,16 @@ object QuranAudioModule {
     @Provides
     @Singleton
     @QuranAudioHttpClient
-    fun provideQuranAudioOkHttpClient(chuckerInterceptor: ChuckerInterceptor): OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .writeTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .followRedirects(false)
-            .followSslRedirects(false)
-            .addInterceptor(ResponseSizeLimitInterceptor(QuranAudioSource.MAX_AYAH_AUDIO_BYTES))
-            .addInterceptor(chuckerInterceptor)
-            .build()
+    fun provideQuranAudioOkHttpClient(chuckerInterceptor: ChuckerInterceptor): OkHttpClient = OkHttpClient
+        .Builder()
+        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .addInterceptor(ResponseSizeLimitInterceptor(QuranAudioSource.MAX_AYAH_AUDIO_BYTES))
+        .addInterceptor(chuckerInterceptor)
+        .build()
 
     private const val CONNECT_TIMEOUT_SECONDS = 15L
     private const val READ_TIMEOUT_SECONDS = 60L

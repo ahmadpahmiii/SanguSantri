@@ -2,6 +2,7 @@ package com.sangusantri.app.feature.prayertimes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sangusantri.app.core.network.ApiResult
 import com.sangusantri.app.data.prayeralarm.PrayerAlarmScheduler
 import com.sangusantri.app.domain.model.CityDetection
 import com.sangusantri.app.domain.model.PrayerName
@@ -34,9 +35,7 @@ import javax.inject.Inject
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class JadwalSholatViewModel
-@Inject
-constructor(
+class JadwalSholatViewModel @Inject constructor(
     private val prayerScheduleRepository: PrayerScheduleRepository,
     private val kiblatRepository: KiblatRepository,
     // Called directly rather than through a use case, unlike `data/reminder/`'s scheduler: this one
@@ -100,7 +99,7 @@ constructor(
             screenState.update {
                 it.copy(
                     isRefreshing = false,
-                    error = if (result.isFailure) PrayerScheduleError.OFFLINE_OR_UNREACHABLE else null,
+                    error = if (result is ApiResult.Failure) PrayerScheduleError.OFFLINE_OR_UNREACHABLE else null,
                 )
             }
         }
@@ -113,7 +112,7 @@ constructor(
             screenState.update {
                 it.copy(
                     isRefreshing = false,
-                    error = if (result.isFailure) PrayerScheduleError.CITY_LIST_UNAVAILABLE else null,
+                    error = if (result is ApiResult.Failure) PrayerScheduleError.CITY_LIST_UNAVAILABLE else null,
                 )
             }
         }
@@ -137,7 +136,7 @@ constructor(
             screenState.update {
                 it.copy(
                     isRefreshing = false,
-                    error = if (result.isFailure) PrayerScheduleError.OFFLINE_OR_UNREACHABLE else null,
+                    error = if (result is ApiResult.Failure) PrayerScheduleError.OFFLINE_OR_UNREACHABLE else null,
                 )
             }
         }
@@ -151,7 +150,7 @@ constructor(
             screenState.update {
                 it.copy(
                     isRefreshing = false,
-                    error = if (result.isFailure) PrayerScheduleError.LOCATION_UNAVAILABLE else null,
+                    error = if (result is ApiResult.Failure) PrayerScheduleError.LOCATION_UNAVAILABLE else null,
                 )
             }
         }

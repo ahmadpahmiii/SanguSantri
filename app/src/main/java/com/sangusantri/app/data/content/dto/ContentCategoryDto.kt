@@ -14,10 +14,7 @@ import kotlinx.serialization.Serializable
  * item's own detail validator, and the list stays untouched.
  */
 @Serializable
-data class ContentListResponseDto(
-    val schemaVersion: Int,
-    val items: List<ContentListItemDto>,
-)
+data class ContentListResponseDto(val schemaVersion: Int, val items: List<ContentListItemDto>)
 
 @Serializable
 data class ContentListItemDto(
@@ -39,7 +36,7 @@ data class ContentListItemDto(
  *
  * There is no `version`. The server stopped versioning items; whether this detail differs from the
  * stored copy is decided on-device, in
- * [com.sangusantri.app.data.content.ContentImporter.importRemoteDetail], and whether it is worth
+ * [com.sangusantri.app.data.content.ContentLocalDataSource.saveDetail], and whether it is worth
  * re-downloading at all is decided by HTTP (`ETag`/`If-None-Match`, handled by the OkHttp cache in
  * [com.sangusantri.app.di.NetworkModule]).
  */

@@ -9,8 +9,4 @@ import androidx.room.Entity
  * (QUR-FR-012's "refresh must preserve bookmarks by `(surah, ayat)` identity").
  */
 @Entity(tableName = "quran_bookmarks", primaryKeys = ["surahNumber", "ayatNumber"])
-data class QuranBookmarkEntity(
-    val surahNumber: Int,
-    val ayatNumber: Int,
-    val createdAtEpochMillis: Long,
-)
+data class QuranBookmarkEntity(val surahNumber: Int, val ayatNumber: Int, val createdAtEpochMillis: Long)

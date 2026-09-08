@@ -4,8 +4,5 @@ package com.sangusantri.app.domain.model
 sealed interface QuranPreparationResult {
     data object Ready : QuranPreparationResult
 
-    data class Failed(
-        val retryable: Boolean,
-        val reason: String,
-    ) : QuranPreparationResult
+    data class Failed(val retryable: Boolean, val reason: String) : QuranPreparationResult
 }

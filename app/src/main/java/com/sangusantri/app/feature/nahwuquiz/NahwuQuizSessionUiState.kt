@@ -36,7 +36,5 @@ sealed interface NahwuQuizSessionUiState {
 
     /** Terminal state — the route reacts to this by navigating to `Hasil Kuis`, replacing this
      * entry so back from the result screen never returns mid-quiz. */
-    data class Completed(
-        val attemptId: String,
-    ) : NahwuQuizSessionUiState
+    data class Completed(val attemptId: String) : NahwuQuizSessionUiState
 }

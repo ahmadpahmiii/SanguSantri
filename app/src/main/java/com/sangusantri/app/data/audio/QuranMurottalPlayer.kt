@@ -47,9 +47,7 @@ import javax.inject.Singleton
  */
 @Suppress("TooManyFunctions")
 @Singleton
-class QuranMurottalPlayer
-@Inject
-constructor(
+class QuranMurottalPlayer @Inject constructor(
     @ApplicationContext private val context: Context,
     private val store: QuranAudioStore,
     private val downloader: QuranAudioDownloader,
@@ -205,19 +203,18 @@ constructor(
     private fun mediaItemFor(
         surahNumber: Int,
         ayahNumber: Int,
-    ): MediaItem =
-        MediaItem
-            .Builder()
-            .setUri(store.file(surahNumber, ayahNumber).toURI().toString())
-            .setMediaMetadata(
-                MediaMetadata
-                    .Builder()
-                    .setTitle("${surahNames[surahNumber].orEmpty()} : $ayahNumber")
-                    .setArtist(QuranAudioSource.RECITER_NAME)
-                    .setIsBrowsable(false)
-                    .setIsPlayable(true)
-                    .build(),
-            ).build()
+    ): MediaItem = MediaItem
+        .Builder()
+        .setUri(store.file(surahNumber, ayahNumber).toURI().toString())
+        .setMediaMetadata(
+            MediaMetadata
+                .Builder()
+                .setTitle("${surahNames[surahNumber].orEmpty()} : $ayahNumber")
+                .setArtist(QuranAudioSource.RECITER_NAME)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .build(),
+        ).build()
 
     private fun onAyahFinished() {
         val current = _state.value
@@ -251,10 +248,9 @@ constructor(
         surahNumber: Int,
         ayahNumber: Int,
         singleAyahOnly: Boolean,
-    ): Int? =
-        ayatCounts[surahNumber]
-            ?.takeUnless { singleAyahOnly }
-            ?.let { count -> (ayahNumber + 1).takeIf { it <= count } }
+    ): Int? = ayatCounts[surahNumber]
+        ?.takeUnless { singleAyahOnly }
+        ?.let { count -> (ayahNumber + 1).takeIf { it <= count } }
 
     /** Names the surahs the queue will reach after this one, for the panel's "Antrean:" line. */
     private fun queuedNamesFrom(

@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.remote.prayertimes.dto
 
+import com.sangusantri.app.core.network.ApiEnvelope
 import kotlinx.serialization.Serializable
 
 /**
@@ -7,18 +8,17 @@ import kotlinx.serialization.Serializable
  * for all of them, mirroring `QuranEnvelopeDto`'s shape for the Kemenag API.
  */
 @Serializable
-data class PrayerEnvelopeDto<T>(
-    val status: Boolean,
-    val message: String = "",
-    val data: T? = null,
-)
+data class PrayerEnvelopeDto<T>(val status: Boolean, val message: String = "", val data: T? = null) :
+    ApiEnvelope<T> {
+    override val payload: T? get() = data
+
+    override val envelopeFailure: String?
+        get() = if (status) null else message.ifBlank { "service reported failure" }
+}
 
 /** `GET /sholat/kabkota/semua` and `/sholat/kabkota/cari/{keyword}` item. */
 @Serializable
-data class PrayerCityDto(
-    val id: String,
-    val lokasi: String,
-)
+data class PrayerCityDto(val id: String, val lokasi: String)
 
 /** `GET /sholat/jadwal/{id}/{period}` payload. [jadwal] is keyed by ISO date, one entry per day of
  * the requested month. */
@@ -51,8 +51,4 @@ data class PrayerScheduleEntryDto(
 
 /** `GET /qibla/{lat},{lon}` payload. [direction] is degrees clockwise from true north. */
 @Serializable
-data class QiblaDto(
-    val latitude: Double,
-    val longitude: Double,
-    val direction: Double,
-)
+data class QiblaDto(val latitude: Double, val longitude: Double, val direction: Double)

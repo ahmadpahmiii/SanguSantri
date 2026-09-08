@@ -17,11 +17,7 @@ import javax.inject.Inject
  * [com.sangusantri.app.core.designsystem.theme.SanguSantriTheme] — one read shared by every screen
  * rather than each observing the same DataStore flow. */
 @HiltViewModel
-class AppThemeViewModel
-@Inject
-constructor(
-    settingsRepository: QuranReaderSettingsRepository,
-) : ViewModel() {
+class AppThemeViewModel @Inject constructor(settingsRepository: QuranReaderSettingsRepository) : ViewModel() {
     /** `null` while the user has never chosen a mode — [MainActivity] then follows the system. */
     val themeMode: StateFlow<AppThemeMode?> =
         settingsRepository

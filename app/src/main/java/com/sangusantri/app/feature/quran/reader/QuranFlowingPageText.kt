@@ -143,14 +143,13 @@ fun QuranFlowingPageText(
 private fun rememberQuranAyatAccessibilityActions(
     ayats: List<QuranReaderAyatUiModel>,
     onAyatLongPress: (QuranReaderAyatUiModel) -> Unit,
-): List<CustomAccessibilityAction> =
-    ayats.map { ayat ->
-        val label = stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
-        CustomAccessibilityAction(label) {
-            onAyatLongPress(ayat)
-            true
-        }
+): List<CustomAccessibilityAction> = ayats.map { ayat ->
+    val label = stringResource(R.string.quran_open_ayat_action_number, ayat.ayatNumber)
+    CustomAccessibilityAction(label) {
+        onAyatLongPress(ayat)
+        true
     }
+}
 
 /** Publishes the recited ayah's measured position, re-running when the layout changes so adjusting the
  * Arabic size or line spacing mid-recitation immediately yields a fresh, correct offset. Silent unless
@@ -236,35 +235,34 @@ private fun buildPageText(
     primaryColor: Color,
     onPrimaryContainerColor: Color,
     primaryContainerColor: Color,
-): AnnotatedString =
-    buildAnnotatedString {
-        val arabicNumberFormat = NumberFormat.getIntegerInstance(Locale.forLanguageTag("ar"))
-        ayats.forEachIndexed { index, ayat ->
-            if (index > 0) append(' ')
-            val rangeStart = length
-            pushStringAnnotation(AYAT_ANNOTATION_TAG, ayat.remoteId.toString())
-            append(ayat.arabicText.withQuranPresentationSpacing())
-            append(" ﴿")
-            append(arabicNumberFormat.format(ayat.ayatNumber))
-            append("﴾")
-            pop()
-            val rangeEnd = length
+): AnnotatedString = buildAnnotatedString {
+    val arabicNumberFormat = NumberFormat.getIntegerInstance(Locale.forLanguageTag("ar"))
+    ayats.forEachIndexed { index, ayat ->
+        if (index > 0) append(' ')
+        val rangeStart = length
+        pushStringAnnotation(AYAT_ANNOTATION_TAG, ayat.remoteId.toString())
+        append(ayat.arabicText.withQuranPresentationSpacing())
+        append(" ﴿")
+        append(arabicNumberFormat.format(ayat.ayatNumber))
+        append("﴾")
+        pop()
+        val rangeEnd = length
+        addStyle(
+            SpanStyle(color = primaryColor),
+            rangeEnd - arabicNumberFormat.format(ayat.ayatNumber).length - 2,
+            rangeEnd,
+        )
+        // Selection and recitation share the tint: only one of them applies to a given ayah at a
+        // time in practice, and the design gives both the same treatment inside the paragraph.
+        if (ayat.remoteId == selectedAyatId || ayat.ayatNumber == playingAyatNumber) {
             addStyle(
-                SpanStyle(color = primaryColor),
-                rangeEnd - arabicNumberFormat.format(ayat.ayatNumber).length - 2,
+                SpanStyle(
+                    color = onPrimaryContainerColor,
+                    background = primaryContainerColor,
+                ),
+                rangeStart,
                 rangeEnd,
             )
-            // Selection and recitation share the tint: only one of them applies to a given ayah at a
-            // time in practice, and the design gives both the same treatment inside the paragraph.
-            if (ayat.remoteId == selectedAyatId || ayat.ayatNumber == playingAyatNumber) {
-                addStyle(
-                    SpanStyle(
-                        color = onPrimaryContainerColor,
-                        background = primaryContainerColor,
-                    ),
-                    rangeStart,
-                    rangeEnd,
-                )
-            }
         }
     }
+}

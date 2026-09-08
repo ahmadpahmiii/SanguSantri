@@ -11,36 +11,32 @@ import com.sangusantri.app.domain.model.StepProgress
  * are conceptually unrelated to that file's content-hierarchy mappers.
  */
 
-fun GuidedReadingSessionEntity.toDomain(): GuidedReadingSession =
-    GuidedReadingSession(
-        contentId = contentId,
-        currentStepId = currentStepId,
-        lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
-        completedAtEpochMillis = completedAtEpochMillis,
-        startedAtEpochMillis = startedAtEpochMillis,
-    )
+fun GuidedReadingSessionEntity.toDomain(): GuidedReadingSession = GuidedReadingSession(
+    contentId = contentId,
+    currentStepId = currentStepId,
+    lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
+    completedAtEpochMillis = completedAtEpochMillis,
+    startedAtEpochMillis = startedAtEpochMillis,
+)
 
-fun GuidedReadingSession.toEntity(): GuidedReadingSessionEntity =
-    GuidedReadingSessionEntity(
-        contentId = contentId,
-        currentStepId = currentStepId,
-        lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
-        completedAtEpochMillis = completedAtEpochMillis,
-        startedAtEpochMillis = startedAtEpochMillis,
-    )
+fun GuidedReadingSession.toEntity(): GuidedReadingSessionEntity = GuidedReadingSessionEntity(
+    contentId = contentId,
+    currentStepId = currentStepId,
+    lastOpenedAtEpochMillis = lastOpenedAtEpochMillis,
+    completedAtEpochMillis = completedAtEpochMillis,
+    startedAtEpochMillis = startedAtEpochMillis,
+)
 
-fun StepProgressEntity.toDomain(): StepProgress =
-    StepProgress(
-        contentId = contentId,
-        stepId = stepId,
-        currentCount = currentCount,
-        updatedAtEpochMillis = updatedAtEpochMillis,
-    )
+fun StepProgressEntity.toDomain(): StepProgress = StepProgress(
+    contentId = contentId,
+    stepId = stepId,
+    currentCount = currentCount,
+    updatedAtEpochMillis = updatedAtEpochMillis,
+)
 
-fun StepProgress.toEntity(): StepProgressEntity =
-    StepProgressEntity(
-        contentId = contentId,
-        stepId = stepId,
-        currentCount = currentCount,
-        updatedAtEpochMillis = updatedAtEpochMillis,
-    )
+fun StepProgress.toEntity(): StepProgressEntity = StepProgressEntity(
+    contentId = contentId,
+    stepId = stepId,
+    currentCount = currentCount,
+    updatedAtEpochMillis = updatedAtEpochMillis,
+)

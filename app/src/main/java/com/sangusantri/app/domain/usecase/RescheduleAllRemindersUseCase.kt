@@ -9,9 +9,7 @@ import javax.inject.Inject
  * "rescheduling after reboot" requirement). Reuses [ScheduleReminderUseCase] per reminder rather
  * than duplicating the persist-then-arm logic.
  */
-class RescheduleAllRemindersUseCase
-@Inject
-constructor(
+class RescheduleAllRemindersUseCase @Inject constructor(
     private val reminderRepository: ReminderRepository,
     private val scheduleReminder: ScheduleReminderUseCase,
 ) {

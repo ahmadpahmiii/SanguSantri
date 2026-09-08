@@ -1,16 +1,9 @@
 package com.sangusantri.app.data.remote.quran
 
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.remote.quran.QuranValidator.validateAyatForSurah
 import com.sangusantri.app.data.remote.quran.dto.QuranAyatDto
 import com.sangusantri.app.data.remote.quran.dto.QuranSurahDto
-
-sealed interface QuranValidation {
-    data object Valid : QuranValidation
-
-    data class Invalid(
-        val reason: String,
-    ) : QuranValidation
-}
 
 /**
  * Pure structural validation of LPMQ Kemenag responses, run before any candidate dataset is
@@ -31,74 +24,73 @@ object QuranValidator {
     fun validateEnvelope(
         code: Int,
         res: String,
-    ): QuranValidation =
-        if (code == ENVELOPE_SUCCESS_CODE && res == ENVELOPE_SUCCESS_RES) {
-            QuranValidation.Valid
-        } else {
-            QuranValidation.Invalid("unsuccessful envelope (code=$code, res=$res)")
-        }
+    ): Validation = if (code == ENVELOPE_SUCCESS_CODE && res == ENVELOPE_SUCCESS_RES) {
+        Validation.Valid
+    } else {
+        Validation.Invalid("unsuccessful envelope (code=$code, res=$res)")
+    }
 
     @Suppress("ReturnCount")
-    fun validateSurahList(surahs: List<QuranSurahDto>): QuranValidation {
+    fun validateSurahList(surahs: List<QuranSurahDto>): Validation {
         if (surahs.size != EXPECTED_SURAH_COUNT) {
-            return QuranValidation.Invalid("expected $EXPECTED_SURAH_COUNT surahs, got ${surahs.size}")
+            return Validation.Invalid("expected $EXPECTED_SURAH_COUNT surahs, got ${surahs.size}")
         }
         val ids = surahs.map { it.id }
-        if (ids.distinct().size != ids.size) return QuranValidation.Invalid("duplicate surah id")
+        if (ids.distinct().size != ids.size) return Validation.Invalid("duplicate surah id")
         if (ids.sorted() != (1..EXPECTED_SURAH_COUNT).toList()) {
-            return QuranValidation.Invalid("surah ids are not exactly 1..$EXPECTED_SURAH_COUNT")
+            return Validation.Invalid("surah ids are not exactly 1..$EXPECTED_SURAH_COUNT")
         }
         val invalidSurah = surahs.firstOrNull { it.jumlahAyat <= 0 || it.nama.isBlank() || it.arabic.isBlank() }
-        if (invalidSurah != null) return QuranValidation.Invalid("surah ${invalidSurah.id} metadata is incomplete")
-        return QuranValidation.Valid
+        if (invalidSurah != null) return Validation.Invalid("surah ${invalidSurah.id} metadata is incomplete")
+        return Validation.Valid
     }
 
     @Suppress("ReturnCount")
     fun validateAyatForSurah(
         surah: QuranSurahDto,
         ayats: List<QuranAyatDto>,
-    ): QuranValidation {
+    ): Validation {
         val wrongSurah = ayats.firstOrNull { it.surah != surah.id }
         if (wrongSurah != null) {
-            return QuranValidation.Invalid(
+            return Validation.Invalid(
                 "ayat ${wrongSurah.id} belongs to surah ${wrongSurah.surah}, expected ${surah.id}",
             )
         }
         val ayatNumbers = ayats.map { it.ayat }
         if (ayatNumbers.distinct().size != ayatNumbers.size) {
-            return QuranValidation.Invalid("duplicate ayat number in surah ${surah.id}")
+            return Validation.Invalid("duplicate ayat number in surah ${surah.id}")
         }
         if (ayatNumbers.sorted() != (1..surah.jumlahAyat).toList()) {
-            return QuranValidation.Invalid(
+            return Validation.Invalid(
                 "surah ${surah.id} ayat numbers are not exactly 1..${surah.jumlahAyat}, got ${ayatNumbers.sorted()}",
             )
         }
         val remoteIds = ayats.map { it.id }
         if (remoteIds.distinct().size != remoteIds.size) {
-            return QuranValidation.Invalid("duplicate remote ayat id within surah ${surah.id}")
+            return Validation.Invalid("duplicate remote ayat id within surah ${surah.id}")
         }
-        return ayats.firstNotNullOfOrNull(::validateAyatFields) ?: QuranValidation.Valid
+        return ayats.firstNotNullOfOrNull(::validateAyatFields) ?: Validation.Valid
     }
 
-    private fun validateAyatFields(ayat: QuranAyatDto): QuranValidation? {
+    private fun validateAyatFields(ayat: QuranAyatDto): Validation? {
         val identity = "${ayat.surah}:${ayat.ayat}"
         return when {
-            ayat.teksMsiUsmani.isBlank() -> QuranValidation.Invalid("ayat $identity arabic text is blank")
-            ayat.terjemah.isBlank() -> QuranValidation.Invalid("ayat $identity translation is blank")
-            ayat.juz !in 1..30 -> QuranValidation.Invalid("ayat $identity juz must be within 1..30")
-            ayat.halaman <= 0 -> QuranValidation.Invalid("ayat $identity halaman must be positive")
+            ayat.teksMsiUsmani.isBlank() -> Validation.Invalid("ayat $identity arabic text is blank")
+            ayat.terjemah.isBlank() -> Validation.Invalid("ayat $identity translation is blank")
+            ayat.juz !in 1..30 -> Validation.Invalid("ayat $identity juz must be within 1..30")
+            ayat.halaman <= 0 -> Validation.Invalid("ayat $identity halaman must be positive")
             else -> null
         }
     }
 
     /** Cross-surah uniqueness [validateAyatForSurah] cannot see on its own: remote ayat ids must be
      * unique across the whole 114-surah candidate, not merely within one surah. */
-    fun validateGlobalUniqueness(allAyats: List<QuranAyatDto>): QuranValidation {
+    fun validateGlobalUniqueness(allAyats: List<QuranAyatDto>): Validation {
         val remoteIds = allAyats.map { it.id }
         return if (remoteIds.distinct().size != remoteIds.size) {
-            QuranValidation.Invalid("duplicate remote ayat id across surahs")
+            Validation.Invalid("duplicate remote ayat id across surahs")
         } else {
-            QuranValidation.Valid
+            Validation.Valid
         }
     }
 }

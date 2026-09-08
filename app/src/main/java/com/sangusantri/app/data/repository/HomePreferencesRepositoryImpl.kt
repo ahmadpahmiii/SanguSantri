@@ -13,16 +13,12 @@ import java.io.IOException
 import javax.inject.Inject
 
 /** Stores the dismissed resume fingerprint in the app's single canonical preferences DataStore. */
-class HomePreferencesRepositoryImpl
-@Inject
-constructor(
-    private val dataStore: DataStore<Preferences>,
-) : HomePreferencesRepository {
-    override fun observeDismissedResumeFingerprint(): Flow<String?> =
-        dataStore.data
-            .catch { error ->
-                if (error is IOException) emit(emptyPreferences()) else throw error
-            }.map { preferences -> preferences[DISMISSED_RESUME_FINGERPRINT] }
+class HomePreferencesRepositoryImpl @Inject constructor(private val dataStore: DataStore<Preferences>) :
+    HomePreferencesRepository {
+    override fun observeDismissedResumeFingerprint(): Flow<String?> = dataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }.map { preferences -> preferences[DISMISSED_RESUME_FINGERPRINT] }
 
     override suspend fun dismissResume(fingerprint: String) {
         dataStore.edit { preferences -> preferences[DISMISSED_RESUME_FINGERPRINT] = fingerprint }

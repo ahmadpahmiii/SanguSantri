@@ -244,12 +244,11 @@ private fun QuranSpeedSelector(
     }
 }
 
-private fun QuranMurottalSpeed.labelRes(): Int =
-    when (this) {
-        QuranMurottalSpeed.SLOW -> R.string.quran_murottal_speed_slow
-        QuranMurottalSpeed.NORMAL -> R.string.quran_murottal_speed_normal
-        QuranMurottalSpeed.FAST -> R.string.quran_murottal_speed_fast
-    }
+private fun QuranMurottalSpeed.labelRes(): Int = when (this) {
+    QuranMurottalSpeed.SLOW -> R.string.quran_murottal_speed_slow
+    QuranMurottalSpeed.NORMAL -> R.string.quran_murottal_speed_normal
+    QuranMurottalSpeed.FAST -> R.string.quran_murottal_speed_fast
+}
 
 @Composable
 private fun QuranMurottalSwitchRow(

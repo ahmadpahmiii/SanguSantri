@@ -12,11 +12,7 @@ import javax.inject.Inject
  * network/HTTP failure encountered mid-sync, so this is checked before ever attempting the first
  * full preparation, not inferred from a sync failure afterward.
  */
-class QuranConnectivityChecker
-@Inject
-constructor(
-    @param:ApplicationContext private val context: Context,
-) {
+class QuranConnectivityChecker @Inject constructor(@param:ApplicationContext private val context: Context) {
     @Suppress("ReturnCount")
     fun isConnected(): Boolean {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false

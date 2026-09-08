@@ -17,18 +17,14 @@ enum class ContentSyncStatus {
  * [getLastSyncAtEpochMillis], which only ever advances on a terminal attempt — including a
  * terminal failure — never on an in-flight retry.
  */
-class ContentSyncMetadata
-    @Inject
-    constructor(
-        private val appMetadataDao: AppMetadataDao,
-    ) {
-        suspend fun getLastSyncAtEpochMillis(): Long? = appMetadataDao.getByKey(KEY_LAST_SYNC)?.updatedAtEpochMillis
+class ContentSyncMetadata @Inject constructor(private val appMetadataDao: AppMetadataDao) {
+    suspend fun getLastSyncAtEpochMillis(): Long? = appMetadataDao.getByKey(KEY_LAST_SYNC)?.updatedAtEpochMillis
 
-        suspend fun recordTerminalSync(status: ContentSyncStatus) {
-            appMetadataDao.upsert(AppMetadataEntity(KEY_LAST_SYNC, status.name, System.currentTimeMillis()))
-        }
-
-        companion object {
-            const val KEY_LAST_SYNC = "content_last_sync"
-        }
+    suspend fun recordTerminalSync(status: ContentSyncStatus) {
+        appMetadataDao.upsert(AppMetadataEntity(KEY_LAST_SYNC, status.name, System.currentTimeMillis()))
     }
+
+    companion object {
+        const val KEY_LAST_SYNC = "content_last_sync"
+    }
+}

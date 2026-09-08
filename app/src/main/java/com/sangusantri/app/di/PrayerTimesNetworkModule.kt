@@ -36,23 +36,20 @@ object PrayerTimesNetworkModule {
     @Provides
     @Singleton
     @PrayerTimesHttpClient
-    fun providePrayerTimesOkHttpClient(chuckerInterceptor: ChuckerInterceptor): OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .followRedirects(false)
-            .followSslRedirects(false)
-            .addInterceptor(ResponseSizeLimitInterceptor())
-            .addInterceptor(chuckerInterceptor)
-            .build()
+    fun providePrayerTimesOkHttpClient(chuckerInterceptor: ChuckerInterceptor): OkHttpClient = OkHttpClient
+        .Builder()
+        .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .addInterceptor(ResponseSizeLimitInterceptor())
+        .addInterceptor(chuckerInterceptor)
+        .build()
 
     @Provides
     @Singleton
-    fun providePrayerTimesApiService(
-        @PrayerTimesHttpClient okHttpClient: OkHttpClient,
-    ): PrayerTimesApiService {
+    fun providePrayerTimesApiService(@PrayerTimesHttpClient okHttpClient: OkHttpClient): PrayerTimesApiService {
         val json = Json { ignoreUnknownKeys = true }
         return Retrofit
             .Builder()

@@ -19,11 +19,7 @@ import javax.inject.Inject
  * tolerance is acceptable for a reading reminder, and avoids `SCHEDULE_EXACT_ALARM`, which Google
  * Play restricts to alarm-clock/calendar-class apps and this is neither.
  */
-class ReminderAlarmScheduler
-@Inject
-constructor(
-    @param:ApplicationContext private val context: Context,
-) {
+class ReminderAlarmScheduler @Inject constructor(@param:ApplicationContext private val context: Context) {
     private val alarmManager: AlarmManager? = context.getSystemService()
 
     fun scheduleAlarm(reminder: Reminder) {

@@ -13,9 +13,7 @@ import javax.inject.Inject
  * `AlarmManager` side effect is exactly the kind of cross-cutting logic `CODING_STANDARD.md` says
  * justifies a use case over a plain repository call.
  */
-class ScheduleReminderUseCase
-@Inject
-constructor(
+class ScheduleReminderUseCase @Inject constructor(
     private val reminderRepository: ReminderRepository,
     private val alarmScheduler: ReminderAlarmScheduler,
 ) {

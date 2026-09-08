@@ -149,31 +149,30 @@ private fun Modifier.ayatItemSurface(
     semanticsLabel: String,
     hapticFeedback: HapticFeedback,
     onLongPress: () -> Unit,
-): Modifier =
-    fillMaxWidth()
-        .then(
-            // The design bleeds the tint 10dp past the text, which the negative inset reproduces.
-            if (highlighted) {
-                Modifier.background(QuranPrimaryContainer, RoundedCornerShape(SelectedAyatCornerRadius))
-            } else {
-                Modifier
+): Modifier = fillMaxWidth()
+    .then(
+        // The design bleeds the tint 10dp past the text, which the negative inset reproduces.
+        if (highlighted) {
+            Modifier.background(QuranPrimaryContainer, RoundedCornerShape(SelectedAyatCornerRadius))
+        } else {
+            Modifier
+        },
+    )
+    .semantics {
+        onLongClick(label = semanticsLabel) {
+            onLongPress()
+            true
+        }
+    }
+    .pointerInput(remoteId) {
+        detectTapGestures(
+            onLongPress = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLongPress()
             },
         )
-        .semantics {
-            onLongClick(label = semanticsLabel) {
-                onLongPress()
-                true
-            }
-        }
-        .pointerInput(remoteId) {
-            detectTapGestures(
-                onLongPress = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongPress()
-                },
-            )
-        }
-        .padding(vertical = AyatVerticalPadding)
+    }
+    .padding(vertical = AyatVerticalPadding)
 
 @Suppress("LongParameterList")
 @Composable
@@ -344,13 +343,12 @@ private fun quranAyatMetaLabel(
     isPreparing: Boolean,
     isPlaying: Boolean,
     isNext: Boolean,
-): String =
-    when {
-        isPreparing -> stringResource(R.string.quran_murottal_preparing_ayat)
-        isPlaying -> stringResource(R.string.quran_murottal_now_playing)
-        isNext -> stringResource(R.string.quran_murottal_up_next)
-        else -> stringResource(R.string.quran_reader_ayat_origin, ayat.juz, ayat.page)
-    }
+): String = when {
+    isPreparing -> stringResource(R.string.quran_murottal_preparing_ayat)
+    isPlaying -> stringResource(R.string.quran_murottal_now_playing)
+    isNext -> stringResource(R.string.quran_murottal_up_next)
+    else -> stringResource(R.string.quran_reader_ayat_origin, ayat.juz, ayat.page)
+}
 
 /**
  * The ayah number, and the headline gesture of the turn-4 addendum: tapping it plays that ayah and

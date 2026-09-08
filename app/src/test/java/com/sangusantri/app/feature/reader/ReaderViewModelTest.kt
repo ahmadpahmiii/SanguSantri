@@ -1,6 +1,7 @@
 package com.sangusantri.app.feature.reader
 
-import com.sangusantri.app.data.sync.ContentDetailSyncManager
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
@@ -21,12 +22,11 @@ import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReadingPositionRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
-import com.sangusantri.app.testing.stubContentApiService
-import com.sangusantri.app.testing.stubContentImporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -44,11 +44,10 @@ import org.junit.Test
  * either `.value` must keep an active collector for the assertion to see anything but the initial
  * value, exactly as a real `collectAsStateWithLifecycle()` subscriber would in the UI.
  */
-private fun TestScope.subscribeToReaderState(viewModel: ReaderViewModel): List<Job> =
-    listOf(
-        launch { viewModel.uiState.collect {} },
-        launch { viewModel.settings.collect {} },
-    )
+private fun TestScope.subscribeToReaderState(viewModel: ReaderViewModel): List<Job> = listOf(
+    launch { viewModel.uiState.collect {} },
+    launch { viewModel.settings.collect {} },
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReaderViewModelTest {
@@ -56,184 +55,172 @@ class ReaderViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun uiStateStartsAsLoadingBeforeContentResolves() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel()
+    fun uiStateStartsAsLoadingBeforeContentResolves() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
 
-            assertEquals(ReaderUiState.Loading, viewModel.uiState.value)
-        }
-
-    @Test
-    fun uiStateBecomesContentAvailableWhenDetailExists() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel()
-            val jobs = subscribeToReaderState(viewModel)
-
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-            check(state is ReaderUiState.ContentAvailable)
-            assertEquals(content.id, state.contentId)
-            assertEquals(steps.size, state.steps.size)
-            assertEquals(0, state.initialItemIndex)
-            assertEquals(0, state.initialItemOffset)
-            jobs.forEach { it.cancel() }
-        }
+        assertEquals(ReaderUiState.Loading, viewModel.uiState.value)
+    }
 
     @Test
-    fun uiStateBecomesUnavailableWhenNoDetailForId() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                createViewModel(contentRepository = FakeContentRepository(content = null, detail = null))
-            val jobs = subscribeToReaderState(viewModel)
+    fun uiStateBecomesContentAvailableWhenDetailExists() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        val jobs = subscribeToReaderState(viewModel)
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            assertEquals(ReaderUiState.ContentUnavailable, viewModel.uiState.value)
-            jobs.forEach { it.cancel() }
-        }
-
-    @Test
-    fun uiStateBecomesUnavailableWhenDetailHasNoSteps() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel =
-                createViewModel(
-                    contentRepository =
-                        FakeContentRepository(content = content, detail = ContentDetail(content, emptyList())),
-                )
-            val jobs = subscribeToReaderState(viewModel)
-
-            advanceUntilIdle()
-
-            assertEquals(ReaderUiState.ContentUnavailable, viewModel.uiState.value)
-            jobs.forEach { it.cancel() }
-        }
+        val state = viewModel.uiState.value
+        check(state is ReaderUiState.ContentAvailable)
+        assertEquals(content.id, state.contentId)
+        assertEquals(steps.size, state.steps.size)
+        assertEquals(0, state.initialItemIndex)
+        assertEquals(0, state.initialItemOffset)
+        jobs.forEach { it.cancel() }
+    }
 
     @Test
-    fun uiStateBecomesRecoverableErrorWhenRepositoryThrows() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(contentRepository = ThrowingContentRepository())
-            val jobs = subscribeToReaderState(viewModel)
+    fun uiStateBecomesUnavailableWhenNoDetailForId() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            createViewModel(contentRepository = FakeContentRepository(content = null, detail = null))
+        val jobs = subscribeToReaderState(viewModel)
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            assertEquals(ReaderUiState.RecoverableError, viewModel.uiState.value)
-            jobs.forEach { it.cancel() }
-        }
-
-    @Test
-    fun retryReloadsContentAfterAnError() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(contentRepository = FlakyContentRepository(detail))
-            val jobs = subscribeToReaderState(viewModel)
-
-            advanceUntilIdle()
-            assertEquals(ReaderUiState.RecoverableError, viewModel.uiState.value)
-
-            viewModel.onAction(ReaderUiAction.Retry)
-            advanceUntilIdle()
-
-            assertTrue(viewModel.uiState.value is ReaderUiState.ContentAvailable)
-            jobs.forEach { it.cancel() }
-        }
+        assertEquals(ReaderUiState.ContentUnavailable, viewModel.uiState.value)
+        jobs.forEach { it.cancel() }
+    }
 
     @Test
-    fun restoredPositionWithinBoundsIsUsed() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(content.id, 1, 120, 0))
-            val viewModel = createViewModel(readingPositionRepository = positionRepository)
-            val jobs = subscribeToReaderState(viewModel)
+    fun uiStateBecomesUnavailableWhenDetailHasNoSteps() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel =
+            createViewModel(
+                contentRepository =
+                    FakeContentRepository(content = content, detail = ContentDetail(content, emptyList())),
+            )
+        val jobs = subscribeToReaderState(viewModel)
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            val state = viewModel.uiState.value
-            check(state is ReaderUiState.ContentAvailable)
-            assertEquals(1, state.initialItemIndex)
-            assertEquals(120, state.initialItemOffset)
-            jobs.forEach { it.cancel() }
-        }
-
-    @Test
-    fun restoredPositionOutOfBoundsFallsBackToStart() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(content.id, 99, 500, 0))
-            val viewModel = createViewModel(readingPositionRepository = positionRepository)
-            val jobs = subscribeToReaderState(viewModel)
-
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-            check(state is ReaderUiState.ContentAvailable)
-            assertEquals(0, state.initialItemIndex)
-            assertEquals(0, state.initialItemOffset)
-            jobs.forEach { it.cancel() }
-        }
+        assertEquals(ReaderUiState.ContentUnavailable, viewModel.uiState.value)
+        jobs.forEach { it.cancel() }
+    }
 
     @Test
-    fun scrollPositionChangesAreDebouncedBeforeSaving() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val positionRepository = FakeReadingPositionRepository(initial = null)
-            val viewModel = createViewModel(readingPositionRepository = positionRepository)
-            advanceUntilIdle()
+    fun uiStateBecomesRecoverableErrorWhenRepositoryThrows() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(contentRepository = ThrowingContentRepository())
+        val jobs = subscribeToReaderState(viewModel)
 
-            viewModel.onAction(ReaderUiAction.ScrollPositionChanged(0, 10))
-            viewModel.onAction(ReaderUiAction.ScrollPositionChanged(0, 40))
-            viewModel.onAction(ReaderUiAction.ScrollPositionChanged(1, 0))
+        advanceUntilIdle()
 
-            advanceTimeBy(200)
-            assertEquals(0, positionRepository.savedPositions.size)
-
-            advanceTimeBy(500)
-            assertEquals(1, positionRepository.savedPositions.size)
-            assertEquals(1, positionRepository.savedPositions.last().itemIndex)
-        }
+        assertEquals(ReaderUiState.RecoverableError, viewModel.uiState.value)
+        jobs.forEach { it.cancel() }
+    }
 
     @Test
-    fun persistPositionNowBypassesTheDebounce() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val positionRepository = FakeReadingPositionRepository(initial = null)
-            val viewModel = createViewModel(readingPositionRepository = positionRepository)
-            advanceUntilIdle()
+    fun retryReloadsContentAfterAnError() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(contentRepository = FlakyContentRepository(detail))
+        val jobs = subscribeToReaderState(viewModel)
 
-            viewModel.onAction(ReaderUiAction.PersistPositionNow(1, 200))
-            advanceUntilIdle()
+        advanceUntilIdle()
+        assertEquals(ReaderUiState.RecoverableError, viewModel.uiState.value)
 
-            assertEquals(1, positionRepository.savedPositions.size)
-            assertEquals(1, positionRepository.savedPositions.last().itemIndex)
-            assertEquals(200, positionRepository.savedPositions.last().itemOffset)
-        }
+        viewModel.onAction(ReaderUiAction.Retry)
+        advanceUntilIdle()
 
-    @Test
-    fun settingsChangesFlowThroughToContentAvailableState() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val settingsRepository = FakeReaderSettingsRepository()
-            val viewModel = createViewModel(readerSettingsRepository = settingsRepository)
-            val jobs = subscribeToReaderState(viewModel)
-            advanceUntilIdle()
-
-            viewModel.onAction(ReaderUiAction.SetShowTranslation(false))
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-            check(state is ReaderUiState.ContentAvailable)
-            assertEquals(false, state.settings.showTranslation)
-            jobs.forEach { it.cancel() }
-        }
+        assertTrue(viewModel.uiState.value is ReaderUiState.ContentAvailable)
+        jobs.forEach { it.cancel() }
+    }
 
     @Test
-    fun settingsWriteIsClampedToBounds() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val settingsRepository = FakeReaderSettingsRepository()
-            val viewModel = createViewModel(readerSettingsRepository = settingsRepository)
-            val jobs = subscribeToReaderState(viewModel)
-            advanceUntilIdle()
+    fun restoredPositionWithinBoundsIsUsed() = runTest(mainDispatcherRule.testDispatcher) {
+        val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(content.id, 1, 120, 0))
+        val viewModel = createViewModel(readingPositionRepository = positionRepository)
+        val jobs = subscribeToReaderState(viewModel)
 
-            viewModel.onAction(ReaderUiAction.SetArabicFontSize(ReaderSettings.MAX_ARABIC_FONT_SIZE_SP + 100))
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            assertEquals(ReaderSettings.MAX_ARABIC_FONT_SIZE_SP, viewModel.settings.value.arabicFontSizeSp)
-            jobs.forEach { it.cancel() }
-        }
+        val state = viewModel.uiState.value
+        check(state is ReaderUiState.ContentAvailable)
+        assertEquals(1, state.initialItemIndex)
+        assertEquals(120, state.initialItemOffset)
+        jobs.forEach { it.cancel() }
+    }
+
+    @Test
+    fun restoredPositionOutOfBoundsFallsBackToStart() = runTest(mainDispatcherRule.testDispatcher) {
+        val positionRepository = FakeReadingPositionRepository(initial = ReadingPosition(content.id, 99, 500, 0))
+        val viewModel = createViewModel(readingPositionRepository = positionRepository)
+        val jobs = subscribeToReaderState(viewModel)
+
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        check(state is ReaderUiState.ContentAvailable)
+        assertEquals(0, state.initialItemIndex)
+        assertEquals(0, state.initialItemOffset)
+        jobs.forEach { it.cancel() }
+    }
+
+    @Test
+    fun scrollPositionChangesAreDebouncedBeforeSaving() = runTest(mainDispatcherRule.testDispatcher) {
+        val positionRepository = FakeReadingPositionRepository(initial = null)
+        val viewModel = createViewModel(readingPositionRepository = positionRepository)
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderUiAction.ScrollPositionChanged(0, 10))
+        viewModel.onAction(ReaderUiAction.ScrollPositionChanged(0, 40))
+        viewModel.onAction(ReaderUiAction.ScrollPositionChanged(1, 0))
+
+        advanceTimeBy(200)
+        assertEquals(0, positionRepository.savedPositions.size)
+
+        advanceTimeBy(500)
+        assertEquals(1, positionRepository.savedPositions.size)
+        assertEquals(1, positionRepository.savedPositions.last().itemIndex)
+    }
+
+    @Test
+    fun persistPositionNowBypassesTheDebounce() = runTest(mainDispatcherRule.testDispatcher) {
+        val positionRepository = FakeReadingPositionRepository(initial = null)
+        val viewModel = createViewModel(readingPositionRepository = positionRepository)
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderUiAction.PersistPositionNow(1, 200))
+        advanceUntilIdle()
+
+        assertEquals(1, positionRepository.savedPositions.size)
+        assertEquals(1, positionRepository.savedPositions.last().itemIndex)
+        assertEquals(200, positionRepository.savedPositions.last().itemOffset)
+    }
+
+    @Test
+    fun settingsChangesFlowThroughToContentAvailableState() = runTest(mainDispatcherRule.testDispatcher) {
+        val settingsRepository = FakeReaderSettingsRepository()
+        val viewModel = createViewModel(readerSettingsRepository = settingsRepository)
+        val jobs = subscribeToReaderState(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderUiAction.SetShowTranslation(false))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        check(state is ReaderUiState.ContentAvailable)
+        assertEquals(false, state.settings.showTranslation)
+        jobs.forEach { it.cancel() }
+    }
+
+    @Test
+    fun settingsWriteIsClampedToBounds() = runTest(mainDispatcherRule.testDispatcher) {
+        val settingsRepository = FakeReaderSettingsRepository()
+        val viewModel = createViewModel(readerSettingsRepository = settingsRepository)
+        val jobs = subscribeToReaderState(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderUiAction.SetArabicFontSize(ReaderSettings.MAX_ARABIC_FONT_SIZE_SP + 100))
+        advanceUntilIdle()
+
+        assertEquals(ReaderSettings.MAX_ARABIC_FONT_SIZE_SP, viewModel.settings.value.arabicFontSizeSp)
+        jobs.forEach { it.cancel() }
+    }
 
     private fun createViewModel(
         contentRepository: ContentRepository = FakeContentRepository(content, detail),
@@ -247,7 +234,6 @@ class ReaderViewModelTest {
         readerSettingsRepository = readerSettingsRepository,
         guidedReadingRepository = guidedReadingRepository,
         quranReaderSettingsRepository = FakeQuranReaderSettingsRepository(),
-        contentDetailSyncManager = FakeContentDetailSyncManager(),
     )
 
     private companion object {
@@ -289,51 +275,58 @@ class ReaderViewModelTest {
     }
 }
 
-private class FakeContentRepository(
-    private val content: Content?,
-    private val detail: ContentDetail?,
-) : ContentRepository {
-    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
+private class FakeContentRepository(private val content: Content?, private val detail: ContentDetail?) :
+    ContentRepository {
+    override fun observeActiveContent(): Flow<Resource<List<Content>>> = flowOf(Resource.Success(emptyList()))
 
     override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content? = content
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail? = detail
+    override suspend fun getCachedContentDetail(contentId: String): ContentDetail? = detail
+
+    override fun observeContentDetail(contentId: String): Flow<Resource<ContentDetail>> =
+        detail?.let { flowOf(Resource.Success(it)) } ?: flowOf(Resource.Error(ApiResult.NetworkError("offline")))
+
+    override suspend fun refreshCatalogue(): ApiResult<Unit> = ApiResult.Success(Unit)
 }
 
 private class ThrowingContentRepository : ContentRepository {
-    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
+    override fun observeActiveContent(): Flow<Resource<List<Content>>> = flowOf(Resource.Success(emptyList()))
 
     override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content = error("boom")
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail = error("boom")
+    override suspend fun getCachedContentDetail(contentId: String): ContentDetail = error("boom")
+
+    override fun observeContentDetail(contentId: String): Flow<Resource<ContentDetail>> = flow { error("boom") }
+
+    override suspend fun refreshCatalogue(): ApiResult<Unit> = ApiResult.Success(Unit)
 }
 
 /** Fails the first load, then succeeds on retry — used to test [ReaderUiAction.Retry]. */
-private class FlakyContentRepository(
-    private val detail: ContentDetail,
-) : ContentRepository {
+private class FlakyContentRepository(private val detail: ContentDetail) : ContentRepository {
     private var attempt = 0
 
-    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
+    override fun observeActiveContent(): Flow<Resource<List<Content>>> = flowOf(Resource.Success(emptyList()))
 
     override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content = detail.content
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail {
+    override suspend fun getCachedContentDetail(contentId: String): ContentDetail = detail
+
+    override fun observeContentDetail(contentId: String): Flow<Resource<ContentDetail>> = flow {
         attempt++
         if (attempt == 1) error("boom")
-        return detail
+        emit(Resource.Success(detail))
     }
+
+    override suspend fun refreshCatalogue(): ApiResult<Unit> = ApiResult.Success(Unit)
 }
 
-private class FakeReadingPositionRepository(
-    initial: ReadingPosition? = null,
-) : ReadingPositionRepository {
+private class FakeReadingPositionRepository(initial: ReadingPosition? = null) : ReadingPositionRepository {
     private var stored: ReadingPosition? = initial
     val savedPositions = mutableListOf<ReadingPosition>()
 
@@ -434,15 +427,4 @@ private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository 
     override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) = Unit
 
     override suspend fun setMurottalKeepScreenOn(enabled: Boolean) = Unit
-}
-
-private class FakeContentDetailSyncManager :
-    ContentDetailSyncManager(
-        api = stubContentApiService(),
-        contentImporter = stubContentImporter(),
-    ) {
-    override suspend fun refresh(
-        contentId: String,
-        isSholawat: Boolean,
-    ): Boolean = false
 }

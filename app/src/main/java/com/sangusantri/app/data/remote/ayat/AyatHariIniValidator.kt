@@ -23,33 +23,32 @@ import java.time.LocalDate
 object AyatHariIniValidator {
     const val SUPPORTED_SCHEMA_VERSION = 2
 
-    fun validate(items: List<AyatHariIniItemDto>): List<AyatHariIniSelection> =
-        items.mapNotNull { item ->
-            val date = runCatching { LocalDate.parse(item.date) }.getOrNull()
-            val translationId = item.translation.id.trim()
-            val sourceLabel = item.sourceLabel.trim()
-            when {
-                date == null -> null
-                // The base-language translation is the one field every surface renders.
-                translationId.isEmpty() -> null
-                // A quotation with no citation is exactly what the CMS's NOT NULL constraint
-                // exists to prevent; refusing it here too means a hand-edited row cannot slip
-                // an uncited hadith onto a reader's home screen.
-                sourceLabel.isEmpty() -> null
-                else ->
-                    AyatHariIniSelection(
-                        date = date,
-                        kind = QuoteKind.fromWire(item.kind),
-                        arabic = item.arabic?.trim()?.takeIf(String::isNotEmpty),
-                        translationId = translationId,
-                        translationEn =
-                            item.translation.en
-                                ?.trim()
-                                ?.takeIf(String::isNotEmpty),
-                        sourceLabel = sourceLabel,
-                        sourceNote = item.sourceNote?.trim()?.takeIf(String::isNotEmpty),
-                        theme = item.theme?.trim()?.takeIf(String::isNotEmpty),
-                    )
-            }
+    fun validate(items: List<AyatHariIniItemDto>): List<AyatHariIniSelection> = items.mapNotNull { item ->
+        val date = runCatching { LocalDate.parse(item.date) }.getOrNull()
+        val translationId = item.translation.id.trim()
+        val sourceLabel = item.sourceLabel.trim()
+        when {
+            date == null -> null
+            // The base-language translation is the one field every surface renders.
+            translationId.isEmpty() -> null
+            // A quotation with no citation is exactly what the CMS's NOT NULL constraint
+            // exists to prevent; refusing it here too means a hand-edited row cannot slip
+            // an uncited hadith onto a reader's home screen.
+            sourceLabel.isEmpty() -> null
+            else ->
+                AyatHariIniSelection(
+                    date = date,
+                    kind = QuoteKind.fromWire(item.kind),
+                    arabic = item.arabic?.trim()?.takeIf(String::isNotEmpty),
+                    translationId = translationId,
+                    translationEn =
+                        item.translation.en
+                            ?.trim()
+                            ?.takeIf(String::isNotEmpty),
+                    sourceLabel = sourceLabel,
+                    sourceNote = item.sourceNote?.trim()?.takeIf(String::isNotEmpty),
+                    theme = item.theme?.trim()?.takeIf(String::isNotEmpty),
+                )
         }
+    }
 }

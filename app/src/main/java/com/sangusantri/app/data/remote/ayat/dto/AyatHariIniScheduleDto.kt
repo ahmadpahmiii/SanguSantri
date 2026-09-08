@@ -12,10 +12,7 @@ import kotlinx.serialization.Serializable
  * not know keeps its cache rather than guessing.
  */
 @Serializable
-data class AyatHariIniScheduleDto(
-    val schemaVersion: Int,
-    val items: List<AyatHariIniItemDto>,
-)
+data class AyatHariIniScheduleDto(val schemaVersion: Int, val items: List<AyatHariIniItemDto>)
 
 @Serializable
 data class AyatHariIniItemDto(

@@ -23,9 +23,7 @@ import javax.inject.Inject
  * month fetch.
  */
 @HiltViewModel
-class LocationRefreshViewModel
-@Inject
-constructor(
+class LocationRefreshViewModel @Inject constructor(
     private val refreshFromCurrentLocation: RefreshFromCurrentLocationUseCase,
 ) : ViewModel() {
     private var inFlight: Job? = null

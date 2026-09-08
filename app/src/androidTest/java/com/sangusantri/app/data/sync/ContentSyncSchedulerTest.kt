@@ -32,51 +32,46 @@ class ContentSyncSchedulerTest {
     }
 
     @Test
-    fun freshInstallWithNoPriorSyncEnqueuesWork() =
-        runTest {
-            ContentSyncScheduler(context, ContentSyncMetadata(metadataDao)).enqueueIfStale()
+    fun freshInstallWithNoPriorSyncEnqueuesWork() = runTest {
+        ContentSyncScheduler(context, ContentSyncMetadata(metadataDao)).enqueueIfStale()
 
-            assertEquals(1, workInfos().size)
-        }
-
-    @Test
-    fun recentSyncWithinTwentyFourHoursDoesNotEnqueueWork() =
-        runTest {
-            metadataDao.seedLastSync(System.currentTimeMillis())
-
-            ContentSyncScheduler(context, ContentSyncMetadata(metadataDao)).enqueueIfStale()
-
-            assertTrue(workInfos().isEmpty())
-        }
+        assertEquals(1, workInfos().size)
+    }
 
     @Test
-    fun staleSyncOlderThanTwentyFourHoursEnqueuesWork() =
-        runTest {
-            metadataDao.seedLastSync(System.currentTimeMillis() - TWENTY_FIVE_HOURS_MILLIS)
+    fun recentSyncWithinTwentyFourHoursDoesNotEnqueueWork() = runTest {
+        metadataDao.seedLastSync(System.currentTimeMillis())
 
-            ContentSyncScheduler(context, ContentSyncMetadata(metadataDao)).enqueueIfStale()
+        ContentSyncScheduler(context, ContentSyncMetadata(metadataDao)).enqueueIfStale()
 
-            assertEquals(1, workInfos().size)
-        }
+        assertTrue(workInfos().isEmpty())
+    }
 
     @Test
-    fun repeatedCallsUseKeepPolicyAndNeverDuplicateWork() =
-        runTest {
-            val scheduler = ContentSyncScheduler(context, ContentSyncMetadata(metadataDao))
+    fun staleSyncOlderThanTwentyFourHoursEnqueuesWork() = runTest {
+        metadataDao.seedLastSync(System.currentTimeMillis() - TWENTY_FIVE_HOURS_MILLIS)
 
-            scheduler.enqueueIfStale()
-            scheduler.enqueueIfStale()
+        ContentSyncScheduler(context, ContentSyncMetadata(metadataDao)).enqueueIfStale()
 
-            val infos = workInfos()
-            assertEquals(1, infos.size)
-            assertTrue(infos.first().state == WorkInfo.State.ENQUEUED)
-        }
+        assertEquals(1, workInfos().size)
+    }
 
-    private fun workInfos(): List<WorkInfo> =
-        WorkManager
-            .getInstance(context)
-            .getWorkInfosForUniqueWork(ContentSyncScheduler.UNIQUE_WORK_NAME)
-            .get()
+    @Test
+    fun repeatedCallsUseKeepPolicyAndNeverDuplicateWork() = runTest {
+        val scheduler = ContentSyncScheduler(context, ContentSyncMetadata(metadataDao))
+
+        scheduler.enqueueIfStale()
+        scheduler.enqueueIfStale()
+
+        val infos = workInfos()
+        assertEquals(1, infos.size)
+        assertTrue(infos.first().state == WorkInfo.State.ENQUEUED)
+    }
+
+    private fun workInfos(): List<WorkInfo> = WorkManager
+        .getInstance(context)
+        .getWorkInfosForUniqueWork(ContentSyncScheduler.UNIQUE_WORK_NAME)
+        .get()
 
     private class FakeAppMetadataDao : AppMetadataDao {
         private val storage = mutableMapOf<String, AppMetadataEntity>()

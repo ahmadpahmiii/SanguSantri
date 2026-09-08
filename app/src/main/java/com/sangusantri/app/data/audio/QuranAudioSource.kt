@@ -51,15 +51,14 @@ object QuranAudioSource {
 
     /** Parses a stored file name back to its surah/ayah pair, or `null` when the name is not one of
      * ours — a stray file in the directory must not be counted as downloaded audio. */
-    fun parseFileName(fileName: String): Pair<Int, Int>? =
-        fileName
-            .removeSuffix(MP3_SUFFIX)
-            .takeIf { it.length == POSITIONAL_KEY_LENGTH && it != fileName }
-            ?.let { key ->
-                val surah = key.take(3).toIntOrNull()?.takeIf { it in 1..TOTAL_SURAHS }
-                val ayah = key.drop(3).toIntOrNull()?.takeIf { it >= 1 }
-                if (surah == null || ayah == null) null else surah to ayah
-            }
+    fun parseFileName(fileName: String): Pair<Int, Int>? = fileName
+        .removeSuffix(MP3_SUFFIX)
+        .takeIf { it.length == POSITIONAL_KEY_LENGTH && it != fileName }
+        ?.let { key ->
+            val surah = key.take(3).toIntOrNull()?.takeIf { it in 1..TOTAL_SURAHS }
+            val ayah = key.drop(3).toIntOrNull()?.takeIf { it >= 1 }
+            if (surah == null || ayah == null) null else surah to ayah
+        }
 
     private const val CDN_BASE = "https://cdn.myquran.com"
     private const val MP3_SUFFIX = ".mp3"

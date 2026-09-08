@@ -8,7 +8,5 @@ sealed interface TasbihHistoryUiState {
 
     data object Empty : TasbihHistoryUiState
 
-    data class Filled(
-        val entries: List<TasbihHistoryEntry>,
-    ) : TasbihHistoryUiState
+    data class Filled(val entries: List<TasbihHistoryEntry>) : TasbihHistoryUiState
 }

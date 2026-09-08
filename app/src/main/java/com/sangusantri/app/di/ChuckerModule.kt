@@ -26,19 +26,16 @@ import javax.inject.Singleton
 object ChuckerModule {
     @Provides
     @Singleton
-    fun provideChuckerCollector(
-        @ApplicationContext context: Context,
-    ): ChuckerCollector = ChuckerCollector(context)
+    fun provideChuckerCollector(@ApplicationContext context: Context): ChuckerCollector = ChuckerCollector(context)
 
     @Provides
     @Singleton
     fun provideChuckerInterceptor(
         @ApplicationContext context: Context,
         collector: ChuckerCollector,
-    ): ChuckerInterceptor =
-        ChuckerInterceptor
-            .Builder(context)
-            .collector(collector)
-            .redactHeaders("Authorization", "user")
-            .build()
+    ): ChuckerInterceptor = ChuckerInterceptor
+        .Builder(context)
+        .collector(collector)
+        .redactHeaders("Authorization", "user")
+        .build()
 }

@@ -11,11 +11,7 @@ sealed interface ReminderSchedule {
     val hour: Int
     val minute: Int
 
-    data class Weekly(
-        val dayOfWeek: DayOfWeek,
-        override val hour: Int,
-        override val minute: Int,
-    ) : ReminderSchedule
+    data class Weekly(val dayOfWeek: DayOfWeek, override val hour: Int, override val minute: Int) : ReminderSchedule
 
     /** [repeatsYearly] = false fires exactly once, then the reminder disables itself rather than
      * being deleted — preserves history the same way completed Tasbih/Guided Reader state does. */

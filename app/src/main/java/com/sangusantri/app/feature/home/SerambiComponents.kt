@@ -185,44 +185,41 @@ private fun ResumeActionPill() {
 }
 
 @Composable
-private fun SerambiResumeItem.resumeTitle(): String =
-    when (this) {
-        is SerambiResumeItem.Amaliyah -> title
-        is SerambiResumeItem.Quran -> stringResource(R.string.serambi_resume_quran_title)
-        is SerambiResumeItem.Tasbih ->
-            sessionName?.takeIf(String::isNotBlank)
-                ?: stringResource(R.string.serambi_resume_tasbih_title)
-    }
+private fun SerambiResumeItem.resumeTitle(): String = when (this) {
+    is SerambiResumeItem.Amaliyah -> title
+    is SerambiResumeItem.Quran -> stringResource(R.string.serambi_resume_quran_title)
+    is SerambiResumeItem.Tasbih ->
+        sessionName?.takeIf(String::isNotBlank)
+            ?: stringResource(R.string.serambi_resume_tasbih_title)
+}
 
 @Composable
-private fun SerambiResumeItem.resumeProgressText(): String =
-    when (this) {
-        is SerambiResumeItem.Amaliyah ->
-            stringResource(
-                if (mode == ReaderMode.GUIDED) {
-                    R.string.serambi_resume_amaliyah_guided_progress
-                } else {
-                    R.string.serambi_resume_amaliyah_full_progress
-                },
-                current,
-                total,
-            )
+private fun SerambiResumeItem.resumeProgressText(): String = when (this) {
+    is SerambiResumeItem.Amaliyah ->
+        stringResource(
+            if (mode == ReaderMode.GUIDED) {
+                R.string.serambi_resume_amaliyah_guided_progress
+            } else {
+                R.string.serambi_resume_amaliyah_full_progress
+            },
+            current,
+            total,
+        )
 
-        is SerambiResumeItem.Quran ->
-            stringResource(R.string.serambi_resume_quran_progress, surahName, ayatNumber, totalAyat)
+    is SerambiResumeItem.Quran ->
+        stringResource(R.string.serambi_resume_quran_progress, surahName, ayatNumber, totalAyat)
 
-        is SerambiResumeItem.Tasbih ->
-            targetCount?.let {
-                stringResource(R.string.serambi_resume_tasbih_target_progress, currentCount, it)
-            } ?: stringResource(R.string.serambi_resume_tasbih_unlimited_progress, currentCount)
-    }
+    is SerambiResumeItem.Tasbih ->
+        targetCount?.let {
+            stringResource(R.string.serambi_resume_tasbih_target_progress, currentCount, it)
+        } ?: stringResource(R.string.serambi_resume_tasbih_unlimited_progress, currentCount)
+}
 
-private fun SerambiResumeItem.resumeAction(actions: SerambiActions): () -> Unit =
-    when (this) {
-        is SerambiResumeItem.Amaliyah -> ({ actions.onContinueAmaliyah(contentId, mode) })
-        is SerambiResumeItem.Quran -> ({ actions.onContinueQuran(surahNumber, ayatNumber) })
-        is SerambiResumeItem.Tasbih -> actions.onContinueTasbih
-    }
+private fun SerambiResumeItem.resumeAction(actions: SerambiActions): () -> Unit = when (this) {
+    is SerambiResumeItem.Amaliyah -> ({ actions.onContinueAmaliyah(contentId, mode) })
+    is SerambiResumeItem.Quran -> ({ actions.onContinueQuran(surahNumber, ayatNumber) })
+    is SerambiResumeItem.Tasbih -> actions.onContinueTasbih
+}
 
 private val PROGRESS_HEIGHT = 6.dp
 private const val PROGRESS_ANIMATION_MILLIS = 450

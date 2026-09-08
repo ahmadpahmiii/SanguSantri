@@ -18,9 +18,7 @@ import javax.inject.Inject
  * because a dataset already existed or because preparation just completed successfully.
  */
 @HiltViewModel
-class QuranEntryViewModel
-@Inject
-constructor(
+class QuranEntryViewModel @Inject constructor(
     private val quranRepository: QuranRepository,
     private val connectivityChecker: QuranConnectivityChecker,
 ) : ViewModel() {

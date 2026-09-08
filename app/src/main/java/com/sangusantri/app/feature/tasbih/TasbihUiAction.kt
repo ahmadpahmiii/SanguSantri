@@ -7,18 +7,12 @@ sealed interface TasbihUiAction {
     data object IncrementCounter : TasbihUiAction
 
     /** 33/100/Unlimited only — [TasbihTargetPreset.CUSTOM] is handled by [SetCustomTarget] instead. */
-    data class SelectPreset(
-        val preset: TasbihTargetPreset,
-    ) : TasbihUiAction
+    data class SelectPreset(val preset: TasbihTargetPreset) : TasbihUiAction
 
     /** Dispatched only after the Custom Target Dialog's own validation already accepted [value]. */
-    data class SetCustomTarget(
-        val value: Int,
-    ) : TasbihUiAction
+    data class SetCustomTarget(val value: Int) : TasbihUiAction
 
-    data class RenameSession(
-        val name: String?,
-    ) : TasbihUiAction
+    data class RenameSession(val name: String?) : TasbihUiAction
 
     /**
      * Start the same target over from zero after it was reached. The finished round is already in

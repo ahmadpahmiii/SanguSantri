@@ -9,11 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class ReminderRepositoryImpl
-@Inject
-constructor(
-    private val reminderDao: ReminderDao,
-) : ReminderRepository {
+class ReminderRepositoryImpl @Inject constructor(private val reminderDao: ReminderDao) : ReminderRepository {
     override suspend fun save(reminder: Reminder) = reminderDao.upsert(reminder.toEntity())
 
     override suspend fun delete(reminderId: String) = reminderDao.deleteById(reminderId)
@@ -25,6 +21,5 @@ constructor(
     override fun observeAll(): Flow<List<Reminder>> =
         reminderDao.observeAll().map { list -> list.map { it.toDomain() } }
 
-    override fun observeNearestEnabled(): Flow<Reminder?> =
-        reminderDao.observeNearestEnabled().map { it?.toDomain() }
+    override fun observeNearestEnabled(): Flow<Reminder?> = reminderDao.observeNearestEnabled().map { it?.toDomain() }
 }

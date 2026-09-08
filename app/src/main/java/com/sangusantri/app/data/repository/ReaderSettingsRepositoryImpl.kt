@@ -32,44 +32,40 @@ import javax.inject.Inject
  * SanguSantriDatabase's own suppression.
  */
 @Suppress("TooManyFunctions")
-class ReaderSettingsRepositoryImpl
-@Inject
-constructor(
-    private val dataStore: DataStore<Preferences>,
-) : ReaderSettingsRepository {
-    override fun observe(): Flow<ReaderSettings> =
-        dataStore.data
-            .catch { error ->
-                if (error is IOException) emit(emptyPreferences()) else throw error
-            }.map { preferences ->
-                ReaderSettings(
-                    arabicFontSizeSp =
-                        coerceArabicFontSize(
-                            preferences[ARABIC_FONT_SIZE_SP] ?: ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP,
-                        ),
-                    translationFontSizeSp =
-                        coerceTranslationFontSize(
-                            preferences[TRANSLATION_FONT_SIZE_SP]
-                                ?: ReaderSettings.DEFAULT_TRANSLATION_FONT_SIZE_SP,
-                        ),
-                    arabicLineSpacingMultiplier =
-                        coerceLineSpacing(
-                            preferences[ARABIC_LINE_SPACING] ?: ReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
-                        ),
-                    translationLineSpacingMultiplier =
-                        coerceLineSpacing(
-                            preferences[TRANSLATION_LINE_SPACING]
-                                ?: ReaderSettings.DEFAULT_TRANSLATION_LINE_SPACING,
-                        ),
-                    showTranslation = preferences[SHOW_TRANSLATION] ?: true,
-                    lastReaderMode = preferences[LAST_READER_MODE]?.let(::parseReaderMode),
-                    guidedProgressionMode =
-                        preferences[GUIDED_PROGRESSION_MODE]?.let(::parseProgressionMode)
-                            ?: GuidedProgressionMode.MANUAL,
-                    sholawatTwoColumn = preferences[SHOLAWAT_TWO_COLUMN] ?: true,
-                    sholawatBaitGap = preferences[SHOLAWAT_BAIT_GAP] ?: true,
-                )
-            }
+class ReaderSettingsRepositoryImpl @Inject constructor(private val dataStore: DataStore<Preferences>) :
+    ReaderSettingsRepository {
+    override fun observe(): Flow<ReaderSettings> = dataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }.map { preferences ->
+            ReaderSettings(
+                arabicFontSizeSp =
+                    coerceArabicFontSize(
+                        preferences[ARABIC_FONT_SIZE_SP] ?: ReaderSettings.DEFAULT_ARABIC_FONT_SIZE_SP,
+                    ),
+                translationFontSizeSp =
+                    coerceTranslationFontSize(
+                        preferences[TRANSLATION_FONT_SIZE_SP]
+                            ?: ReaderSettings.DEFAULT_TRANSLATION_FONT_SIZE_SP,
+                    ),
+                arabicLineSpacingMultiplier =
+                    coerceLineSpacing(
+                        preferences[ARABIC_LINE_SPACING] ?: ReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
+                    ),
+                translationLineSpacingMultiplier =
+                    coerceLineSpacing(
+                        preferences[TRANSLATION_LINE_SPACING]
+                            ?: ReaderSettings.DEFAULT_TRANSLATION_LINE_SPACING,
+                    ),
+                showTranslation = preferences[SHOW_TRANSLATION] ?: true,
+                lastReaderMode = preferences[LAST_READER_MODE]?.let(::parseReaderMode),
+                guidedProgressionMode =
+                    preferences[GUIDED_PROGRESSION_MODE]?.let(::parseProgressionMode)
+                        ?: GuidedProgressionMode.MANUAL,
+                sholawatTwoColumn = preferences[SHOLAWAT_TWO_COLUMN] ?: true,
+                sholawatBaitGap = preferences[SHOLAWAT_BAIT_GAP] ?: true,
+            )
+        }
 
     override suspend fun setArabicFontSize(sp: Int) {
         dataStore.edit { it[ARABIC_FONT_SIZE_SP] = coerceArabicFontSize(sp) }

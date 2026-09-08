@@ -8,7 +8,4 @@ package com.sangusantri.app.domain.model
  * `page` column rather than an estimate: three halaman means three printed pages, counted
  * distinctly per day.
  */
-data class QuranReadingPage(
-    val readAtEpochMillis: Long,
-    val page: Int,
-)
+data class QuranReadingPage(val readAtEpochMillis: Long, val page: Int)

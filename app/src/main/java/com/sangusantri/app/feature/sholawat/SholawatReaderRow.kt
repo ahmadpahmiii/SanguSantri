@@ -15,17 +15,11 @@ sealed interface SholawatReaderRow {
     val key: String
 
     /** Sadr and ajuz side by side. [translations] holds one entry per hemistich, or one for the bait. */
-    data class Bait(
-        override val key: String,
-        val hemistichs: List<String>,
-        val translations: List<String>,
-    ) : SholawatReaderRow
+    data class Bait(override val key: String, val hemistichs: List<String>, val translations: List<String>) :
+        SholawatReaderRow
 
     /** Anything read straight across: prose, a heading, the recurring refrain. */
-    data class Verse(
-        override val key: String,
-        val step: ContentStep,
-    ) : SholawatReaderRow
+    data class Verse(override val key: String, val step: ContentStep) : SholawatReaderRow
 }
 
 /**
@@ -46,34 +40,33 @@ sealed interface SholawatReaderRow {
  * A single separator anywhere in the item switches the whole item to the second shape, so a
  * bait-per-step item never also tries to pair its prose two at a time.
  */
-fun List<ContentStep>.toSholawatReaderRows(pairHemistichs: Boolean): List<SholawatReaderRow> =
-    when {
-        !pairHemistichs -> map { SholawatReaderRow.Verse(key = it.id, step = it) }
+fun List<ContentStep>.toSholawatReaderRows(pairHemistichs: Boolean): List<SholawatReaderRow> = when {
+    !pairHemistichs -> map { SholawatReaderRow.Verse(key = it.id, step = it) }
 
-        none { it.baitHemistichs != null } ->
-            chunked(BAYT_HEMISTICHS).map { bait ->
+    none { it.baitHemistichs != null } ->
+        chunked(BAYT_HEMISTICHS).map { bait ->
+            SholawatReaderRow.Bait(
+                key = bait.first().id,
+                hemistichs = bait.map { it.arabicText },
+                translations = bait.map { it.translation },
+            )
+        }
+
+    else ->
+        map { step ->
+            val hemistichs = step.baitHemistichs
+            if (hemistichs == null) {
+                SholawatReaderRow.Verse(key = step.id, step = step)
+            } else {
+                // One translation for the whole bait: NU writes it as a single sentence, and
+                // half a sentence under each column would guess where it divides.
                 SholawatReaderRow.Bait(
-                    key = bait.first().id,
-                    hemistichs = bait.map { it.arabicText },
-                    translations = bait.map { it.translation },
+                    key = step.id,
+                    hemistichs = hemistichs,
+                    translations = listOf(step.translation),
                 )
             }
-
-        else ->
-            map { step ->
-                val hemistichs = step.baitHemistichs
-                if (hemistichs == null) {
-                    SholawatReaderRow.Verse(key = step.id, step = step)
-                } else {
-                    // One translation for the whole bait: NU writes it as a single sentence, and
-                    // half a sentence under each column would guess where it divides.
-                    SholawatReaderRow.Bait(
-                        key = step.id,
-                        hemistichs = hemistichs,
-                        translations = listOf(step.translation),
-                    )
-                }
-            }
-    }
+        }
+}
 
 private const val BAYT_HEMISTICHS = 2

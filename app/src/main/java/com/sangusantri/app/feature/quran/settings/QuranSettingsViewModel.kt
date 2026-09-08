@@ -24,9 +24,7 @@ private const val AL_FATIHAH_SURAH_NUMBER = 1
  * already-open reader through the shared [QuranReaderSettingsRepository] Flow — there is no
  * separate Save action or uncommitted draft state. */
 @HiltViewModel
-class QuranSettingsViewModel
-@Inject
-constructor(
+class QuranSettingsViewModel @Inject constructor(
     private val settingsRepository: QuranReaderSettingsRepository,
     private val audioStore: QuranAudioStore,
     quranRepository: QuranRepository,

@@ -10,36 +10,33 @@ import org.junit.Test
 
 class ContentSyncMetadataTest {
     @Test
-    fun noPriorSyncMeansNullLastSyncTimestamp() =
-        runTest {
-            val metadata = ContentSyncMetadata(FakeAppMetadataDao())
+    fun noPriorSyncMeansNullLastSyncTimestamp() = runTest {
+        val metadata = ContentSyncMetadata(FakeAppMetadataDao())
 
-            assertNull(metadata.getLastSyncAtEpochMillis())
-        }
-
-    @Test
-    fun recordTerminalSyncPersistsStatusAndTimestamp() =
-        runTest {
-            val dao = FakeAppMetadataDao()
-            val metadata = ContentSyncMetadata(dao)
-
-            metadata.recordTerminalSync(ContentSyncStatus.FAILED)
-
-            assertEquals(ContentSyncStatus.FAILED.name, dao.getByKey(ContentSyncMetadata.KEY_LAST_SYNC)?.value)
-            assertNotNull(metadata.getLastSyncAtEpochMillis())
-        }
+        assertNull(metadata.getLastSyncAtEpochMillis())
+    }
 
     @Test
-    fun recordTerminalSyncOverwritesThePreviousStatus() =
-        runTest {
-            val dao = FakeAppMetadataDao()
-            val metadata = ContentSyncMetadata(dao)
+    fun recordTerminalSyncPersistsStatusAndTimestamp() = runTest {
+        val dao = FakeAppMetadataDao()
+        val metadata = ContentSyncMetadata(dao)
 
-            metadata.recordTerminalSync(ContentSyncStatus.PARTIAL)
-            metadata.recordTerminalSync(ContentSyncStatus.SUCCESS)
+        metadata.recordTerminalSync(ContentSyncStatus.FAILED)
 
-            assertEquals(ContentSyncStatus.SUCCESS.name, dao.getByKey(ContentSyncMetadata.KEY_LAST_SYNC)?.value)
-        }
+        assertEquals(ContentSyncStatus.FAILED.name, dao.getByKey(ContentSyncMetadata.KEY_LAST_SYNC)?.value)
+        assertNotNull(metadata.getLastSyncAtEpochMillis())
+    }
+
+    @Test
+    fun recordTerminalSyncOverwritesThePreviousStatus() = runTest {
+        val dao = FakeAppMetadataDao()
+        val metadata = ContentSyncMetadata(dao)
+
+        metadata.recordTerminalSync(ContentSyncStatus.PARTIAL)
+        metadata.recordTerminalSync(ContentSyncStatus.SUCCESS)
+
+        assertEquals(ContentSyncStatus.SUCCESS.name, dao.getByKey(ContentSyncMetadata.KEY_LAST_SYNC)?.value)
+    }
 
     private class FakeAppMetadataDao : AppMetadataDao {
         private val storage = mutableMapOf<String, AppMetadataEntity>()

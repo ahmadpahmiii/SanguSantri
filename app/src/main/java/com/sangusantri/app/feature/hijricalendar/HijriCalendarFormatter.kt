@@ -3,6 +3,8 @@ package com.sangusantri.app.feature.hijricalendar
 import com.sangusantri.app.domain.model.HijriCalendarDay
 import com.sangusantri.app.domain.model.HijriYearMonth
 import com.sangusantri.app.domain.model.Pasaran
+import com.sangusantri.app.feature.hijricalendar.HijriCalendarFormatter.formatWeekdayAndPasaran
+import com.sangusantri.app.feature.hijricalendar.HijriCalendarFormatter.toArabicIndicDigits
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -22,11 +24,10 @@ object HijriCalendarFormatter {
     private val GREGORIAN_MONTH_YEAR = DateTimeFormatter.ofPattern("MMMM yyyy", INDONESIAN)
     private const val DAYS_PER_WEEK = 7
 
-    fun toArabicIndicDigits(value: Int): String =
-        value
-            .toString()
-            .map { char -> if (char.isDigit()) ARABIC_INDIC_DIGITS[char - '0'] else char }
-            .joinToString(separator = "")
+    fun toArabicIndicDigits(value: Int): String = value
+        .toString()
+        .map { char -> if (char.isDigit()) ARABIC_INDIC_DIGITS[char - '0'] else char }
+        .joinToString(separator = "")
 
     /** [weekdayNames] must be Sunday-first ("Ahad", CAL-FR §7.1) — never `date.dayOfWeek`'s own
      * `getDisplayName`, which resolves Indonesian Sunday as "Minggu", not this app's "Ahad". */
@@ -85,8 +86,9 @@ object HijriCalendarFormatter {
     fun formatSelectedDateSubtitle(
         day: HijriCalendarDay,
         hijriMonthNames: List<String>,
-    ): String =
-        "${formatGregorianFull(
+    ): String = "${
+        formatGregorianFull(
             day.date,
-        )} · ${formatHijriFull(day.hijriYear, day.hijriMonth, day.hijriDay, hijriMonthNames)}"
+        )
+    } · ${formatHijriFull(day.hijriYear, day.hijriMonth, day.hijriDay, hijriMonthNames)}"
 }

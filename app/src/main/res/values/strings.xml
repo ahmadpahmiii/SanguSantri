@@ -76,7 +76,7 @@
   <string name="activity_section_tasbih_history">Riwayat Tasbih</string>
   <string name="activity_section_quran_history">Riwayat Membaca Al-Qur\'an</string>
   <string name="activity_see_all_action">Lihat semua</string>
-  <string name="activity_amaliyah_row_secondary">Versi %1$d · %2$s</string>
+  <string name="activity_amaliyah_row_secondary">%1$s</string>
   <string name="activity_row_trailing_time_and_duration">%1$s · %2$s</string>
   <string name="activity_quran_row_primary">Membaca Al-Qur\'an</string>
   <string name="activity_quran_row_secondary">%1$s • Ayat %2$d–%3$d</string>

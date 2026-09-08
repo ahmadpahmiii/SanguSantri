@@ -35,7 +35,9 @@ fun HijriCalendarMonthHeader(
 ) {
     val hijriMonthNames = stringArrayResource(R.array.hijri_month_names).toList()
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = SanguSantriSpacing.small),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = SanguSantriSpacing.small),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -280,12 +280,11 @@ private fun QuranHubTabRow(
     }
 }
 
-private fun QuranHubTab.labelRes(): Int =
-    when (this) {
-        QuranHubTab.SURAH -> R.string.quran_hub_tab_surah
-        QuranHubTab.JUZ -> R.string.quran_hub_tab_juz
-        QuranHubTab.BOOKMARK -> R.string.quran_hub_tab_bookmark
-    }
+private fun QuranHubTab.labelRes(): Int = when (this) {
+    QuranHubTab.SURAH -> R.string.quran_hub_tab_surah
+    QuranHubTab.JUZ -> R.string.quran_hub_tab_juz
+    QuranHubTab.BOOKMARK -> R.string.quran_hub_tab_bookmark
+}
 
 @Composable
 private fun QuranSurahSearchField(

@@ -27,38 +27,34 @@ import javax.inject.Inject
 /** Mirrors [ReaderSettingsRepositoryImpl]'s corruption-safe coerce-on-read pattern, in the shared
  * preferences DataStore but under a `quran_`-namespaced key set of its own. */
 @Suppress("TooManyFunctions")
-class QuranReaderSettingsRepositoryImpl
-@Inject
-constructor(
-    private val dataStore: DataStore<Preferences>,
-) : QuranReaderSettingsRepository {
-    override fun observe(): Flow<QuranReaderSettings> =
-        dataStore.data
-            .catch { error ->
-                if (error is IOException) emit(emptyPreferences()) else throw error
-            }.map { preferences ->
-                QuranReaderSettings(
-                    displayMode = preferences[DISPLAY_MODE]?.let(::parseDisplayMode) ?: QuranDisplayMode.ARAB_ONLY,
-                    arabicFont =
-                        preferences[ARABIC_FONT]?.let(::parseArabicFont) ?: QuranArabicFont.LPMQ_ISEP_MISBAH,
-                    arabicSizeSp =
-                        coerceArabicSize(preferences[ARABIC_SIZE_SP] ?: QuranReaderSettings.DEFAULT_ARABIC_SIZE_SP),
-                    arabicLineSpacingMultiplier =
-                        coerceArabicLineSpacing(
-                            preferences[ARABIC_LINE_SPACING] ?: QuranReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
-                        ),
-                    translationSizeSp =
-                        coerceTranslationSize(
-                            preferences[TRANSLATION_SIZE_SP] ?: QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP,
-                        ),
-                    brightnessOverride = preferences[BRIGHTNESS_OVERRIDE]?.let(::coerceBrightness),
-                    themeMode = preferences[THEME_MODE]?.let(::parseThemeMode),
-                    murottalSpeed =
-                        preferences[MUROTTAL_SPEED]?.let(::parseMurottalSpeed) ?: QuranMurottalSpeed.NORMAL,
-                    murottalContinueAcrossSurah = preferences[MUROTTAL_CONTINUE_ACROSS_SURAH] ?: true,
-                    murottalKeepScreenOn = preferences[MUROTTAL_KEEP_SCREEN_ON] ?: false,
-                )
-            }
+class QuranReaderSettingsRepositoryImpl @Inject constructor(private val dataStore: DataStore<Preferences>) :
+    QuranReaderSettingsRepository {
+    override fun observe(): Flow<QuranReaderSettings> = dataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }.map { preferences ->
+            QuranReaderSettings(
+                displayMode = preferences[DISPLAY_MODE]?.let(::parseDisplayMode) ?: QuranDisplayMode.ARAB_ONLY,
+                arabicFont =
+                    preferences[ARABIC_FONT]?.let(::parseArabicFont) ?: QuranArabicFont.LPMQ_ISEP_MISBAH,
+                arabicSizeSp =
+                    coerceArabicSize(preferences[ARABIC_SIZE_SP] ?: QuranReaderSettings.DEFAULT_ARABIC_SIZE_SP),
+                arabicLineSpacingMultiplier =
+                    coerceArabicLineSpacing(
+                        preferences[ARABIC_LINE_SPACING] ?: QuranReaderSettings.DEFAULT_ARABIC_LINE_SPACING,
+                    ),
+                translationSizeSp =
+                    coerceTranslationSize(
+                        preferences[TRANSLATION_SIZE_SP] ?: QuranReaderSettings.DEFAULT_TRANSLATION_SIZE_SP,
+                    ),
+                brightnessOverride = preferences[BRIGHTNESS_OVERRIDE]?.let(::coerceBrightness),
+                themeMode = preferences[THEME_MODE]?.let(::parseThemeMode),
+                murottalSpeed =
+                    preferences[MUROTTAL_SPEED]?.let(::parseMurottalSpeed) ?: QuranMurottalSpeed.NORMAL,
+                murottalContinueAcrossSurah = preferences[MUROTTAL_CONTINUE_ACROSS_SURAH] ?: true,
+                murottalKeepScreenOn = preferences[MUROTTAL_KEEP_SCREEN_ON] ?: false,
+            )
+        }
 
     override suspend fun setDisplayMode(mode: QuranDisplayMode) {
         dataStore.edit { it[DISPLAY_MODE] = mode.name }
@@ -109,8 +105,7 @@ constructor(
     private fun parseArabicFont(value: String): QuranArabicFont? =
         runCatching { QuranArabicFont.valueOf(value) }.getOrNull()
 
-    private fun parseThemeMode(value: String): AppThemeMode? =
-        runCatching { AppThemeMode.valueOf(value) }.getOrNull()
+    private fun parseThemeMode(value: String): AppThemeMode? = runCatching { AppThemeMode.valueOf(value) }.getOrNull()
 
     private companion object {
         val DISPLAY_MODE = stringPreferencesKey("quran_display_mode")

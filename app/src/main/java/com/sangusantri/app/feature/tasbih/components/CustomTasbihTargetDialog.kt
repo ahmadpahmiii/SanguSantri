@@ -72,16 +72,15 @@ fun CustomTasbihTargetDialog(
 }
 
 @Composable
-private fun customTargetErrorMessage(validation: CustomTargetValidation): String? =
-    when (validation) {
-        CustomTargetValidation.VALID -> null
-        CustomTargetValidation.EMPTY, CustomTargetValidation.ZERO, CustomTargetValidation.NEGATIVE ->
-            stringResource(R.string.tasbih_custom_target_error_must_be_positive)
+private fun customTargetErrorMessage(validation: CustomTargetValidation): String? = when (validation) {
+    CustomTargetValidation.VALID -> null
+    CustomTargetValidation.EMPTY, CustomTargetValidation.ZERO, CustomTargetValidation.NEGATIVE ->
+        stringResource(R.string.tasbih_custom_target_error_must_be_positive)
 
-        CustomTargetValidation.NON_NUMERIC -> stringResource(R.string.tasbih_custom_target_error_non_numeric)
-        CustomTargetValidation.TOO_LARGE ->
-            stringResource(R.string.tasbih_custom_target_error_too_large, TasbihTargetPreset.MAX_CUSTOM_TARGET)
-    }
+    CustomTargetValidation.NON_NUMERIC -> stringResource(R.string.tasbih_custom_target_error_non_numeric)
+    CustomTargetValidation.TOO_LARGE ->
+        stringResource(R.string.tasbih_custom_target_error_too_large, TasbihTargetPreset.MAX_CUSTOM_TARGET)
+}
 
 @Preview
 @Composable

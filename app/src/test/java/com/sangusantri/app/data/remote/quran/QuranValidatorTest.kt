@@ -1,5 +1,6 @@
 package com.sangusantri.app.data.remote.quran
 
+import com.sangusantri.app.core.validation.Validation
 import com.sangusantri.app.data.remote.quran.dto.QuranAyatDto
 import com.sangusantri.app.data.remote.quran.dto.QuranSurahDto
 import org.junit.Assert.assertTrue
@@ -8,7 +9,7 @@ import org.junit.Test
 class QuranValidatorTest {
     @Test
     fun validEnvelopePasses() {
-        assertTrue(QuranValidator.validateEnvelope(code = 200, res = "success") is QuranValidation.Valid)
+        assertTrue(QuranValidator.validateEnvelope(code = 200, res = "success") is Validation.Valid)
     }
 
     @Test
@@ -23,7 +24,7 @@ class QuranValidatorTest {
 
     @Test
     fun completeSurahListPasses() {
-        assertTrue(QuranValidator.validateSurahList(fullSurahList()) is QuranValidation.Valid)
+        assertTrue(QuranValidator.validateSurahList(fullSurahList()) is Validation.Valid)
     }
 
     @Test
@@ -57,7 +58,7 @@ class QuranValidatorTest {
 
         val result = QuranValidator.validateAyatForSurah(surah114, outOfOrderAyat)
 
-        assertTrue(result is QuranValidation.Valid)
+        assertTrue(result is Validation.Valid)
     }
 
     @Test
@@ -134,7 +135,7 @@ class QuranValidatorTest {
     fun globallyUniqueRemoteIdsPass() {
         val allAyats = (1L..10L).map { id -> ayat(surah = 1, ayat = id.toInt(), remoteId = id) }
 
-        assertTrue(QuranValidator.validateGlobalUniqueness(allAyats) is QuranValidation.Valid)
+        assertTrue(QuranValidator.validateGlobalUniqueness(allAyats) is Validation.Valid)
     }
 
     @Test
@@ -148,8 +149,8 @@ class QuranValidatorTest {
         assertInvalid(QuranValidator.validateGlobalUniqueness(allAyats))
     }
 
-    private fun assertInvalid(result: QuranValidation) {
-        assertTrue(result is QuranValidation.Invalid)
+    private fun assertInvalid(result: Validation) {
+        assertTrue(result is Validation.Invalid)
     }
 
     private fun fullSurahList(): List<QuranSurahDto> = (1..QuranValidator.EXPECTED_SURAH_COUNT).map { id -> surah(id) }

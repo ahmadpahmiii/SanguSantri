@@ -40,16 +40,13 @@ import javax.inject.Singleton
 object DatabaseModule {
     @Provides
     @Singleton
-    fun provideSanguSantriDatabase(
-        @ApplicationContext context: Context,
-    ): SanguSantriDatabase =
-        Room
-            .databaseBuilder(
-                context,
-                SanguSantriDatabase::class.java,
-                SanguSantriDatabase.DATABASE_NAME,
-            ).fallbackToDestructiveMigration(dropAllTables = true)
-            .build()
+    fun provideSanguSantriDatabase(@ApplicationContext context: Context): SanguSantriDatabase = Room
+        .databaseBuilder(
+            context,
+            SanguSantriDatabase::class.java,
+            SanguSantriDatabase.DATABASE_NAME,
+        ).fallbackToDestructiveMigration(dropAllTables = true)
+        .build()
 
     @Provides
     fun providePrayerTimesDao(database: SanguSantriDatabase): PrayerTimesDao = database.prayerTimesDao()

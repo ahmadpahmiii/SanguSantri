@@ -18,11 +18,7 @@ import javax.inject.Inject
  * existing reading-session data directly, resolving surah names the same way
  * `ObserveActivityOverviewUseCase` does. */
 @HiltViewModel
-class ActivityQuranHistoryViewModel
-@Inject
-constructor(
-    private val quranRepository: QuranRepository,
-) : ViewModel() {
+class ActivityQuranHistoryViewModel @Inject constructor(private val quranRepository: QuranRepository) : ViewModel() {
     private val filter = MutableStateFlow(TimeRangeFilter.ALL)
 
     val uiState: StateFlow<ActivityQuranHistoryUiState> =

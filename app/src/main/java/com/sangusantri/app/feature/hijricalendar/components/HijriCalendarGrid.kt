@@ -54,10 +54,7 @@ private data class HijriCalendarLocalizedNames(
 
 /** [palette] and [names] together, so [HijriCalendarDayCell]'s own parameter count stays under
  * detekt's threshold — every cell in a grid needs both, so bundling costs no flexibility. */
-private data class HijriCalendarCellStyle(
-    val palette: HijriCalendarPalette,
-    val names: HijriCalendarLocalizedNames,
-)
+private data class HijriCalendarCellStyle(val palette: HijriCalendarPalette, val names: HijriCalendarLocalizedNames)
 
 @Composable
 fun HijriCalendarGrid(
@@ -118,7 +115,9 @@ private fun HijriCalendarDayCell(
     val cellShape = RoundedCornerShape(CellCornerRadius)
     val decoration =
         when {
-            isSelected -> Modifier.background(palette.tealSoft).border(1.dp, palette.teal, cellShape)
+            isSelected -> Modifier
+                .background(palette.tealSoft)
+                .border(1.dp, palette.teal, cellShape)
             day.isToday -> Modifier.border(1.dp, MaterialTheme.colorScheme.outline, cellShape)
             else -> Modifier
         }
@@ -145,7 +144,9 @@ private fun HijriCalendarDayCell(
                 text = HijriCalendarFormatter.toArabicIndicDigits(day.hijriDay),
                 fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                modifier = Modifier.align(Alignment.End).padding(end = SanguSantriSpacing.extraSmall),
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = SanguSantriSpacing.extraSmall),
             )
             Text(
                 text = day.date.dayOfMonth.toString(),

@@ -10,11 +10,7 @@ import javax.inject.Inject
  * key-value table. Successful version writes happen inside [QuranSyncManager]'s corpus transaction;
  * this class owns only reads, legacy-baseline adoption, and the failure cooldown gate.
  */
-class QuranSyncMetadata
-@Inject
-constructor(
-    private val appMetadataDao: AppMetadataDao,
-) {
+class QuranSyncMetadata @Inject constructor(private val appMetadataDao: AppMetadataDao) {
     suspend fun getAppliedStableVersion(): Int? =
         appMetadataDao.getByKey(KEY_APPLIED_STABLE_VERSION)?.value?.toPositiveIntOrNull()
 

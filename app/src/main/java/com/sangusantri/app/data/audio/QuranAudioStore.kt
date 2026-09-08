@@ -24,11 +24,7 @@ import javax.inject.Singleton
  * name, which is what makes presence a reliable "playable offline" signal.
  */
 @Singleton
-class QuranAudioStore
-@Inject
-constructor(
-    @ApplicationContext context: Context,
-) {
+class QuranAudioStore @Inject constructor(@ApplicationContext context: Context) {
     private val directory = File(context.filesDir, AUDIO_DIRECTORY_NAME)
 
     private val _library = MutableStateFlow(QuranAudioLibrary())

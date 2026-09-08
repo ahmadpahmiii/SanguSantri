@@ -16,18 +16,13 @@ import kotlinx.coroutines.launch
 sealed interface NahwuQuizInstructionUiState {
     data object Loading : NahwuQuizInstructionUiState
 
-    data class Content(
-        val packageTitle: String,
-        val questionCount: Int,
-    ) : NahwuQuizInstructionUiState
+    data class Content(val packageTitle: String, val questionCount: Int) : NahwuQuizInstructionUiState
 
     data object NotFound : NahwuQuizInstructionUiState
 }
 
 @HiltViewModel(assistedFactory = NahwuQuizInstructionViewModel.Factory::class)
-class NahwuQuizInstructionViewModel
-@AssistedInject
-constructor(
+class NahwuQuizInstructionViewModel @AssistedInject constructor(
     @Assisted private val packageId: String,
     private val nahwuQuizRepository: NahwuQuizRepository,
 ) : ViewModel() {

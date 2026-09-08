@@ -7,12 +7,11 @@ import com.sangusantri.app.data.local.entity.ContentStepEntity
 fun ContentStepDto.toEntity(
     contentId: String,
     position: Int,
-): ContentStepEntity =
-    ContentStepEntity(
-        id = id,
-        contentId = contentId,
-        position = position,
-        arabicText = arabicText,
-        translation = translation,
-        repeatTarget = repeatTarget,
-    )
+): ContentStepEntity = ContentStepEntity(
+    id = id,
+    contentId = contentId,
+    position = position,
+    arabicText = arabicText,
+    translation = translation,
+    repeatTarget = repeatTarget,
+)

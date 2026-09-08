@@ -262,20 +262,18 @@ private fun FeatureBadge(text: String) {
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-private fun FlowRowScope.featureCell(fontScale: Float): Modifier =
-    Modifier
-        .weight(1f)
-        .widthIn(
-            min = SanguSantriDimensions.dashboardMainFeatureMinCellWidth * fontScale.coerceIn(1f, 2f),
-        )
+private fun FlowRowScope.featureCell(fontScale: Float): Modifier = Modifier
+    .weight(1f)
+    .widthIn(
+        min = SanguSantriDimensions.dashboardMainFeatureMinCellWidth * fontScale.coerceIn(1f, 2f),
+    )
 
 @OptIn(ExperimentalLayoutApi::class)
-private fun FlowRowScope.supportingCell(fontScale: Float): Modifier =
-    Modifier
-        .weight(1f)
-        .widthIn(
-            min = SanguSantriDimensions.dashboardSupportingMinCellWidth * fontScale.coerceIn(1f, 2f),
-        )
+private fun FlowRowScope.supportingCell(fontScale: Float): Modifier = Modifier
+    .weight(1f)
+    .widthIn(
+        min = SanguSantriDimensions.dashboardSupportingMinCellWidth * fontScale.coerceIn(1f, 2f),
+    )
 
 private data class MainFeatureSpec(
     val title: String,

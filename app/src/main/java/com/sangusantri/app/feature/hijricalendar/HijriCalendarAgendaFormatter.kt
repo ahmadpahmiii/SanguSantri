@@ -27,10 +27,9 @@ object HijriCalendarAgendaFormatter {
     fun formatAgendaBadgeMonth(date: LocalDate): String =
         date.month.getDisplayName(TextStyle.SHORT, INDONESIAN).replaceFirstChar { it.uppercase(INDONESIAN) }
 
-    fun formatAgendaBadgeDay(event: HijriCalendarEvent): String =
-        if (event.isMultiDay) {
-            "${event.startDate.dayOfMonth}–${event.endDate.dayOfMonth}"
-        } else {
-            "${event.startDate.dayOfMonth}"
-        }
+    fun formatAgendaBadgeDay(event: HijriCalendarEvent): String = if (event.isMultiDay) {
+        "${event.startDate.dayOfMonth}–${event.endDate.dayOfMonth}"
+    } else {
+        "${event.startDate.dayOfMonth}"
+    }
 }

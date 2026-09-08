@@ -6,47 +6,27 @@ import com.sangusantri.app.domain.model.QuranArabicFont
 /** User-initiated intents the Full Reader sends to [ReaderViewModel] (unidirectional data flow). */
 sealed interface ReaderUiAction {
     /** The app-wide theme toggle now lives in this reader's top bar too (revamp handoff §7). */
-    data class SetThemeMode(
-        val mode: AppThemeMode,
-    ) : ReaderUiAction
+    data class SetThemeMode(val mode: AppThemeMode) : ReaderUiAction
 
     /** Arabic typeface — shared with the Quran reader via
      * [com.sangusantri.app.domain.repository.QuranReaderSettingsRepository], the same
      * app-wide-setting-in-a-Quran-namespaced-store pattern [SetThemeMode] already uses. */
-    data class SetArabicFont(
-        val font: QuranArabicFont,
-    ) : ReaderUiAction
+    data class SetArabicFont(val font: QuranArabicFont) : ReaderUiAction
 
-    data class ScrollPositionChanged(
-        val itemIndex: Int,
-        val itemOffset: Int,
-    ) : ReaderUiAction
+    data class ScrollPositionChanged(val itemIndex: Int, val itemOffset: Int) : ReaderUiAction
 
     /** Bypasses the debounce — dispatched on `Lifecycle.Event.ON_STOP` so exit progress isn't lost. */
-    data class PersistPositionNow(
-        val itemIndex: Int,
-        val itemOffset: Int,
-    ) : ReaderUiAction
+    data class PersistPositionNow(val itemIndex: Int, val itemOffset: Int) : ReaderUiAction
 
-    data class SetArabicFontSize(
-        val sp: Int,
-    ) : ReaderUiAction
+    data class SetArabicFontSize(val sp: Int) : ReaderUiAction
 
-    data class SetTranslationFontSize(
-        val sp: Int,
-    ) : ReaderUiAction
+    data class SetTranslationFontSize(val sp: Int) : ReaderUiAction
 
-    data class SetArabicLineSpacing(
-        val multiplier: Float,
-    ) : ReaderUiAction
+    data class SetArabicLineSpacing(val multiplier: Float) : ReaderUiAction
 
-    data class SetTranslationLineSpacing(
-        val multiplier: Float,
-    ) : ReaderUiAction
+    data class SetTranslationLineSpacing(val multiplier: Float) : ReaderUiAction
 
-    data class SetShowTranslation(
-        val show: Boolean,
-    ) : ReaderUiAction
+    data class SetShowTranslation(val show: Boolean) : ReaderUiAction
 
     data object Retry : ReaderUiAction
 
@@ -54,7 +34,5 @@ sealed interface ReaderUiAction {
     data object SwitchToGuided : ReaderUiAction
 
     /** The repetition shortcut (FR-018) — switches to the Guided Reader at this exact step. */
-    data class SwitchToGuidedAtStep(
-        val stepId: String,
-    ) : ReaderUiAction
+    data class SwitchToGuidedAtStep(val stepId: String) : ReaderUiAction
 }

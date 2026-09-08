@@ -1,6 +1,7 @@
 package com.sangusantri.app.feature.sholawat
 
-import com.sangusantri.app.data.sync.ContentDetailSyncManager
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.core.result.Resource
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.Content
 import com.sangusantri.app.domain.model.ContentDetail
@@ -16,8 +17,6 @@ import com.sangusantri.app.domain.repository.ContentRepository
 import com.sangusantri.app.domain.repository.QuranReaderSettingsRepository
 import com.sangusantri.app.domain.repository.ReaderSettingsRepository
 import com.sangusantri.app.feature.home.MainDispatcherRule
-import com.sangusantri.app.testing.stubContentApiService
-import com.sangusantri.app.testing.stubContentImporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,55 +35,50 @@ class SholawatReaderViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun uiStateStartsAsLoadingBeforeRepositoryResolves() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(FakeReaderContentRepository(detail))
+    fun uiStateStartsAsLoadingBeforeRepositoryResolves() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(FakeReaderContentRepository(detail))
 
-            assertEquals(SholawatReaderUiState.Loading, viewModel.uiState.value)
-        }
-
-    @Test
-    fun uiStateBecomesContentAvailableWithSteps() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(FakeReaderContentRepository(detail))
-
-            val collected = mutableListOf<SholawatReaderUiState>()
-            val job = launch { viewModel.uiState.toList(collected) }
-            advanceUntilIdle()
-            job.cancel()
-
-            assertEquals(
-                SholawatReaderUiState.ContentAvailable(
-                    title = detail.content.title,
-                    steps = detail.steps,
-                    layout = detail.content.layout,
-                    settings = ReaderSettings(),
-                ),
-                collected.last(),
-            )
-        }
+        assertEquals(SholawatReaderUiState.Loading, viewModel.uiState.value)
+    }
 
     @Test
-    fun uiStateBecomesUnavailableWhenContentIsMissing() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = createViewModel(FakeReaderContentRepository(null))
+    fun uiStateBecomesContentAvailableWithSteps() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(FakeReaderContentRepository(detail))
 
-            val collected = mutableListOf<SholawatReaderUiState>()
-            val job = launch { viewModel.uiState.toList(collected) }
-            advanceUntilIdle()
-            job.cancel()
+        val collected = mutableListOf<SholawatReaderUiState>()
+        val job = launch { viewModel.uiState.toList(collected) }
+        advanceUntilIdle()
+        job.cancel()
 
-            assertEquals(SholawatReaderUiState.Unavailable, collected.last())
-        }
-
-    private fun createViewModel(contentRepository: ContentRepository) =
-        SholawatReaderViewModel(
-            contentId = "sholawat-nariyah",
-            contentRepository = contentRepository,
-            quranReaderSettingsRepository = FakeQuranReaderSettingsRepository(),
-            readerSettingsRepository = FakeReaderSettingsRepository(),
-            contentDetailSyncManager = FakeContentDetailSyncManager(),
+        assertEquals(
+            SholawatReaderUiState.ContentAvailable(
+                title = detail.content.title,
+                steps = detail.steps,
+                layout = detail.content.layout,
+                settings = ReaderSettings(),
+            ),
+            collected.last(),
         )
+    }
+
+    @Test
+    fun uiStateBecomesUnavailableWhenContentIsMissing() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(FakeReaderContentRepository(null))
+
+        val collected = mutableListOf<SholawatReaderUiState>()
+        val job = launch { viewModel.uiState.toList(collected) }
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(SholawatReaderUiState.Unavailable, collected.last())
+    }
+
+    private fun createViewModel(contentRepository: ContentRepository) = SholawatReaderViewModel(
+        contentId = "sholawat-nariyah",
+        contentRepository = contentRepository,
+        quranReaderSettingsRepository = FakeQuranReaderSettingsRepository(),
+        readerSettingsRepository = FakeReaderSettingsRepository(),
+    )
 
     private companion object {
         val steps =
@@ -118,16 +112,19 @@ class SholawatReaderViewModelTest {
     }
 }
 
-private class FakeReaderContentRepository(
-    private val detail: ContentDetail?,
-) : ContentRepository {
-    override fun observeActiveContent(): Flow<List<Content>> = flowOf(emptyList())
+private class FakeReaderContentRepository(private val detail: ContentDetail?) : ContentRepository {
+    override fun observeActiveContent(): Flow<Resource<List<Content>>> = flowOf(Resource.Success(emptyList()))
 
     override fun observeContentIdsMatchingStepText(query: String): Flow<List<String>> = flowOf(emptyList())
 
     override suspend fun getContentById(contentId: String): Content? = detail?.content
 
-    override suspend fun getContentDetail(contentId: String): ContentDetail? = detail
+    override suspend fun getCachedContentDetail(contentId: String): ContentDetail? = detail
+
+    override fun observeContentDetail(contentId: String): Flow<Resource<ContentDetail>> =
+        detail?.let { flowOf(Resource.Success(it)) } ?: flowOf(Resource.Error(ApiResult.NetworkError("offline")))
+
+    override suspend fun refreshCatalogue(): ApiResult<Unit> = ApiResult.Success(Unit)
 }
 
 private class FakeReaderSettingsRepository : ReaderSettingsRepository {
@@ -195,15 +192,4 @@ private class FakeQuranReaderSettingsRepository : QuranReaderSettingsRepository 
     override suspend fun setMurottalContinueAcrossSurah(enabled: Boolean) = Unit
 
     override suspend fun setMurottalKeepScreenOn(enabled: Boolean) = Unit
-}
-
-private class FakeContentDetailSyncManager :
-    ContentDetailSyncManager(
-        api = stubContentApiService(),
-        contentImporter = stubContentImporter(),
-    ) {
-    override suspend fun refresh(
-        contentId: String,
-        isSholawat: Boolean,
-    ): Boolean = false
 }

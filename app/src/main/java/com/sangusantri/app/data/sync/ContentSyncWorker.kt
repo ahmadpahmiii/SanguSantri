@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.sangusantri.app.core.network.ApiResult
+import com.sangusantri.app.domain.repository.ContentRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -18,35 +20,29 @@ import dagger.assisted.AssistedInject
 class ContentSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val contentSyncManager: ContentSyncManager,
+    private val contentRepository: ContentRepository,
     private val syncMetadata: ContentSyncMetadata,
 ) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result =
-        when (val result = contentSyncManager.sync()) {
-            is SyncResult.Completed -> {
-                syncMetadata.recordTerminalSync(
-                    if (result.rejectedVersionIds.isEmpty()) {
-                        ContentSyncStatus.SUCCESS
-                    } else {
-                        ContentSyncStatus.PARTIAL
-                    },
-                )
-                Result.success()
-            }
+    /**
+     * `Result.success()` on an exhausted retry is deliberate, not a swallowed error: a failed
+     * catalogue refresh is not a failed *job*. Room still holds a readable catalogue, the status is
+     * recorded for the next scheduling decision, and reporting failure would only make WorkManager
+     * back off a job whose own 24-hour gate already governs when it next runs.
+     */
+    override suspend fun doWork(): Result = when (val result = contentRepository.refreshCatalogue()) {
+        is ApiResult.Success -> {
+            syncMetadata.recordTerminalSync(ContentSyncStatus.SUCCESS)
+            Result.success()
+        }
 
-            is SyncResult.RetryableFailure ->
-                if (runAttemptCount < MAX_ATTEMPTS - 1) {
-                    Result.retry()
-                } else {
-                    syncMetadata.recordTerminalSync(ContentSyncStatus.FAILED)
-                    Result.success()
-                }
-
-            is SyncResult.PermanentFailure -> {
+        is ApiResult.Failure ->
+            if (result.isRetryable && runAttemptCount < MAX_ATTEMPTS - 1) {
+                Result.retry()
+            } else {
                 syncMetadata.recordTerminalSync(ContentSyncStatus.FAILED)
                 Result.success()
             }
-        }
+    }
 
     private companion object {
         const val MAX_ATTEMPTS = 3

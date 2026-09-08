@@ -21,12 +21,7 @@ data class QuranBookmarkRow(
 )
 
 /** The prominent continue-reading action shown when a last position exists (QUR-FR-005/011). */
-data class QuranContinueReading(
-    val surahNumber: Int,
-    val surahName: String,
-    val ayatNumber: Int,
-    val page: Int,
-)
+data class QuranContinueReading(val surahNumber: Int, val surahName: String, val ayatNumber: Int, val page: Int)
 
 /** A surah row's audio state (`4d`). The trailing control and the row subtitle must both say
  * *audio* — a bare download icon reads as "download the surah text", which is already stored. */

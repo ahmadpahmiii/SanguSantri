@@ -116,10 +116,12 @@ private fun LegendItem(
     label: String,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Box(modifier = Modifier
-            .size(6.dp)
-            .clip(RoundedCornerShape(percent = 50))
-            .background(color))
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(RoundedCornerShape(percent = 50))
+                .background(color),
+        )
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
@@ -199,14 +201,17 @@ private fun AgendaStatusTag(
                     palette.coral,
                     palette.coralSoft,
                 )
+
             HijriEventKind.RELIGIOUS_OBSERVANCE ->
                 Triple(R.string.hijri_calendar_status_religious_observance, palette.coral, palette.coralSoft)
+
             HijriEventKind.NATIONAL_HOLIDAY ->
                 Triple(
                     R.string.hijri_calendar_status_national_holiday,
                     palette.coral,
                     palette.coralSoft,
                 )
+
             HijriEventKind.COLLECTIVE_LEAVE ->
                 Triple(
                     R.string.hijri_calendar_status_collective_leave,

@@ -115,9 +115,11 @@ private fun HijriCalendarDayCell(
     val cellShape = RoundedCornerShape(CellCornerRadius)
     val decoration =
         when {
-            isSelected -> Modifier
-                .background(palette.tealSoft)
-                .border(1.dp, palette.teal, cellShape)
+            isSelected ->
+                Modifier
+                    .background(palette.tealSoft)
+                    .border(1.dp, palette.teal, cellShape)
+
             day.isToday -> Modifier.border(1.dp, MaterialTheme.colorScheme.outline, cellShape)
             else -> Modifier
         }

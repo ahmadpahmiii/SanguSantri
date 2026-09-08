@@ -8,6 +8,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.sangusantri.app.core.telemetry.LoggingInitializer
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapOutcome
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapper
 import com.sangusantri.app.data.prayeralarm.PrayerAlarmScheduler
@@ -20,7 +21,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -43,17 +43,13 @@ class SanguSantriApplication :
     @Inject
     lateinit var hiltWorkerFactory: HiltWorkerFactory
 
-    override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder().setWorkerFactory(hiltWorkerFactory).build()
-
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject
+    lateinit var loggingInitializer: LoggingInitializer
 
     override fun onCreate() {
         super.onCreate()
 
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
-        }
+        loggingInitializer.init()
         // Cheap and synchronous (creating an already-existing channel is a no-op) — safe to call
         // on every launch, unlike the network-touching work below.
         ReminderNotificationChannel.ensureCreated(this)
@@ -86,6 +82,11 @@ class SanguSantriApplication :
                 .onFailure { Log.w(TAG, "prayer alarm rearm failed", it) }
         }
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(hiltWorkerFactory).build()
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Catalog item images (`Content.imageUrl`): a network-capable Coil `ImageLoader`
      * is opt-in per Coil 3 — without this, [coil3.compose.AsyncImage] can only load local models. */

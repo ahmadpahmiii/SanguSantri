@@ -13,9 +13,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.Cache
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.File
@@ -49,6 +49,7 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         chuckerInterceptor: ChuckerInterceptor,
+        @DebugInterceptor debugInterceptors: Set<@JvmSuppressWildcards Interceptor>,
         cache: Cache,
     ): OkHttpClient = OkHttpClient
         .Builder()
@@ -65,13 +66,7 @@ object NetworkModule {
         .addInterceptor(ResponseSizeLimitInterceptor())
         .addInterceptor(chuckerInterceptor)
         .apply {
-            if (BuildConfig.DEBUG) {
-                addInterceptor(
-                    HttpLoggingInterceptor().apply {
-                        level = HttpLoggingInterceptor.Level.BODY
-                    },
-                )
-            }
+            debugInterceptors.forEach { addInterceptor(it) }
         }.build()
 
     @Provides

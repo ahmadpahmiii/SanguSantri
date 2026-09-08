@@ -32,6 +32,7 @@ fun HijriCalendarEventDetailDialog(
                 stringResource(
                     R.string.hijri_calendar_calculation_status_umm_al_qura,
                 )
+
             HijriCalculationStatus.OFFICIAL_CONFIRMED ->
                 stringResource(
                     R.string.hijri_calendar_calculation_status_official_confirmed,

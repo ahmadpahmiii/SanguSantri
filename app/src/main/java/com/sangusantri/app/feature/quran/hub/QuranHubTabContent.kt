@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sangusantri.app.R
@@ -58,8 +57,10 @@ fun QuranHubTabContent(
                 uiState = uiState,
                 actions = actions,
             )
+
         QuranHubTab.JUZ ->
             QuranJuzList(rows = uiState.juzRows, isLoading = uiState.isLoading, onAyatSelected = actions.onAyatSelected)
+
         QuranHubTab.BOOKMARK -> QuranBookmarkList(rows = uiState.bookmarkRows, onAyatSelected = actions.onAyatSelected)
     }
 }

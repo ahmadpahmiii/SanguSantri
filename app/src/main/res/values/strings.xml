@@ -456,6 +456,9 @@
   <string name="beranda_greeting_salutation">Assalamualaikum</string>
   <string name="beranda_search_content_description">Cari amaliyah</string>
   <string name="beranda_explore_action">Jelajahi</string>
+  <string name="beranda_content_unavailable_title">Konten belum tersedia</string>
+  <string name="beranda_content_unavailable_body">Amaliyah dimuat dari internet saat pertama kali dibuka. Sambungkan perangkat ke internet, lalu coba lagi.</string>
+  <string name="beranda_content_unavailable_action">Coba lagi</string>
   <string name="beranda_menu_quran">Al-Qur\'an</string>
   <string name="beranda_menu_sholawat">Sholawat</string>
   <string name="beranda_menu_kalender">Kalender</string>

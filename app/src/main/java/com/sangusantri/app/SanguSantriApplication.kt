@@ -8,8 +8,6 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import com.sangusantri.app.data.content.ContentImportOutcome
-import com.sangusantri.app.data.local.content.BundledContentBootstrapper
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapOutcome
 import com.sangusantri.app.data.local.nahwuquiz.NahwuQuizBootstrapper
 import com.sangusantri.app.data.prayeralarm.PrayerAlarmScheduler
@@ -30,9 +28,6 @@ class SanguSantriApplication :
     Application(),
     Configuration.Provider,
     SingletonImageLoader.Factory {
-    @Inject
-    lateinit var bundledContentBootstrapper: BundledContentBootstrapper
-
     @Inject
     lateinit var nahwuQuizBootstrapper: NahwuQuizBootstrapper
 
@@ -66,18 +61,15 @@ class SanguSantriApplication :
         // Idempotent and non-blocking (PRD 8.1): Beranda observes Room reactively and renders as
         // soon as rows exist, so neither bootstrap nor sync scheduling may gate the first frame.
         applicationScope.launch {
-            runCatching { bundledContentBootstrapper.bootstrap() }
-                .onSuccess { outcomes -> outcomes.forEach(::logBootstrapOutcome) }
-                .onFailure { Log.w(TAG, "bundled content bootstrap failed", it) }
-
-            // Independent of the amaliyah content bootstrap above — Nahwu Quiz (`0.0.5`) has its
-            // own bundled bank, no remote sync, and never gates on the other pipeline's outcome.
+            // Nahwu Quiz (`0.0.5`) is the only bundled-asset pipeline left — amaliyah content
+            // comes exclusively from the CMS now, and Beranda's own resume sync is what fetches
+            // it on the very first launch.
             runCatching { nahwuQuizBootstrapper.bootstrapIfNeeded() }
                 .onSuccess { outcome -> logNahwuQuizBootstrapOutcome(outcome) }
                 .onFailure { Log.w(TAG, "Nahwu Quiz bootstrap failed", it) }
 
-            // Scheduling still proceeds even if bootstrap failed above — remote sync is
-            // independent of whether the local baseline import succeeded this launch.
+            // The background window. Beranda also syncs on every resume, so this is the
+            // catch-up path for an install that is opened rarely, not the primary one.
             runCatching { contentSyncScheduler.enqueueIfStale() }
                 .onFailure { Log.w(TAG, "content sync scheduling failed", it) }
 
@@ -95,38 +87,13 @@ class SanguSantriApplication :
         }
     }
 
-    /** Catalog item images (ADR 0015 — `Content.imageUrl`): a network-capable Coil `ImageLoader`
+    /** Catalog item images (`Content.imageUrl`): a network-capable Coil `ImageLoader`
      * is opt-in per Coil 3 — without this, [coil3.compose.AsyncImage] can only load local models. */
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader
             .Builder(context)
             .components { add(OkHttpNetworkFetcherFactory()) }
             .build()
-
-    private fun logBootstrapOutcome(outcome: ContentImportOutcome) {
-        when (outcome) {
-            is ContentImportOutcome.Imported -> Log.d(TAG, "Bundled content: imported ${outcome.contentId}")
-            is ContentImportOutcome.Replaced ->
-                Log.d(
-                    TAG,
-                    "Bundled content: replaced ${outcome.contentId} v${outcome.oldVersion} " +
-                        "with v${outcome.newVersion}",
-                )
-
-            is ContentImportOutcome.SkippedUpToDate ->
-                Log.d(TAG, "Bundled content: already up to date ${outcome.contentId}")
-
-            is ContentImportOutcome.SkippedOlderVersion ->
-                Log.d(
-                    TAG,
-                    "Bundled content: skipped older catalog entry for ${outcome.contentId}, " +
-                        "local is v${outcome.localVersion}",
-                )
-
-            is ContentImportOutcome.Rejected ->
-                Log.w(TAG, "Bundled content import failed for ${outcome.contentId}: ${outcome.reason}")
-        }
-    }
 
     private fun logNahwuQuizBootstrapOutcome(outcome: NahwuQuizBootstrapOutcome) {
         when (outcome) {

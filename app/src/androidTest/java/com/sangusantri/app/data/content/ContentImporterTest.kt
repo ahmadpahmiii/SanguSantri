@@ -3,8 +3,8 @@ package com.sangusantri.app.data.content
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.sangusantri.app.data.content.dto.ContentCatalogItemDto
-import com.sangusantri.app.data.content.dto.ContentFileDto
+import com.sangusantri.app.data.content.dto.ContentDetailDto
+import com.sangusantri.app.data.content.dto.ContentListItemDto
 import com.sangusantri.app.data.content.dto.ContentStepDto
 import com.sangusantri.app.data.local.database.SanguSantriDatabase
 import com.sangusantri.app.data.local.entity.ContentEntity
@@ -15,6 +15,7 @@ import com.sangusantri.app.data.local.entity.StepProgressEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -22,9 +23,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Covers [ContentImporter]'s high-risk behaviours (ADR 0015): fresh import, idempotency,
- * never-downgrade, id/version identity-mismatch rejection, structural-validation rejection, atomic
- * database-failure rollback, atomic version replacement, and the new, more generous progress
+ * Covers [ContentImporter]'s high-risk behaviours: a list entry making an item visible without
+ * steps, a detail filling them in, unchanged-detail idempotency, structural-validation rejection,
+ * atomic database-failure rollback, atomic step replacement, and the generous progress
  * preservation (surviving step ids keep their progress; only genuinely removed steps are orphaned)
  * — all against a real in-memory Room database, since transaction/rollback behaviour cannot be
  * proven with mocked DAOs.
@@ -51,78 +52,71 @@ class ContentImporterTest {
     }
 
     @Test
-    fun firstImportIntoEmptyRoomInsertsTheItem() =
+    fun listItemMakesTheItemVisibleWithoutSteps() =
         runTest {
-            val outcome = importer.importContentFile(item(version = 1), file(version = 1))
+            val outcome = importer.importListItem(listItem())
+
+            assertTrue(outcome is ContentImportOutcome.Imported)
+            assertTrue(database.contentDao().getById("sample")!!.isActive)
+            assertEquals(0, database.contentStepDao().countByContentId("sample"))
+        }
+
+    @Test
+    fun detailFillsInTheStepsOfAnItemTheListAlreadyCreated() =
+        runTest {
+            importer.importListItem(listItem())
+
+            val outcome = importer.importRemoteDetail(detail())
+
+            assertTrue(outcome is ContentImportOutcome.Replaced)
+            assertEquals(1, database.contentStepDao().countByContentId("sample"))
+        }
+
+    @Test
+    fun detailAloneImportsAnItemTheListWasNeverSeenFor() =
+        runTest {
+            val outcome = importer.importRemoteDetail(detail())
 
             assertTrue(outcome is ContentImportOutcome.Imported)
             assertEquals(1, database.contentStepDao().countByContentId("sample"))
         }
 
     @Test
-    fun reimportingTheSameVersionIsSkippedAsUpToDate() =
+    fun reimportingAnUnchangedDetailIsSkippedAsUpToDate() =
         runTest {
-            importer.importContentFile(item(version = 1), file(version = 1))
+            importer.importRemoteDetail(detail())
 
-            val second = importer.importContentFile(item(version = 1), file(version = 1))
+            val second = importer.importRemoteDetail(detail())
 
             assertTrue(second is ContentImportOutcome.SkippedUpToDate)
             assertEquals(1, database.contentStepDao().countByContentId("sample"))
         }
 
     @Test
-    fun lowerVersionNeverDowngradesRoom() =
+    fun unchangedDetailStillRefreshesMetadata() =
         runTest {
-            importer.importContentFile(item(version = 2), file(version = 2))
+            importer.importRemoteDetail(detail())
 
-            val outcome = importer.importContentFile(item(version = 1), file(version = 1))
+            importer.importRemoteDetail(detail(title = "Corrected Title"))
 
-            assertTrue(outcome is ContentImportOutcome.SkippedOlderVersion)
-            assertEquals(2, database.contentDao().getById("sample")?.version)
+            assertEquals("Corrected Title", database.contentDao().getById("sample")?.title)
         }
 
     @Test
-    fun sameVersionWithDifferentContentIsSkippedAndRoomKeepsTheOriginal() =
+    fun listImportNeverOverwritesStepsOrSourceOfAnItemTheDetailAlreadyFilled() =
         runTest {
-            importer.importContentFile(item(version = 1, title = "Original Title"), file(version = 1))
+            importer.importRemoteDetail(detail())
 
-            // Same id and version, but different bytes — ADR 0015 deliberately has no checksum, so
-            // version equality alone is authoritative and this is treated as up to date, not a
-            // conflict.
-            val outcome = importer.importContentFile(item(version = 1, title = "Different Title"), file(version = 1))
+            importer.importListItem(listItem(title = "List Title"))
 
-            assertTrue(outcome is ContentImportOutcome.SkippedUpToDate)
-            assertEquals("Original Title", database.contentDao().getById("sample")?.title)
-        }
-
-    @Test
-    fun contentFileIdMismatchIsRejectedAndWritesNothing() =
-        runTest {
-            val mismatchedFile = file(version = 1).copy(id = "different-id")
-
-            val outcome = importer.importContentFile(item(version = 1), mismatchedFile)
-
-            assertTrue(outcome is ContentImportOutcome.Rejected)
-            assertNull(database.contentDao().getById("sample"))
-        }
-
-    @Test
-    fun contentFileVersionMismatchIsRejectedAndWritesNothing() =
-        runTest {
-            val mismatchedFile = file(version = 2)
-
-            val outcome = importer.importContentFile(item(version = 1), mismatchedFile)
-
-            assertTrue(outcome is ContentImportOutcome.Rejected)
-            assertNull(database.contentDao().getById("sample"))
+            assertEquals(1, database.contentStepDao().countByContentId("sample"))
+            assertEquals("NON-PRODUCTION FIXTURE", database.contentDao().getById("sample")?.sourceName)
         }
 
     @Test
     fun invalidStructureRejectsTheItemAndWritesNothing() =
         runTest {
-            val emptySteps = file(version = 1).copy(steps = emptyList())
-
-            val outcome = importer.importContentFile(item(version = 1), emptySteps)
+            val outcome = importer.importRemoteDetail(detail().copy(steps = emptyList()))
 
             assertTrue(outcome is ContentImportOutcome.Rejected)
             assertNull(database.contentDao().getById("sample"))
@@ -150,7 +144,7 @@ class ContentImporterTest {
             database.contentStepDao().insertAll(
                 listOf(
                     ContentStepEntity(
-                        id = "sample-v1-step-01",
+                        id = "sample-step-01",
                         contentId = "other",
                         position = 1,
                         arabicText = "[FIXTURE-AR]",
@@ -160,19 +154,18 @@ class ContentImporterTest {
                 ),
             )
 
-            val outcome = importer.importContentFile(item(version = 1), file(version = 1))
+            val outcome = importer.importRemoteDetail(detail())
 
             assertTrue(outcome is ContentImportOutcome.Rejected)
             assertNull(database.contentDao().getById("sample"))
         }
 
     @Test
-    fun higherVersionReplacesTheActiveItemAtomically() =
+    fun changedStepsReplaceTheActiveItemAtomically() =
         runTest {
-            importer.importContentFile(item(version = 1), file(version = 1))
+            importer.importRemoteDetail(detail())
 
-            val outcome =
-                importer.importContentFile(item(version = 2, title = "Updated Title"), file(version = 2))
+            val outcome = importer.importRemoteDetail(detail(title = "Updated Title", stepId = "sample-step-02"))
 
             assertTrue(outcome is ContentImportOutcome.Replaced)
             assertEquals(1, database.contentStepDao().countByContentId("sample"))
@@ -182,10 +175,10 @@ class ContentImporterTest {
     @Test
     fun replacingWithADifferentStepIdOrphansItsProgressAndResetsReadingPosition() =
         runTest {
-            importer.importContentFile(item(version = 1), file(version = 1))
-            seedProgress(stepId = "sample-v1-step-01")
+            importer.importRemoteDetail(detail())
+            seedProgress(stepId = "sample-step-01")
 
-            importer.importContentFile(item(version = 2), file(version = 2))
+            importer.importRemoteDetail(detail(stepId = "sample-step-02"))
 
             assertNull(database.readingPositionDao().getByContentId("sample"))
             assertNull(database.guidedReadingSessionDao().getByContentId("sample"))
@@ -195,14 +188,33 @@ class ContentImporterTest {
     @Test
     fun replacingButReusingAStepIdPreservesItsProgress() =
         runTest {
-            importer.importContentFile(item(version = 1), file(version = 1, stepId = "shared-step"))
+            importer.importRemoteDetail(detail(stepId = "shared-step"))
             seedProgress(stepId = "shared-step")
 
-            importer.importContentFile(item(version = 2), file(version = 2, stepId = "shared-step"))
+            importer.importRemoteDetail(detail(stepId = "shared-step", translation = "[FIXTURE] corrected"))
 
             assertNull(database.readingPositionDao().getByContentId("sample"))
             assertEquals("shared-step", database.guidedReadingSessionDao().getByContentId("sample")?.currentStepId)
             assertEquals(1, database.stepProgressDao().getByContentId("sample").size)
+        }
+
+    @Test
+    fun deactivateAbsentHidesItemsTheCmsStoppedPublishing() =
+        runTest {
+            importer.importRemoteDetail(detail())
+
+            importer.deactivateAbsent(listOf("something-else"))
+
+            assertFalse(database.contentDao().getById("sample")!!.isActive)
+        }
+
+    @Test
+    fun deactivateAbsentRefusesAnEmptyPublishedSet() =
+        runTest {
+            importer.importRemoteDetail(detail())
+
+            assertEquals(0, importer.deactivateAbsent(emptyList()))
+            assertTrue(database.contentDao().getById("sample")!!.isActive)
         }
 
     private suspend fun seedProgress(stepId: String) {
@@ -211,33 +223,38 @@ class ContentImporterTest {
         database.stepProgressDao().upsert(StepProgressEntity("sample", stepId, 2, 1_000L))
     }
 
-    private fun item(
-        version: Int,
+    private fun listItem(title: String = "Sample") =
+        ContentListItemDto(
+            id = "sample",
+            title = title,
+            description = "[FIXTURE] Sample",
+            imageUrl = null,
+            category = "Amaliyah",
+            order = 1,
+        )
+
+    private fun detail(
         title: String = "Sample",
-    ) = ContentCatalogItemDto(
+        stepId: String = "sample-step-01",
+        translation: String = "[FIXTURE]",
+    ) = ContentDetailDto(
+        schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
         id = "sample",
         title = title,
         description = "[FIXTURE] Sample",
         imageUrl = null,
-        category = "Tahlil dan Doa",
-        version = version,
-        contentUrl = "/content/packages/sample-v$version.json",
+        category = "Amaliyah",
         order = 1,
-        isActive = true,
-    )
-
-    private fun file(
-        version: Int,
-        stepId: String = "sample-v$version-step-01",
-    ) = ContentFileDto(
-        schemaVersion = ContentValidator.SUPPORTED_SCHEMA_VERSION,
-        id = "sample",
-        version = version,
         sourceName = "NON-PRODUCTION FIXTURE",
         sourceUrl = "https://example.invalid/fixture",
         steps =
             listOf(
-                ContentStepDto(id = stepId, arabicText = "[FIXTURE-AR]", translation = "[FIXTURE]", repeatTarget = 1),
+                ContentStepDto(
+                    id = stepId,
+                    arabicText = "[FIXTURE-AR]",
+                    translation = translation,
+                    repeatTarget = 1,
+                ),
             ),
     )
 }

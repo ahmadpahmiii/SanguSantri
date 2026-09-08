@@ -1,9 +1,7 @@
 package com.sangusantri.app.data.content
 
 /**
- * Per-item result of importing a catalog entry's content file, from either the bundled
- * bootstrapper or remote sync — [ContentImporter] does not distinguish the two (ADR 0015). One
- * malformed or stale item must never affect another.
+ * Per-item result of importing one CMS content item. One malformed item must never affect another.
  */
 sealed interface ContentImportOutcome {
     /** No prior Room row existed for this content id; it was inserted fresh. */
@@ -11,7 +9,7 @@ sealed interface ContentImportOutcome {
         val contentId: String,
     ) : ContentImportOutcome
 
-    /** A newer version replaced the previously active content atomically. */
+    /** The item's steps changed and were replaced atomically; the counters are local revisions. */
     data class Replaced(
         val contentId: String,
         val oldVersion: Int,
@@ -23,15 +21,8 @@ sealed interface ContentImportOutcome {
         val contentId: String,
     ) : ContentImportOutcome
 
-    /** The catalog's version is older than what Room already has — Room is never downgraded. */
-    data class SkippedOlderVersion(
-        val contentId: String,
-        val localVersion: Int,
-    ) : ContentImportOutcome
-
-    /** Rejected before or during import (malformed JSON, structural validation failure,
-     * id/version identity mismatch against the catalog, or a database failure that rolled back).
-     * No partial write remains. */
+    /** Rejected before or during import (structural validation failure, or a database failure
+     * that rolled back). No partial write remains. */
     data class Rejected(
         val contentId: String?,
         val reason: String,

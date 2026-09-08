@@ -97,8 +97,7 @@ constructor(
         for (item in items) {
             when (contentImporter.importListItem(item)) {
                 is ContentImportOutcome.Imported, is ContentImportOutcome.Replaced -> updated += item.id
-                is ContentImportOutcome.SkippedUpToDate, is ContentImportOutcome.SkippedOlderVersion ->
-                    skipped += item.id
+                is ContentImportOutcome.SkippedUpToDate -> skipped += item.id
 
                 is ContentImportOutcome.Rejected -> rejected += item.id
             }

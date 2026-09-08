@@ -1,7 +1,7 @@
 package com.sangusantri.app.domain.model
 
 /**
- * Pure policy comparison (ADR 0017), mirroring [com.sangusantri.app.data.content.ContentVersionAction]'s
+ * Pure policy comparison (ADR 0017), mirroring the content importer's
  * enum-plus-top-level-function shape — no dependencies, so no Hilt use case class.
  */
 enum class AppUpdateRequirement {

@@ -165,12 +165,14 @@ migration.
   that. Bumping is what turns the crash into a silent wipe.
 * Keep `exportSchema = true` and commit the generated `app/schemas/*.json` for
   the new version — it is the cheap diff that shows what actually changed.
-* Add a short paragraph to the `SanguSantriDatabase` KDoc version log saying
-  what the version adds and what users lose.
+* Do **not** add a per-version entry to the `SanguSantriDatabase` KDoc. That log
+  was removed on 2026-09-08: no version ever migrates, so ten paragraphs each
+  restating the same destructive-fallback policy told a reader nothing `git log`
+  does not. The KDoc now states the policy once — leave it that way.
 * Say plainly in the final response that all Room-backed local data is dropped:
-  bundled amaliyah content bootstraps again and the CMS catalog re-syncs, but
-  downloaded Quran text/tafsir and Quran bookmarks, tasbih history, amaliyah
-  progress and completion events, reminders, and quiz attempts are gone.
+  the CMS amaliyah catalog re-syncs, but downloaded Quran text/tafsir and Quran
+  bookmarks, tasbih history, amaliyah progress and completion events, reminders,
+  and quiz attempts are gone.
 * Data that must survive a wipe does not belong in Room — downloaded murottal
   audio already lives as files under `filesDir/murottal/` for exactly this
   reason. Follow that pattern rather than reaching for a migration.

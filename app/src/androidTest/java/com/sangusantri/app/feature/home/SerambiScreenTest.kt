@@ -10,7 +10,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
-import com.sangusantri.app.data.local.content.BundledContentBootstrapper
+import com.sangusantri.app.data.content.ContentImporter
+import com.sangusantri.app.data.content.ContentValidator
+import com.sangusantri.app.data.content.dto.ContentDetailDto
+import com.sangusantri.app.data.content.dto.ContentStepDto
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
@@ -22,11 +25,12 @@ import org.junit.runners.JUnit4
 import javax.inject.Inject
 
 /**
- * Exercises Serambi against the real Hilt graph and bundled published content — the same
- * offline-first path a fresh install takes (FR-001, FR-002): Serambi renders from Room, with no
- * network involved. [HiltTestRunner][com.sangusantri.app.HiltTestRunner] swaps in
- * `HiltTestApplication`, so the real `SanguSantriApplication.onCreate()` bootstrap wiring never
- * runs here — the test bootstraps Room itself via the same injected [BundledContentBootstrapper] instead.
+ * Exercises Serambi against the real Hilt graph — the offline-first path (FR-001, FR-002): Serambi
+ * renders from Room, with no network involved.
+ *
+ * Content is seeded through the injected [ContentImporter] with clearly-fixture-labelled items
+ * rather than by letting the CMS sync run, so the assertions never depend on what the CMS happens
+ * to publish today or on the emulator having a network at all.
  *
  * Reader preferences (including the Milestone 4 remembered reading mode) live in the real, shared
  * preferences DataStore, so `@Before` clears it — otherwise a mode remembered by a previous test
@@ -42,7 +46,7 @@ class SerambiScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Inject
-    lateinit var bundledContentBootstrapper: BundledContentBootstrapper
+    lateinit var contentImporter: ContentImporter
 
     @Inject
     lateinit var preferencesDataStore: DataStore<Preferences>
@@ -52,29 +56,29 @@ class SerambiScreenTest {
         hiltRule.inject()
         runBlocking {
             preferencesDataStore.edit { it.clear() }
-            bundledContentBootstrapper.bootstrap()
+            contentImporter.importRemoteDetail(fixture(FIRST_FIXTURE_TITLE, order = 0))
+            contentImporter.importRemoteDetail(fixture(SECOND_FIXTURE_TITLE, order = 1))
         }
     }
 
     @Test
-    fun tahlilAndIstighosahCardsRenderFromSeededRoomContent() {
+    fun amaliyahCardsRenderFromSeededRoomContent() {
         waitForSeededContent()
 
-        composeRule.onNodeWithText("Tahlil").assertExists()
-        composeRule.onNodeWithText("Istighosah").assertExists()
+        composeRule.onNodeWithText(FIRST_FIXTURE_TITLE).assertExists()
+        composeRule.onNodeWithText(SECOND_FIXTURE_TITLE).assertExists()
     }
 
     @Test
     fun tappingAnAmaliyahCardNavigatesToItsDestination() {
         waitForSeededContent()
 
-        composeRule.onNodeWithText("Tahlil").performClick()
+        composeRule.onNodeWithText(FIRST_FIXTURE_TITLE).performClick()
 
-        // Milestone 4: tapping Tahlil opens the reading-mode gate first. Tahlil's bundled content
-        // is real and available (ADR 0015 — no more DRAFT/PUBLISHED status), so the gate's
-        // availability check passes and offers the Bacaan Lengkap/Panduan chooser — an unambiguous
-        // signal that navigation left Serambi and reached the gate destination (Serambi's own
-        // actions are Setelan/Tentang, never this chooser).
+        // Milestone 4: tapping a card opens the reading-mode gate first. The fixture has real
+        // steps, so the gate's availability check passes and offers the Bacaan Lengkap/Panduan
+        // chooser — an unambiguous signal that navigation left Serambi and reached the gate
+        // destination (Serambi's own actions are Setelan/Tentang, never this chooser).
         composeRule.waitUntil(timeoutMillis = SEED_IMPORT_TIMEOUT_MILLIS) {
             composeRule
                 .onAllNodesWithText(composeRule.activity.getString(R.string.reader_mode_chooser_title))
@@ -100,11 +104,37 @@ class SerambiScreenTest {
     /** [MainActivity] launches before [seedRoom]; wait for Room's post-import Flow emission to recompose. */
     private fun waitForSeededContent() {
         composeRule.waitUntil(timeoutMillis = SEED_IMPORT_TIMEOUT_MILLIS) {
-            composeRule.onAllNodesWithText("Tahlil").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(FIRST_FIXTURE_TITLE).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
+    private fun fixture(
+        title: String,
+        order: Int,
+    ) = ContentDetailDto(
+        schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
+        id = "serambi-test-fixture-$order",
+        title = title,
+        description = "[FIXTURE] Serambi test fixture",
+        imageUrl = null,
+        category = "Amaliyah",
+        order = order,
+        sourceName = "[FIXTURE]",
+        sourceUrl = "https://example.invalid/fixture",
+        steps =
+            listOf(
+                ContentStepDto(
+                    id = "serambi-test-fixture-$order-step-1",
+                    arabicText = "[FIXTURE-AR] بِسْمِ اللَّهِ",
+                    translation = "[FIXTURE] Terjemahan uji.",
+                    repeatTarget = 1,
+                ),
+            ),
+    )
+
     private companion object {
         const val SEED_IMPORT_TIMEOUT_MILLIS = 10_000L
+        const val FIRST_FIXTURE_TITLE = "[TEST] Serambi Fixture Satu"
+        const val SECOND_FIXTURE_TITLE = "[TEST] Serambi Fixture Dua"
     }
 }

@@ -18,12 +18,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -278,6 +280,64 @@ private fun BerandaAmaliyahCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = SanguSantriSpacing.medium),
             )
+        }
+    }
+}
+
+/**
+ * The one Beranda section that says why the screen is empty rather than simply not rendering.
+ *
+ * Every other section hides itself when it has nothing — the reader still has the rest of the
+ * screen. Amaliyah is different only on a first launch that never reached the CMS: there is no
+ * bundled copy any more, so without this the section is indistinguishable from an app that has no
+ * amaliyah feature at all.
+ */
+@Composable
+fun BerandaContentUnavailable(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(AmaliyahCardCornerRadius))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline,
+                    RoundedCornerShape(AmaliyahCardCornerRadius),
+                )
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(AmaliyahCardPadding),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SanguSantriSpacing.medium),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CloudOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MenuTileIconSize),
+            )
+            Text(
+                text = stringResource(R.string.beranda_content_unavailable_title),
+                fontSize = 15.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Text(
+            text = stringResource(R.string.beranda_content_unavailable_body),
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = SanguSantriSpacing.medium),
+        )
+        TextButton(
+            onClick = onRetry,
+            modifier = Modifier.padding(top = SanguSantriSpacing.small),
+        ) {
+            Text(text = stringResource(R.string.beranda_content_unavailable_action))
         }
     }
 }

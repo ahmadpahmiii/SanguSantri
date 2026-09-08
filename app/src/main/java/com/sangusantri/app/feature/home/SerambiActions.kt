@@ -22,4 +22,7 @@ data class SerambiActions(
     val onThemeModeSelected: (AppThemeMode) -> Unit = {},
     /** The streak pill opens Aktivitas, where the goals can actually be acted on. */
     val onAmalanClick: () -> Unit = {},
+    /** Re-runs the catalogue sync — a real recovery action, only ever offered when a first launch
+     * never reached the CMS and Room is therefore still empty. */
+    val onRetryContent: () -> Unit = {},
 )

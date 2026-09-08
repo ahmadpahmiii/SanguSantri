@@ -47,69 +47,25 @@ import com.sangusantri.app.data.local.entity.TasbihHistoryEntity
 import com.sangusantri.app.data.local.entity.TasbihSessionEntity
 
 /**
- * Canonical local source of truth (PRD 12.1). Version 2 (ADR 0015, dynamic catalog
- * simplification) collapses the former Amaliyah/AmaliyahVariant/AmaliyahVersion/AmaliyahStep/
- * Approval hierarchy into the flat `content`/`content_steps` model. Enum type converters were
- * removed along with the enums
- * (`StepType`, `AmaliyahVersionStatus`, `ApprovalStatus`, `OwnerType`, `Visibility`) they existed
- * for; Room's built-in enum support (2.6+) is used natively where an enum column still exists
- * (`TasbihSessionEntity.targetPreset`, `NahwuQuizQuestionEntity.correctOption`), so no `Converters`
- * class is needed any more. The product owner has explicitly selected Room's drop-all-tables
- * destructive fallback for every unsupported schema transition; no hand-written migration chain
- * is retained. Bundled content bootstraps again, while non-bundled Quran data must be downloaded
- * again before offline reading is restored.
+ * Canonical local source of truth (PRD 12.1).
  *
- * Version 3 (`0.0.4`, Pengingat Amaliyah) adds `reminders` — purely additive, no existing table
- * changed. `CLAUDE.md`'s temporary design-phase constraint (that pass's Phase E) prohibited writing
- * a new migration class for it, so there is no `MIGRATION_2_3`.
+ * **Every schema change wipes this database.** The builder keeps
+ * `fallbackToDestructiveMigration(dropAllTables = true)` and there is no migration chain — that
+ * one line is the entire policy, up and down. There are no production installs to protect, so a
+ * migration would be unrequested work; revisit only when there are.
  *
- * Version 4 (`0.0.5`, Nahwu Quiz) adds `nahwu_quiz_packages`/`nahwu_quiz_questions`/
- * `nahwu_quiz_attempts` — also purely additive, and also no `MIGRATION_3_4`: `0.0.5` falls outside
- * `docs/design/DESIGN_HANDOFF.md`'s Phase A–E window (Phase E ends at `0.0.4`), so this follows the
- * project's general, non-temporary pre-release policy instead
- * (`docs/engineering/CONTENT_MODEL.md` "Schema-freeze policy") — which reaches the same outcome: a
- * clean baseline reset, not a real migration, since there are still no production installs to
- * protect. An existing local install must clear app data or reinstall once.
+ * The rule that matters when changing an entity: **bump `version` in the same commit**. Room
+ * compares a schema hash on open and throws *"Room cannot verify the data integrity"* on a
+ * changed-but-unbumped schema, which destructive fallback does not rescue. Bumping is what turns
+ * that crash into a silent wipe. A per-version log is deliberately not kept here — since no
+ * version ever migrates, the only thing a reader needs is the sentence above, and `git log` has
+ * the rest.
  *
- * Version 5 (`0.0.6`, standalone Al-Qur'an Kemenag) adds `quran_surahs`/`quran_verses`/
- * `quran_tafsir`/`quran_bookmarks`/`quran_reading_state`/`quran_reading_sessions` — a separate
- * bounded context from the amaliyah content model (ADR 0016), purely additive, no `MIGRATION_4_5`
- * for the same pre-release schema-freeze reason as version 4.
- *
- * Version 6 adds `prayer_cities`/`prayer_schedule_days` for Jadwal Sholat's myquran integration.
- * Also additive, and also without a migration: the standing policy is
- * `fallbackToDestructiveMigration(dropAllTables = true)`, so this bump **drops every table** —
- * including the downloaded Quran, which each user re-downloads once. Bundled amaliyah content
- * bootstraps itself again. Accepted by the product owner when this integration was scoped.
- *
- * Version 7 makes `content_steps.repeatTarget` nullable — NULL is how the CMS says "this step has
- * no tasbih counter", which in turn is how content without any counted step (Sholawat) loses its
- * Panduan mode. A column-type change, not additive, and it follows the same standing
- * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4–6: no production
- * installs to protect, bundled amaliyah content bootstraps itself again, and the catalog re-syncs.
- *
- * Version 8 adds `ayat_hari_ini` — the editorially published ayat-of-the-day schedule, which
- * replaced a selector that computed the day's ayat from the date itself
- * (`docs/product/AYAT_HARI_INI.md`). Additive, and on the same standing destructive-fallback
- * policy: the table refills from the CMS on the next launch, and it holds references only, so
- * nothing dropped here is content the app cannot fetch again.
- *
- * Version 9 rewrites `ayat_hari_ini` from a reference to the text itself: `surahNumber`/
- * `ayatNumber` become `kind`/`arabic`/`translationId`/`translationEn`/`sourceLabel`/`sourceNote`,
- * following the CMS contract's schema version 2. The CMS now publishes free-form quotations that
- * may be hadith or neither, so there is no `quran_verses` row left to join a reference against.
- * A column rewrite, not additive, and on the same standing
- * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4-8: the table refills
- * from the CMS on the next launch, and the Quran corpus each user re-downloads once.
- *
- * Version 10 adds `content.layout` — the CMS's per-item instruction for how the Sholawat reader
- * arranges an item's steps (paired hemistichs vs. one per row), which the reader cannot infer from
- * the Arabic itself. A new column, so additive, and on the same standing
- * `fallbackToDestructiveMigration(dropAllTables = true)` policy as versions 4-9: **every table is
- * dropped**. Bundled amaliyah content bootstraps itself again and the CMS catalog re-syncs, but
- * downloaded Quran text/tafsir and Quran bookmarks, tasbih history, amaliyah progress and
- * completion events, reminders and quiz attempts are gone. Downloaded murottal audio survives —
- * it lives as files under `filesDir/murottal/`, deliberately outside Room for exactly this reason.
+ * What a wipe costs the reader: the CMS amaliyah catalogue re-syncs on the next launch, but
+ * downloaded Quran text/tafsir, Quran bookmarks, tasbih history, amaliyah progress and completion
+ * events, reminders, and quiz attempts are gone. Downloaded murottal audio survives — it lives as
+ * files under `filesDir/murottal/`, deliberately outside Room for exactly this reason. Data that
+ * must survive a wipe belongs there, not here.
  */
 @Database(
     entities = [

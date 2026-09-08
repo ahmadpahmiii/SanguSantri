@@ -11,7 +11,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.sangusantri.app.MainActivity
 import com.sangusantri.app.R
-import com.sangusantri.app.data.local.content.BundledContentBootstrapper
 import com.sangusantri.app.data.local.dao.ContentDao
 import com.sangusantri.app.data.local.dao.ContentStepDao
 import com.sangusantri.app.data.local.entity.ContentEntity
@@ -30,8 +29,8 @@ import javax.inject.Inject
  * Exercises the Full Reader against the real Hilt graph, reached the same way a user does: tap an
  * amaliyah card on Serambi, then choose **Bacaan Lengkap** from the Milestone 4 reading-mode gate.
  * A dedicated, clearly-fixture-labelled content item is inserted directly via the injected DAOs
- * (independent of whichever content the bundled catalog itself currently ships) — guarded by a
- * `getById` check so reruns on the same emulator stay idempotent, mirroring
+ * (independent of whatever the CMS currently publishes, and of whether it is reachable at all) —
+ * guarded by a `getById` check so reruns on the same emulator stay idempotent, mirroring
  * [com.sangusantri.app.data.content.ContentImporter]'s own idempotency pattern.
  *
  * Reader preferences live in the real, shared preferences DataStore — not a fake — so every test
@@ -55,9 +54,6 @@ class ReaderScreenTest {
     lateinit var contentStepDao: ContentStepDao
 
     @Inject
-    lateinit var bundledContentBootstrapper: BundledContentBootstrapper
-
-    @Inject
     lateinit var preferencesDataStore: DataStore<Preferences>
 
     @Before
@@ -65,7 +61,6 @@ class ReaderScreenTest {
         hiltRule.inject()
         runBlocking {
             preferencesDataStore.edit { it.clear() }
-            bundledContentBootstrapper.bootstrap()
             seedFixtureIfMissing()
             seedEmptyFixtureIfMissing()
         }
@@ -113,8 +108,8 @@ class ReaderScreenTest {
     fun contentUnavailableStateRendersForAContentItemWithNoSteps() {
         waitForCard(EMPTY_FIXTURE_TITLE)
 
-        // A catalog item with zero content_steps rows — ADR 0015 has no DRAFT/PUBLISHED status any
-        // more, so "unavailable" now means exactly this: a content row with no readable steps.
+        // A catalog item with zero content_steps rows — there is no DRAFT/PUBLISHED status, so
+        // "unavailable" means exactly this: a content row whose detail has not been fetched yet.
         composeRule.onNodeWithText(EMPTY_FIXTURE_TITLE).performClick()
 
         composeRule

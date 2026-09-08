@@ -3,7 +3,7 @@ package com.sangusantri.app.data.content
 import com.sangusantri.app.data.content.dto.ContentStepDto
 import com.sangusantri.app.data.local.entity.ContentStepEntity
 
-/** Maps a validated content file's step DTOs (ADR 0015) to their Room entities. */
+/** Maps a validated content detail's step DTOs to their Room entities. */
 fun ContentStepDto.toEntity(
     contentId: String,
     position: Int,

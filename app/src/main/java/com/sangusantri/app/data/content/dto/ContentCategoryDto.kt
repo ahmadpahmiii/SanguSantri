@@ -12,11 +12,6 @@ import kotlinx.serialization.Serializable
  * one word in one item changed the whole category's bytes and therefore its validator, so every
  * device re-downloaded every step of every item in that category. Now a step edit moves only that
  * item's own detail validator, and the list stays untouched.
- *
- * Deliberately *not* the same type as [ContentCatalogDto], which is the bundled-asset format
- * (`app/src/main/assets/content/catalog.json`, `schemaVersion` 1) — that one still points at local
- * package files through `contentUrl` and still carries a `version` integer. The bundled layout is
- * a local file convention with no reason to track the wire.
  */
 @Serializable
 data class ContentListResponseDto(

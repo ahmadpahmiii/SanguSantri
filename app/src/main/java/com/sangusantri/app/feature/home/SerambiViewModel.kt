@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sangusantri.app.data.sync.ContentSyncManager
+import com.sangusantri.app.data.sync.SyncResult
 import com.sangusantri.app.domain.model.AmalanHarian
 import com.sangusantri.app.domain.model.AppThemeMode
 import com.sangusantri.app.domain.model.AyatHariIni
@@ -48,9 +49,7 @@ import javax.inject.Inject
  */
 @Suppress("LongParameterList")
 @HiltViewModel
-class SerambiViewModel
-@Inject
-constructor(
+class SerambiViewModel @Inject constructor(
     contentRepository: ContentRepository,
     reminderRepository: ReminderRepository,
     nahwuQuizRepository: NahwuQuizRepository,
@@ -69,6 +68,13 @@ constructor(
     private val activeContent =
         rawActiveContent.map { items -> items.filterNot { it.isSholawat } }
 
+    /**
+     * Whether the last catalogue sync failed. Only consulted when Room holds no content at all —
+     * see [SerambiUiState.Loaded.contentUnavailable]. A failure with content already cached is
+     * silent, which is the whole point of offline-first.
+     */
+    private val contentSyncFailed = MutableStateFlow(false)
+
     private val baseData: Flow<BaseData> =
         combine(
             activeContent,
@@ -78,7 +84,7 @@ constructor(
             nahwuQuizRepository.observeActiveAttempt(),
         ) { items, hasSholawatContent, nearestReminder, hasNahwuQuizContent, activeQuiz ->
             BaseData(items, hasSholawatContent, nearestReminder, hasNahwuQuizContent, activeQuiz != null)
-        }
+        }.combine(contentSyncFailed) { base, failed -> base.copy(contentSyncFailed = failed) }
 
     /** One tick a minute is all the next-prayer block's countdown, position line, and highlighted
      * row need; the second-precision countdown belongs to Jadwal Sholat, not Beranda. */
@@ -137,6 +143,7 @@ constructor(
                 hasNahwuQuizContent = base.hasNahwuQuizContent,
                 hasActiveNahwuQuiz = base.hasActiveNahwuQuiz,
                 hasSholawatContent = base.hasSholawatContent,
+                contentSyncFailed = base.contentSyncFailed,
                 resumeItem = resumeItem,
                 prayerSchedule = prayerSchedule,
                 now = now,
@@ -176,13 +183,18 @@ constructor(
      * Pulls the published catalogue so a publish or unpublish in the CMS lands here without
      * waiting for the background sync window.
      *
-     * Failures are silent by design: Beranda has already rendered from Room, a stale catalogue
-     * is exactly what an offline reader wants, and there is nothing for them to act on.
+     * A failure is silent whenever Room already holds content — a stale catalogue is exactly what
+     * an offline reader wants, and there is nothing for them to act on. The one case that is not
+     * silent is a first launch that never reached the CMS: there is no bundled content any more,
+     * so an empty Room plus a failed sync is a blank screen unless Beranda says why.
      */
     private fun refreshContentCatalogue() {
         viewModelScope.launch {
-            runCatching { contentSyncManager.sync() }
-                .onFailure { Log.w(TAG, "Beranda content refresh failed", it) }
+            val result =
+                runCatching { contentSyncManager.sync() }
+                    .onFailure { Log.w(TAG, "Beranda content refresh failed", it) }
+                    .getOrNull()
+            contentSyncFailed.value = result !is SyncResult.Completed
         }
     }
 
@@ -284,6 +296,7 @@ constructor(
         val nearestReminder: Reminder?,
         val hasNahwuQuizContent: Boolean,
         val hasActiveNahwuQuiz: Boolean,
+        val contentSyncFailed: Boolean = false,
     )
 
     private companion object {

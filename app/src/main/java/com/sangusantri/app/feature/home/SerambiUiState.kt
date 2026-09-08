@@ -19,6 +19,9 @@ sealed interface SerambiUiState {
         val hasNahwuQuizContent: Boolean = false,
         val hasActiveNahwuQuiz: Boolean = false,
         val hasSholawatContent: Boolean = false,
+        /** Whether the last catalogue sync failed. Only ever surfaced through
+         * [contentUnavailable] — a failure with content already in Room is silent. */
+        val contentSyncFailed: Boolean = false,
         val resumeItem: SerambiResumeItem? = null,
         /** `null` until a prayer-time source is wired — the next-prayer block then does not render
          * at all, rather than showing times nobody should pray by. */
@@ -40,6 +43,14 @@ sealed interface SerambiUiState {
         val amalan: AmalanHarian? = null,
     ) : SerambiUiState {
         val featuredItems: List<Content> get() = items.take(MAX_FEATURED_ITEMS)
+
+        /**
+         * A first launch that never reached the CMS. All amaliyah content is remote now, so an
+         * empty Room plus a failed sync means the section would render as nothing at all — this is
+         * what lets Beranda say why instead. Content already in Room always wins: a later failed
+         * sync never replaces a catalogue the reader can still use offline.
+         */
+        val contentUnavailable: Boolean get() = items.isEmpty() && contentSyncFailed
 
         private companion object {
             const val MAX_FEATURED_ITEMS = 4

@@ -24,7 +24,7 @@ sealed interface NahwuQuizBootstrapOutcome {
 
 /**
  * Reads the bundled question bank from [android.content.res.AssetManager] and imports it once —
- * unlike `BundledContentBootstrapper`, there is only one source (no remote sync in this milestone's
+ * unlike amaliyah content, there is only one source (no remote sync in this milestone's
  * scope) and no per-package version to reconcile, so import is gated purely on "have any packages
  * ever been seeded", not a version comparison. Safe to call on every launch: once
  * [com.sangusantri.app.data.local.dao.NahwuQuizPackageDao.count] is non-zero, every later call is a

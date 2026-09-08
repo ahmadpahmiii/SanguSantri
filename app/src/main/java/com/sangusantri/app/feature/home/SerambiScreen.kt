@@ -100,6 +100,7 @@ fun SerambiRoute(
         actions.copy(
             onDismissResume = viewModel::dismissResume,
             onThemeModeSelected = viewModel::setThemeMode,
+            onRetryContent = viewModel::refresh,
         )
     SerambiScreen(
         uiState = uiState,
@@ -420,6 +421,20 @@ private fun SerambiDashboard(
                         supporting = resume.resumeSupporting(),
                         fraction = resume.progress?.fraction,
                         onContinue = { actions.continueResume(resume) },
+                        modifier =
+                            Modifier.padding(
+                                start = BerandaHorizontalPadding,
+                                end = BerandaHorizontalPadding,
+                                top = SectionGap,
+                            ),
+                    )
+                }
+            }
+
+            if (uiState.contentUnavailable) {
+                item(key = "content_unavailable") {
+                    BerandaContentUnavailable(
+                        onRetry = actions.onRetryContent,
                         modifier =
                             Modifier.padding(
                                 start = BerandaHorizontalPadding,

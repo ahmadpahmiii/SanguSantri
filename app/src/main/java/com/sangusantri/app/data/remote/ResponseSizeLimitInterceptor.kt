@@ -13,7 +13,7 @@ import okio.buffer
 
 /**
  * Rejects any response body larger than [maxBytes], for every [ContentApiService] call (catalog
- * and content files alike). ADR 0015's `ContentApiService.getContent` returns `Response<ContentFileDto>`
+ * and content files alike). `ContentApiService.getAmaliyahDetail` returns `Response<ContentDetailDto>`
  * directly (Retrofit's converter parses the body), which has no natural per-call interception
  * point for a manual size cap the way streaming raw [okhttp3.ResponseBody] bytes to a temp file
  * used to — this interceptor preserves the same response-size security control

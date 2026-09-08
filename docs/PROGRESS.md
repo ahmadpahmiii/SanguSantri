@@ -8793,3 +8793,164 @@ crash the console existed to show:
 
 Unchanged: answer concept-doc §8.4/§8.5, or Nahwu Quiz `0.0.5`. Ship 0.0.8 with
 these fixes first so the mapping upload starts working.
+
+---
+
+## 2026-09-08 — Bundled content pipeline removed; content is CMS-only
+
+### Why
+
+`app/src/main/assets/content/` (`catalog.json`, `packages/tahlil-v1.json`,
+`packages/istighosah-v1.json`) was still read on every cold start by
+`BundledContentBootstrapper`, but it had become a stale, parallel contract:
+
+* Bundled spoke `schemaVersion` 1 — a catalog of metadata joined to package
+  files by `contentUrl`, version-gated per item.
+* The CMS speaks `schemaVersion` 3 — a metadata list per category plus a detail
+  per item, addressed by id, with no `version` and no `contentUrl`.
+
+The two shared nothing but the Room write. And the live CMS already publishes
+`tahlil` and `istighosah` alongside Ratib al-Athas, Ratib al-Haddad, Ratib
+Syaikhona Kholil and the Sholawat category — so the two bundled files were a
+strict, stale subset of what every online device already had.
+
+Product owner approved deletion, with a Beranda empty state for the one case the
+bundle was actually covering: a first launch that never reached the CMS.
+
+### What was removed
+
+* `app/src/main/assets/content/` — all three JSON files.
+* `data/local/content/BundledContentBootstrapper.kt` (the package is now empty
+  and gone).
+* `data/content/dto/ContentCatalogDto.kt` — `ContentCatalogDto` and
+  `ContentCatalogItemDto`.
+* `ContentFileDto` — its file was renamed to `ContentStepDto.kt`, since
+  `ContentStepDto` lived in it and is still used by the remote detail contract.
+* `data/content/ContentVersionAction.kt` and `decideContentVersionAction` — only
+  the bootstrapper called it; `ContentImporter` always re-ran its own comparison
+  against Room anyway.
+* `ContentValidator.validateCatalog` / `validateContentFile` and their helpers,
+  `SUPPORTED_SCHEMA_VERSION`, `isOriginRelativeContentPath` and
+  `CONTENT_PATH_PREFIXES`. The origin pin guarded a `contentUrl` field that no
+  longer exists on either contract. `isAllowedImageUrl` and the step checks stay
+  — the remote path uses both.
+* `ContentImporter.localVersion` / `refreshCatalogMetadata` / `importContentFile`
+  and its `writeContentOrReject` / `writeContent` pair (391 → 249 lines). The
+  `@Suppress("TooManyFunctions")` came off with them.
+* `ContentImportOutcome.SkippedOlderVersion` — no producer left once
+  `importContentFile` went; `ContentSyncManager` and `SanguSantriApplication`
+  updated accordingly.
+* `SanguSantriApplication`'s bootstrap call and `logBootstrapOutcome`. Nahwu
+  Quiz is now the only bundled-asset pipeline in the app.
+
+### Beranda offline empty state
+
+Removing the bundle means a fresh install with no network has nothing to show.
+Previously the amaliyah section simply did not render, which is
+indistinguishable from an app with no amaliyah feature.
+
+* `SerambiViewModel` records whether the last sync returned `SyncResult.Completed`
+  into a `contentSyncFailed` flag, folded onto `baseData` with a single
+  `Flow.combine` (the `uiState` combine was already at its five-slot maximum).
+* `SerambiUiState.Loaded.contentUnavailable` is `items.isEmpty() &&
+  contentSyncFailed` — content already in Room always wins, so a later failed
+  sync never disturbs a reader who is offline with a cached catalogue.
+* `BerandaContentUnavailable` renders a bordered card with a `CloudOff` icon,
+  "Konten belum tersedia", an explanation, and a "Coba lagi" button wired to
+  `SerambiViewModel.refresh()`.
+
+### `SanguSantriDatabase` KDoc simplified
+
+The KDoc carried a ten-entry per-version log where versions 4–10 each restated
+the same destructive-fallback policy in a different paragraph. Since no version
+ever migrates, that log told a reader nothing `git log` does not. It is replaced
+by one policy statement: every schema change wipes the database, bump `version`
+in the same commit as any entity change, and what a wipe costs the reader.
+`CLAUDE.md`'s Room section was updated to match — it previously mandated the
+per-version paragraph.
+
+### Files created
+
+* `app/src/main/java/com/sangusantri/app/data/content/dto/ContentStepDto.kt`
+  (renamed from `ContentFileDto.kt`).
+
+### Files modified
+
+* `CLAUDE.md`
+* `app/src/main/java/com/sangusantri/app/SanguSantriApplication.kt`
+* `app/src/main/java/com/sangusantri/app/data/content/ContentImportOutcome.kt`
+* `app/src/main/java/com/sangusantri/app/data/content/ContentImporter.kt`
+* `app/src/main/java/com/sangusantri/app/data/content/ContentMapper.kt`
+* `app/src/main/java/com/sangusantri/app/data/content/ContentValidator.kt`
+* `app/src/main/java/com/sangusantri/app/data/content/dto/ContentCategoryDto.kt`
+* `app/src/main/java/com/sangusantri/app/data/local/database/SanguSantriDatabase.kt`
+* `app/src/main/java/com/sangusantri/app/data/local/entity/ContentEntity.kt`
+* `app/src/main/java/com/sangusantri/app/data/local/nahwuquiz/NahwuQuizBootstrapper.kt`
+* `app/src/main/java/com/sangusantri/app/data/remote/ResponseSizeLimitInterceptor.kt`
+* `app/src/main/java/com/sangusantri/app/data/sync/ContentSyncManager.kt`
+* `app/src/main/java/com/sangusantri/app/domain/model/AppUpdateRequirement.kt`
+* `app/src/main/java/com/sangusantri/app/feature/home/BerandaSections.kt`
+* `app/src/main/java/com/sangusantri/app/feature/home/SerambiActions.kt`
+* `app/src/main/java/com/sangusantri/app/feature/home/SerambiScreen.kt`
+* `app/src/main/java/com/sangusantri/app/feature/home/SerambiUiState.kt`
+* `app/src/main/java/com/sangusantri/app/feature/home/SerambiViewModel.kt`
+* `app/src/main/res/values/strings.xml`
+* `app/src/androidTest/.../data/content/ContentImporterTest.kt`
+* `app/src/androidTest/.../feature/home/SerambiScreenTest.kt`
+* `app/src/androidTest/.../feature/reader/ReaderScreenTest.kt`
+* `app/src/test/.../data/content/ContentValidatorTest.kt`
+
+### Tests
+
+Existing tests were kept compiling and retargeted, not deleted (`CLAUDE.md`
+temporary constraint). `ContentVersionActionTest` went with the function it
+tested.
+
+* `ContentValidatorTest` — rewritten onto `validateList`/`validateListItem`/
+  `validateDetail`. The `contentUrl` origin-pin cases are gone with the field;
+  the `imageUrl` scheme-pin cases and every step-level rejection case were kept.
+  `CmsApiContractTest` still covers the happy path against real captured
+  payloads.
+* `ContentImporterTest` (androidTest) — rewritten onto `importListItem`/
+  `importRemoteDetail`, keeping rollback, atomic replacement and the progress
+  preservation/orphaning cases, and adding coverage of `deactivateAbsent`.
+* `SerambiScreenTest` — seeded through the injected `ContentImporter` with
+  clearly-labelled `[TEST]` fixtures instead of bundled Tahlil/Istighosah, so it
+  no longer depends on what the CMS publishes today or on the emulator having a
+  network.
+* `ReaderScreenTest` — the bootstrap call was redundant (it already seeds its own
+  DAO fixtures); the injection was dropped.
+
+### Validation
+
+`ktlintCheck`, `detekt`, `lint`, `assembleDebug`, plus `compileDebugUnitTestKotlin`
+and `compileDebugAndroidTestKotlin` — all pass. `detekt`, `lint` and
+`assembleDebug` are `BUILD SUCCESSFUL`.
+
+`ktlintCheck` still fails repo-wide, unchanged by this pass: ~80 files violate
+the `@Inject constructor` body-indentation rule, most of them untouched here.
+Every violation introduced by this pass was fixed. Do not run `ktlintFormat` to
+clear the rest — it reindents ~58 unrelated files.
+
+No test run: `testDebugUnitTest`/`connectedDebugAndroidTest` are outside the
+standing validation gate and were not requested.
+
+### Known limitations
+
+* **Not verified on a device.** No emulator or device was attached
+  (`adb devices` empty), so the Beranda empty state has not been seen rendering.
+  It needs one manual check: fresh install with airplane mode on, confirm the
+  card and that "Coba lagi" recovers once network returns.
+* **A fresh install now requires network once.** This is the accepted trade —
+  after one successful sync the app is fully offline again, because Room remains
+  the source of truth. Existing installs are unaffected.
+* `ContentEntity.version` is kept as a local revision counter written by the
+  detail import. No Room schema change, so no `@Database` version bump and no
+  data wipe from this pass.
+* `ContentImporter.kt` was edited concurrently during this pass (the
+  `if (existing == null)` block became an elvis). That logic was left as written
+  and only reformatted to satisfy ktlint.
+
+### Next recommended milestone
+
+Unchanged: answer concept-doc §8.4/§8.5, or Nahwu Quiz `0.0.5`.

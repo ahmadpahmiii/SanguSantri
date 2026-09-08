@@ -1,246 +1,182 @@
 package com.sangusantri.app.data.content
 
-import com.sangusantri.app.data.content.dto.ContentCatalogDto
-import com.sangusantri.app.data.content.dto.ContentCatalogItemDto
-import com.sangusantri.app.data.content.dto.ContentFileDto
+import com.sangusantri.app.data.content.dto.ContentDetailDto
+import com.sangusantri.app.data.content.dto.ContentListItemDto
+import com.sangusantri.app.data.content.dto.ContentListResponseDto
 import com.sangusantri.app.data.content.dto.ContentStepDto
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * The rejection paths. `CmsApiContractTest` covers the happy path against real captured CMS
+ * payloads; what matters here is that a malformed one never reaches Room.
+ */
 class ContentValidatorTest {
     @Test
-    fun validCatalogPassesValidation() {
-        val result = ContentValidator.validateCatalog(validCatalog())
-
-        assertTrue(result is ContentValidation.Valid)
+    fun validListPassesValidation() {
+        assertTrue(ContentValidator.validateList(validList()) is ContentValidation.Valid)
     }
 
     @Test
-    fun catalogUnsupportedSchemaVersionIsRejected() {
-        val result = ContentValidator.validateCatalog(validCatalog().copy(schemaVersion = 99))
-
-        assertInvalid(result)
+    fun listUnsupportedSchemaVersionIsRejected() {
+        assertInvalid(ContentValidator.validateList(validList().copy(schemaVersion = 99)))
     }
 
     @Test
-    fun catalogBlankItemIdIsRejected() {
-        val catalog = validCatalog()
-        val result = ContentValidator.validateCatalog(catalog.copy(items = listOf(catalog.items[0].copy(id = " "))))
-
-        assertInvalid(result)
+    fun listBlankItemIdIsRejected() {
+        assertInvalid(ContentValidator.validateList(listWith(validItem().copy(id = " "))))
     }
 
     @Test
-    fun catalogDuplicateItemIdsAreRejected() {
-        val catalog = validCatalog()
-        val result = ContentValidator.validateCatalog(catalog.copy(items = catalog.items + catalog.items[0]))
-
-        assertInvalid(result)
+    fun listDuplicateItemIdsAreRejected() {
+        assertInvalid(ContentValidator.validateList(listWith(validItem(), validItem())))
     }
 
     @Test
-    fun catalogNonPositiveVersionIsRejected() {
-        val catalog = validCatalog()
-        val result =
-            ContentValidator.validateCatalog(catalog.copy(items = listOf(catalog.items[0].copy(version = 0))))
-
-        assertInvalid(result)
+    fun listBlankTitleIsRejected() {
+        assertInvalid(ContentValidator.validateList(listWith(validItem().copy(title = " "))))
     }
 
     @Test
-    fun catalogBlankContentUrlIsRejected() {
-        val catalog = validCatalog()
-        val result =
-            ContentValidator.validateCatalog(catalog.copy(items = listOf(catalog.items[0].copy(contentUrl = ""))))
-
-        assertInvalid(result)
+    fun listBlankDescriptionIsRejected() {
+        assertInvalid(ContentValidator.validateList(listWith(validItem().copy(description = " "))))
     }
 
-    // --- catalog URL origin pinning (security review 2026-08-18) --------------------------------
+    // --- image URL scheme pinning (security review 2026-08-18) ----------------------------------
     //
-    // contentUrl reaches Retrofit as an @Url, where an absolute value replaces the configured base
-    // URL outright, and reaches AssetManager.open in the bundled pipeline. Every case below is an
-    // input that would otherwise pull religious content off the vetted origin or out of the asset
-    // directory.
+    // imageUrl is handed straight to Coil. Every case below is an input that would otherwise let a
+    // tampered CMS response point the app at a tracker, a cleartext host, or a local file.
 
     @Test
-    fun catalogAbsoluteContentUrlIsRejected() {
-        assertInvalid(catalogWithContentUrl("https://elsewhere.example/tahlil-v1.json"))
+    fun httpImageUrlIsRejected() {
+        assertInvalidImageUrl("http://images.example/tahlil.png")
     }
 
     @Test
-    fun catalogProtocolRelativeContentUrlIsRejected() {
-        assertInvalid(catalogWithContentUrl("//elsewhere.example/content/tahlil-v1.json"))
+    fun dataUriImageUrlIsRejected() {
+        assertInvalidImageUrl("data:image/png;base64,AAAA")
     }
 
     @Test
-    fun catalogTraversingContentUrlIsRejected() {
-        assertInvalid(catalogWithContentUrl("/content/../../etc/passwd"))
+    fun fileImageUrlIsRejected() {
+        assertInvalidImageUrl("file:///data/data/com.sangusantri.app/databases/sangu.db")
     }
 
     @Test
-    fun catalogBackslashContentUrlIsRejected() {
-        assertInvalid(catalogWithContentUrl("/content/..\\packages/tahlil-v1.json"))
+    fun schemeOnlyImageUrlIsRejected() {
+        assertInvalidImageUrl("https://")
     }
 
     @Test
-    fun catalogWhitespaceContentUrlIsRejected() {
-        assertInvalid(catalogWithContentUrl("/content/packages/tahlil v1.json"))
+    fun httpsImageUrlIsAccepted() {
+        val item = validItem().copy(imageUrl = "https://images.example/tahlil.png")
+
+        assertTrue(ContentValidator.validateListItem(item) is ContentValidation.Valid)
     }
 
     @Test
-    fun catalogContentUrlOutsideContentDirectoryIsRejected() {
-        assertInvalid(catalogWithContentUrl("/other/packages/tahlil-v1.json"))
+    fun absentImageUrlIsAccepted() {
+        assertTrue(ContentValidator.validateListItem(validItem().copy(imageUrl = null)) is ContentValidation.Valid)
     }
 
     @Test
-    fun catalogRelativeContentUrlWithoutLeadingSlashIsRejected() {
-        assertInvalid(catalogWithContentUrl("content/packages/tahlil-v1.json"))
+    fun validDetailPassesValidation() {
+        assertTrue(ContentValidator.validateDetail(validDetail()) is ContentValidation.Valid)
     }
 
     @Test
-    fun catalogProductionContentUrlShapeIsAccepted() {
-        // The exact shape app/src/main/assets/content/catalog.json ships — the
-        // pin must not reject real content.
-        val result = ContentValidator.validateCatalog(catalogWith(contentUrl = "/content/packages/tahlil-v1.json"))
-
-        assertTrue(result is ContentValidation.Valid)
+    fun detailUnsupportedSchemaVersionIsRejected() {
+        assertInvalid(ContentValidator.validateDetail(validDetail().copy(schemaVersion = 99)))
     }
 
     @Test
-    fun catalogHttpImageUrlIsRejected() {
-        assertInvalid(catalogWithImageUrl("http://images.example/tahlil.png"))
+    fun detailBlankSourceNameIsRejected() {
+        assertInvalid(ContentValidator.validateDetail(validDetail().copy(sourceName = " ")))
     }
 
     @Test
-    fun catalogDataUriImageUrlIsRejected() {
-        assertInvalid(catalogWithImageUrl("data:image/png;base64,AAAA"))
+    fun detailBlankSourceUrlIsRejected() {
+        assertInvalid(ContentValidator.validateDetail(validDetail().copy(sourceUrl = " ")))
     }
 
     @Test
-    fun catalogFileImageUrlIsRejected() {
-        assertInvalid(catalogWithImageUrl("file:///data/data/com.sangusantri.app/databases/sangu.db"))
+    fun detailEmptyStepsIsRejected() {
+        assertInvalid(ContentValidator.validateDetail(validDetail().copy(steps = emptyList())))
     }
 
     @Test
-    fun catalogSchemeOnlyImageUrlIsRejected() {
-        assertInvalid(catalogWithImageUrl("https://"))
+    fun detailDuplicateStepIdsAreRejected() {
+        val detail = validDetail()
+
+        assertInvalid(ContentValidator.validateDetail(detail.copy(steps = detail.steps + detail.steps[0])))
     }
 
     @Test
-    fun catalogHttpsImageUrlIsAccepted() {
-        val result = ContentValidator.validateCatalog(catalogWith(imageUrl = "https://images.example/tahlil.png"))
-
-        assertTrue(result is ContentValidation.Valid)
+    fun detailBlankArabicTextIsRejected() {
+        assertInvalidStep(validStep().copy(arabicText = " "))
     }
 
     @Test
-    fun catalogAbsentImageUrlIsAccepted() {
-        val result = ContentValidator.validateCatalog(catalogWith(imageUrl = null))
-
-        assertTrue(result is ContentValidation.Valid)
-    }
-
-    private fun catalogWithContentUrl(contentUrl: String) =
-        ContentValidator.validateCatalog(catalogWith(contentUrl = contentUrl))
-
-    private fun catalogWithImageUrl(imageUrl: String) =
-        ContentValidator.validateCatalog(catalogWith(imageUrl = imageUrl))
-
-    private fun catalogWith(
-        contentUrl: String = "/content/packages/tahlil-v1.json",
-        imageUrl: String? = null,
-    ): ContentCatalogDto {
-        val catalog = validCatalog()
-        return catalog.copy(items = listOf(catalog.items[0].copy(contentUrl = contentUrl, imageUrl = imageUrl)))
+    fun detailBlankTranslationIsRejected() {
+        assertInvalidStep(validStep().copy(translation = " "))
     }
 
     @Test
-    fun validContentFilePassesValidation() {
-        val result = ContentValidator.validateContentFile(validContentFile())
-
-        assertTrue(result is ContentValidation.Valid)
+    fun detailNonPositiveRepeatTargetIsRejected() {
+        assertInvalidStep(validStep().copy(repeatTarget = 0))
     }
 
     @Test
-    fun contentFileUnsupportedSchemaVersionIsRejected() {
-        val result = ContentValidator.validateContentFile(validContentFile().copy(schemaVersion = 99))
+    fun detailAbsentRepeatTargetIsAccepted() {
+        val detail = validDetail().copy(steps = listOf(validStep().copy(repeatTarget = null)))
 
-        assertInvalid(result)
-    }
-
-    @Test
-    fun contentFileEmptyStepsIsRejected() {
-        val result = ContentValidator.validateContentFile(validContentFile().copy(steps = emptyList()))
-
-        assertInvalid(result)
-    }
-
-    @Test
-    fun contentFileDuplicateStepIdsAreRejected() {
-        val file = validContentFile()
-        val result = ContentValidator.validateContentFile(file.copy(steps = file.steps + file.steps[0]))
-
-        assertInvalid(result)
-    }
-
-    @Test
-    fun contentFileBlankArabicTextIsRejected() {
-        val step = ContentStepDto(id = "s1", arabicText = " ", translation = "[FIXTURE]", repeatTarget = 1)
-        val result = ContentValidator.validateContentFile(validContentFile().copy(steps = listOf(step)))
-
-        assertInvalid(result)
-    }
-
-    @Test
-    fun contentFileBlankTranslationIsRejected() {
-        val step = ContentStepDto(id = "s1", arabicText = "[FIXTURE-AR]", translation = " ", repeatTarget = 1)
-        val result = ContentValidator.validateContentFile(validContentFile().copy(steps = listOf(step)))
-
-        assertInvalid(result)
-    }
-
-    @Test
-    fun contentFileNonPositiveRepeatTargetIsRejected() {
-        val step = ContentStepDto(id = "s1", arabicText = "[FIXTURE-AR]", translation = "[FIXTURE]", repeatTarget = 0)
-        val result = ContentValidator.validateContentFile(validContentFile().copy(steps = listOf(step)))
-
-        assertInvalid(result)
+        assertTrue(ContentValidator.validateDetail(detail) is ContentValidation.Valid)
     }
 
     private fun assertInvalid(result: ContentValidation) {
         assertTrue(result is ContentValidation.Invalid)
     }
 
-    private fun validCatalog(): ContentCatalogDto =
-        ContentCatalogDto(
-            schemaVersion = ContentValidator.SUPPORTED_SCHEMA_VERSION,
-            items =
-                listOf(
-                    ContentCatalogItemDto(
-                        id = "tahlil",
-                        title = "Tahlil",
-                        description = "[FIXTURE] Tahlil",
-                        imageUrl = null,
-                        category = "Tahlil dan Doa",
-                        version = 1,
-                        contentUrl = "/content/packages/tahlil-v1.json",
-                        order = 1,
-                        isActive = true,
-                    ),
-                ),
+    private fun assertInvalidImageUrl(imageUrl: String) {
+        assertInvalid(ContentValidator.validateListItem(validItem().copy(imageUrl = imageUrl)))
+    }
+
+    private fun assertInvalidStep(step: ContentStepDto) {
+        assertInvalid(ContentValidator.validateDetail(validDetail().copy(steps = listOf(step))))
+    }
+
+    private fun listWith(vararg items: ContentListItemDto) = validList().copy(items = items.toList())
+
+    private fun validList() =
+        ContentListResponseDto(
+            schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
+            items = listOf(validItem()),
         )
 
-    private fun validContentFile(): ContentFileDto =
-        ContentFileDto(
-            schemaVersion = ContentValidator.SUPPORTED_SCHEMA_VERSION,
+    private fun validItem() =
+        ContentListItemDto(
             id = "tahlil",
-            version = 1,
+            title = "Tahlil",
+            description = "[FIXTURE] Tahlil",
+            imageUrl = null,
+            category = "Amaliyah",
+            order = 1,
+        )
+
+    private fun validDetail() =
+        ContentDetailDto(
+            schemaVersion = ContentValidator.SUPPORTED_REMOTE_SCHEMA_VERSION,
+            id = "tahlil",
+            title = "Tahlil",
+            description = "[FIXTURE] Tahlil",
+            imageUrl = null,
+            category = "Amaliyah",
+            order = 1,
             sourceName = "NON-PRODUCTION FIXTURE",
             sourceUrl = "https://example.invalid/fixture",
-            steps =
-                listOf(
-                    ContentStepDto(id = "s1", arabicText = "[FIXTURE-AR]", translation = "[FIXTURE]", repeatTarget = 1),
-                ),
+            steps = listOf(validStep()),
         )
+
+    private fun validStep() =
+        ContentStepDto(id = "s1", arabicText = "[FIXTURE-AR]", translation = "[FIXTURE]", repeatTarget = 1)
 }

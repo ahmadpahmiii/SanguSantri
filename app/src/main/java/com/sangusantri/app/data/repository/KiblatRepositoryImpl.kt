@@ -41,7 +41,11 @@ constructor(
             .catch { error ->
                 if (error is IOException) emit(emptyPreferences()) else throw error
             }.map { preferences ->
-                val bearing = preferences[BEARING_DEGREES] ?: return@map null
+                // `takeIf { it.isFinite() }` is not paranoia: a NaN written here once outlives the
+                // session and every later launch reads it back, which is how the compass crash of
+                // 0.0.5-0.0.7 repeated ~3x per affected reader. No direction beats a poisoned one.
+                val stored = preferences[BEARING_DEGREES]
+                val bearing = stored?.takeIf { it.isFinite() } ?: return@map null
                 // A bearing cached before distances were stored has none to report; treating it
                 // as far away keeps that reader's compass behaving exactly as it did before.
                 KiblatDirection(
@@ -55,7 +59,8 @@ constructor(
             val location = locationSource.currentLocation() ?: error("no location available")
             val response = apiService.getQibla(coarseCoordinate(location.latitude, location.longitude))
             val payload = response.body()?.takeIf { response.isSuccessful && it.status }
-            val bearing = payload?.data?.direction?.toFloat() ?: error("qibla unavailable")
+            val reportedBearing = payload?.data?.direction?.toFloat()
+            val bearing = reportedBearing?.takeIf { it.isFinite() } ?: error("qibla unavailable")
             val direction =
                 KiblatDirection(
                     bearingDegrees = bearing,

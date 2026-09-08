@@ -87,3 +87,6 @@ tools/content-importer/**/__pycache__/
 *.jks
 *.keystore
 keystore.properties
+
+# Released R8 mapping backups (retrace/Crashlytics re-upload); too large for git.
+app/mappings/

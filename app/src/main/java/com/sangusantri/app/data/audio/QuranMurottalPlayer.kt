@@ -3,6 +3,7 @@ package com.sangusantri.app.data.audio
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -143,7 +144,10 @@ constructor(
                 }
                 if (!alreadyStored) store.refresh()
 
-                startService()
+                if (!startService()) {
+                    _state.value = _state.value.copy(status = QuranMurottalStatus.ERROR, isDownloading = false)
+                    return@launch
+                }
                 exoPlayer.setMediaItem(mediaItemFor(surahNumber, ayahNumber))
                 exoPlayer.setPlaybackSpeed(_state.value.speed.multiplier)
                 exoPlayer.prepare()
@@ -298,11 +302,24 @@ constructor(
         surahNames = surahs.associate { it.number to it.latinName }
     }
 
-    /** Media3 only promotes itself to a foreground service once the service has been started; the
-     * caller is always a user tap in the foreground, so this is never a background start. */
-    private fun startService() {
-        context.startService(Intent(context, QuranMurottalService::class.java))
+    /**
+     * Media3 only promotes itself to a foreground service once the service has been started.
+     *
+     * Returns `false` when the platform refused that start, which is not exceptional: [play] suspends while
+     * the ayah downloads, and a reader who leaves the app during that download lands here with the
+     * process in the background, where Android 12+ throws `BackgroundServiceStartNotAllowedException`
+     * (an `IllegalStateException`). The tap is not always a foreground one, as this comment used to
+     * claim. Playback is abandoned rather than crashing; the reader presses play again on return.
+     */
+    private fun startService(): Boolean {
+        try {
+            context.startService(Intent(context, QuranMurottalService::class.java))
+        } catch (e: IllegalStateException) {
+            Log.w("Murottal", "cannot start playback service from the background", e)
+            return false
+        }
         connectNotificationController()
+        return true
     }
 
     /** Connects [notificationController] once per playback session — see its own comment for why the

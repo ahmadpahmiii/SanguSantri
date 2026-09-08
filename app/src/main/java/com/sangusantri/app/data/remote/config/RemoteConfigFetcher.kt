@@ -1,6 +1,6 @@
 package com.sangusantri.app.data.remote.config
 
-import com.google.firebase.crashlytics.FirebaseCrashlytics
+import android.util.Log
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -29,8 +29,14 @@ constructor(
                     remoteConfig
                         .fetchAndActivate()
                         .addOnCompleteListener { task ->
+                            // A failed fetch is not an error condition: the caller falls back to the
+                            // activated cached values, and every failure seen in production so far was
+                            // the network rather than the app (EAI_NODATA offline, gateway timeouts,
+                            // connection resets, Installations unavailable). Recording them made
+                            // Crashlytics a connectivity log; a malformed *payload* is still recorded,
+                            // in AppUpdatePolicyRepositoryImpl, because that one is ours to fix.
                             if (!task.isSuccessful) {
-                                task.exception?.let(FirebaseCrashlytics.getInstance()::recordException)
+                                Log.w("RemoteConfig", "fetchAndActivate failed", task.exception)
                             }
                             if (continuation.isActive) {
                                 continuation.resume(task.isSuccessful && task.result == true)

@@ -53,7 +53,14 @@ fun rememberDeviceHeading(): DeviceHeading? {
                 override fun onSensorChanged(event: SensorEvent) {
                     SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
                     SensorManager.getOrientation(rotationMatrix, orientation)
-                    val raw = Math.toDegrees(orientation[0].toDouble()).toFloat().normalizeDegrees()
+                    val degrees = Math.toDegrees(orientation[0].toDouble()).toFloat()
+                    // A rotation vector whose magnitude exceeds 1 (seen on emulators and on devices
+                    // with a miscalibrated magnetometer) makes getRotationMatrixFromVector take the
+                    // square root of a negative number, and the whole matrix comes back NaN. The
+                    // sample is dropped rather than folded in: `smoothed` would stay NaN for the
+                    // rest of the session, and a NaN azimuth crashed the compass in 0.0.5-0.0.7.
+                    if (!degrees.isFinite()) return
+                    val raw = degrees.normalizeDegrees()
                     smoothed = smoothed?.let { previous -> previous.smoothedTowards(raw) } ?: raw
                     heading = DeviceHeading(azimuthDegrees = smoothed ?: raw, needsCalibration = unreliable)
                 }

@@ -1,3 +1,5 @@
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -86,6 +88,14 @@ android {
         release {
             optimization {
                 enable = true
+            }
+            // The Crashlytics Gradle plugin (3.0.7) still derives its mapping-upload default from
+            // AGP's legacy `minifyEnabled` flag, which the `optimization` DSL above replaces — so
+            // it silently skipped the upload and every 0.0.x release arrived in the console as
+            // `r8-map-id-<hash>` with obfuscated frames. Enabling it explicitly restores both the
+            // real mapping-file id and the uploadCrashlyticsMappingFileRelease task.
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = true
             }
         }
     }

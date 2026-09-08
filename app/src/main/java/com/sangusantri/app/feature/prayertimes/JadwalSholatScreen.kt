@@ -954,7 +954,10 @@ private fun BoxScope.CardinalLabel(
  * wrapped delta instead keeps the motion continuous. */
 @Composable
 private fun rememberShortestPathAngle(target: Float?): Float? {
-    if (target == null) return null
+    // Both the needle rotation and the Ka'bah's orbital offset read this one value, so a non-finite
+    // angle is refused here rather than at each of them: `continuous` accumulates, and once NaN it
+    // never recovers.
+    if (target == null || !target.isFinite()) return null
     var continuous by remember { mutableFloatStateOf(target) }
     LaunchedEffect(target) {
         val delta = ((target - continuous + HALF_TURN) % FULL_TURN + FULL_TURN) % FULL_TURN - HALF_TURN

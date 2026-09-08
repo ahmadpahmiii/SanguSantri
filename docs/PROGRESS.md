@@ -8687,3 +8687,109 @@ Beranda pill in its zero and partial states, and the pill opening Aktivitas.
 
 Answer concept-doc §8.4/§8.5 (milestone text source, daily reminder), or Nahwu
 Quiz `0.0.5`.
+
+---
+
+## 2026-09-08 — Crashlytics deobfuscation restored, and every open production crash triaged
+
+**Status:** Implemented. `assembleDebug`, `lint`, `ktlintCheck`, `detekt` pass
+(no new violations in any touched file; the repo-wide indent drift recorded in
+the 2026-08-24 entries is unchanged). **Not verified on a device — none was
+attached.**
+
+### The mapping file was never uploaded
+
+Every issue in the console read `r8-map-id-<hash> - dd1.h`, i.e. Crashlytics had
+no mapping for the build. `app/build/crashlytics/release/mappingFileId.txt` was
+all zeros and no `uploadCrashlyticsMappingFileRelease` task existed at all: the
+Crashlytics Gradle plugin (3.0.7) still derives its upload default from AGP's
+legacy `minifyEnabled`, which this project replaced with AGP 9's
+`optimization { enable = true }`. It concluded the release build was not
+obfuscated and skipped the whole pipeline.
+
+`app/build.gradle.kts` now sets `mappingFileUploadEnabled = true` explicitly on
+the release build type. `bundleRelease --dry-run` confirms the upload task is in
+the graph, so 0.0.8 onward deobfuscates itself. **Removing obfuscation was
+considered and rejected** — it would cost APK size and startup for a problem
+that was one line of build configuration.
+
+The 0.0.7 mapping still in `build/` matched the console's `r8-map-id` exactly
+(`pg_map_id: 1dd89edd…`); it is preserved at `app/mappings/mapping-0.0.7-13.txt`
+(gitignored, 81 MB) so those reports stay retraceable with
+`cmdline-tools/latest/bin/retrace`. 0.0.5's and 0.0.6's mappings are lost.
+
+### Crash 1 — `Cannot round NaN value` (FATAL, 88 events, ~34 users, 0.0.5-0.0.7)
+
+`JadwalSholatScreen.kt:854`, the Ka'bah icon's `Modifier.offset`, exactly as
+diagnosed on 2026-08-24 — **but that entry's fix was never committed.**
+`DeviceHeading.kt` was last touched by `a822a3f`, and neither it nor
+`KiblatRepositoryImpl.kt` contained any `isFinite`/`isNaN` check. The guards
+described there were lost from the working tree. Re-applied, at three points:
+
+- `DeviceHeading.kt` — a rotation vector of magnitude > 1 makes
+  `getRotationMatrixFromVector` take the root of a negative number and return a
+  NaN matrix. The sample is dropped, keeping the last good heading; folding it in
+  poisoned `smoothed` for the rest of the session.
+- `KiblatRepositoryImpl.kt` — a non-finite bearing is rejected both on the way
+  out of DataStore and on the way in from myquran. A NaN written once outlived
+  the session and was re-read on every later launch, which is why Crashlytics
+  flagged the issue `SIGNAL_REPETITIVE` (~3 crashes per affected reader) and
+  `SIGNAL_EARLY`. This also covers `BerandaPrayerBlock.kt:183`, the same latent
+  `roundToInt` on the same value.
+- `rememberShortestPathAngle` — returns `null` for a non-finite target. Both the
+  needle rotation and the Ka'bah offset read this one value, and `continuous`
+  accumulates, so once NaN it never recovered.
+
+### Crash 2 — `BackgroundServiceStartNotAllowedException` (FATAL, 0.0.4)
+
+`QuranMurottalPlayer.startService` called `context.startService` after the ayah
+download it awaits, by which time the reader may have left the app — Android 12+
+then throws. It now returns `false` instead of crashing and `play` reports
+`ERROR`. The old KDoc's claim that "the caller is always a user tap in the
+foreground" was the wrong assumption behind the crash and has been corrected.
+
+### ~705 non-fatals removed (about 90% of everything in the console)
+
+Neither category was ever actionable, and together they buried the one real
+crash the console existed to show:
+
+- **Play Core, ~660 events / 45 users** (`ERROR_INSTALL_NOT_ALLOWED` 479,
+  `ERROR_APP_NOT_OWNED` 147, `ERROR_PLAY_STORE_NOT_FOUND` 11, "Failed to bind to
+  the service" 24 — the last being a `CompletionHandlerException` from the same
+  `requestAppUpdateInfo` path). Every one is a fact about the device, not the
+  build. `AppUpdateViewModel` logs them to logcat instead; the gate already fails
+  open, so no behaviour changes. The FORCE-but-Play-cannot-deliver mismatch is
+  still recorded — that one is ours.
+- **Remote Config fetch failures, ~45 events** (offline `EAI_NODATA`, gateway
+  timeouts, connection resets, Installations unavailable). `RemoteConfigFetcher`
+  logs instead; callers already fall back to activated cached values. A malformed
+  `in_app_update` *payload* is still recorded in `AppUpdatePolicyRepositoryImpl`.
+
+### Files modified
+
+`app/build.gradle.kts`, `.gitignore`, `DeviceHeading.kt`,
+`KiblatRepositoryImpl.kt`, `JadwalSholatScreen.kt`, `AppUpdateViewModel.kt`,
+`RemoteConfigFetcher.kt`, `QuranMurottalPlayer.kt`.
+
+### Known limitations — three issues deliberately left open
+
+- **`Hilt_ReminderBootReceiver.inject` — "The component was not created"**
+  (FATAL, 2 events / 2 users, 0.0.4-0.0.6, not seen in 0.0.7). The manifest is
+  clean (not exported, no `android:process`, no `directBootAware`), so the cause
+  is unexplained — most likely the receiver reaching a context whose application
+  is not the Hilt one. Hilt injects in the generated superclass, so it cannot be
+  guarded from inside `onReceive`; the fix would be dropping `@AndroidEntryPoint`
+  for `EntryPointAccessors` in a `runCatching`. **Not done:** that trades a
+  2-event crash for a risk of silently never rescheduling reminders after reboot,
+  which cannot be tested without a real reboot.
+- **Two ANRs, 3 events total.** One has no root cause attributed; the other is in
+  `com.sangusantri.app.prototype.hafalan.HafalanNativeHarnessViewModel` — worth
+  asking separately whether prototype code should ship in a release build.
+- **Room "migration from 4 to 5 required but not found"** (FATAL, 3 events,
+  0.0.4 only) needs no fix: `DatabaseModule` has carried
+  `fallbackToDestructiveMigration(dropAllTables = true)` since.
+
+### Next recommended milestone
+
+Unchanged: answer concept-doc §8.4/§8.5, or Nahwu Quiz `0.0.5`. Ship 0.0.8 with
+these fixes first so the mapping upload starts working.

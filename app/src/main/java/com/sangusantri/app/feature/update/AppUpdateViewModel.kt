@@ -1,5 +1,6 @@
 package com.sangusantri.app.feature.update
 
+import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.lifecycle.ViewModel
@@ -86,7 +87,7 @@ constructor(
             try {
                 appUpdateManager.requestCompleteUpdate()
             } catch (e: Exception) {
-                FirebaseCrashlytics.getInstance().recordException(e)
+                ignorePlayCoreFailure(e)
             }
         }
     }
@@ -105,7 +106,7 @@ constructor(
                 AppUpdateOptions.newBuilder(updateType).build(),
             )
         } catch (e: Exception) {
-            FirebaseCrashlytics.getInstance().recordException(e)
+            ignorePlayCoreFailure(e)
         }
     }
 
@@ -143,9 +144,25 @@ constructor(
         try {
             appUpdateManager.requestAppUpdateInfo()
         } catch (e: Exception) {
-            FirebaseCrashlytics.getInstance().recordException(e)
+            ignorePlayCoreFailure(e)
             null
         }
+
+    /**
+     * Play Core's own failures are not this app's bugs and were never actionable: every one of them
+     * is a fact about the device, not about the build — the app was not installed from Play
+     * (`ERROR_APP_NOT_OWNED`, sideloads and Internal App Sharing), the Play Store is missing or
+     * unofficial (`ERROR_PLAY_STORE_NOT_FOUND`), the device will not install right now
+     * (`ERROR_INSTALL_NOT_ALLOWED`: low battery, no space), or the Play service could not be bound
+     * at all. Recording them produced roughly 660 non-fatals across 0.0.4-0.0.7 — some 90% of
+     * everything in Crashlytics — which buried the one real crash the console was there to show.
+     *
+     * The gate already fails open (see the class KDoc), so swallowing here changes no behaviour: the
+     * reader simply is not offered an update on a device that could not have installed one anyway.
+     */
+    private fun ignorePlayCoreFailure(e: Exception) {
+        Log.w("AppUpdate", "in-app update unavailable on this device", e)
+    }
 
     override fun onCleared() {
         appUpdateManager.unregisterListener(installStateListener)

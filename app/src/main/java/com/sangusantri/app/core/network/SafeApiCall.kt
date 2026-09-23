@@ -1,7 +1,9 @@
 package com.sangusantri.app.core.network
 
 import android.util.Log
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.sangusantri.app.core.validation.Validation
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import retrofit2.Response
 import java.io.IOException
@@ -29,7 +31,9 @@ private const val TAG = "ApiCall"
  */
 // Five guard clauses, one per way a call can fail. Folding them into a single expression would
 // hide exactly the distinctions this function exists to draw.
-@Suppress("ReturnCount")
+// The generic catch is the point: Retrofit's setup failures are RuntimeExceptions of no
+// fixed type, and letting any of them reach the caller kills the process.
+@Suppress("ReturnCount", "TooGenericExceptionCaught")
 suspend fun <T : Any> safeApiCall(
     source: String,
     call: suspend () -> Response<T>,
@@ -37,10 +41,29 @@ suspend fun <T : Any> safeApiCall(
     val response =
         try {
             call()
+        } catch (cancellation: CancellationException) {
+            // Rethrown before anything else: coroutine cancellation is a RuntimeException, and
+            // swallowing it below would break structured concurrency everywhere.
+            throw cancellation
         } catch (io: IOException) {
             return failed(ApiResult.NetworkError("$source network error: ${io.reasonText()}"))
         } catch (malformed: SerializationException) {
             return failed(ApiResult.MalformedResponse("$source: unparseable body (${malformed.reasonText()})"))
+        } catch (setupFailure: RuntimeException) {
+            // Retrofit throws IllegalArgumentException from its *own* setup — building a service
+            // method, resolving a converter — not from the request. That happens on whichever
+            // thread first touched the interface, so it killed the app rather than failing a call:
+            // on 2026-09-08 an R8 rule gap erased a response type's generic signature and Kiblat
+            // took the whole process down with it.
+            //
+            // Downgraded to a failed request, but never quietly: it is recorded to Crashlytics, so
+            // a release-only shrinking mistake is still loud in the console. Degrading beats a
+            // crash loop on a user's phone, and this is a class of bug that only ever appears
+            // after shipping.
+            FirebaseCrashlytics.getInstance().recordException(setupFailure)
+            return failed(
+                ApiResult.MalformedResponse("$source: request could not be created (${setupFailure.reasonText()})"),
+            )
         }
 
     if (!response.isSuccessful) {

@@ -89,6 +89,14 @@ android {
             optimization {
                 enable = true
             }
+            // Without this line `proguard-rules.pro` is not part of the build at all — the file
+            // existed, was empty, and nothing referenced it (verified against
+            // `build/outputs/mapping/release/configuration.txt`). Library consumer rules were the
+            // only thing shaping R8, which is how the app shipped with no rules of its own.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // The Crashlytics Gradle plugin (3.0.7) still derives its mapping-upload default from
             // AGP's legacy `minifyEnabled` flag, which the `optimization` DSL above replaces — so
             // it silently skipped the upload and every 0.0.x release arrived in the console as

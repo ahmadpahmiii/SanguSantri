@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -95,6 +96,21 @@ fun HijriCalendarGrid(
     }
 }
 
+/** Selection and today are the only two states that paint a cell — everything else is bare. */
+@Composable
+private fun cellDecoration(
+    isSelected: Boolean,
+    isToday: Boolean,
+    palette: HijriCalendarPalette,
+    shape: Shape,
+): Modifier = when {
+    isSelected -> Modifier
+        .background(palette.tealSoft)
+        .border(1.dp, palette.teal, shape)
+    isToday -> Modifier.border(1.dp, MaterialTheme.colorScheme.outline, shape)
+    else -> Modifier
+}
+
 @Composable
 private fun HijriCalendarDayCell(
     day: HijriCalendarDay,
@@ -113,16 +129,7 @@ private fun HijriCalendarDayCell(
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
     val cellShape = RoundedCornerShape(CellCornerRadius)
-    val decoration =
-        when {
-            isSelected ->
-                Modifier
-                    .background(palette.tealSoft)
-                    .border(1.dp, palette.teal, cellShape)
-
-            day.isToday -> Modifier.border(1.dp, MaterialTheme.colorScheme.outline, cellShape)
-            else -> Modifier
-        }
+    val decoration = cellDecoration(isSelected, day.isToday, palette, cellShape)
     val description = day.rememberContentDescription(isSelected, style.names)
 
     Box(

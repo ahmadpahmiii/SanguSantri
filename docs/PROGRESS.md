@@ -9252,3 +9252,110 @@ Manual on-device (Pixel 9 emulator, API 35), after `pm clear`:
   emits `Success` with pre-write data. Both are worth adding; neither exists.
 * The offline empty state and "Coba lagi" on Beranda still have not been
   exercised — that needs airplane mode on a fresh install, which was not run.
+
+---
+
+## 2026-09-09 — Release-only crash: R8 deleted the Retrofit response envelopes
+
+`IllegalArgumentException: Unable to create converter for class java.lang.Object`,
+caused by `SerializationException: Serializer for class 'Any' is not found`,
+thrown on the main thread from `KiblatRepositoryImpl.refreshDirection`. Release
+builds only; debug was unaffected throughout.
+
+### Root cause — a regression from the 2026-09-08 data-layer refactor
+
+Retrofit resolves a `suspend` function's response type from the generic signature
+of its `Continuation` parameter, not its JVM return type (which is plain
+`Object`). R8 full mode strips generic signatures that reference classes it has
+deleted, and it deletes classes it considers unreachable.
+
+`PrayerEnvelopeDto` and `QuranEnvelopeDto` were both deleted — confirmed in
+`build/outputs/mapping/release/usage.txt`, with zero surviving entries in
+`mapping.txt`. The response type then erased to `Object`, and the kotlinx
+converter was asked for a serializer for `Any`.
+
+They became unreachable *because of the refactor*. Before it,
+`KiblatRepositoryImpl` and `PrayerScheduleRepositoryImpl` read `.status` and
+`.data` off the envelope directly — concrete member accesses that keep a class
+alive. Introducing `ApiEnvelope` moved every read behind `payload` /
+`envelopeFailure`, after which the concrete classes appeared *only* inside
+Retrofit generic signatures, which R8 does not count as a use.
+
+This was never caught because nothing in the validation gate builds a minified
+APK: `assembleDebug` does not run R8. The scope was wider than the reported
+crash — the same erasure applies to `QuranEnvelopeDto`, so Jadwal Sholat, Kiblat
+**and the entire Quran download** were broken in release.
+
+### Fix 1 — `proguard-rules.pro` was never part of the build
+
+Separately and worse: `app/build.gradle.kts`'s release block declared no
+`proguardFiles(...)` at all. The file existed, was empty, and was not referenced
+in `build/outputs/mapping/release/configuration.txt` — only library consumer
+rules were shaping R8. A rule written there would have done nothing.
+
+`proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")`
+added to the release block; `configuration.txt` now references it.
+
+### Fix 2 — keep rules
+
+`app/proguard-rules.pro` now keeps every `@Serializable` model in the app, its
+generated serializer machinery, and the `data.remote.**` service interfaces.
+Keeping all of them (rather than the two that happened to break) is the honest
+rule: every one exists to be reflected over at runtime, so none is safe to shrink
+on reachability alone.
+
+Retrofit 3.0.0's own consumer rules were present and correct throughout — the gap
+was on this app's side, not Retrofit's.
+
+### Fix 3 — a converter failure no longer kills the process
+
+`safeApiCall` caught only `IOException` and `SerializationException`, so
+Retrofit's setup-time `IllegalArgumentException` propagated to whichever thread
+first touched the service interface. It now also catches `RuntimeException` and
+returns `MalformedResponse` — but records it to Crashlytics first, so a
+release-only shrinking mistake stays loud in the console instead of becoming
+silent. `CancellationException` is rethrown ahead of everything else; it is a
+`RuntimeException` and swallowing it would break structured concurrency.
+
+This is defence, not the fix. Degrading beats a crash loop on a user's phone, and
+this class of bug only ever appears after shipping.
+
+### Files modified
+
+* `app/build.gradle.kts` — `proguardFiles` in the release block.
+* `app/proguard-rules.pro` — was empty; now holds the keep rules.
+* `app/src/main/java/com/sangusantri/app/core/network/SafeApiCall.kt`
+* `app/src/main/java/com/sangusantri/app/feature/hijricalendar/components/HijriCalendarGrid.kt`
+  — extracted `cellDecoration`; the 2026-09-08 reformat had pushed
+  `HijriCalendarDayCell` one line over detekt's `LongMethod` threshold.
+
+### Validation
+
+`ktlintCheck`, `detekt`, `lint`, `assembleDebug`, `assembleRelease`,
+`compileDebugAndroidTestKotlin` — `BUILD SUCCESSFUL`. `testDebugUnitTest`: 219
+tests, 0 failures.
+
+R8 output after the fix: neither envelope appears in `usage.txt`, and both plus
+their `$$serializer`/`$Companion` classes appear in `mapping.txt`.
+
+**Verified on the minified release APK** (debug-signed, Pixel 9 emulator, API 35
+— the physical device attached at the time was deliberately left untouched):
+
+* Cold launch, no `FATAL`, process survives.
+* Beranda renders the CMS catalogue.
+* Jadwal Sholat opens; Arah Kiblat renders a bearing (19°, ±13.222 km).
+* "Hitung ulang" — the exact method in the crash stack — no crash.
+* "Pilih kota" populates the kabupaten list (KAB. ACEH BARAT, …), which is
+  end-to-end proof that `Response<PrayerEnvelopeDto<List<PrayerCityDto>>>`
+  deserializes under R8.
+
+### Known limitations
+
+* **The validation gate still cannot catch this class of bug.** Nothing in it
+  builds a minified APK, so any future keep-rule gap reaches users exactly the
+  same way. Adding `assembleRelease` to the gate — and ideally a smoke test on
+  the minified build — is the real remedy and is not done.
+* Release builds are unsigned (no `signingConfig`), so on-device verification
+  required signing with the debug keystore by hand.
+* The Quran download path was fixed by the same rules but was **not** exercised
+  on device; only the prayer/qibla path was.

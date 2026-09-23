@@ -3,7 +3,6 @@ package com.sangusantri.app.domain.model
 import com.sangusantri.app.domain.model.HijriCalendarBundle.officialRecords
 import com.sangusantri.app.domain.model.HijriCalendarBundle.rules
 
-
 /**
  * The versioned, curated local content bundle for Kalender Hijriah (`0.0.7`). [rules] is the
  * initial allowlist from `docs/product/HIJRI_CALENDAR_PRD.md` §5.2 — the product owner's own

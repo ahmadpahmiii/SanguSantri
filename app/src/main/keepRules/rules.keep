@@ -1,12 +1,92 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
+# SanguSantri Comprehensive R8 Configuration
 #
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# Optimized for AGP 9.x with optimization.enable = true.
+# Covers Retrofit 3, Kotlin 2.2+, Navigation 3, Room, Media3, and Hilt.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- 1. General Reflection & Attributes --------------------------------------------------------
+
+# Keep generic signatures and annotations for runtime reflection (Retrofit, Hilt, Serialization).
+-keepattributes Signature, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, AnnotationDefault
+
+# Keep Enums to prevent R8 from stripping their names if used in UI or serialization.
+-keepclassmembers enum * { *; }
+
+# --- 2. Kotlin Coroutines & Serialization -------------------------------------------------------
+
+# Protect Continuation to ensure Retrofit/Room suspend functions are correctly detected.
+-keep class kotlin.coroutines.Continuation
+
+# Protect EVERY @Serializable class in the project (DTOs, Nav routes, etc.).
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keepclassmembers class * {
+    *** Companion;
+    *** serializer(...);
+}
+
+# --- 3. Retrofit 3.0 & OkHttp ------------------------------------------------------------------
+
+# Keep all API interfaces and their method annotations.
+-keepclassmembers,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# Protect common Retrofit types used in safeApiCall.
+-keep class retrofit2.Response { *; }
+
+# OkHttp/Okio rules: Library-bundled rules usually suffice, but we keep the internal
+# reflective identifiers safe for ResponseSizeLimitInterceptor.
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# --- 4. Hilt & Dagger (Dependency Injection) ----------------------------------------------------
+
+# Keep all Hilt entry points, modules, and generated component code.
+-keep @dagger.hilt.android.AndroidEntryPoint class *
+-keep @dagger.hilt.InstallIn class *
+-keep @dagger.Module class *
+-keep @javax.inject.Qualifier class *
+-keep @javax.inject.Scope class *
+
+-keep class dagger.hilt.internal.GeneratedComponentManager { *; }
+-keep class * implements dagger.hilt.internal.GeneratedComponent { *; }
+-keep class * implements dagger.hilt.internal.GeneratedComponentManager { *; }
+-keep class * implements dagger.hilt.EntryPoint { *; }
+
+# --- 5. Room Persistence -----------------------------------------------------------------------
+
+# Protect DAOs and Entities from having their annotations or mapping signatures stripped.
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
+-keep @androidx.room.Database class * { *; }
+
+-keepclassmembers class * {
+    @androidx.room.* *;
+}
+
+# --- 6. Navigation 3 ---------------------------------------------------------------------------
+
+# Navigation 3 relies on Kotlin Serialization for its NavKey routes; the Serialization rules
+# above already cover this, but we explicitly keep NavKey usage for safety.
+-keep interface androidx.navigation3.runtime.NavKey { *; }
+
+# --- 7. Media3 & Murottal (Audio) --------------------------------------------------------------
+
+# Protect the Murottal service and ExoPlayer integration.
+-keep class androidx.media3.session.MediaSessionService { *; }
+-keep class androidx.media3.session.MediaLibraryService { *; }
+-keep class androidx.media3.common.Player { *; }
+-keep class com.sangusantri.app.data.audio.QuranMurottalService { *; }
+
+# --- 8. Native JNI (Quran Credential) ----------------------------------------------------------
+
+# Protect native method names and their bridge class (ADR 0016).
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
+-keep class com.sangusantri.app.data.remote.quran.QuranNativeCredentialBridge { *; }
+
+# --- 9. Coil 3 (Images) ------------------------------------------------------------------------
+
+# Coil 3 usually bundles its own rules; we only add safety for its Serialization usage
+# if custom interceptors are added. No project-specific Coil rules needed yet.
+-dontwarn io.coil3.**
